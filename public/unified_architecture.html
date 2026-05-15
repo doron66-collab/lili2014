@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QC·AI·HPC Unified Architecture · P1–P9 · Doron Cohen · IST 697</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #f7f8fc;
+    --surface:    #ffffff;
+    --border:     #e2e6ef;
+    --text:       #1a2035;
+    --muted:      #6b7a99;
+
+    --ingest:     #3d5a9e;  --ingest-bg: #f0f4ff;  --ingest-bd: #b8c8f0;
+    --compile:    #1565c0;  --compile-bg:#eef3fb;  --compile-bd:#b3cae8;
+    --qk:         #0d7ea8;  --qk-bg:     #eef7fb;  --qk-bd:     #b3dded;
+    --em:         #6d3d8a;  --em-bg:     #f4eefa;  --em-bd:     #cbaee0;
+    --ai:         #b07008;  --ai-bg:     #fdf6e8;  --ai-bd:     #e8c97a;
+    --gov:        #1a7a4a;  --gov-bg:    #edf7f2;  --gov-bd:    #a3d9be;
+
+    --p-bg:  #e8f4f9;  --p-bd:  #9dcde3;  --p-clr:  #0d7ea8;
+    --p9-bg: #fff3e8;  --p9-bd: #f0bb7a;  --p9-clr: #b07008;
+
+    --shadow:    0 2px 12px rgba(13,50,100,0.07);
+    --shadow-lg: 0 4px 24px rgba(13,50,100,0.11);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 40px 24px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    text-align: center;
+    max-width: 860px;
+    margin: 0 auto 40px;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--qk);
+    margin-bottom: 12px;
+  }
+  .page-header h1 {
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .page-header p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+  .badge {
+    display: inline-block;
+    margin-top: 14px;
+    background: var(--ai-bg);
+    color: var(--ai);
+    border: 1px solid var(--ai-bd);
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── COLUMN HEADERS ── */
+  .col-headers {
+    max-width: 860px;
+    margin: 0 auto 6px;
+    display: grid;
+    grid-template-columns: 1fr 44px 1fr;
+  }
+  .col-h {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .col-h.right { text-align: right; }
+
+  /* ── MAIN DIAGRAM ── */
+  .diagram {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* One operational row */
+  .layer-row {
+    display: grid;
+    grid-template-columns: 1fr 44px 1fr;
+    align-items: center;
+  }
+
+  /* ── OP CARD (left column) ── */
+  .op-card {
+    border-radius: 11px;
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
+  }
+  .op-card:hover { box-shadow: var(--shadow-lg); }
+
+  .op-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lbadge {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .op-title  { font-size: 12.5px; font-weight: 700; }
+  .op-sub    { font-size: 10.5px; color: var(--muted); padding: 8px 14px 10px; line-height: 1.55; }
+
+  /* Layer color themes */
+  .l-ingest  { border-color: var(--ingest-bd); }
+  .l-ingest  .op-header { background: var(--ingest-bg); }
+  .l-ingest  .lbadge    { background: var(--ingest); color:#fff; }
+  .l-ingest  .op-title  { color: var(--ingest); }
+
+  .l-compile { border-color: var(--compile-bd); }
+  .l-compile .op-header { background: var(--compile-bg); }
+  .l-compile .lbadge    { background: var(--compile); color:#fff; }
+  .l-compile .op-title  { color: var(--compile); }
+
+  .l-qk      { border-color: var(--qk-bd); }
+  .l-qk      .op-header { background: var(--qk-bg); }
+  .l-qk      .lbadge    { background: var(--qk); color:#fff; }
+  .l-qk      .op-title  { color: var(--qk); }
+
+  .l-em      { border-color: var(--em-bd); }
+  .l-em      .op-header { background: var(--em-bg); }
+  .l-em      .lbadge    { background: var(--em); color:#fff; }
+  .l-em      .op-title  { color: var(--em); }
+
+  .l-ai      { border-color: var(--ai-bd); }
+  .l-ai      .op-header { background: var(--ai-bg); }
+  .l-ai      .lbadge    { background: var(--ai); color:#fff; }
+  .l-ai      .op-title  { color: var(--ai); }
+
+  .l-gov     { border-color: var(--gov-bd); }
+  .l-gov     .op-header { background: var(--gov-bg); }
+  .l-gov     .lbadge    { background: var(--gov); color:#fff; }
+  .l-gov     .op-title  { color: var(--gov); }
+
+  /* ── CENTRE ARROW ── */
+  .arrow-col {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .arrow-svg { opacity: 0.35; }
+  .arrow-svg.active { opacity: 1; }
+
+  /* ── PROVENANCE COLUMN (right) ── */
+  .prov-col {
+    padding: 8px 0 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+  }
+  .p-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .p-pill {
+    background: var(--p-bg);
+    border: 1.5px solid var(--p-bd);
+    border-radius: 9px;
+    padding: 7px 12px;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .p-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(13,126,168,0.18); }
+  .p-pill .pid   { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--p-clr); margin-bottom:2px; }
+  .p-pill .plbl  { font-size:9.5px; font-weight:500; color:var(--text); line-height:1.3; }
+
+  .p-pill.p9 { background:var(--p9-bg); border-color:var(--p9-bd); }
+  .p-pill.p9:hover { box-shadow:0 4px 14px rgba(176,112,8,0.18); }
+  .p-pill.p9 .pid { color:var(--p9-clr); }
+  .p9-tag {
+    display:inline-block; margin-top:3px;
+    font-size:8.5px; color:var(--p9-clr);
+    background:var(--p9-bg); border:1px solid var(--p9-bd);
+    border-radius:8px; padding:1px 6px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  .p-pill.p8 { background:var(--gov-bg); border-color:var(--gov-bd); }
+  .p-pill.p8:hover { box-shadow:0 4px 14px rgba(26,122,74,0.18); }
+  .p-pill.p8 .pid { color:var(--gov); }
+
+  .prov-none { font-size:10.5px; color:var(--muted); font-style:italic; padding-left:2px; }
+
+  /* ── VERTICAL CONNECTOR BETWEEN ROWS ── */
+  .conn-row {
+    display: grid;
+    grid-template-columns: 1fr 44px 1fr;
+    height: 26px;
+  }
+  .conn-line {
+    display: flex;
+    justify-content: center;
+  }
+  .conn-line::after {
+    content: '';
+    width: 2px;
+    background: linear-gradient(to bottom, var(--border), var(--border));
+    display: block;
+  }
+
+  /* ── P8 SEAL ── */
+  .seal-wrap {
+    max-width: 860px;
+    margin: 4px auto 0;
+  }
+  .seal-drop {
+    display: flex;
+    justify-content: center;
+    height: 30px;
+  }
+  .seal-drop::after {
+    content: '';
+    width: 2px;
+    background: var(--gov-bd);
+    display: block;
+  }
+  .seal-card {
+    background: var(--gov-bg);
+    border: 1.5px solid var(--gov-bd);
+    border-radius: 13px;
+    padding: 20px 28px 22px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .seal-id   { font-family:'JetBrains Mono',monospace; font-size:17px; font-weight:500; color:var(--gov); margin-bottom:4px; }
+  .seal-lbl  { font-size:12.5px; font-weight:600; color:var(--text); }
+  .seal-sub  { font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .hash-chain {
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; color:var(--muted);
+    margin-top:14px; letter-spacing:0.3px;
+  }
+  .hash-chain span { color:var(--gov); font-weight:500; }
+  .out-pills {
+    display:flex; gap:10px; flex-wrap:wrap;
+    justify-content:center; margin-top:14px;
+  }
+  .out-pill {
+    background:var(--gov-bg); border:1px solid var(--gov-bd);
+    border-radius:20px; padding:6px 16px;
+    font-size:11px; font-weight:600; color:var(--gov);
+  }
+
+  /* ── FOOTNOTE ── */
+  .footnote {
+    max-width:860px; margin:28px auto 0;
+    text-align:center; font-size:10.5px;
+    color:var(--muted); line-height:1.7;
+    border-top:1px solid var(--border); padding-top:18px;
+  }
+  .footnote strong { color:var(--text); }
+  .stamp {
+    display:inline-block; margin-top:10px;
+    background:var(--ai-bg); color:var(--ai);
+    border:1px solid var(--ai-bd); border-radius:4px;
+    padding:3px 10px; font-size:9.5px;
+    font-weight:600; letter-spacing:0.4px; text-transform:uppercase;
+  }
+
+  @media (max-width:600px) {
+    .layer-row, .col-headers, .conn-row { grid-template-columns: 1fr 28px 1fr; }
+    .p-pill .plbl { display:none; }
+    .col-h.right { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">IS Contribution · Unified Design Artifact</div>
+  <h1>QC·AI·HPC Operational Stack<br>with P1–P9 Provenance Emission</h1>
+  <p>Each platform layer has a defined provenance obligation.<br>
+     P8 seals the complete chain at the governance layer — satisfying FDA 21 CFR §11.10(e) tamper-evidence requirements.</p>
+  <div class="badge">★ Original IS Design Artifact — Doron Cohen · IST 697 · CGU 2026</div>
+</div>
+
+<div class="col-headers">
+  <div class="col-h">Operational Layer &nbsp;·&nbsp; QC·AI·HPC Stack</div>
+  <div></div>
+  <div class="col-h right">Provenance Emitted &nbsp;·&nbsp; P1–P9 Schema</div>
+</div>
+
+<div class="diagram">
+
+  <!-- ══════ LAYER 1 — DATA INGESTION ══════ -->
+  <div class="layer-row">
+    <div class="op-card l-ingest">
+      <div class="op-header">
+        <div class="lbadge">1</div>
+        <div class="op-title">Data Ingestion</div>
+      </div>
+      <div class="op-sub">
+        NGS patient report (MI25-0349) · Mutation identification (TP53 C275F)<br>
+        RCSB PDB retrieval (2OCJ) · Active-space boundary derivation
+      </div>
+    </div>
+    <div class="arrow-col">
+      <svg class="arrow-svg" width="22" height="22" viewBox="0 0 22 22">
+        <line x1="2" y1="11" x2="16" y2="11" stroke="#6b7a99" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="11,5 17,11 11,17" fill="none" stroke="#6b7a99" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="prov-col">
+      <div class="prov-none">No direct P-element — triggers P1 generation at Layer 3</div>
+    </div>
+  </div>
+
+  <div class="conn-row"><div class="conn-line"></div><div></div><div></div></div>
+
+  <!-- ══════ LAYER 2 — COMPILATION ══════ -->
+  <div class="layer-row">
+    <div class="op-card l-compile">
+      <div class="op-header">
+        <div class="lbadge">2</div>
+        <div class="op-title">Circuit Compilation</div>
+      </div>
+      <div class="op-sub">
+        Qiskit transpiler · Jordan-Wigner fermion encoding<br>
+        Gate decomposition · Noise-aware mapping · BQP routing decision
+      </div>
+    </div>
+    <div class="arrow-col">
+      <svg class="arrow-svg active" width="22" height="22" viewBox="0 0 22 22">
+        <line x1="2" y1="11" x2="16" y2="11" stroke="#1565c0" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="11,5 17,11 11,17" fill="none" stroke="#1565c0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="prov-col">
+      <div class="p-row">
+        <div class="p-pill">
+          <div class="pid">P2</div>
+          <div class="plbl">Compilation lineage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="conn-row"><div class="conn-line"></div><div></div><div></div></div>
+
+  <!-- ══════ LAYER 3 — QUANTUM KERNEL ══════ -->
+  <div class="layer-row">
+    <div class="op-card l-qk">
+      <div class="op-header">
+        <div class="lbadge">3</div>
+        <div class="op-title">Quantum Kernel</div>
+      </div>
+      <div class="op-sub">
+        IBM Heron r3 · sqDRIFT / VQE · Active space ~44e / ~88 qubits<br>
+        Shot execution · Measurement readout · Raw bitstring recording
+      </div>
+    </div>
+    <div class="arrow-col">
+      <svg class="arrow-svg active" width="22" height="22" viewBox="0 0 22 22">
+        <line x1="2" y1="11" x2="16" y2="11" stroke="#0d7ea8" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="11,5 17,11 11,17" fill="none" stroke="#0d7ea8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="prov-col">
+      <div class="p-row">
+        <div class="p-pill"><div class="pid">P1</div><div class="plbl">Circuit fingerprint</div></div>
+        <div class="p-pill"><div class="pid">P3</div><div class="plbl">Device &amp; calibration</div></div>
+        <div class="p-pill"><div class="pid">P4</div><div class="plbl">Error budget snapshot</div></div>
+        <div class="p-pill"><div class="pid">P5</div><div class="plbl">Raw outcome dist.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="conn-row"><div class="conn-line"></div><div></div><div></div></div>
+
+  <!-- ══════ LAYER 4 — ERROR MITIGATION ══════ -->
+  <div class="layer-row">
+    <div class="op-card l-em">
+      <div class="op-header">
+        <div class="lbadge">4</div>
+        <div class="op-title">Error Mitigation &amp; QEC</div>
+      </div>
+      <div class="op-sub">
+        Zero-Noise Extrapolation · CUDA-Q / NVQLink<br>
+        Nvidia Ising — 3D CNN ML decoder (Apr 2026) · Probabilistic error correction
+      </div>
+    </div>
+    <div class="arrow-col">
+      <svg class="arrow-svg active" width="22" height="22" viewBox="0 0 22 22">
+        <line x1="2" y1="11" x2="16" y2="11" stroke="#6d3d8a" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="11,5 17,11 11,17" fill="none" stroke="#6d3d8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="prov-col">
+      <div class="p-row">
+        <div class="p-pill">
+          <div class="pid">P6</div>
+          <div class="plbl">Error-mitigation lineage</div>
+        </div>
+        <div class="p-pill p9">
+          <div class="pid">P9*</div>
+          <div class="plbl">ML-decoder lineage</div>
+          <div class="p9-tag">conditional · Nvidia Ising</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="conn-row"><div class="conn-line"></div><div></div><div></div></div>
+
+  <!-- ══════ LAYER 5 — AI POST-PROCESSING ══════ -->
+  <div class="layer-row">
+    <div class="op-card l-ai">
+      <div class="op-header">
+        <div class="lbadge">5</div>
+        <div class="op-title">AI / HPC Post-processing</div>
+      </div>
+      <div class="op-sub">
+        GNN rescoring · Ground-state energy → binding affinity<br>
+        95% confidence interval · Statistical validation against DFT / CCSD(T)
+      </div>
+    </div>
+    <div class="arrow-col">
+      <svg class="arrow-svg active" width="22" height="22" viewBox="0 0 22 22">
+        <line x1="2" y1="11" x2="16" y2="11" stroke="#b07008" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="11,5 17,11 11,17" fill="none" stroke="#b07008" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="prov-col">
+      <div class="p-row">
+        <div class="p-pill">
+          <div class="pid">P7</div>
+          <div class="plbl">Statistical estimator / CI</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="conn-row"><div class="conn-line"></div><div></div><div></div></div>
+
+  <!-- ══════ LAYER 6 — GOVERNANCE ══════ -->
+  <div class="layer-row">
+    <div class="op-card l-gov">
+      <div class="op-header">
+        <div class="lbadge">6</div>
+        <div class="op-title">Governance &amp; Orchestration</div>
+      </div>
+      <div class="op-sub">
+        BQP-relevance classification · Bifurcation-aware audit trail<br>
+        FDA 21 CFR Part 11 compliance · Collects P1–P7 + P9 → emits P8 seal
+      </div>
+    </div>
+    <div class="arrow-col">
+      <svg class="arrow-svg active" width="22" height="22" viewBox="0 0 22 22">
+        <line x1="2" y1="11" x2="16" y2="11" stroke="#1a7a4a" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="11,5 17,11 11,17" fill="none" stroke="#1a7a4a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="prov-col">
+      <div class="p-row">
+        <div class="p-pill p8">
+          <div class="pid">P8</div>
+          <div class="plbl">Cryptographic seal · signs P1–P7 + P9</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /diagram -->
+
+<!-- ══════ P8 SEAL ══════ -->
+<div class="seal-wrap">
+  <div class="seal-drop"></div>
+  <div class="seal-card">
+    <div class="seal-id">P8 — Cryptographic Seal</div>
+    <div class="seal-lbl">Tamper-evident record binding all provenance elements</div>
+    <div class="seal-sub">SHA-256 · immutable · FDA 21 CFR §11.10(e) compliant</div>
+    <div class="hash-chain">
+      hash chain: <span>P1</span> → <span>P2</span> → <span>P3</span> → <span>P4</span> → <span>P5</span>
+      → <span>P6</span> → <span>P7</span> + <span>P9</span> → <span>P8</span>
+    </div>
+    <div class="out-pills">
+      <div class="out-pill">Governed · Auditable</div>
+      <div class="out-pill">Part 11-compliant simulation</div>
+      <div class="out-pill">95% CI — quantified uncertainty</div>
+      <div class="out-pill">Cross-vendor reproducible</div>
+    </div>
+  </div>
+</div>
+
+<div class="footnote">
+  <strong>IS Research Contribution:</strong>
+  This unified diagram is the dissertation's signature design artifact — the first architecture integrating a BQP-relevant
+  quantum simulation stack with an FDA 21 CFR Part 11 provenance schema across six operational layers.<br>
+  Each layer has a defined provenance obligation; P8 seals the complete chain satisfying §11.10(e) tamper-evidence requirements.<br>
+  <span style="color:var(--p9-clr);">* P9 is conditional</span> — emitted only when QEC uses a learned ML decoder (Nvidia Ising 3D CNN, April 2026).<br><br>
+  <span class="stamp">IST 697 · Claremont Graduate University · Doron Cohen · May 2026</span>
+</div>
+
+</body>
+</html>
