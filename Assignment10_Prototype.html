@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QC·AI·HPC Platform — Prototype · Doron Cohen · IST 697 · CGU</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:   #0B1E3D;
+    --navy2:  #152d5a;
+    --teal:   #00A8D6;
+    --teal2:  #007aae;
+    --gold:   #E8A020;
+    --gold2:  #b07008;
+    --violet: #7a3d8f;
+    --green:  #22c55e;
+    --red:    #ef4444;
+    --gray:   #8899bb;
+    --light:  #e8edf8;
+    --white:  #ffffff;
+    --card:   rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.12);
+  }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--navy); color: var(--white); min-height: 100vh; }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    background: rgba(11,30,61,0.97);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 54px; position: sticky; top: 0; z-index: 100;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { width: 32px; height: 32px; background: var(--teal); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .brand-name { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand-sub  { font-size: 10px; color: var(--gray); }
+
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: none; background: transparent; color: var(--gray);
+    transition: all 0.18s; letter-spacing: 0.2px;
+  }
+  .nav-tab:hover { background: var(--card); color: var(--white); }
+  .nav-tab.active { background: var(--teal2); color: var(--white); }
+
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--gray); }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--gold2);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--navy); }
+
+  /* ── SCREENS ── */
+  .screen { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ── SECTION HEADER ── */
+  .section-header { margin-bottom: 20px; }
+  .section-header h2 { font-size: 20px; font-weight: 700; }
+  .section-header p  { font-size: 12px; color: var(--gray); margin-top: 3px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+  .card-title { font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px; }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+  /* ── STAT CHIPS ── */
+  .stat { text-align: center; }
+  .stat-val { font-size: 26px; font-weight: 800; }
+  .stat-lbl { font-size: 10px; color: var(--gray); margin-top: 2px; }
+  .teal  { color: var(--teal); }
+  .gold  { color: var(--gold); }
+  .green { color: var(--green); }
+  .red   { color: var(--red); }
+  .violet{ color: #b47fd4; }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  }
+  .badge-teal   { background: rgba(0,168,214,0.18); color: var(--teal); border: 1px solid rgba(0,168,214,0.3); }
+  .badge-gold   { background: rgba(232,160,32,0.18); color: var(--gold); border: 1px solid rgba(232,160,32,0.3); }
+  .badge-red    { background: rgba(239,68,68,0.18);  color: var(--red);  border: 1px solid rgba(239,68,68,0.3); }
+  .badge-green  { background: rgba(34,197,94,0.18);  color: var(--green);border: 1px solid rgba(34,197,94,0.3); }
+  .badge-violet { background: rgba(122,61,143,0.25); color: #c49fda;     border: 1px solid rgba(180,127,212,0.3); }
+  .badge-gray   { background: rgba(136,153,187,0.15);color: var(--gray); border: 1px solid rgba(136,153,187,0.25); }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 8px 10px; color: var(--gray); font-size: 10.5px;
+       text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { background: rgba(255,255,255,0.08); border-radius: 4px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+  /* ── STEP INDICATOR ── */
+  .steps { display: flex; align-items: center; gap: 0; margin-bottom: 20px; }
+  .step { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .step-dot.done    { background: var(--teal); color: var(--white); }
+  .step-dot.active  { background: var(--gold); color: var(--navy); }
+  .step-dot.pending { background: rgba(255,255,255,0.1); color: var(--gray); border: 1px solid var(--border); }
+  .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 4px; }
+  .step-line.done { background: var(--teal); }
+  .step-label { font-size: 10px; color: var(--gray); margin-top: 2px; }
+
+  /* ── JOB CARDS ── */
+  .job-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--card); margin-bottom: 8px; }
+  .job-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .job-info { flex: 1; }
+  .job-name { font-size: 13px; font-weight: 600; }
+  .job-sub  { font-size: 10.5px; color: var(--gray); margin-top: 2px; }
+  .job-status { font-size: 11px; font-weight: 600; }
+
+  /* ── CHART BARS ── */
+  .bar-chart { display: flex; align-items: flex-end; gap: 18px; height: 110px; padding: 0 8px; }
+  .bar-group { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; transition: height 0.4s; }
+  .bar-label { font-size: 10px; color: var(--gray); text-align: center; }
+  .bar-val   { font-size: 11px; font-weight: 700; }
+
+  /* ── ALERT BOX ── */
+  .alert { border-radius: 8px; padding: 12px 14px; font-size: 12px; margin-bottom: 12px; }
+  .alert-gold   { background: rgba(232,160,32,0.12); border: 1px solid rgba(232,160,32,0.3); }
+  .alert-teal   { background: rgba(0,168,214,0.1);   border: 1px solid rgba(0,168,214,0.25); }
+  .alert-green  { background: rgba(34,197,94,0.1);   border: 1px solid rgba(34,197,94,0.25); }
+
+  /* ── AUDIT ROW ── */
+  .audit-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0;
+    border-bottom: 1px solid var(--border); font-size: 11.5px; }
+  .audit-time { color: var(--gray); font-size: 10.5px; min-width: 80px; }
+  .audit-dot  { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* ── FOOTER NOTE ── */
+  .footnote { font-size: 10px; color: var(--gray); margin-top: 6px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .nav-tab span.hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     TOP NAVIGATION
+═══════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">⚛</div>
+    <div>
+      <div class="brand-name">QC·AI·HPC Platform</div>
+      <div class="brand-sub">Drugless NSCLC · IST 697 Prototype · CGU 2026</div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="show('s1')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="show('s2')">⚙️ Orchestration</button>
+    <button class="nav-tab" onclick="show('s3')">📈 Results</button>
+    <button class="nav-tab" onclick="show('s4')">🔒 Compliance</button>
+  </div>
+
+  <div class="user-chip">
+    <div class="avatar">DC</div>
+    <span>Doron Cohen · CGU</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCREEN 1 — CLINICAL DASHBOARD
+═══════════════════════════════════════════════════ -->
+<div class="screen active" id="s1">
+  <div class="section-header">
+    <h2>Clinical Target Dashboard</h2>
+    <p>NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="grid-4" style="margin-bottom:16px">
+    <div class="card stat">
+      <div class="stat-val red">~60%</div>
+      <div class="stat-lbl">NSCLC patients with NO approved targeted therapy</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-val teal">1.8M</div>
+      <div class="stat-lbl">Annual NSCLC deaths globally</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-val gold">5</div>
+      <div class="stat-lbl">Active simulation targets loaded</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-val green">88</div>
+      <div class="stat-lbl">Max qubits · IBM Heron r3 · C275F target ~88 (Jordan-Wigner)</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Mutation Table -->
+    <div class="card">
+      <div class="card-title">Drugless Target Registry — Active Queue</div>
+      <table>
+        <tr>
+          <th>Gene</th>
+          <th>Mutation</th>
+          <th>Frequency</th>
+          <th>Active e⁻</th>
+          <th>Status</th>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#E8A020">TP53</td>
+          <td>p.Cys275Phe <span class="badge badge-red">Contact</span></td>
+          <td>12.66% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
+          <td>~44 <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
+          <td><span class="badge badge-teal">▶ Running</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#b47fd4">KEAP1</td>
+          <td>p.Cys196Leufs* <span class="badge badge-violet">PPI</span></td>
+          <td>12.90% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
+          <td>22–28</td>
+          <td><span class="badge badge-gold">⏳ Queued</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#60a5fa">STK11</td>
+          <td>Loss-of-function <span class="badge badge-gray">SL</span></td>
+          <td>14–25%</td>
+          <td>18–24</td>
+          <td><span class="badge badge-gray">○ Pending</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#a78bfa">CDKN2A</td>
+          <td>Deletion (0.4×) <span class="badge badge-violet">CNV</span></td>
+          <td>22–31%</td>
+          <td>20–26</td>
+          <td><span class="badge badge-gray">○ Pending</span></td>
+        </tr>
+      </table>
+      <div class="footnote" style="margin-top:10px">★ Contact = disrupts DNA binding directly · PPI = protein–protein interface · SL = synthetic lethality</div>
+    </div>
+
+    <!-- Patient NGS Panel -->
+    <div class="card">
+      <div class="card-title">Active Patient NGS Profile — MI25-0349</div>
+      <div class="alert alert-gold" style="margin-bottom:12px">
+        <strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> TP53 p.Cys275Phe · c.824G>T · AF 12.66% · Chromosome 17
+      </div>
+      <table>
+        <tr><th>Biomarker</th><th>Result</th><th>Implication</th></tr>
+        <tr><td>EGFR / ALK / KRAS / RET</td><td><span class="badge badge-gray">Not detected</span></td><td style="color:var(--gray);font-size:11px">No approved targeted therapy</td></tr>
+        <tr><td>TMB</td><td>7.6 Mut/Mb <span class="badge badge-red">Low</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response likely</td></tr>
+        <tr><td>MSI</td><td>Stable (7.77)</td><td style="color:var(--gray);font-size:11px">Not MSI-high</td></tr>
+        <tr><td>KEAP1</td><td>p.Cys196Leufs* <span class="badge badge-violet">Tier III</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response</td></tr>
+        <tr><td>CDKN2A</td><td>Deletion (0.4×) <span class="badge badge-gold">Tier I</span></td><td style="color:var(--gray);font-size:11px">Poor prognosis marker</td></tr>
+      </table>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:var(--gray)">Cancer type: Adenocarcinoma · Pulmonary origin · Tumor purity 65% · Emek Medical Center · 18/06/2025</div>
+    </div>
+  </div>
+
+  <!-- Why QC is needed -->
+  <div class="card">
+    <div class="card-title">Why Classical Methods Fail — The BQP Argument</div>
+    <div class="grid-3" style="margin-top:4px">
+      <div style="padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2)">
+        <div style="font-weight:700;color:var(--red);margin-bottom:4px">❌ DFT Failure</div>
+        <div style="font-size:11.5px;line-height:1.6">Error: 5–10 kcal/mol<br>Required: ≤2 kcal/mol<br>Cannot model cryptic pocket dynamics or flat PPI surfaces</div>
+      </div>
+      <div style="padding:8px 12px;border-radius:8px;background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.2)">
+        <div style="font-weight:700;color:var(--gold);margin-bottom:4px">⚡ Classical Limit</div>
+        <div style="font-size:11.5px;line-height:1.6">Max exact: ~18 electrons<br>TP53 C275F needs: ~44 e⁻<br>Well beyond classical FCI — quantum required</div>
+      </div>
+      <div style="padding:8px 12px;border-radius:8px;background:rgba(0,168,214,0.08);border:1px solid rgba(0,168,214,0.25)">
+        <div style="font-weight:700;color:var(--teal);margin-bottom:4px">✅ QC Solution</div>
+        <div style="font-size:11.5px;line-height:1.6">IBM Heron + SqDRIFT: 32 e⁻<br>VQE: polynomial circuit depth<br>Complexity class: BQP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Research Pipeline Status -->
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Live Research Pipeline — 5 Active Targets</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green)">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
+        System Online · 08:14 UTC · IBM Heron r3
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:130px">
+        <div style="font-weight:700;font-size:12px;color:var(--gold)">TP53 C275F</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · sqDRIFT · ~88q</div>
+      </div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:68%;background:linear-gradient(90deg,var(--teal),rgba(0,168,214,0.55))"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--teal)">68%</div>
+      <div style="min-width:95px"><span class="badge badge-teal">▶ Running</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)">6h 14m elapsed</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:130px">
+        <div style="font-weight:700;font-size:12px;color:#60a5fa">TP53 Y220C</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · sqDRIFT · ~56q</div>
+      </div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--green)">100%</div>
+      <div style="min-width:95px"><span class="badge badge-green">✓ Complete</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)">4.2h total</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);opacity:0.75">
+      <div style="min-width:130px">
+        <div style="font-weight:700;font-size:12px;color:#b47fd4">KEAP1 C196Leufs*</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · UCCSD · ~56q</div>
+      </div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)">—</div>
+      <div style="min-width:95px"><span class="badge badge-gold">⏳ Queued</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)">Est. +2.1h</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);opacity:0.55">
+      <div style="min-width:130px">
+        <div style="font-weight:700;font-size:12px;color:#a78bfa">CDKN2A p16Δ</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · UCCSD · ~52q</div>
+      </div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)">—</div>
+      <div style="min-width:95px"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)">Sched. 09:00</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;opacity:0.55">
+      <div style="min-width:130px">
+        <div style="font-weight:700;font-size:12px;color:#34d399">STK11 LKB1 LOF</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · UCCSD · ~48q</div>
+      </div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)">—</div>
+      <div style="min-width:95px"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)">Sched. 11:00</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <button onclick="window.open('https://nsclc-quantum-viewer.netlify.app/','_blank')" style="background:linear-gradient(135deg,#1a3a6e,#0d2244);color:#44ddff;border:1.5px solid #44ddff;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.5px;box-shadow:0 0 12px rgba(68,221,255,0.25)">
+      ⬡ View 3D Simulations
+    </button>
+    <button onclick="show('s2')" style="background:var(--teal);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      Launch Simulation Workflow →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCREEN 2 — ORCHESTRATION ENGINE
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="s2">
+  <div class="section-header">
+    <h2>Orchestration Engine</h2>
+    <p>Hardware-Agnostic Workflow Scheduler · Core IT Contribution · IST 697 Module 10 Prototype</p>
+  </div>
+
+  <!-- Pipeline Steps -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Simulation Pipeline — TP53 p.Cys275Phe · Active Space CASSCF(16,16)</div>
+    <div class="steps" style="margin-top:12px">
+      <div class="step">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div class="step-dot done">✓</div>
+          <div class="step-label">Target Selection</div>
+        </div>
+        <div class="step-line done"></div>
+      </div>
+      <div class="step">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div class="step-dot done">✓</div>
+          <div class="step-label">Active Space</div>
+        </div>
+        <div class="step-line done"></div>
+      </div>
+      <div class="step">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div class="step-dot done">✓</div>
+          <div class="step-label">Qubit Encoding</div>
+        </div>
+        <div class="step-line done"></div>
+      </div>
+      <div class="step">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div class="step-dot active">4</div>
+          <div class="step-label">Compute Dispatch</div>
+        </div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div class="step-dot pending">5</div>
+          <div class="step-label">Result Aggregation</div>
+        </div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div class="step-dot pending">6</div>
+          <div class="step-label">Validation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Job Dispatcher -->
+    <div class="card">
+      <div class="card-title">Job Dispatcher — Active Jobs</div>
+
+      <div class="job-card">
+        <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
+        <div class="job-info">
+          <div class="job-name">VQE — Active Space (16e, 16o)</div>
+          <div class="job-sub">Backend: IBM Heron · Algorithm: SqDRIFT · Qubits: 32</div>
+          <div style="margin-top:6px">
+            <div class="progress-wrap"><div class="progress-fill" style="width:68%;background:var(--teal)"></div></div>
+          </div>
+        </div>
+        <div class="job-status teal">68%</div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-icon" style="background:rgba(232,160,32,0.15)">⚙</div>
+        <div class="job-info">
+          <div class="job-name">MD Simulation — 50ns Trajectory</div>
+          <div class="job-sub">Backend: HPC Cluster · Tool: GROMACS · Conformers: 1,240</div>
+          <div style="margin-top:6px">
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+          </div>
+        </div>
+        <div class="job-status green">Done ✓</div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-icon" style="background:rgba(239,68,68,0.12)">📐</div>
+        <div class="job-info">
+          <div class="job-name">DFT Baseline — B3LYP/6-31G*</div>
+          <div class="job-sub">Backend: HPC · Tool: ORCA · Purpose: Classical benchmark</div>
+          <div style="margin-top:6px">
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+          </div>
+        </div>
+        <div class="job-status green">Done ✓</div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-icon" style="background:rgba(122,61,143,0.18)">🤖</div>
+        <div class="job-info">
+          <div class="job-name">AI Binding Affinity Prediction</div>
+          <div class="job-sub">Backend: GPU · Model: DeepChem GNN · Waiting for VQE output</div>
+          <div style="margin-top:6px">
+            <div class="progress-wrap"><div class="progress-fill" style="width:0%;background:var(--violet)"></div></div>
+          </div>
+        </div>
+        <div class="job-status" style="color:var(--gray)">Waiting</div>
+      </div>
+    </div>
+
+    <!-- Hardware Selector -->
+    <div class="card">
+      <div class="card-title">Hardware-Agnostic Backend Selector</div>
+      <div style="font-size:11.5px;color:var(--gray);margin-bottom:12px">
+        The orchestration layer abstracts backend choice. Swap hardware without changing the simulation code.
+      </div>
+
+      <table>
+        <tr><th>Backend</th><th>Type</th><th>Algorithm</th><th>Status</th></tr>
+        <tr>
+          <td style="font-weight:600">IBM Heron</td>
+          <td><span class="badge badge-teal">QC</span></td>
+          <td>SqDRIFT / VQE</td>
+          <td><span style="color:var(--green)">● Active</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">PennyLane Sim</td>
+          <td><span class="badge badge-teal">QC-SIM</span></td>
+          <td>VQE (UCCSD)</td>
+          <td><span style="color:var(--gray)">○ Standby</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">HPC Cluster</td>
+          <td><span class="badge badge-gold">HPC</span></td>
+          <td>GROMACS / ORCA</td>
+          <td><span style="color:var(--green)">● Active</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">GPU Node</td>
+          <td><span class="badge badge-violet">AI</span></td>
+          <td>DeepChem GNN</td>
+          <td><span style="color:var(--gray)">○ Queued</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">IonQ Aria</td>
+          <td><span class="badge badge-teal">QC</span></td>
+          <td>VQE (trapped ion)</td>
+          <td><span style="color:var(--gray)">○ Available</span></td>
+        </tr>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- Error Mitigation -->
+  <div class="card">
+    <div class="card-title">Error Mitigation Module — NISQ Era Noise Compensation</div>
+    <div class="grid-3" style="margin-top:4px">
+      <div style="padding:10px">
+        <div style="font-weight:700;color:var(--teal);margin-bottom:4px">Zero-Noise Extrapolation (ZNE)</div>
+        <div style="font-size:11.5px;line-height:1.6;color:var(--light)">Runs circuit at multiple noise levels, extrapolates to zero-noise limit. Applied to all VQE energy estimates. Reduces effective error by ~60%.</div>
+      </div>
+      <div style="padding:10px;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+        <div style="font-weight:700;color:var(--gold);margin-bottom:4px">Pauli Twirling</div>
+        <div style="font-size:11.5px;line-height:1.6;color:var(--light)">Converts arbitrary gate noise into depolarizing noise. Makes error model more predictable and easier to characterize. Applied before ZNE.</div>
+      </div>
+      <div style="padding:10px">
+        <div style="font-weight:700;color:var(--violet);margin-bottom:4px">ML Error Correction</div>
+        <div style="font-size:11.5px;line-height:1.6;color:var(--light)">AI model trained on noise signatures of each backend. Applies post-hoc correction to energy output. Hardware-specific calibration.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px">
+    <button onclick="show('s3')" style="background:var(--gold);color:var(--navy);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      View Simulation Results →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCREEN 3 — RESULTS & BENCHMARKING
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="s3">
+  <div class="section-header">
+    <h2>Results & Benchmarking</h2>
+    <p>TP53 p.Cys275Phe · Active Space CASSCF(16,16) · QC vs DFT vs CCSD(T)</p>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="card stat">
+      <div class="stat-val red">−8.4 <span style="font-size:14px">kcal/mol</span></div>
+      <div class="stat-lbl">DFT binding energy estimate (B3LYP) · Error ±6 kcal/mol</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-val teal">−11.7 <span style="font-size:14px">kcal/mol</span></div>
+      <div class="stat-lbl">VQE (SqDRIFT) binding energy · Error ±1.4 kcal/mol</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-val green">−11.2 <span style="font-size:14px">kcal/mol</span></div>
+      <div class="stat-lbl">CCSD(T) reference (classical high accuracy)</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Energy Comparison Chart -->
+    <div class="card">
+      <div class="card-title">Binding Energy Comparison · TP53 C275F Active Space</div>
+      <div class="bar-chart" style="align-items:flex-end;padding-top:12px">
+        <div class="bar-group">
+          <div class="bar-val red">−8.4</div>
+          <div class="bar" style="height:55px;background:rgba(239,68,68,0.7)"></div>
+          <div class="bar-label">DFT<br>B3LYP</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-val teal">−11.7</div>
+          <div class="bar" style="height:95px;background:rgba(0,168,214,0.85)"></div>
+          <div class="bar-label">VQE<br>SqDRIFT</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-val green">−11.2</div>
+          <div class="bar" style="height:90px;background:rgba(34,197,94,0.7)"></div>
+          <div class="bar-label">CCSD(T)<br>Reference</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-val" style="color:var(--violet)">−10.8</div>
+          <div class="bar" style="height:86px;background:rgba(122,61,143,0.7)"></div>
+          <div class="bar-label">AI+QC<br>Corrected</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="footnote">DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span></div>
+    </div>
+
+    <!-- VQE Convergence -->
+    <div class="card">
+      <div class="card-title">VQE Energy Convergence — Optimization Iterations</div>
+      <div style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px">
+        <svg width="100%" height="100%" viewBox="0 0 300 110" preserveAspectRatio="none">
+          <!-- Grid lines -->
+          <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <!-- Convergence curve -->
+          <polyline points="0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92"
+            fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Target line -->
+          <line x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+          <!-- Convergence marker -->
+          <circle cx="220" cy="91.5" r="4" fill="var(--gold)"/>
+          <text x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
+        </svg>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
+        <span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>
+      </div>
+      <div class="divider"></div>
+      <div class="footnote">Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron</div>
+    </div>
+  </div>
+
+  <!-- Benchmark Table -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">★ Benchmarking Framework — Novel IT Contribution</div>
+    <table>
+      <tr>
+        <th>Method</th><th>Active e⁻</th><th>Energy (kcal/mol)</th><th>Error vs Ref</th><th>Wall Time</th><th>Cost</th><th>Scalable?</th>
+      </tr>
+      <tr>
+        <td><span class="badge badge-red">DFT B3LYP</span></td>
+        <td>All (approx)</td>
+        <td>−8.4</td>
+        <td><span class="red">2.8 kcal/mol ✗</span></td>
+        <td>2h</td>
+        <td>$12</td>
+        <td><span class="green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">CCSD(T) Ref</span></td>
+        <td>16 (exact)</td>
+        <td>−11.2</td>
+        <td><span class="green">Reference</span></td>
+        <td>48h</td>
+        <td>$290</td>
+        <td><span class="red">No (exp.)</span></td>
+      </tr>
+      <tr style="background:rgba(0,168,214,0.05)">
+        <td><strong><span class="badge badge-teal">VQE SqDRIFT</span></strong></td>
+        <td><strong>32 (exact)</strong></td>
+        <td><strong>−11.7</strong></td>
+        <td><span class="teal"><strong>0.5 kcal/mol ✓</strong></span></td>
+        <td>6h</td>
+        <td>$85</td>
+        <td><span class="teal"><strong>Yes (poly.)</strong></span></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-violet">AI+QC</span></td>
+        <td>32 + ML</td>
+        <td>−10.8</td>
+        <td><span class="teal">0.4 kcal/mol ✓</span></td>
+        <td>6.5h</td>
+        <td>$88</td>
+        <td><span class="teal">Yes</span></td>
+      </tr>
+    </table>
+    <div class="footnote" style="margin-top:8px">This benchmarking framework — comparing methods specifically for BQP-class drugless NSCLC targets — is an original contribution not published in existing literature.</div>
+  </div>
+
+  <!-- All-5 Mutations Summary Table -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">All-Target Summary — 5 NSCLC Mutations · BQP Classification & Simulation Status</div>
+    <table>
+      <tr>
+        <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th>ΔE Result</th><th>Status</th>
+      </tr>
+      <tr style="background:rgba(232,160,32,0.06)">
+        <td><strong style="color:var(--gold)">TP53</strong></td>
+        <td>C275F <span class="badge badge-red">Contact</span></td>
+        <td>~44</td>
+        <td><strong>~88</strong></td>
+        <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
+        <td><span class="badge badge-gold">BQP ★</span></td>
+        <td><strong class="teal">−11.7 kcal/mol</strong></td>
+        <td><span class="badge badge-teal">▶ Running</span></td>
+      </tr>
+      <tr>
+        <td><strong style="color:#60a5fa">TP53</strong></td>
+        <td>Y220C <span class="badge badge-teal">Cavity</span></td>
+        <td>~28</td>
+        <td>~56</td>
+        <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
+        <td><span class="badge badge-teal">BQP</span></td>
+        <td class="teal">−9.4 kcal/mol</td>
+        <td><span class="badge badge-green">✓ Complete</span></td>
+      </tr>
+      <tr>
+        <td><strong style="color:#b47fd4">KEAP1</strong></td>
+        <td>C196Leufs* <span class="badge badge-violet">PPI</span></td>
+        <td>22–28</td>
+        <td>~56</td>
+        <td><span class="badge badge-gold">VQE · UCCSD</span></td>
+        <td><span class="badge badge-teal">BQP</span></td>
+        <td style="color:var(--gray)">—</td>
+        <td><span class="badge badge-gold">⏳ Queued</span></td>
+      </tr>
+      <tr>
+        <td><strong style="color:#a78bfa">CDKN2A</strong></td>
+        <td>p16 deletion <span class="badge badge-violet">CNV</span></td>
+        <td>20–26</td>
+        <td>~52</td>
+        <td><span class="badge badge-gold">VQE · UCCSD</span></td>
+        <td><span class="badge badge-teal">BQP</span></td>
+        <td style="color:var(--gray)">—</td>
+        <td><span class="badge badge-gray">○ Pending</span></td>
+      </tr>
+      <tr>
+        <td><strong style="color:#34d399">STK11</strong></td>
+        <td>LKB1 LOF <span class="badge badge-gray">SL</span></td>
+        <td>18–24</td>
+        <td>~48</td>
+        <td><span class="badge badge-gold">VQE · UCCSD</span></td>
+        <td><span class="badge badge-teal">BQP</span></td>
+        <td style="color:var(--gray)">—</td>
+        <td><span class="badge badge-gray">○ Pending</span></td>
+      </tr>
+    </table>
+    <div class="footnote" style="margin-top:8px">★ C275F is the primary doctoral target — structural mutant at the classical FCI boundary. JW = Jordan-Wigner encoding. All 5 mutations are within IBM Heron r3 capacity (156 qubits max).</div>
+  </div>
+
+  <!-- Quantum Advantage Scaling Chart -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Quantum Advantage — Computational Cost Scaling vs. System Size (Active Electrons)</div>
+    <div style="position:relative;height:175px;margin-top:10px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 12px 0 12px">
+      <svg width="100%" height="100%" viewBox="0 0 420 150" preserveAspectRatio="none">
+        <!-- Grid lines -->
+        <line x1="0" y1="37" x2="420" y2="37" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <line x1="0" y1="75" x2="420" y2="75" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <line x1="0" y1="112" x2="420" y2="112" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <!-- FCI O(2^N) — steepest, off chart quickly -->
+        <polyline points="0,145 30,140 55,132 80,118 105,98 125,72 140,46 152,22 160,8"
+          fill="none" stroke="rgba(239,80,60,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="5,3"/>
+        <!-- CCSD(T) O(N^7) — steep but slightly slower -->
+        <polyline points="0,145 40,140 80,130 120,115 160,94 200,68 235,42 255,22 268,10"
+          fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- VQE O(poly N) — gentle slope, stays tractable -->
+        <polyline points="0,145 60,137 120,129 180,121 240,113 300,106 360,100 420,95"
+          fill="none" stroke="rgba(0,168,214,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- C275F vertical marker (~44e) -->
+        <line x1="265" y1="0" x2="265" y2="150" stroke="rgba(255,221,34,0.35)" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="268" y="14" fill="rgba(255,221,34,0.95)" font-size="9" font-weight="bold">C275F (~44e, ~88q)</text>
+        <!-- Classical wall marker (~18e) -->
+        <line x1="125" y1="0" x2="125" y2="150" stroke="rgba(239,68,68,0.25)" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="128" y="28" fill="rgba(239,68,68,0.7)" font-size="8">Classical wall</text>
+        <!-- Labels on curves -->
+        <text x="270" y="50" fill="rgba(239,68,68,0.85)" font-size="9">CCSD(T) · O(N⁷)</text>
+        <text x="195" y="35" fill="rgba(239,80,60,0.65)" font-size="8">FCI · O(2ᴺ)</text>
+        <text x="340" y="92" fill="rgba(0,168,214,0.9)" font-size="9">VQE · O(poly N)</text>
+        <!-- Y-axis label -->
+        <text x="2" y="10" fill="rgba(136,153,187,0.6)" font-size="8">Cost</text>
+      </svg>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 12px">
+      <span>N=8e⁻</span><span>N=16e⁻</span><span>N=24e⁻</span><span>N=32e⁻</span><span>N=44e⁻ (C275F)</span><span>N=60e⁻</span>
+    </div>
+    <div class="divider"></div>
+    <div class="footnote">Classical CCSD(T) becomes intractable beyond ~18–20 electrons. VQE on quantum hardware maintains polynomial scaling past this boundary — the core BQP necessity argument for this dissertation. C275F at ~44 active electrons sits firmly in the quantum-required zone.</div>
+  </div>
+
+  <div style="text-align:center">
+    <button onclick="show('s4')" style="background:var(--violet);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      View Compliance & Audit Trail →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCREEN 4 — COMPLIANCE & AUDIT
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="s4">
+  <div class="section-header">
+    <h2>Compliance & Audit Trail</h2>
+    <p>FDA 21 CFR Part 11 · Reproducibility Engine · Provenance Metadata · ★ Novel IT Contribution</p>
+  </div>
+
+  <div class="alert alert-green" style="margin-bottom:16px">
+    <strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 8 FDA 21 CFR Part 11 controls validated · Run ID: QC-TP53-C275F-20260405-001
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Audit Trail -->
+    <div class="card">
+      <div class="card-title">Audit Trail — Full Run Log</div>
+
+      <div class="audit-row">
+        <div class="audit-time">08:14:03</div>
+        <div class="audit-dot" style="background:var(--teal)"></div>
+        <div><strong>Run initiated</strong> — Target: TP53 p.Cys275Phe · User: d.cohen@cgu.edu · Run ID: QC-TP53-C275F-20260405-001</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">08:14:11</div>
+        <div class="audit-dot" style="background:var(--teal)"></div>
+        <div><strong>Stage 1 active space</strong> — CASSCF(16,16) · 16e / 16 orbitals · mutation site only · PDB: 2OCJ</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">08:14:18</div>
+        <div class="audit-dot" style="background:var(--teal)"></div>
+        <div><strong>Stage 2 active space expanded</strong> — Full binding pocket · ~44 electrons · ~44 orbitals · CASSCF(44,44)</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">08:14:22</div>
+        <div class="audit-dot" style="background:var(--teal)"></div>
+        <div><strong>Qubit encoding applied</strong> — Jordan-Wigner mapping · 44e × 2 spin-orbitals → <strong>88 qubits</strong> · Tapering: 4 qubits saved</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">08:15:00</div>
+        <div class="audit-dot" style="background:var(--gold)"></div>
+        <div><strong>Job dispatched to IBM Heron</strong> — Backend: ibm_torino · Shots: 8,192 · Circuit depth: 124</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">14:08:47</div>
+        <div class="audit-dot" style="background:var(--teal)"></div>
+        <div><strong>VQE converged</strong> — Iteration 220 · ΔE = 0.0008 Ha · Energy: −11.7 kcal/mol · ZNE applied</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">14:09:12</div>
+        <div class="audit-dot" style="background:var(--violet)"></div>
+        <div><strong>AI rescoring complete</strong> — DeepChem GNN v2.1 · Corrected energy: −10.8 kcal/mol</div>
+      </div>
+      <div class="audit-row">
+        <div class="audit-time">14:09:30</div>
+        <div class="audit-dot" style="background:var(--green)"></div>
+        <div><strong>Compliance check passed</strong> — All 8 CFR Part 11 controls ✓ · Report signed electronically</div>
+      </div>
+    </div>
+
+    <!-- Compliance Controls -->
+    <div class="card">
+      <div class="card-title">FDA 21 CFR Part 11 — Compliance Controls</div>
+      <table>
+        <tr><th>Control</th><th>Requirement</th><th>Status</th></tr>
+        <tr><td>Access Control</td><td>Role-based authentication</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>Audit Trail</td><td>Timestamped, tamper-evident log</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>Electronic Signature</td><td>Unique user ID + password</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>System Validation</td><td>IQ/OQ/PQ documentation</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>Data Integrity</td><td>Hash verification (SHA-256)</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>Record Retention</td><td>7-year archival policy</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>Reproducibility</td><td>Seed + circuit version locked</td><td><span class="green">✓ Pass</span></td></tr>
+        <tr><td>Change Control</td><td>Version-controlled pipeline</td><td><span class="green">✓ Pass</span></td></tr>
+      </table>
+      <div class="alert alert-teal" style="margin-top:12px">
+        <strong style="color:var(--teal)">ℹ Framework scope:</strong> Controls apply to all quantum-computed binding data outputs. Electronic signatures use NIST SP 800-63B compliant authentication. Records retained in immutable append-only store.
+      </div>
+    </div>
+  </div>
+
+  <!-- Reproducibility Metadata -->
+  <div class="card">
+    <div class="card-title">Reproducibility Metadata — Full Provenance Record</div>
+    <div class="grid-3" style="margin-top:4px;font-size:11.5px">
+      <div>
+        <div style="color:var(--gray);margin-bottom:4px">Run Environment</div>
+        <div>Platform version: v0.9.2-alpha</div>
+        <div>PennyLane: v0.38.1</div>
+        <div>ORCA: v5.0.4</div>
+        <div>DeepChem: v2.7.1</div>
+        <div>Random seed: 42 (locked)</div>
+      </div>
+      <div style="border-left:1px solid var(--border);padding-left:16px">
+        <div style="color:var(--gray);margin-bottom:4px">Quantum Circuit</div>
+        <div>Ansatz: UCCSD</div>
+        <div>Depth: 124 gates</div>
+        <div>Shots: 8,192</div>
+        <div>ZNE factors: [1, 2, 3]</div>
+        <div>Circuit hash: a3f2b9...</div>
+      </div>
+      <div style="border-left:1px solid var(--border);padding-left:16px">
+        <div style="color:var(--gray);margin-bottom:4px">Molecular Input</div>
+        <div>PDB: 2OCJ (TP53 Y220C ref)</div>
+        <div>Active space: CAS(16,16)</div>
+        <div>Mapping: Jordan-Wigner</div>
+        <div>Force field: AMBER ff14SB</div>
+        <div>Input hash: 7d1c4e...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform Qualification Record (IQ/OQ/PQ) -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Platform Qualification Record — System Validation Status (VP-2026-001)</div>
+    <div class="grid-3" style="margin-top:10px;gap:14px">
+
+      <div style="padding:12px;border-radius:8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.22)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-weight:700;font-size:13px;color:var(--green)">IQ — Installation</div>
+          <span class="badge badge-green">PASSED</span>
+        </div>
+        <div style="font-size:11px;line-height:2;color:var(--light)">
+          <div>✓ Software stack verified</div>
+          <div>✓ Hardware connectivity tested</div>
+          <div>✓ Dependency versions locked</div>
+          <div>✓ Environment isolation confirmed</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
+          Completed: 2026-03-10 · Signed: D. Cohen · Doc: IQ-v1.2
+        </div>
+      </div>
+
+      <div style="padding:12px;border-radius:8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.22)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-weight:700;font-size:13px;color:var(--green)">OQ — Operational</div>
+          <span class="badge badge-green">PASSED</span>
+        </div>
+        <div style="font-size:11px;line-height:2;color:var(--light)">
+          <div>✓ VQE convergence within spec</div>
+          <div>✓ ZNE error reduction verified</div>
+          <div>✓ Audit log integrity confirmed</div>
+          <div>✓ Backend failover tested</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
+          Completed: 2026-03-22 · Signed: D. Cohen · Doc: OQ-v1.1
+        </div>
+      </div>
+
+      <div style="padding:12px;border-radius:8px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.22)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-weight:700;font-size:13px;color:var(--gold)">PQ — Performance</div>
+          <span class="badge badge-gold">IN PROGRESS</span>
+        </div>
+        <div style="font-size:11px;line-height:2;color:var(--light)">
+          <div><span class="green">✓</span> TP53 Y220C benchmark run</div>
+          <div><span class="teal">▶</span> TP53 C275F active validation</div>
+          <div><span style="color:var(--gray)">○</span> KEAP1 · CDKN2A · STK11</div>
+          <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
+          Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3
+        </div>
+      </div>
+
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.025);border-radius:6px;border:1px solid var(--border);font-size:11px;display:flex;gap:24px;flex-wrap:wrap;color:var(--gray)">
+      <span>Platform: <strong style="color:var(--light)">QC·AI·HPC v0.9.2-alpha</strong></span>
+      <span>Validation lead: <strong style="color:var(--light)">D. Cohen · d.cohen@cgu.edu</strong></span>
+      <span>Protocol: <strong style="color:var(--light)">VP-2026-001</strong></span>
+      <span>Next review: <strong style="color:var(--light)">2026-05-01</strong></span>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <button onclick="show('s1')" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+      ← Back to Dashboard
+    </button>
+    <button onclick="window.open('https://nsclc-quantum-viewer.netlify.app/QC_AI_HPC_Architecture.html','_blank')" style="background:linear-gradient(135deg,#153358,#0B1E3D);color:#00c8ff;border:1.5px solid rgba(0,168,214,0.55);padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.4px;box-shadow:0 0 14px rgba(0,168,214,0.18)">
+      ⬡ Platform Architecture
+    </button>
+    <button style="background:var(--green);color:var(--navy);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      Export Full Report (PDF)
+    </button>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const map = {s1:0, s2:1, s3:2, s4:3};
+  document.querySelectorAll('.nav-tab')[map[id]].classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+</script>
+</body>
+</html>
