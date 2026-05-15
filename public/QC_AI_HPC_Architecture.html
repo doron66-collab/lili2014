@@ -4,479 +4,459 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QC·AI·HPC Platform Architecture — Doron Cohen · IST 697 · CGU</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --bg:         #f7f8fc;
+    --surface:    #ffffff;
+    --border:     #e2e6ef;
+    --text:       #1a2035;
+    --muted:      #6b7a99;
+
+    --ingest:     #3d5a9e;  --ingest-bg:  #f0f4ff;  --ingest-bd:  #b8c8f0;
+    --compile:    #1565c0;  --compile-bg: #eef3fb;  --compile-bd: #b3cae8;
+    --qk:         #0d7ea8;  --qk-bg:      #eef7fb;  --qk-bd:      #b3dded;
+    --em:         #6d3d8a;  --em-bg:      #f4eefa;  --em-bd:      #cbaee0;
+    --ai:         #b07008;  --ai-bg:      #fdf6e8;  --ai-bd:      #e8c97a;
+    --gov:        #1a7a4a;  --gov-bg:     #edf7f2;  --gov-bd:     #a3d9be;
+
+    --shadow:     0 2px 12px rgba(13,50,100,0.07);
+    --shadow-lg:  0 4px 24px rgba(13,50,100,0.11);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
-    background: #f4f6f9;
-    padding: 30px 20px 50px;
-    color: #222;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 40px 24px 64px;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* ── HEADER ── */
-  .page-header {
-    text-align: center;
-    margin-bottom: 28px;
+  .page-header { text-align: center; max-width: 900px; margin: 0 auto 44px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--qk); margin-bottom: 12px;
   }
-  .page-header h1 {
-    font-size: 20px;
-    font-weight: 700;
-    color: #0B1E3D;
-    letter-spacing: 0.5px;
-  }
-  .page-header p {
-    font-size: 12px;
-    color: #666;
-    margin-top: 4px;
-  }
-
-  /* ── DIAGRAM WRAPPER ── */
-  .diagram {
-    max-width: 960px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+  .page-header h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.25; margin-bottom: 10px; }
+  .page-header p  { font-size: 13px; color: var(--muted); line-height: 1.65; }
+  .badge {
+    display: inline-block; margin-top: 14px;
+    background: var(--ai-bg); color: var(--ai); border: 1px solid var(--ai-bd);
+    border-radius: 20px; padding: 4px 16px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.3px;
   }
 
-  /* ── LAYER SHELL ── */
+  /* ── DIAGRAM ── */
+  .diagram { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; }
+
+  /* ── LAYER CARD ── */
   .layer {
-    display: flex;
-    align-items: stretch;
-    border-radius: 0;
-    position: relative;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
   }
-  .layer:first-of-type { border-radius: 10px 10px 0 0; }
-  .layer:last-of-type  { border-radius: 0 0 10px 10px; }
+  .layer:hover { box-shadow: var(--shadow-lg); }
 
-  /* ── LAYER LABEL (left spine) ── */
-  .layer-label {
-    width: 130px;
-    min-width: 130px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 14px 8px;
-    text-align: center;
-    color: #fff;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    line-height: 1.4;
-    text-transform: uppercase;
+  .layer-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
   }
-  .layer-label .layer-num {
-    font-size: 22px;
-    font-weight: 900;
-    opacity: 0.35;
-    line-height: 1;
-    margin-bottom: 5px;
+  .lnum {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
   }
+  .layer-title    { font-size: 13.5px; font-weight: 700; }
+  .layer-subtitle { font-size: 11px; color: var(--muted); margin-left: auto; font-weight: 400; }
 
-  /* ── LAYER CONTENT AREA ── */
-  .layer-content {
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 16px;
-    align-items: center;
-    background: rgba(255,255,255,0.06);
-    border-left: 2px solid rgba(255,255,255,0.15);
-  }
+  /* Layer colour themes */
+  .l1 { border-color: var(--ingest-bd); }
+  .l1 .layer-header { background: var(--ingest-bg); }
+  .l1 .lnum        { background: var(--ingest); color: #fff; }
+  .l1 .layer-title  { color: var(--ingest); }
 
-  /* ── CARDS ── */
+  .l2 { border-color: var(--compile-bd); }
+  .l2 .layer-header { background: var(--compile-bg); }
+  .l2 .lnum        { background: var(--compile); color: #fff; }
+  .l2 .layer-title  { color: var(--compile); }
+
+  .l3 { border-color: var(--qk-bd); }
+  .l3 .layer-header { background: var(--qk-bg); }
+  .l3 .lnum        { background: var(--qk); color: #fff; }
+  .l3 .layer-title  { color: var(--qk); }
+
+  .l4 { border-color: var(--em-bd); }
+  .l4 .layer-header { background: var(--em-bg); }
+  .l4 .lnum        { background: var(--em); color: #fff; }
+  .l4 .layer-title  { color: var(--em); }
+
+  .l5 { border-color: var(--ai-bd); }
+  .l5 .layer-header { background: var(--ai-bg); }
+  .l5 .lnum        { background: var(--ai); color: #fff; }
+  .l5 .layer-title  { color: var(--ai); }
+
+  .l6 { border-color: var(--gov-bd); }
+  .l6 .layer-header { background: var(--gov-bg); }
+  .l6 .lnum        { background: var(--gov); color: #fff; }
+  .l6 .layer-title  { color: var(--gov); }
+
+  /* ── LAYER BODY ── */
+  .layer-body { padding: 16px 20px; }
+
+  /* ── CARD GRID ── */
+  .card-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+
   .card {
-    background: rgba(255,255,255,0.13);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 6px;
-    padding: 7px 11px;
-    font-size: 11px;
-    color: #fff;
-    line-height: 1.45;
-    min-width: 140px;
-    flex: 1;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 13px;
+    min-width: 160px; flex: 1;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
   }
-  .card .card-title {
-    font-weight: 700;
-    font-size: 11.5px;
-    margin-bottom: 3px;
-    letter-spacing: 0.2px;
-  }
-  .card .card-sub {
-    font-size: 10px;
-    opacity: 0.78;
-    font-style: italic;
-  }
-  .card.highlight {
-    background: rgba(255,255,255,0.22);
-    border: 1.5px solid rgba(255,255,255,0.55);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  }
-  .card.highlight .card-title::before {
-    content: "★ ";
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13,50,100,0.10); }
+  .card-title { font-size: 11.5px; font-weight: 700; margin-bottom: 3px; }
+  .card-sub   { font-size: 10px; color: var(--muted); line-height: 1.5; }
+
+  /* Highlighted (Novel / IT Core) card — tinted with layer colour */
+  .l1 .card.hi { background: var(--ingest-bg); border-color: var(--ingest-bd); }
+  .l1 .card.hi .card-title { color: var(--ingest); }
+  .l2 .card.hi { background: var(--compile-bg); border-color: var(--compile-bd); }
+  .l2 .card.hi .card-title { color: var(--compile); }
+  .l3 .card.hi { background: var(--qk-bg);     border-color: var(--qk-bd); }
+  .l3 .card.hi .card-title { color: var(--qk); }
+  .l5 .card.hi { background: var(--ai-bg);     border-color: var(--ai-bd); }
+  .l5 .card.hi .card-title { color: var(--ai); }
+  .card.hi:hover { box-shadow: 0 4px 14px rgba(13,126,168,0.14); }
+
+  .novel-tag {
+    display: inline-block; margin-left: 5px; vertical-align: middle;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase;
+    background: var(--ai-bg); color: var(--ai); border: 1px solid var(--ai-bd);
+    border-radius: 3px; padding: 1px 6px;
   }
 
-  /* ── ARROW CONNECTOR ── */
-  .arrow-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 28px;
-    position: relative;
+  /* ── COMPUTE TRIO (Layer 4) ── */
+  .compute-trio { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cb {
+    flex: 1; min-width: 180px;
+    border-radius: 9px; padding: 11px 14px;
+    border: 1.5px solid;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
   }
-  .arrow-line {
-    width: 2px;
-    height: 28px;
-    background: #aab4c4;
-    position: absolute;
-    left: 50%;
-  }
-  .arrow-line::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: -5px;
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 9px solid #aab4c4;
-  }
-  .arrow-label {
-    background: #e8ecf2;
-    border: 1px solid #c5cdd8;
-    border-radius: 20px;
-    padding: 3px 12px;
-    font-size: 10px;
-    color: #556;
-    font-style: italic;
-    z-index: 1;
-  }
+  .cb:hover { transform: translateY(-2px); }
+  .cb-hpc { background: var(--compile-bg); border-color: var(--compile-bd); }
+  .cb-qc  { background: var(--qk-bg);     border-color: var(--qk-bd); box-shadow: 0 2px 10px rgba(13,126,168,0.14); }
+  .cb-ai  { background: var(--em-bg);     border-color: var(--em-bd); }
 
-  /* ── LAYER COLORS ── */
-  .l1 { background: #0B1E3D; }   /* Navy  — Clinical Input */
-  .l2 { background: #153358; }   /* Navy mid — Preprocessing */
-  .l3 { background: #005f8e; }   /* Teal dark — Orchestration */
-  .l4 { background: #007aae; }   /* Teal — Compute */
-  .l5 { background: #b07008; }   /* Gold dark — Validation */
-  .l6 { background: #7a3d8f; }   /* Violet — Output */
+  .cb-title {
+    font-size: 11.5px; font-weight: 700;
+    padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid;
+  }
+  .cb-hpc .cb-title { color: var(--compile); border-color: var(--compile-bd); }
+  .cb-qc  .cb-title { color: var(--qk);     border-color: var(--qk-bd); }
+  .cb-ai  .cb-title { color: var(--em);     border-color: var(--em-bd); }
 
-  /* ── COMPUTE TRIO ── */
-  .compute-trio {
-    display: flex;
-    gap: 8px;
-    flex: 1;
-    flex-wrap: nowrap;
-  }
-  .compute-block {
-    flex: 1;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.30);
-    border-radius: 8px;
-    padding: 9px 12px;
-  }
-  .compute-block .cb-title {
-    font-size: 12px;
-    font-weight: 800;
-    color: #fff;
-    margin-bottom: 5px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.25);
-    letter-spacing: 0.3px;
-  }
-  .compute-block .cb-row {
-    font-size: 10px;
-    color: rgba(255,255,255,0.85);
-    padding: 2px 0;
-    line-height: 1.5;
-  }
-  .compute-block .cb-row::before {
-    content: "▸ ";
-    opacity: 0.6;
-  }
+  .cb-row { font-size: 10px; color: var(--muted); padding: 2px 0; line-height: 1.55; }
+  .cb-row::before { content: "▸ "; opacity: 0.5; }
 
-  /* ── OUTPUT ROW ── */
-  .output-strip {
-    display: flex;
-    gap: 8px;
-    flex: 1;
-    flex-wrap: wrap;
-  }
+  /* ── OUTPUT PILLS (Layer 6) ── */
+  .output-strip { display: flex; gap: 10px; flex-wrap: wrap; }
   .output-pill {
-    background: rgba(255,255,255,0.15);
-    border: 1.5px solid rgba(255,255,255,0.35);
-    border-radius: 20px;
-    padding: 6px 16px;
-    font-size: 11px;
-    color: #fff;
-    font-weight: 600;
-    text-align: center;
-    flex: 1;
-    min-width: 130px;
+    background: var(--gov-bg); border: 1.5px solid var(--gov-bd);
+    border-radius: 10px; padding: 10px 16px;
+    font-size: 11px; font-weight: 600; color: var(--gov);
+    flex: 1; min-width: 160px; text-align: center;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
   }
+  .output-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26,122,74,0.12); }
+  .output-pill small { display: block; font-weight: 400; font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ── CONNECTOR ── */
+  .connector { display: flex; flex-direction: column; align-items: center; padding: 4px 0; }
+  .connector-line  { width: 2px; height: 16px; background: linear-gradient(to bottom, var(--qk-bd), var(--border)); }
+  .connector-label {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 14px;
+    font-size: 10px; color: var(--muted); font-style: italic; margin: 2px 0;
+  }
+  .connector-arrow { width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid var(--border); }
+
+  /* ── LEGEND ── */
+  .legend {
+    max-width: 960px; margin: 22px auto 0;
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--muted); }
+  .legend-dot  { width: 12px; height: 12px; border-radius: 3px; }
 
   /* ── FOOTNOTE ── */
   .footnote {
-    max-width: 960px;
-    margin: 18px auto 0;
-    font-size: 10.5px;
-    color: #777;
-    text-align: center;
-    line-height: 1.6;
+    max-width: 960px; margin: 20px auto 0;
+    text-align: center; font-size: 10.5px; color: var(--muted); line-height: 1.7;
+    border-top: 1px solid var(--border); padding-top: 18px;
   }
-  .legend {
-    max-width: 960px;
-    margin: 14px auto 0;
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10.5px;
-    color: #555;
-  }
-  .legend-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
+  .footnote strong { color: var(--text); }
+  .stamp {
+    display: inline-block; margin-top: 10px;
+    background: var(--ai-bg); color: var(--ai); border: 1px solid var(--ai-bd);
+    border-radius: 4px; padding: 3px 10px;
+    font-size: 9.5px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
   }
 
-  /* ── CONTRIBUTION BADGE ── */
-  .contrib-badge {
-    display: inline-block;
-    background: #E8A020;
-    color: #0B1E3D;
-    font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-    padding: 2px 7px;
-    border-radius: 3px;
-    margin-left: 6px;
-    text-transform: uppercase;
-    vertical-align: middle;
+  @media (max-width: 640px) {
+    .card-grid, .compute-trio, .output-strip { flex-direction: column; }
+    .layer-subtitle { display: none; }
+    body { padding: 24px 14px 40px; }
+    .page-header h1 { font-size: 19px; }
   }
 </style>
 </head>
 <body>
 
 <div class="page-header">
+  <div class="eyebrow">IS Artifact · Platform Architecture</div>
   <h1>QC·AI·HPC Hybrid Platform Architecture</h1>
-  <p>Drugless NSCLC Mutation Binding Site Simulation · Doron Cohen, IST 697 · Claremont Graduate University · 2026</p>
+  <p>Drugless NSCLC Mutation Binding Site Simulation · Six-layer orchestration stack<br>
+     Doron Cohen · IST 697 · Claremont Graduate University · 2026</p>
+  <div class="badge">★ Original IS Design Artifact — Doron Cohen · IST 697 · CGU 2026</div>
 </div>
 
 <div class="diagram">
 
-  <!-- ══════════════════════════════════════════════════════════
-       LAYER 1 — CLINICAL PROBLEM DEFINITION
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════ LAYER 1 — CLINICAL PROBLEM DEFINITION ══════ -->
   <div class="layer l1">
-    <div class="layer-label">
-      <div class="layer-num">1</div>
-      Clinical<br>Problem<br>Definition
+    <div class="layer-header">
+      <div class="lnum">1</div>
+      <div class="layer-title">Clinical Problem Definition</div>
+      <div class="layer-subtitle">TCGA · COSMIC · ClinVar · RCSB PDB</div>
     </div>
-    <div class="layer-content">
-      <div class="card">
-        <div class="card-title">NSCLC Mutation Database</div>
-        <div class="card-sub">TCGA · COSMIC · ClinVar · cBioPortal</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Protein Structure Repository</div>
-        <div class="card-sub">PDB · AlphaFold2 · RCSB</div>
-      </div>
-      <div class="card highlight">
-        <div class="card-title">Drugless Target Selector</div>
-        <div class="card-sub">TP53 · STK11 · KEAP1 · CDKN2A · NF1 — the ~60% with no approved therapy</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Clinical Context Engine</div>
-        <div class="card-sub">Mutation frequency · co-mutation patterns · survival correlation</div>
+    <div class="layer-body">
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">NSCLC Mutation Database</div>
+          <div class="card-sub">TCGA · COSMIC · ClinVar · cBioPortal</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Protein Structure Repository</div>
+          <div class="card-sub">PDB · AlphaFold2 · RCSB</div>
+        </div>
+        <div class="card hi">
+          <div class="card-title">Drugless Target Selector ★</div>
+          <div class="card-sub">TP53 · STK11 · KEAP1 · CDKN2A · NF1 — the ~60% with no approved therapy</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Clinical Context Engine</div>
+          <div class="card-sub">Mutation frequency · co-mutation patterns · survival correlation</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="arrow-row">
-    <div class="arrow-line"></div>
-    <div class="arrow-label">Target protein + mutation profile → Problem formulation</div>
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">Target protein + mutation profile → Problem formulation</div>
+    <div class="connector-arrow"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       LAYER 2 — DATA PREPROCESSING & PROBLEM ENCODING
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════ LAYER 2 — DATA PREPROCESSING & ENCODING ══════ -->
   <div class="layer l2">
-    <div class="layer-label">
-      <div class="layer-num">2</div>
-      Data Pre-<br>processing &amp;<br>Encoding
+    <div class="layer-header">
+      <div class="lnum">2</div>
+      <div class="layer-title">Data Pre-processing &amp; Encoding</div>
+      <div class="layer-subtitle">Qiskit · CASSCF · Jordan–Wigner</div>
     </div>
-    <div class="layer-content">
-      <div class="card">
-        <div class="card-title">Protein Preparation</div>
-        <div class="card-sub">Protonation · solvation · force field assignment</div>
-      </div>
-      <div class="card highlight">
-        <div class="card-title">Mutation-Aware Active Space <span class="contrib-badge">Novel</span></div>
-        <div class="card-sub">Mutation-specific CASSCF — TP53 C275F (loop-sheet-helix DNA-contact region), KEAP1, CDKN2A, STK11 · 24-electron local / 44-electron full active spaces tuned per mutation class</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Molecular Graph Builder</div>
-        <div class="card-sub">Atom-bond graph · 3D conformer generation · ligand docking poses</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Qubit Encoder</div>
-        <div class="card-sub">Jordan–Wigner / Bravyi–Kitaev fermion-to-qubit mapping</div>
+    <div class="layer-body">
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Protein Preparation</div>
+          <div class="card-sub">Protonation · solvation · force field assignment</div>
+        </div>
+        <div class="card hi" style="flex:1.6">
+          <div class="card-title">Mutation-Aware Active Space <span class="novel-tag">Novel</span></div>
+          <div class="card-sub">Mutation-specific CASSCF — TP53 C275F (loop-sheet-helix DNA-contact region), KEAP1, CDKN2A, STK11 · 24-electron local / 44-electron full active spaces tuned per mutation class</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Molecular Graph Builder</div>
+          <div class="card-sub">Atom-bond graph · 3D conformer generation · ligand docking poses</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Qubit Encoder</div>
+          <div class="card-sub">Jordan–Wigner / Bravyi–Kitaev fermion-to-qubit mapping</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="arrow-row">
-    <div class="arrow-line"></div>
-    <div class="arrow-label">Encoded Hamiltonian → Orchestration engine</div>
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">Encoded Hamiltonian → Orchestration engine</div>
+    <div class="connector-arrow"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       LAYER 3 — ORCHESTRATION ENGINE  ★ CORE IT CONTRIBUTION
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════ LAYER 3 — ORCHESTRATION ENGINE ══════ -->
   <div class="layer l3">
-    <div class="layer-label">
-      <div class="layer-num">3</div>
-      Orchestration<br>Engine
+    <div class="layer-header">
+      <div class="lnum">3</div>
+      <div class="layer-title">Orchestration Engine</div>
+      <div class="layer-subtitle">★ Core IT Contribution</div>
     </div>
-    <div class="layer-content">
-      <div class="card" style="flex:1.4">
-        <div class="card-title">Workflow Scheduler</div>
-        <div class="card-sub">Decomposes problem into HPC / QC / AI sub-tasks · routes jobs · monitors SLA</div>
-      </div>
-      <div class="card highlight" style="flex:1.4">
-        <div class="card-title">Translational Orchestrator <span class="contrib-badge">IT Core</span></div>
-        <div class="card-sub">Routes across IBM Heron (Qiskit) and Nvidia substrate (CUDA-Q · NVQLink) — workflow-portable abstraction, vendor-specific compilation, bifurcation-aware</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Task Decomposition Engine</div>
-        <div class="card-sub">Breaks molecular simulation into parallelizable quantum circuit batches</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Result Aggregator</div>
-        <div class="card-sub">Collects partial energies · assembles full binding affinity estimate · triggers AI re-scoring</div>
+    <div class="layer-body">
+      <div class="card-grid">
+        <div class="card" style="flex:1.4">
+          <div class="card-title">Workflow Scheduler</div>
+          <div class="card-sub">Decomposes problem into HPC / QC / AI sub-tasks · routes jobs · monitors SLA</div>
+        </div>
+        <div class="card hi" style="flex:1.6">
+          <div class="card-title">Translational Orchestrator <span class="novel-tag">IT Core</span></div>
+          <div class="card-sub">Routes across IBM Heron (Qiskit) and Nvidia substrate (CUDA-Q · NVQLink) — workflow-portable abstraction, vendor-specific compilation, bifurcation-aware</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Task Decomposition Engine</div>
+          <div class="card-sub">Breaks molecular simulation into parallelizable quantum circuit batches</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Result Aggregator</div>
+          <div class="card-sub">Collects partial energies · assembles full binding affinity estimate · triggers AI re-scoring</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="arrow-row">
-    <div class="arrow-line"></div>
-    <div class="arrow-label">Dispatched compute jobs → Heterogeneous compute layer</div>
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">Dispatched compute jobs → Heterogeneous compute layer</div>
+    <div class="connector-arrow"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       LAYER 4 — HETEROGENEOUS COMPUTE
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════ LAYER 4 — HETEROGENEOUS COMPUTE ══════ -->
   <div class="layer l4">
-    <div class="layer-label">
-      <div class="layer-num">4</div>
-      Hetero-<br>geneous<br>Compute
+    <div class="layer-header">
+      <div class="lnum">4</div>
+      <div class="layer-title">Heterogeneous Compute</div>
+      <div class="layer-subtitle">HPC · Quantum · AI</div>
     </div>
-    <div class="layer-content">
+    <div class="layer-body">
       <div class="compute-trio">
-
-        <div class="compute-block">
+        <div class="cb cb-hpc">
           <div class="cb-title">⚙ HPC Node</div>
           <div class="cb-row">MD Simulation (GROMACS / OpenMM)</div>
           <div class="cb-row">DFT Baseline (ORCA / Gaussian)</div>
           <div class="cb-row">CCSD(T) Reference (high-accuracy)</div>
           <div class="cb-row">Conformational sampling (100 ns+)</div>
         </div>
-
-        <div class="compute-block" style="border: 2px solid rgba(255,255,255,0.55); box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+        <div class="cb cb-qc">
           <div class="cb-title">⚛ Quantum Computer</div>
-          <div class="cb-row">VQE + SqDRIFT — ground-state energy</div>
+          <div class="cb-row">VQE + sqDRIFT — ground-state energy</div>
           <div class="cb-row">Error mitigation: ZNE · Pauli Twirling</div>
           <div class="cb-row">Active space Hamiltonian simulation</div>
-          <div class="cb-row">Backend: PennyLane simulator (Phase 3A) · IBM Heron r3 (Phase 3B) · NVQLink-substrate forward-compatible</div>
+          <div class="cb-row">PennyLane simulator (Phase 3A) · IBM Heron r3 (Phase 3B) · NVQLink-substrate forward-compatible</div>
         </div>
-
-        <div class="compute-block">
+        <div class="cb cb-ai">
           <div class="cb-title">🤖 AI Engine</div>
           <div class="cb-row">Binding affinity ML (DeepChem / GNN)</div>
           <div class="cb-row">QC error correction — Nvidia Ising 3D CNN decoder (April 2026)</div>
           <div class="cb-row">Generative design (diffusion model)</div>
           <div class="cb-row">Cryptic pocket predictor</div>
         </div>
-
       </div>
     </div>
   </div>
 
-  <div class="arrow-row">
-    <div class="arrow-line"></div>
-    <div class="arrow-label">Raw results → Validation &amp; compliance layer</div>
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">Raw results → Validation &amp; compliance layer</div>
+    <div class="connector-arrow"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       LAYER 5 — VALIDATION & COMPLIANCE  ★ REGULATORY CONTRIBUTION
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════ LAYER 5 — VALIDATION & COMPLIANCE ══════ -->
   <div class="layer l5">
-    <div class="layer-label">
-      <div class="layer-num">5</div>
-      Validation &amp;<br>Compliance
+    <div class="layer-header">
+      <div class="lnum">5</div>
+      <div class="layer-title">Validation &amp; Compliance</div>
+      <div class="layer-subtitle">★ Regulatory Contribution</div>
     </div>
-    <div class="layer-content">
-      <div class="card highlight">
-        <div class="card-title">FDA 21 CFR Part 11 Module <span class="contrib-badge">Novel</span></div>
-        <div class="card-sub">Nine-element provenance record (P1–P9, including ML-decoder lineage) · audit trails · electronic signatures · statistical-equivalence validation</div>
-      </div>
-      <div class="card highlight">
-        <div class="card-title">BQP-Relevance Benchmarking <span class="contrib-badge">Novel</span></div>
-        <div class="card-sub">QC vs DFT vs CCSD(T) accuracy/cost/scalability matrix — drugless oncology mutation targets at the empirically quantum-advantaged boundary</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Reproducibility Engine</div>
-        <div class="card-sub">Circuit fingerprint · calibration epoch · per-gate error budget · raw outcome distribution (P1–P9 schema)</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Statistical Validation</div>
-        <div class="card-sub">VQE convergence · energy variance · bootstrap CI · cross-validation against known structures</div>
+    <div class="layer-body">
+      <div class="card-grid">
+        <div class="card hi">
+          <div class="card-title">FDA 21 CFR Part 11 Module <span class="novel-tag">Novel</span></div>
+          <div class="card-sub">Nine-element provenance record (P1–P9, including ML-decoder lineage) · audit trails · electronic signatures · statistical-equivalence validation</div>
+        </div>
+        <div class="card hi">
+          <div class="card-title">BQP-Relevance Benchmarking <span class="novel-tag">Novel</span></div>
+          <div class="card-sub">QC vs DFT vs CCSD(T) accuracy/cost/scalability matrix — drugless oncology mutation targets at the empirically quantum-advantaged boundary</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Reproducibility Engine</div>
+          <div class="card-sub">Circuit fingerprint · calibration epoch · per-gate error budget · raw outcome distribution (P1–P9 schema)</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Statistical Validation</div>
+          <div class="card-sub">VQE convergence · energy variance · bootstrap CI · cross-validation against known structures</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="arrow-row">
-    <div class="arrow-line"></div>
-    <div class="arrow-label">Validated results → Research outputs</div>
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">Validated results → Research outputs</div>
+    <div class="connector-arrow"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       LAYER 6 — OUTPUT
-  ═══════════════════════════════════════════════════════════ -->
-  <div class="layer l6" style="border-radius: 0 0 10px 10px;">
-    <div class="layer-label" style="border-radius: 0 0 0 10px;">
-      <div class="layer-num">6</div>
-      Research<br>Outputs
+  <!-- ══════ LAYER 6 — RESEARCH OUTPUTS ══════ -->
+  <div class="layer l6">
+    <div class="layer-header">
+      <div class="lnum">6</div>
+      <div class="layer-title">Research Outputs</div>
+      <div class="layer-subtitle">Open · Translational · Part-11-governed · Citable</div>
     </div>
-    <div class="layer-content">
+    <div class="layer-body">
       <div class="output-strip">
-        <div class="output-pill">Binding Energy Rankings<br><small style="font-weight:400;font-size:9.5px;">TP53 · STK11 · KEAP1 candidates</small></div>
-        <div class="output-pill">Benchmarking Report<br><small style="font-weight:400;font-size:9.5px;">QC vs DFT vs CCSD accuracy</small></div>
-        <div class="output-pill">Compliance Documentation<br><small style="font-weight:400;font-size:9.5px;">FDA 21 CFR Part 11 framework</small></div>
-        <div class="output-pill">Reproducible Methodology<br><small style="font-weight:400;font-size:9.5px;">Open · translational · Part-11-governed · citable</small></div>
+        <div class="output-pill">
+          Binding Energy Rankings
+          <small>TP53 · STK11 · KEAP1 candidates</small>
+        </div>
+        <div class="output-pill">
+          Benchmarking Report
+          <small>QC vs DFT vs CCSD accuracy</small>
+        </div>
+        <div class="output-pill">
+          Compliance Documentation
+          <small>FDA 21 CFR Part 11 framework</small>
+        </div>
+        <div class="output-pill">
+          Reproducible Methodology
+          <small>Open · translational · Part-11-governed · citable</small>
+        </div>
       </div>
     </div>
   </div>
 
 </div><!-- /diagram -->
 
-<!-- LEGEND -->
 <div class="legend">
-  <div class="legend-item"><div class="legend-dot" style="background:#0B1E3D"></div> Clinical Input</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#153358"></div> Preprocessing</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#005f8e"></div> Orchestration (IT Core)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#007aae"></div> Compute (HPC · QC · AI)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#b07008"></div> Validation (Regulatory)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#7a3d8f"></div> Research Outputs</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#E8A020; border-radius:2px;"></div> ★ Novel IT Contribution</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ingest)"></div> Clinical Input</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--compile)"></div> Preprocessing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--qk)"></div> Orchestration (IT Core)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--em)"></div> Compute (HPC · QC · AI)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ai)"></div> Validation (Regulatory)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gov)"></div> Research Outputs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ai);border-radius:2px;"></div> ★ Novel IT Contribution</div>
 </div>
 
 <div class="footnote">
@@ -485,8 +465,8 @@
   Translational orchestration middleware (Layer 3) — bifurcation-aware across IBM-native and Nvidia-substrate stacks ·
   BQP-relevance benchmarking matrix for drugless oncology mutation targets (Layer 5) ·
   FDA 21 CFR Part 11 compliance architecture with ML-decoder provenance, P1–P9 (Layer 5)<br>
-  <em>Proof-of-concept target: TP53 Y220C cryptic pocket · Active space: ~10–20 electrons · Simulator: PennyLane default.qubit / IBM Quantum free tier</em><br>
-  <span style="display:inline-block; margin-top:8px; padding:2px 8px; background:#fbe9e0; color:#b8441f; border:1px solid #b8441f; border-radius:3px; font-size:9.5px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase;">Updated April 2026 · post-Ising release</span>
+  <em>Proof-of-concept target: TP53 C275F · Active space: ~44 electrons / ~88 qubits · Simulator: PennyLane → IBM Heron r3</em><br>
+  <span class="stamp">Updated April 2026 · post-Ising release · IST 697 · CGU · Doron Cohen</span>
 </div>
 
 </body>
