@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: qcaihpc-simulation-api
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false   # set manually in Render dashboard
+      - key: SUPABASE_KEY
+        sync: false   # use service_role key (keep secret)
+      - key: PYTHON_VERSION
+        value: "3.11.0"

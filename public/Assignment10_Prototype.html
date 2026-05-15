@@ -554,6 +554,43 @@
     </div>
   </div>
 
+  <!-- Live VQE Runner -->
+  <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
+    <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A PennyLane Simulator</div>
+    <div style="font-size:11.5px;color:var(--gray);margin-bottom:12px">
+      Runs a real VQE optimisation on the PennyLane default.qubit simulator (Render.com backend).
+      P1–P9 provenance record is cryptographically sealed and stored to Supabase.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <select id="sim-target" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
+        <option value="TP53_C275F">TP53 p.Cys275Phe (C275F)</option>
+        <option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>
+        <option value="KEAP1_LOF">KEAP1 Loss-of-Function</option>
+        <option value="STK11_LKB1">STK11/LKB1 Loss-of-Function</option>
+        <option value="CDKN2A_P16">CDKN2A p16/INK4a Deletion</option>
+      </select>
+      <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
+        ▶ Run Live Simulation
+      </button>
+      <span id="sim-status" style="font-size:11px;color:var(--gray)"></span>
+    </div>
+    <div id="sim-result" style="display:none;background:rgba(0,168,214,0.07);border:1px solid rgba(0,168,214,0.2);border-radius:8px;padding:14px;font-size:12px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Ground-State Energy (Hₐ)</div><div id="r-energy" style="color:var(--teal);font-size:18px;font-weight:800;font-family:monospace"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">95% CI</div><div id="r-ci" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Qubits / Gates / Depth</div><div id="r-circuit" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Run ID</div><div id="r-runid" style="color:var(--light);font-size:11px;font-family:monospace;word-break:break-all"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">P8 Cryptographic Seal (SHA-256)</div><div id="r-seal" style="color:var(--gold);font-size:11px;font-family:monospace;word-break:break-all"></div></div>
+      </div>
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:10.5px;color:var(--gray)">
+        Phase 3A: PennyLane default.qubit · Ry-CNOT-Ry ansatz · 120 optimisation steps · P1–P9 record sealed & stored to Supabase
+      </div>
+    </div>
+    <div id="sim-error" style="display:none;color:var(--red);font-size:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.3)"></div>
+  </div>
+
   <div style="text-align:center;margin-top:20px">
     <button onclick="show('s3')" style="background:var(--gold);color:var(--navy);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
       View Simulation Results →
@@ -789,7 +826,18 @@
     <div class="footnote">Classical CCSD(T) becomes intractable beyond ~18–20 electrons. VQE on quantum hardware maintains polynomial scaling past this boundary — the core BQP necessity argument for this dissertation. C275F at ~44 active electrons sits firmly in the quantum-required zone.</div>
   </div>
 
-  <div style="text-align:center">
+  <!-- Live Results from Supabase -->
+  <div class="card" style="margin-top:16px;border:1px solid rgba(34,197,94,0.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0;color:var(--green)">Live Results — Supabase Database (Real Runs)</div>
+      <button onclick="loadLiveResults()" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.35);padding:5px 14px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">⟳ Refresh</button>
+    </div>
+    <div id="live-results-table">
+      <div style="color:var(--gray);font-size:12px;padding:8px 0">Loading live results from Supabase...</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px">
     <button onclick="show('s4')" style="background:var(--violet);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
       View Compliance & Audit Trail →
     </button>
@@ -1042,6 +1090,13 @@
 </div>
 
 <script>
+// ── Backend configuration ──────────────────────────────────────────────────
+// Set this to your Render.com service URL once deployed.
+// Falls back gracefully with a clear message if not configured.
+const API_BASE = window.QCAIHPC_API_BASE
+  || 'https://qcaihpc-simulation-api.onrender.com';
+
+// ── Navigation ────────────────────────────────────────────────────────────
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1049,7 +1104,100 @@ function show(id) {
   const map = {s1:0, s2:1, s3:2, s4:3};
   document.querySelectorAll('.nav-tab')[map[id]].classList.add('active');
   window.scrollTo({top:0, behavior:'smooth'});
+  if (id === 's3') loadLiveResults();
 }
+
+// ── Live VQE simulation ───────────────────────────────────────────────────
+async function runLiveVQE() {
+  const mutationId = document.getElementById('sim-target').value;
+  const btn   = document.getElementById('sim-btn');
+  const status = document.getElementById('sim-status');
+  const result = document.getElementById('sim-result');
+  const errBox = document.getElementById('sim-error');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Running VQE…';
+  status.textContent = 'Sending to PennyLane simulator (Render.com)…';
+  result.style.display = 'none';
+  errBox.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/simulate/${mutationId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const r = data.result;
+    const p = data.provenance;
+
+    document.getElementById('r-energy').textContent  = `${r.energy_ha} Hₐ`;
+    document.getElementById('r-ci').textContent      = `[${r.ci_lower}, ${r.ci_upper}]`;
+    document.getElementById('r-circuit').textContent = `${r.qubits_used}q / ${r.gate_count} gates / d${r.depth}`;
+    document.getElementById('r-runid').textContent   = data.run_id;
+    document.getElementById('r-seal').textContent    = p.p8_hash;
+
+    result.style.display = 'block';
+    status.textContent = `Done in ${r.elapsed_s}s — record sealed & stored to Supabase`;
+    loadLiveResults();
+  } catch (e) {
+    errBox.textContent = `Backend error: ${e.message}. Is the Render service deployed? (cold start may take ~30s)`;
+    errBox.style.display = 'block';
+    status.textContent = '';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Live Simulation';
+  }
+}
+
+// ── Load live results from Supabase via backend ───────────────────────────
+async function loadLiveResults() {
+  const el = document.getElementById('live-results-table');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">Fetching from Supabase…</div>';
+
+  try {
+    const res  = await fetch(`${API_BASE}/api/simulate/results`);
+    const data = await res.json();
+    const rows = data.data || [];
+
+    if (rows.length === 0) {
+      el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">No runs recorded yet. Run a live simulation above to populate.</div>';
+      return;
+    }
+
+    const tableRows = rows.map(r => `
+      <tr>
+        <td style="font-family:monospace;font-size:10px;color:var(--gray)">${r.id.slice(0,8)}…</td>
+        <td style="font-weight:600">${r.mutation_name}</td>
+        <td style="font-family:monospace;color:var(--teal)">${(+r.p7_energy_ha).toFixed(6)}</td>
+        <td style="font-family:monospace;font-size:10px;color:var(--light)">[${(+r.p7_ci_lower).toFixed(5)}, ${(+r.p7_ci_upper).toFixed(5)}]</td>
+        <td style="font-family:monospace;font-size:10px;color:var(--gold)">${r.p8_hash ? r.p8_hash.slice(0,16)+'…' : '—'}</td>
+        <td style="font-size:10px;color:var(--gray)">${new Date(r.created_at).toLocaleString()}</td>
+      </tr>`).join('');
+
+    el.innerHTML = `
+      <table>
+        <tr><th>Run ID</th><th>Mutation</th><th>Energy (Hₐ)</th><th>95% CI</th><th>P8 Seal</th><th>Timestamp</th></tr>
+        ${tableRows}
+      </table>`;
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:8px 0">
+      Backend not reachable (${e.message}). Results will appear once the Render service is deployed.
+    </div>`;
+  }
+}
+
+// Auto-load live results when Results tab is active on page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Warm the backend on page load (Render free tier cold-start)
+  fetch(`${API_BASE}/health`).catch(() => {});
+});
 </script>
 </body>
 </html>
