@@ -1,0 +1,22 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/dissertation_revised"
+  to   = "/dissertation_revised.html"
+  status = 200
+
+[[redirects]]
+  from = "/QC_AI_HPC_Architecture"
+  to   = "/QC_AI_HPC_Architecture.html"
+  status = 200
+
+[[redirects]]
+  from = "/P1_P9_Architecture_Diagram"
+  to   = "/P1_P9_Architecture_Diagram.html"
+  status = 200
+
+[[redirects]]
+  from = "/Assignment10_Prototype"
+  to   = "/Assignment10_Prototype.html"
+  status = 200
