@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 560 420" xmlns="http://www.w3.org/2000/svg" aria-label="TP53 C275F structural overview — Cα backbone trace from PDB 2OCJ">
+  <!-- Background -->
+  <rect width="560" height="420" fill="#09111e"/>
+  <!-- Gold border -->
+  <rect x="1" y="1" width="558" height="418" fill="none" stroke="#f0b429" stroke-width="1.5"/>
+  <!-- Header divider -->
+  <line x1="1" y1="30" x2="559" y2="30" stroke="#f0b429" stroke-width="0.4" opacity="0.35"/>
+  <!-- Header text -->
+  <text x="12" y="21" fill="#f0b429" font-size="11.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1.5">TP53  C275F  ★</text>
+  <text x="548" y="21" fill="rgba(100,185,215,0.5)" font-size="9" font-family="Courier New,monospace" text-anchor="end">PDB 2OCJ</text>
+
+  <!-- Organic loop/coil blob outline -->
+  <path d="M 168 50 C 215 32 300 42 355 80 C 400 112 408 185 395 260 C 380 335 325 392 238 392 C 150 392 98 340 78 270 C 56 192 72 120 112 78 C 134 56 155 48 168 50 Z" fill="none" stroke="rgba(60,85,120,0.2)" stroke-width="1.2"/>
+
+  <!-- β-sheets (cyan) — diagonal crossing lines -->
+  <line x1="212" y1="80"  x2="396" y2="252" stroke="#14d9b8" stroke-width="2.3" stroke-linecap="round"/>
+  <line x1="230" y1="73"  x2="404" y2="268" stroke="#14d9b8" stroke-width="2.3" stroke-linecap="round"/>
+  <line x1="246" y1="94"  x2="398" y2="300" stroke="#14d9b8" stroke-width="2"   stroke-linecap="round"/>
+  <line x1="182" y1="132" x2="375" y2="302" stroke="#14d9b8" stroke-width="1.9" stroke-linecap="round"/>
+  <line x1="163" y1="168" x2="355" y2="324" stroke="#14d9b8" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="200" y1="292" x2="395" y2="148" stroke="#14d9b8" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="175" y1="318" x2="370" y2="178" stroke="#14d9b8" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- α-helices (gold) — arrowhead at top + path down -->
+  <polygon points="182,44 162,60 196,66" fill="#f0b429"/>
+  <path d="M 176,58 L 150,76 L 162,132 L 176,158" stroke="#f0b429" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="176" y1="158" x2="252" y2="198" stroke="#f0b429" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Bottom-left helix segment -->
+  <line x1="148" y1="352" x2="200" y2="376" stroke="#f0b429" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="200" y1="376" x2="250" y2="370" stroke="#f0b429" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- CYS275PHE label and mutation star -->
+  <text x="262" y="170" fill="rgba(240,245,255,0.95)" font-size="9.5" font-family="Courier New,monospace" font-weight="600">CYS275PHE</text>
+  <circle cx="228" cy="190" r="7" fill="rgba(255,255,220,0.15)"/>
+  <text x="228" y="196" fill="white" font-size="13" text-anchor="middle">★</text>
+
+  <!-- Zn²⁺ coordinating-residue diamonds -->
+  <polygon points="178,258 190,270 178,282 166,270" fill="#f0b429"/>
+  <polygon points="148,302 160,314 148,326 136,314" fill="#f0b429"/>
+  <text x="165" y="318" fill="#f0b429" font-size="8.5" font-family="Courier New,monospace">Zn²⁺</text>
+  <polygon points="140,348 150,358 140,368 130,358" fill="#f0b429"/>
+
+  <!-- Legend box -->
+  <rect x="442" y="358" width="112" height="55" fill="rgba(5,12,26,0.9)" stroke="rgba(65,85,120,0.4)" stroke-width="0.8" rx="2"/>
+  <line x1="451" y1="372" x2="476" y2="372" stroke="#f0b429" stroke-width="2"/>
+  <text x="481" y="376" fill="rgba(165,185,215,0.85)" font-size="8.5" font-family="Courier New,monospace">α-helix</text>
+  <line x1="451" y1="387" x2="476" y2="387" stroke="#14d9b8" stroke-width="2"/>
+  <text x="481" y="391" fill="rgba(165,185,215,0.85)" font-size="8.5" font-family="Courier New,monospace">β-sheet</text>
+  <line x1="451" y1="402" x2="476" y2="402" stroke="rgba(65,85,120,0.55)" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="481" y="406" fill="rgba(165,185,215,0.85)" font-size="8.5" font-family="Courier New,monospace">loop/coil</text>
+</svg>

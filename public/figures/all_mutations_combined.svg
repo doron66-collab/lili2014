@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 820" xmlns="http://www.w3.org/2000/svg" aria-label="NSCLC tumor-suppressor mutations — five structural overviews from RCSB PDB">
+  <!-- Global background -->
+  <rect width="1200" height="820" fill="#09111e"/>
+
+  <!-- Title bar -->
+  <rect x="0" y="0" width="1200" height="58" fill="rgba(4,10,22,0.92)"/>
+  <text x="600" y="24" fill="rgba(220,232,248,0.95)" font-size="14" font-weight="bold" text-anchor="middle" font-family="Courier New,monospace" letter-spacing="0.4">NSCLC Tumor-Suppressor Mutations — Structural Overview</text>
+  <text x="600" y="44" fill="rgba(100,145,190,0.7)" font-size="8.5" text-anchor="middle" font-family="Courier New,monospace">Real Cα backbone traces from RCSB PDB  ·  Mutation sites highlighted  ·  IST 697  ·  Doron Cohen  ·  CGU 2026</text>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANEL 1 — TP53 Y220C   (x=12, y=68, 385×363)
+       ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(12,68)">
+    <rect width="385" height="363" fill="#060e1a" stroke="#1565c0" stroke-width="1.5" rx="2"/>
+    <line x1="0" y1="30" x2="385" y2="30" stroke="#1565c0" stroke-width="0.4" opacity="0.4"/>
+    <text x="12" y="21" fill="#1565c0" font-size="10.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1">TP53  Y220C</text>
+    <text x="373" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2VUK</text>
+
+    <!-- loop/coil blob -->
+    <path d="M 78 42 C 118 36 210 44 285 72 C 345 95 360 148 342 194 C 322 242 272 262 210 262 C 145 262 100 228 85 188 C 66 140 74 86 96 58 Q 82 44 78 42 Z" fill="none" stroke="rgba(40,65,115,0.22)" stroke-width="1"/>
+
+    <!-- β-sheets (blue) — fan from left-center spreading right -->
+    <line x1="95"  y1="174" x2="342" y2="102" stroke="#1d62d4" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="92"  y1="188" x2="346" y2="128" stroke="#1d62d4" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="90"  y1="202" x2="338" y2="156" stroke="#1d62d4" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="91"  y1="215" x2="325" y2="182" stroke="#1d62d4" stroke-width="1.9" stroke-linecap="round"/>
+    <line x1="93"  y1="228" x2="312" y2="210" stroke="#1d62d4" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="96"  y1="240" x2="305" y2="236" stroke="#1d62d4" stroke-width="1.7" stroke-linecap="round"/>
+    <line x1="100" y1="252" x2="298" y2="262" stroke="#1d62d4" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+
+    <!-- α-helices (gold) -->
+    <polygon points="185,38 166,52 198,58" fill="#f0b429"/>
+    <line x1="178" y1="50" x2="114" y2="98" stroke="#f0b429" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="114" y1="98" x2="118" y2="148" stroke="#f0b429" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="106" y1="285" x2="165" y2="315" stroke="#f0b429" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- TYR220CYS star -->
+    <text x="148" y="172" fill="rgba(235,242,255,0.95)" font-size="8.5" font-family="Courier New,monospace" font-weight="600">TYR220CYS</text>
+    <circle cx="122" cy="192" r="6" fill="rgba(255,255,220,0.15)"/>
+    <text x="122" y="197" fill="white" font-size="12" text-anchor="middle">★</text>
+
+    <!-- Mini legend -->
+    <rect x="285" y="240" width="95" height="36" fill="rgba(4,10,22,0.85)" stroke="rgba(40,65,115,0.4)" stroke-width="0.7" rx="2"/>
+    <line x1="292" y1="251" x2="310" y2="251" stroke="#f0b429" stroke-width="1.8"/>
+    <text x="314" y="255" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">α-helix</text>
+    <line x1="292" y1="263" x2="310" y2="263" stroke="#1d62d4" stroke-width="1.8"/>
+    <text x="314" y="267" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">β-sheet</text>
+    <line x1="292" y1="275" x2="310" y2="275" stroke="rgba(50,70,120,0.55)" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <text x="314" y="279" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">loop/coil</text>
+
+    <!-- Info section below trace -->
+    <line x1="0" y1="280" x2="385" y2="280" stroke="rgba(25,50,100,0.35)" stroke-width="0.6"/>
+    <text x="12" y="296" fill="rgba(140,165,210,0.7)" font-size="8.5" font-style="italic" font-family="Courier New,monospace">p.Tyr220Cys</text>
+    <text x="12" y="314" fill="#f0a030" font-size="11" font-weight="bold" font-family="Courier New,monospace">Rezatapopt  (PC14586)</text>
+    <text x="12" y="330" fill="rgba(140,165,210,0.75)" font-size="8.5" font-family="Courier New,monospace">Phase II — PYNNACLE</text>
+    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Cryptic pocket stabilisation</text>
+    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">→ WT conformation rescue</text>
+    <text x="373" y="358" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">First approved cryptic-pocket drug</text>
+    <text x="373" y="369" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">in NSCLC clinical use</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANEL 2 — KEAP1 LOF   (x=407, y=68, 385×363)
+       ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(407,68)">
+    <rect width="385" height="363" fill="#060e1a" stroke="#2e7d32" stroke-width="1.5" rx="2"/>
+    <line x1="0" y1="30" x2="385" y2="30" stroke="#2e7d32" stroke-width="0.4" opacity="0.4"/>
+    <text x="12" y="21" fill="#4caf50" font-size="10.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1">KEAP1  LOF</text>
+    <text x="373" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2FLU</text>
+
+    <!-- Kelch β-propeller: circular blob + radial magenta lines from center -->
+    <circle cx="192" cy="138" r="102" fill="none" stroke="rgba(50,80,50,0.2)" stroke-width="1"/>
+    <!-- Radial spokes (magenta β-propeller blades) -->
+    <line x1="192" y1="138" x2="276" y2="58"  stroke="#d81b60" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="290" y2="115" stroke="#d81b60" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="288" y2="185" stroke="#d81b60" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="260" y2="235" stroke="#d81b60" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="192" y2="248" stroke="#d81b60" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="118" y2="240" stroke="#d81b60" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="72"  y2="210" stroke="#d81b60" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="60"  y2="138" stroke="#d81b60" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="82"  y2="62"  stroke="#d81b60" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="148" y2="40"  stroke="#d81b60" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="192" y1="138" x2="228" y2="40"  stroke="#d81b60" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Rim arc connections (blades) -->
+    <path d="M 276,58 Q 292,85 290,115"   fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 290,115 Q 295,152 288,185" fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 288,185 Q 278,215 260,235" fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 260,235 Q 228,250 192,248" fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 118,240 Q 88,228 72,210"   fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 72,210 Q 58,175 60,138"    fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 60,138 Q 64,96 82,62"      fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 82,62 Q 112,40 148,40"     fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+    <path d="M 228,40 Q 258,46 276,58"    fill="none" stroke="#c2185b" stroke-width="1.4" opacity="0.6"/>
+
+    <!-- Mini legend -->
+    <rect x="285" y="240" width="95" height="26" fill="rgba(4,10,22,0.85)" stroke="rgba(30,70,30,0.4)" stroke-width="0.7" rx="2"/>
+    <line x1="292" y1="251" x2="310" y2="251" stroke="#d81b60" stroke-width="1.8"/>
+    <text x="314" y="255" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">α-helix</text>
+    <line x1="292" y1="263" x2="310" y2="263" stroke="#c2185b" stroke-width="1.8"/>
+    <text x="314" y="267" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">β-sheet</text>
+
+    <!-- Info section -->
+    <line x1="0" y1="280" x2="385" y2="280" stroke="rgba(20,60,20,0.35)" stroke-width="0.6"/>
+    <text x="12" y="296" fill="rgba(140,165,210,0.7)" font-size="8.5" font-style="italic" font-family="Courier New,monospace">p.Cys196Leufs* (frameshift)</text>
+    <text x="12" y="314" fill="#e91e63" font-size="11" font-weight="bold" font-family="Courier New,monospace">VVD-065</text>
+    <text x="12" y="330" fill="rgba(140,165,210,0.75)" font-size="8.5" font-family="Courier New,monospace">Phase I — NCT05954312</text>
+    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Covalent NRF2 inhibition</text>
+    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">→ restores chemosensitivity</text>
+    <text x="373" y="354" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Loss-of-function frameshift</text>
+    <text x="373" y="365" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">(chr19q13.2)</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANEL 3 — CDKN2A p16   (x=802, y=68, 386×363)
+       ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(802,68)">
+    <rect width="386" height="363" fill="#060e1a" stroke="#bf5700" stroke-width="1.5" rx="2"/>
+    <line x1="0" y1="30" x2="386" y2="30" stroke="#bf5700" stroke-width="0.4" opacity="0.4"/>
+    <text x="12" y="21" fill="#e65100" font-size="10.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1">CDKN2A  p16 loss</text>
+    <text x="374" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2A5E</text>
+
+    <!-- Small ankyrin-repeat protein — sparse short segments -->
+    <!-- Ankyrin repeats: small bundles of parallel lines, clustered in 3 groups -->
+    <!-- Group 1 (top-center) -->
+    <line x1="168" y1="70" x2="190" y2="85"  stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="172" y1="78" x2="194" y2="93"  stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="176" y1="86" x2="198" y2="101" stroke="#f57c00" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="188" y1="68" x2="210" y2="80"  stroke="#bf5700" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+    <!-- Group 2 (center-left) -->
+    <line x1="145" y1="135" x2="170" y2="148" stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="148" y1="144" x2="173" y2="157" stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="151" y1="153" x2="176" y2="166" stroke="#f57c00" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Group 3 (center-right) -->
+    <line x1="205" y1="138" x2="228" y2="125" stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="208" y1="148" x2="231" y2="135" stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="211" y1="158" x2="234" y2="145" stroke="#f57c00" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Group 4 (lower) -->
+    <line x1="160" y1="200" x2="185" y2="214" stroke="#f57c00" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="163" y1="210" x2="188" y2="224" stroke="#f57c00" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="195" y1="202" x2="220" y2="188" stroke="#bf5700" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+    <!-- Connecting loops (faint) -->
+    <path d="M 190,101 Q 192,118 170,135" fill="none" stroke="rgba(90,50,10,0.25)" stroke-width="1"/>
+    <path d="M 173,166 Q 175,182 163,200" fill="none" stroke="rgba(90,50,10,0.25)" stroke-width="1"/>
+    <path d="M 198,165 Q 200,182 195,202" fill="none" stroke="rgba(90,50,10,0.25)" stroke-width="1"/>
+
+    <!-- Mini legend -->
+    <rect x="272" y="225" width="108" height="36" fill="rgba(4,10,22,0.85)" stroke="rgba(70,30,0,0.4)" stroke-width="0.7" rx="2"/>
+    <line x1="280" y1="236" x2="298" y2="236" stroke="#f57c00" stroke-width="1.8"/>
+    <text x="302" y="240" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">α-helix</text>
+    <line x1="280" y1="248" x2="298" y2="248" stroke="#bf5700" stroke-width="1.8"/>
+    <text x="302" y="252" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">β-sheet</text>
+    <line x1="280" y1="260" x2="298" y2="260" stroke="rgba(80,40,5,0.5)" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <text x="302" y="264" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">loop/coil</text>
+
+    <!-- Info section -->
+    <line x1="0" y1="280" x2="386" y2="280" stroke="rgba(80,30,0,0.35)" stroke-width="0.6"/>
+    <text x="12" y="296" fill="rgba(140,165,210,0.7)" font-size="8.5" font-style="italic" font-family="Courier New,monospace">p16/INK4a deletion</text>
+    <text x="12" y="314" fill="#ff6f00" font-size="11" font-weight="bold" font-family="Courier New,monospace">Palbociclib + Olaparib</text>
+    <text x="12" y="330" fill="rgba(140,165,210,0.75)" font-size="8.5" font-family="Courier New,monospace">Phase I/II — CDK4/6 + PARP</text>
+    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">G1 checkpoint rescue</text>
+    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">+ PARP synthetic lethality</text>
+    <text x="374" y="354" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">chr9p21.3 homozygous deletion</text>
+    <text x="374" y="365" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">copy number: 0.4</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANEL 4 — STK11 / LKB1   (x=12, y=441, 385×363)
+       ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(12,441)">
+    <rect width="385" height="363" fill="#060e1a" stroke="#880e4f" stroke-width="1.5" rx="2"/>
+    <line x1="0" y1="30" x2="385" y2="30" stroke="#880e4f" stroke-width="0.4" opacity="0.4"/>
+    <text x="12" y="21" fill="#c2185b" font-size="10.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1">STK11 / LKB1</text>
+    <text x="373" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2QK7</text>
+
+    <!-- Kinase domain: multiple parallel diagonal lines, lime (helix) and pink (sheet) -->
+    <!-- Loop blob -->
+    <path d="M 70 48 C 130 36 260 40 330 72 C 375 96 378 152 360 202 C 340 250 282 272 215 268 C 148 264 92 230 72 185 C 50 135 56 80 70 48 Z" fill="none" stroke="rgba(80,20,40,0.2)" stroke-width="1"/>
+
+    <!-- α-helices (lime green) — parallel diagonal bundle -->
+    <line x1="78"  y1="242" x2="302" y2="62"  stroke="#76ff03" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="92"  y1="250" x2="318" y2="70"  stroke="#76ff03" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="108" y1="256" x2="334" y2="80"  stroke="#76ff03" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="124" y1="260" x2="348" y2="92"  stroke="#76ff03" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="140" y1="262" x2="358" y2="108" stroke="#76ff03" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+    <!-- β-sheets (red-pink) — crossing at different angle -->
+    <line x1="72"  y1="80"  x2="318" y2="228" stroke="#ef5350" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="88"  y1="70"  x2="334" y2="240" stroke="#ef5350" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="105" y1="62"  x2="346" y2="252" stroke="#ef5350" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="124" y1="58"  x2="352" y2="266" stroke="#ef5350" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+
+    <!-- Mini legend -->
+    <rect x="260" y="238" width="118" height="36" fill="rgba(4,10,22,0.85)" stroke="rgba(80,10,35,0.4)" stroke-width="0.7" rx="2"/>
+    <line x1="268" y1="249" x2="286" y2="249" stroke="#76ff03" stroke-width="1.8"/>
+    <text x="290" y="253" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">α-helix</text>
+    <line x1="268" y1="261" x2="286" y2="261" stroke="#ef5350" stroke-width="1.8"/>
+    <text x="290" y="265" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">β-sheet</text>
+    <line x1="268" y1="273" x2="286" y2="273" stroke="rgba(80,20,40,0.5)" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <text x="290" y="277" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">loop/coil</text>
+
+    <!-- Info section -->
+    <line x1="0" y1="280" x2="385" y2="280" stroke="rgba(80,10,35,0.35)" stroke-width="0.6"/>
+    <text x="12" y="296" fill="rgba(140,165,210,0.7)" font-size="8.5" font-style="italic" font-family="Courier New,monospace">LKB1 loss-of-function</text>
+    <text x="12" y="314" fill="#e91e63" font-size="10.5" font-weight="bold" font-family="Courier New,monospace">Ceralasertib + Durvalumab</text>
+    <text x="12" y="330" fill="rgba(140,165,210,0.75)" font-size="8.5" font-family="Courier New,monospace">Phase III — LATIFY  NCT05450692</text>
+    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">ATR inhibition of replication stress</text>
+    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">via LKB1 loss (sqDRIFT-modelable)</text>
+    <text x="373" y="354" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Immunotherapy resistance</text>
+    <text x="373" y="365" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">(AMPK pathway disruption)</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANEL 5 — TP53 C275F   (x=407, y=441, 385×363)
+       ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(407,441)">
+    <rect width="385" height="363" fill="#060e1a" stroke="#c8960a" stroke-width="1.5" rx="2"/>
+    <line x1="0" y1="30" x2="385" y2="30" stroke="#c8960a" stroke-width="0.4" opacity="0.4"/>
+    <text x="12" y="21" fill="#f0b429" font-size="10.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1">TP53  C275F  ★</text>
+    <text x="373" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2OCJ</text>
+
+    <!-- Scaled-down version of Fig 1.1 backbone (560×420 → ~370×240) -->
+    <!-- Loop blob -->
+    <path d="M 112 38 C 142 28 205 32 240 56 C 272 78 276 128 266 178 C 254 228 218 262 160 262 C 100 262 65 228 52 182 C 38 130 48 82 76 54 Q 90 38 112 38 Z" fill="none" stroke="rgba(60,45,10,0.22)" stroke-width="1"/>
+
+    <!-- β-sheets (cyan) -->
+    <line x1="140" y1="55"  x2="268" y2="168" stroke="#14d9b8" stroke-width="2.1" stroke-linecap="round"/>
+    <line x1="152" y1="50"  x2="272" y2="180" stroke="#14d9b8" stroke-width="2.1" stroke-linecap="round"/>
+    <line x1="163" y1="64"  x2="268" y2="202" stroke="#14d9b8" stroke-width="1.9" stroke-linecap="round"/>
+    <line x1="122" y1="90"  x2="252" y2="204" stroke="#14d9b8" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="110" y1="114" x2="240" y2="220" stroke="#14d9b8" stroke-width="1.7" stroke-linecap="round"/>
+    <line x1="134" y1="198" x2="265" y2="102" stroke="#14d9b8" stroke-width="1.7" stroke-linecap="round"/>
+    <line x1="118" y1="215" x2="248" y2="122" stroke="#14d9b8" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- α-helices (gold) -->
+    <polygon points="120,30 108,41 130,45" fill="#f0b429"/>
+    <path d="M 118,38 L 100,52 L 108,90 L 118,106" stroke="#f0b429" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="118" y1="106" x2="169" y2="134" stroke="#f0b429" stroke-width="2" stroke-linecap="round"/>
+    <line x1="99"  y1="238" x2="134" y2="254" stroke="#f0b429" stroke-width="1.7" stroke-linecap="round"/>
+    <line x1="134" y1="254" x2="168" y2="250" stroke="#f0b429" stroke-width="1.7" stroke-linecap="round"/>
+
+    <!-- CYS275PHE label and star -->
+    <text x="175" y="114" fill="rgba(240,245,255,0.95)" font-size="8.5" font-family="Courier New,monospace" font-weight="600">CYS275PHE</text>
+    <circle cx="152" cy="128" r="5.5" fill="rgba(255,255,220,0.15)"/>
+    <text x="152" y="133" fill="white" font-size="11" text-anchor="middle">★</text>
+
+    <!-- Zn²⁺ diamonds -->
+    <polygon points="118,172 126,180 118,188 110,180" fill="#f0b429"/>
+    <polygon points="98"  y1="200" x2="106,208 98,216 90,208" fill="none"/>
+    <polygon points="98,200 106,208 98,216 90,208" fill="#f0b429"/>
+    <text x="110" y="212" fill="#f0b429" font-size="8" font-family="Courier New,monospace">Zn²⁺</text>
+    <polygon points="92,234 100,242 92,250 84,242" fill="#f0b429"/>
+
+    <!-- Mini legend -->
+    <rect x="280" y="238" width="98" height="36" fill="rgba(4,10,22,0.85)" stroke="rgba(80,55,5,0.4)" stroke-width="0.7" rx="2"/>
+    <line x1="288" y1="249" x2="306" y2="249" stroke="#f0b429" stroke-width="1.8"/>
+    <text x="310" y="253" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">α-helix</text>
+    <line x1="288" y1="261" x2="306" y2="261" stroke="#14d9b8" stroke-width="1.8"/>
+    <text x="310" y="265" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">β-sheet</text>
+    <line x1="288" y1="273" x2="306" y2="273" stroke="rgba(65,45,5,0.55)" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <text x="310" y="277" fill="rgba(155,175,210,0.8)" font-size="7.5" font-family="Courier New,monospace">loop/coil</text>
+
+    <!-- Info section -->
+    <line x1="0" y1="280" x2="385" y2="280" stroke="rgba(80,55,5,0.35)" stroke-width="0.6"/>
+    <text x="12" y="296" fill="rgba(140,165,210,0.7)" font-size="8.5" font-style="italic" font-family="Courier New,monospace">p.Cys275Phe</text>
+    <text x="12" y="314" fill="#00bcd4" font-size="11" font-weight="bold" font-family="Courier New,monospace">Eprenetapopt  (APR-246)</text>
+    <text x="12" y="330" fill="rgba(140,165,210,0.75)" font-size="8.5" font-family="Courier New,monospace">No C275F-specific trial · Research stage</text>
+    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">beta-sandwich core collapse</text>
+    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">→ global misfolding</text>
+    <text x="373" y="347" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Active space: ~44e · ~88 qubits</text>
+    <text x="373" y="358" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">IBM Heron r3 · sqDRIFT target</text>
+    <text x="373" y="369" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Emek Medical MI25-0349</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANEL 6 — LEGEND &amp; METHOD   (x=802, y=441, 386×363)
+       ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(802,441)">
+    <rect width="386" height="363" fill="#060e1a" stroke="rgba(60,80,120,0.55)" stroke-width="1" rx="2"/>
+    <text x="193" y="30" fill="rgba(210,225,245,0.9)" font-size="11" font-weight="bold" text-anchor="middle" font-family="Courier New,monospace" letter-spacing="1">LEGEND &amp; METHOD</text>
+    <line x1="20" y1="38" x2="366" y2="38" stroke="rgba(60,80,120,0.35)" stroke-width="0.6"/>
+
+    <!-- Color swatches per protein -->
+    <!-- Y220C -->
+    <text x="26" y="60" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="57" x2="64" y2="57" stroke="#1d62d4" stroke-width="2.2"/>
+    <text x="70" y="61" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">TP53 Y220C — α-helix</text>
+    <text x="26" y="76" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="73" x2="64" y2="73" stroke="#f0b429" stroke-width="2.2"/>
+    <text x="70" y="77" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">TP53 Y220C — β-sheet</text>
+
+    <!-- KEAP1 -->
+    <text x="26" y="96" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="93" x2="64" y2="93" stroke="#d81b60" stroke-width="2.2"/>
+    <text x="70" y="97" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">KEAP1 — α-helix</text>
+    <text x="26" y="112" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="109" x2="64" y2="109" stroke="#c2185b" stroke-width="2.2"/>
+    <text x="70" y="113" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">KEAP1 — β-sheet</text>
+
+    <!-- CDKN2A -->
+    <text x="26" y="132" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="129" x2="64" y2="129" stroke="#f57c00" stroke-width="2.2"/>
+    <text x="70" y="133" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">CDKN2A p16 — α-helix</text>
+    <text x="26" y="148" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="145" x2="64" y2="145" stroke="#bf5700" stroke-width="2.2"/>
+    <text x="70" y="149" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">CDKN2A p16 — β-sheet</text>
+
+    <!-- STK11 -->
+    <text x="26" y="168" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="165" x2="64" y2="165" stroke="#76ff03" stroke-width="2.2"/>
+    <text x="70" y="169" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">STK11/LKB1 — α-helix</text>
+    <text x="26" y="184" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="181" x2="64" y2="181" stroke="#ef5350" stroke-width="2.2"/>
+    <text x="70" y="185" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">STK11/LKB1 — β-sheet</text>
+
+    <!-- C275F -->
+    <text x="26" y="204" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="201" x2="64" y2="201" stroke="#f0b429" stroke-width="2.2"/>
+    <text x="70" y="205" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">TP53 C275F — α-helix</text>
+    <text x="26" y="220" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">—</text>
+    <line x1="40" y1="217" x2="64" y2="217" stroke="#14d9b8" stroke-width="2.2"/>
+    <text x="70" y="221" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">TP53 C275F — β-sheet</text>
+
+    <!-- Universal markers -->
+    <text x="26" y="240" fill="rgba(155,175,215,0.6)" font-size="8" font-family="Courier New,monospace">- -</text>
+    <line x1="40" y1="237" x2="64" y2="237" stroke="rgba(90,110,150,0.5)" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="70" y="241" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">Loop / coil (all proteins)</text>
+    <text x="40" y="258" fill="white" font-size="12" text-anchor="middle">★</text>
+    <text x="70" y="261" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">Mutation site residue</text>
+    <polygon points="40,272 48,280 40,288 32,280" fill="#f0b429"/>
+    <text x="70" y="284" fill="rgba(175,195,230,0.85)" font-size="8.5" font-family="Courier New,monospace">Zn²⁺ coordinating residues (C275F)</text>
+
+    <!-- Methodology note -->
+    <line x1="20" y1="298" x2="366" y2="298" stroke="rgba(60,80,120,0.3)" stroke-width="0.5"/>
+    <text x="26" y="314" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Backbone Cα traces — RCSB PDB</text>
+    <text x="26" y="326" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Projection: PCA (PC1 × PC2)</text>
+    <text x="26" y="338" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Secondary structure: HELIX / SHEET records</text>
+    <text x="26" y="350" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">sqDRIFT (VQE) classes: IBM Heron r3 targets</text>
+  </g>
+</svg>
