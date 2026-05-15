@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QC·AI·HPC Platform Architecture — Doron Cohen · IST 697 · CGU</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    background: #f4f6f9;
+    padding: 30px 20px 50px;
+    color: #222;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0B1E3D;
+    letter-spacing: 0.5px;
+  }
+  .page-header p {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  /* ── DIAGRAM WRAPPER ── */
+  .diagram {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── LAYER SHELL ── */
+  .layer {
+    display: flex;
+    align-items: stretch;
+    border-radius: 0;
+    position: relative;
+  }
+  .layer:first-of-type { border-radius: 10px 10px 0 0; }
+  .layer:last-of-type  { border-radius: 0 0 10px 10px; }
+
+  /* ── LAYER LABEL (left spine) ── */
+  .layer-label {
+    width: 130px;
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 8px;
+    text-align: center;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+  .layer-label .layer-num {
+    font-size: 22px;
+    font-weight: 900;
+    opacity: 0.35;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+
+  /* ── LAYER CONTENT AREA ── */
+  .layer-content {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border-left: 2px solid rgba(255,255,255,0.15);
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    padding: 7px 11px;
+    font-size: 11px;
+    color: #fff;
+    line-height: 1.45;
+    min-width: 140px;
+    flex: 1;
+  }
+  .card .card-title {
+    font-weight: 700;
+    font-size: 11.5px;
+    margin-bottom: 3px;
+    letter-spacing: 0.2px;
+  }
+  .card .card-sub {
+    font-size: 10px;
+    opacity: 0.78;
+    font-style: italic;
+  }
+  .card.highlight {
+    background: rgba(255,255,255,0.22);
+    border: 1.5px solid rgba(255,255,255,0.55);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .card.highlight .card-title::before {
+    content: "★ ";
+  }
+
+  /* ── ARROW CONNECTOR ── */
+  .arrow-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 28px;
+    position: relative;
+  }
+  .arrow-line {
+    width: 2px;
+    height: 28px;
+    background: #aab4c4;
+    position: absolute;
+    left: 50%;
+  }
+  .arrow-line::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: -5px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 9px solid #aab4c4;
+  }
+  .arrow-label {
+    background: #e8ecf2;
+    border: 1px solid #c5cdd8;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 10px;
+    color: #556;
+    font-style: italic;
+    z-index: 1;
+  }
+
+  /* ── LAYER COLORS ── */
+  .l1 { background: #0B1E3D; }   /* Navy  — Clinical Input */
+  .l2 { background: #153358; }   /* Navy mid — Preprocessing */
+  .l3 { background: #005f8e; }   /* Teal dark — Orchestration */
+  .l4 { background: #007aae; }   /* Teal — Compute */
+  .l5 { background: #b07008; }   /* Gold dark — Validation */
+  .l6 { background: #7a3d8f; }   /* Violet — Output */
+
+  /* ── COMPUTE TRIO ── */
+  .compute-trio {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: nowrap;
+  }
+  .compute-block {
+    flex: 1;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.30);
+    border-radius: 8px;
+    padding: 9px 12px;
+  }
+  .compute-block .cb-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+    letter-spacing: 0.3px;
+  }
+  .compute-block .cb-row {
+    font-size: 10px;
+    color: rgba(255,255,255,0.85);
+    padding: 2px 0;
+    line-height: 1.5;
+  }
+  .compute-block .cb-row::before {
+    content: "▸ ";
+    opacity: 0.6;
+  }
+
+  /* ── OUTPUT ROW ── */
+  .output-strip {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+  .output-pill {
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 11px;
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+    flex: 1;
+    min-width: 130px;
+  }
+
+  /* ── FOOTNOTE ── */
+  .footnote {
+    max-width: 960px;
+    margin: 18px auto 0;
+    font-size: 10.5px;
+    color: #777;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .legend {
+    max-width: 960px;
+    margin: 14px auto 0;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    color: #555;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* ── CONTRIBUTION BADGE ── */
+  .contrib-badge {
+    display: inline-block;
+    background: #E8A020;
+    color: #0B1E3D;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>QC·AI·HPC Hybrid Platform Architecture</h1>
+  <p>Drugless NSCLC Mutation Binding Site Simulation · Doron Cohen, IST 697 · Claremont Graduate University · 2026</p>
+</div>
+
+<div class="diagram">
+
+  <!-- ══════════════════════════════════════════════════════════
+       LAYER 1 — CLINICAL PROBLEM DEFINITION
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="layer l1">
+    <div class="layer-label">
+      <div class="layer-num">1</div>
+      Clinical<br>Problem<br>Definition
+    </div>
+    <div class="layer-content">
+      <div class="card">
+        <div class="card-title">NSCLC Mutation Database</div>
+        <div class="card-sub">TCGA · COSMIC · ClinVar · cBioPortal</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Protein Structure Repository</div>
+        <div class="card-sub">PDB · AlphaFold2 · RCSB</div>
+      </div>
+      <div class="card highlight">
+        <div class="card-title">Drugless Target Selector</div>
+        <div class="card-sub">TP53 · STK11 · KEAP1 · CDKN2A · NF1 — the ~60% with no approved therapy</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Clinical Context Engine</div>
+        <div class="card-sub">Mutation frequency · co-mutation patterns · survival correlation</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Target protein + mutation profile → Problem formulation</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LAYER 2 — DATA PREPROCESSING & PROBLEM ENCODING
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="layer l2">
+    <div class="layer-label">
+      <div class="layer-num">2</div>
+      Data Pre-<br>processing &amp;<br>Encoding
+    </div>
+    <div class="layer-content">
+      <div class="card">
+        <div class="card-title">Protein Preparation</div>
+        <div class="card-sub">Protonation · solvation · force field assignment</div>
+      </div>
+      <div class="card highlight">
+        <div class="card-title">Mutation-Aware Active Space <span class="contrib-badge">Novel</span></div>
+        <div class="card-sub">Mutation-specific CASSCF — TP53 C275F (loop-sheet-helix DNA-contact region), KEAP1, CDKN2A, STK11 · 24-electron local / 44-electron full active spaces tuned per mutation class</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Molecular Graph Builder</div>
+        <div class="card-sub">Atom-bond graph · 3D conformer generation · ligand docking poses</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Qubit Encoder</div>
+        <div class="card-sub">Jordan–Wigner / Bravyi–Kitaev fermion-to-qubit mapping</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Encoded Hamiltonian → Orchestration engine</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LAYER 3 — ORCHESTRATION ENGINE  ★ CORE IT CONTRIBUTION
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="layer l3">
+    <div class="layer-label">
+      <div class="layer-num">3</div>
+      Orchestration<br>Engine
+    </div>
+    <div class="layer-content">
+      <div class="card" style="flex:1.4">
+        <div class="card-title">Workflow Scheduler</div>
+        <div class="card-sub">Decomposes problem into HPC / QC / AI sub-tasks · routes jobs · monitors SLA</div>
+      </div>
+      <div class="card highlight" style="flex:1.4">
+        <div class="card-title">Translational Orchestrator <span class="contrib-badge">IT Core</span></div>
+        <div class="card-sub">Routes across IBM Heron (Qiskit) and Nvidia substrate (CUDA-Q · NVQLink) — workflow-portable abstraction, vendor-specific compilation, bifurcation-aware</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Task Decomposition Engine</div>
+        <div class="card-sub">Breaks molecular simulation into parallelizable quantum circuit batches</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Result Aggregator</div>
+        <div class="card-sub">Collects partial energies · assembles full binding affinity estimate · triggers AI re-scoring</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Dispatched compute jobs → Heterogeneous compute layer</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LAYER 4 — HETEROGENEOUS COMPUTE
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="layer l4">
+    <div class="layer-label">
+      <div class="layer-num">4</div>
+      Hetero-<br>geneous<br>Compute
+    </div>
+    <div class="layer-content">
+      <div class="compute-trio">
+
+        <div class="compute-block">
+          <div class="cb-title">⚙ HPC Node</div>
+          <div class="cb-row">MD Simulation (GROMACS / OpenMM)</div>
+          <div class="cb-row">DFT Baseline (ORCA / Gaussian)</div>
+          <div class="cb-row">CCSD(T) Reference (high-accuracy)</div>
+          <div class="cb-row">Conformational sampling (100 ns+)</div>
+        </div>
+
+        <div class="compute-block" style="border: 2px solid rgba(255,255,255,0.55); box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+          <div class="cb-title">⚛ Quantum Computer</div>
+          <div class="cb-row">VQE + SqDRIFT — ground-state energy</div>
+          <div class="cb-row">Error mitigation: ZNE · Pauli Twirling</div>
+          <div class="cb-row">Active space Hamiltonian simulation</div>
+          <div class="cb-row">Backend: PennyLane simulator (Phase 3A) · IBM Heron r3 (Phase 3B) · NVQLink-substrate forward-compatible</div>
+        </div>
+
+        <div class="compute-block">
+          <div class="cb-title">🤖 AI Engine</div>
+          <div class="cb-row">Binding affinity ML (DeepChem / GNN)</div>
+          <div class="cb-row">QC error correction — Nvidia Ising 3D CNN decoder (April 2026)</div>
+          <div class="cb-row">Generative design (diffusion model)</div>
+          <div class="cb-row">Cryptic pocket predictor</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Raw results → Validation &amp; compliance layer</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LAYER 5 — VALIDATION & COMPLIANCE  ★ REGULATORY CONTRIBUTION
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="layer l5">
+    <div class="layer-label">
+      <div class="layer-num">5</div>
+      Validation &amp;<br>Compliance
+    </div>
+    <div class="layer-content">
+      <div class="card highlight">
+        <div class="card-title">FDA 21 CFR Part 11 Module <span class="contrib-badge">Novel</span></div>
+        <div class="card-sub">Nine-element provenance record (P1–P9, including ML-decoder lineage) · audit trails · electronic signatures · statistical-equivalence validation</div>
+      </div>
+      <div class="card highlight">
+        <div class="card-title">BQP-Relevance Benchmarking <span class="contrib-badge">Novel</span></div>
+        <div class="card-sub">QC vs DFT vs CCSD(T) accuracy/cost/scalability matrix — drugless oncology mutation targets at the empirically quantum-advantaged boundary</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Reproducibility Engine</div>
+        <div class="card-sub">Circuit fingerprint · calibration epoch · per-gate error budget · raw outcome distribution (P1–P9 schema)</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Statistical Validation</div>
+        <div class="card-sub">VQE convergence · energy variance · bootstrap CI · cross-validation against known structures</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Validated results → Research outputs</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LAYER 6 — OUTPUT
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="layer l6" style="border-radius: 0 0 10px 10px;">
+    <div class="layer-label" style="border-radius: 0 0 0 10px;">
+      <div class="layer-num">6</div>
+      Research<br>Outputs
+    </div>
+    <div class="layer-content">
+      <div class="output-strip">
+        <div class="output-pill">Binding Energy Rankings<br><small style="font-weight:400;font-size:9.5px;">TP53 · STK11 · KEAP1 candidates</small></div>
+        <div class="output-pill">Benchmarking Report<br><small style="font-weight:400;font-size:9.5px;">QC vs DFT vs CCSD accuracy</small></div>
+        <div class="output-pill">Compliance Documentation<br><small style="font-weight:400;font-size:9.5px;">FDA 21 CFR Part 11 framework</small></div>
+        <div class="output-pill">Reproducible Methodology<br><small style="font-weight:400;font-size:9.5px;">Open · translational · Part-11-governed · citable</small></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /diagram -->
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#0B1E3D"></div> Clinical Input</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#153358"></div> Preprocessing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#005f8e"></div> Orchestration (IT Core)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#007aae"></div> Compute (HPC · QC · AI)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#b07008"></div> Validation (Regulatory)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7a3d8f"></div> Research Outputs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#E8A020; border-radius:2px;"></div> ★ Novel IT Contribution</div>
+</div>
+
+<div class="footnote">
+  <strong>IT Research Contributions (★):</strong>
+  Mutation-aware active space construction (Layer 2) ·
+  Translational orchestration middleware (Layer 3) — bifurcation-aware across IBM-native and Nvidia-substrate stacks ·
+  BQP-relevance benchmarking matrix for drugless oncology mutation targets (Layer 5) ·
+  FDA 21 CFR Part 11 compliance architecture with ML-decoder provenance, P1–P9 (Layer 5)<br>
+  <em>Proof-of-concept target: TP53 Y220C cryptic pocket · Active space: ~10–20 electrons · Simulator: PennyLane default.qubit / IBM Quantum free tier</em><br>
+  <span style="display:inline-block; margin-top:8px; padding:2px 8px; background:#fbe9e0; color:#b8441f; border:1px solid #b8441f; border-radius:3px; font-size:9.5px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase;">Updated April 2026 · post-Ising release</span>
+</div>
+
+</body>
+</html>
