@@ -296,10 +296,18 @@
      SCREEN 1 — CLINICAL DASHBOARD
 ═══════════════════════════════════════════════════ -->
 <div class="screen active" id="s1">
-  <div class="section-header">
-    <h2>Clinical Target Dashboard</h2>
-    <p>NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
+  <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2>Clinical Target Dashboard</h2>
+      <p id="dash-subtitle">NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--teal);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Demo (MI25-0349)</button>
+      <button onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
+      <input type="file" id="ngs-upload-input" accept=".json" style="display:none" onchange="handleNGSUpload(event)">
+    </div>
   </div>
+  <div id="ngs-load-banner" style="display:none;background:rgba(0,200,180,0.1);border:1px solid rgba(0,200,180,0.3);border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:var(--teal)"></div>
 
   <!-- KPI Row -->
   <div class="grid-4" style="margin-bottom:16px">
@@ -338,28 +346,35 @@
           <td>p.Cys275Phe <span class="badge badge-red">Contact</span></td>
           <td>12.66% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
           <td>~44 <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
-          <td><span class="badge badge-teal">▶ Running</span></td>
+          <td id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#E8A020">TP53</td>
+          <td>p.Tyr220Cys <span class="badge badge-red">Contact</span></td>
+          <td>8.90% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
+          <td>~38 <span style="color:var(--gray);font-size:10px">(binding pocket)</span></td>
+          <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
           <td>p.Cys196Leufs* <span class="badge badge-violet">PPI</span></td>
           <td>12.90% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
-          <td>22–28</td>
-          <td><span class="badge badge-gold">⏳ Queued</span></td>
+          <td>~52 <span style="color:var(--gray);font-size:10px">(NRF2 interface)</span></td>
+          <td id="mut-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#60a5fa">STK11</td>
           <td>Loss-of-function <span class="badge badge-gray">SL</span></td>
           <td>14–25%</td>
-          <td>18–24</td>
-          <td><span class="badge badge-gray">○ Pending</span></td>
+          <td>~46 <span style="color:var(--gray);font-size:10px">(kinase domain)</span></td>
+          <td id="mut-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#a78bfa">CDKN2A</td>
           <td>Deletion (0.4×) <span class="badge badge-violet">CNV</span></td>
           <td>22–31%</td>
-          <td>20–26</td>
-          <td><span class="badge badge-gray">○ Pending</span></td>
+          <td>~28 <span style="color:var(--gray);font-size:10px">(CDK4/6 interface)</span></td>
+          <td id="mut-status-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
       </table>
       <div class="footnote" style="margin-top:10px">★ Contact = disrupts DNA binding directly · PPI = protein–protein interface · SL = synthetic lethality</div>
@@ -367,20 +382,20 @@
 
     <!-- Patient NGS Panel -->
     <div class="card">
-      <div class="card-title">Active Patient NGS Profile — MI25-0349</div>
-      <div class="alert alert-gold" style="margin-bottom:12px">
+      <div class="card-title" id="ngs-panel-title">Active Patient NGS Profile — MI25-0349</div>
+      <div class="alert alert-gold" id="ngs-tier1-alert" style="margin-bottom:12px">
         <strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> TP53 p.Cys275Phe · c.824G>T · AF 12.66% · Chromosome 17
       </div>
       <table>
         <tr><th>Biomarker</th><th>Result</th><th>Implication</th></tr>
-        <tr><td>EGFR / ALK / KRAS / RET</td><td><span class="badge badge-gray">Not detected</span></td><td style="color:var(--gray);font-size:11px">No approved targeted therapy</td></tr>
-        <tr><td>TMB</td><td>7.6 Mut/Mb <span class="badge badge-red">Low</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response likely</td></tr>
-        <tr><td>MSI</td><td>Stable (7.77)</td><td style="color:var(--gray);font-size:11px">Not MSI-high</td></tr>
-        <tr><td>KEAP1</td><td>p.Cys196Leufs* <span class="badge badge-violet">Tier III</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response</td></tr>
-        <tr><td>CDKN2A</td><td>Deletion (0.4×) <span class="badge badge-gold">Tier I</span></td><td style="color:var(--gray);font-size:11px">Poor prognosis marker</td></tr>
+        <tr><td>EGFR / ALK / KRAS / RET</td><td id="ngs-egfr"><span class="badge badge-gray">Not detected</span></td><td style="color:var(--gray);font-size:11px">No approved targeted therapy</td></tr>
+        <tr><td>TMB</td><td id="ngs-tmb">7.6 Mut/Mb <span class="badge badge-red">Low</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response likely</td></tr>
+        <tr><td>MSI</td><td id="ngs-msi">Stable (7.77)</td><td style="color:var(--gray);font-size:11px">Not MSI-high</td></tr>
+        <tr><td>KEAP1</td><td id="ngs-keap1">p.Cys196Leufs* <span class="badge badge-violet">Tier III</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response</td></tr>
+        <tr><td>CDKN2A</td><td id="ngs-cdkn2a">Deletion (0.4×) <span class="badge badge-gold">Tier I</span></td><td style="color:var(--gray);font-size:11px">Poor prognosis marker</td></tr>
       </table>
       <div class="divider"></div>
-      <div style="font-size:11px;color:var(--gray)">Cancer type: Adenocarcinoma · Pulmonary origin · Tumor purity 65% · Emek Medical Center · 18/06/2025</div>
+      <div id="ngs-footer" style="font-size:11px;color:var(--gray)">Cancer type: Adenocarcinoma · Pulmonary origin · Tumor purity 65% · Emek Medical Center · 18/06/2025</div>
     </div>
   </div>
 
@@ -409,63 +424,63 @@
       <div class="card-title" style="margin-bottom:0">Live Research Pipeline — 5 Active Targets</div>
       <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green)">
         <div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
-        System Online · 08:14 UTC · IBM Heron r3
+        <span id="dash-sys-status">System Online · PennyLane default.qubit · Phase 3A Live</span>
       </div>
     </div>
 
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:var(--gold)">TP53 C275F</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · sqDRIFT · ~88q</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
       </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:68%;background:linear-gradient(90deg,var(--teal),rgba(0,168,214,0.55))"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--teal)">68%</div>
-      <div style="min-width:95px"><span class="badge badge-teal">▶ Running</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)">6h 14m elapsed</div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-TP53_C275F" style="width:0%;background:linear-gradient(90deg,var(--teal),rgba(0,168,214,0.55))"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-TP53_C275F">—</div>
+      <div style="min-width:95px" id="prow-badge-TP53_C275F"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_C275F">Not yet run</div>
     </div>
 
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#60a5fa">TP53 Y220C</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · sqDRIFT · ~56q</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
       </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--green)">100%</div>
-      <div style="min-width:95px"><span class="badge badge-green">✓ Complete</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)">4.2h total</div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-TP53_Y220C" style="width:0%;background:var(--green)"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-TP53_Y220C">—</div>
+      <div style="min-width:95px" id="prow-badge-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_Y220C">Not yet run</div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);opacity:0.75">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
-        <div style="font-weight:700;font-size:12px;color:#b47fd4">KEAP1 C196Leufs*</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · UCCSD · ~56q</div>
+        <div style="font-weight:700;font-size:12px;color:#b47fd4">KEAP1 LOF</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
       </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)">—</div>
-      <div style="min-width:95px"><span class="badge badge-gold">⏳ Queued</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)">Est. +2.1h</div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-KEAP1_LOF" style="width:0%"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-KEAP1_LOF">—</div>
+      <div style="min-width:95px" id="prow-badge-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-KEAP1_LOF">Not yet run</div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);opacity:0.55">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#a78bfa">CDKN2A p16Δ</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · UCCSD · ~52q</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
       </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)">—</div>
-      <div style="min-width:95px"><span class="badge badge-gray">○ Pending</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)">Sched. 09:00</div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-CDKN2A_P16" style="width:0%"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-CDKN2A_P16">—</div>
+      <div style="min-width:95px" id="prow-badge-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-CDKN2A_P16">Not yet run</div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;opacity:0.55">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#34d399">STK11 LKB1 LOF</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · UCCSD · ~48q</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
       </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)">—</div>
-      <div style="min-width:95px"><span class="badge badge-gray">○ Pending</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)">Sched. 11:00</div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-STK11_LKB1" style="width:0%"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-STK11_LKB1">—</div>
+      <div style="min-width:95px" id="prow-badge-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-STK11_LKB1">Not yet run</div>
     </div>
   </div>
 
@@ -1421,6 +1436,9 @@ function updateAllTabs(data) {
 
   // ── Results tab live Supabase table ───────────────────────────────────
   loadLiveResults();
+
+  // ── Dashboard: update mutation row + pipeline row ──────────────────────
+  updateDashboardAfterRun(data.full_record.mutation_id, data);
 }
 
 // ── Run live VQE simulation ────────────────────────────────────────────────
@@ -1495,6 +1513,94 @@ async function loadLiveResults() {
   } catch (e) {
     el.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:8px 0">Backend not reachable — results appear after first simulation.</div>`;
   }
+}
+
+// ── NGS Report upload & dashboard population ──────────────────────────────
+const MI25_0349 = {
+  report_id: 'MI25-0349', report_date: '18/06/2025',
+  institution: 'Emek Medical Center', cancer_type: 'Adenocarcinoma',
+  origin: 'Pulmonary', tumor_purity: '65%',
+  biomarkers: { EGFR_ALK_KRAS_RET: 'Not detected', TMB_value: 7.6, TMB_tier: 'Low', MSI_value: 7.77, MSI_status: 'Stable' },
+  variants: [
+    { gene:'TP53', mutation:'p.Cys275Phe', hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I', badge_type:'Contact', simulation_id:'TP53_C275F', active_electrons:44, full_qubits:88 },
+    { gene:'TP53', mutation:'p.Tyr220Cys', hgvs:'c.659A>G', allele_frequency:0.089, chromosome:'17', tier:'I', badge_type:'Contact', simulation_id:'TP53_Y220C', active_electrons:38, full_qubits:76 },
+    { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290, tier:'III', badge_type:'PPI', simulation_id:'KEAP1_LOF', active_electrons:52, full_qubits:104 },
+    { gene:'STK11', mutation:'Loss-of-function', tier:'II', badge_type:'SL', simulation_id:'STK11_LKB1', active_electrons:46, full_qubits:92 },
+    { gene:'CDKN2A', mutation:'Deletion (0.4×)', tier:'I', badge_type:'CNV', simulation_id:'CDKN2A_P16', active_electrons:28, full_qubits:56 },
+  ]
+};
+
+function loadDemoNGS() { loadNGSReport(MI25_0349); }
+
+function handleNGSUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      loadNGSReport(data);
+    } catch {
+      alert('Invalid JSON file — please upload a valid NGS report.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function loadNGSReport(ngs) {
+  const id = ngs.report_id || 'Unknown';
+  // Header
+  const sub = document.getElementById('dash-subtitle');
+  if (sub) sub.textContent = `NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report ${id}`;
+  // Banner
+  const banner = document.getElementById('ngs-load-banner');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.innerHTML = `✓ NGS Report <strong>${id}</strong> loaded — ${ngs.institution} · ${ngs.report_date} · ${ngs.cancer_type} · Tumor purity ${ngs.tumor_purity}`;
+  }
+  // NGS panel title
+  const pt = document.getElementById('ngs-panel-title');
+  if (pt) pt.textContent = `Active Patient NGS Profile — ${id}`;
+  // Tier I alert — first tier I variant
+  const tier1 = (ngs.variants || []).find(v => v.tier === 'I');
+  const alertEl = document.getElementById('ngs-tier1-alert');
+  if (alertEl && tier1) {
+    alertEl.innerHTML = `<strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> ${tier1.gene} ${tier1.mutation}${tier1.hgvs ? ' · ' + tier1.hgvs : ''} · AF ${(tier1.allele_frequency * 100).toFixed(2)}%${tier1.chromosome ? ' · Chromosome ' + tier1.chromosome : ''}`;
+  }
+  // Biomarkers
+  const bm = ngs.biomarkers || {};
+  const egfr = document.getElementById('ngs-egfr');
+  if (egfr) egfr.innerHTML = `<span class="badge badge-gray">${bm.EGFR_ALK_KRAS_RET || 'Not detected'}</span>`;
+  const tmb = document.getElementById('ngs-tmb');
+  if (tmb) tmb.innerHTML = `${bm.TMB_value} Mut/Mb <span class="badge badge-${bm.TMB_tier === 'High' ? 'teal' : 'red'}">${bm.TMB_tier || '—'}</span>`;
+  const msi = document.getElementById('ngs-msi');
+  if (msi) msi.textContent = `${bm.MSI_status || '—'} (${bm.MSI_value || '—'})`;
+  // Variant-level biomarkers (KEAP1, CDKN2A rows in NGS panel)
+  const keap = (ngs.variants || []).find(v => v.gene === 'KEAP1');
+  const keapEl = document.getElementById('ngs-keap1');
+  if (keapEl && keap) keapEl.innerHTML = `${keap.mutation} <span class="badge badge-violet">Tier ${keap.tier}</span>`;
+  const cdkn = (ngs.variants || []).find(v => v.gene === 'CDKN2A');
+  const cdknEl = document.getElementById('ngs-cdkn2a');
+  if (cdknEl && cdkn) cdknEl.innerHTML = `${cdkn.mutation} <span class="badge badge-gold">Tier ${cdkn.tier}</span>`;
+  // Footer
+  const footer = document.getElementById('ngs-footer');
+  if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
+}
+
+function updateDashboardAfterRun(mutationId, data) {
+  // Mutation table status badge
+  const statusEl = document.getElementById(`mut-status-${mutationId}`);
+  if (statusEl) statusEl.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
+  // Pipeline row
+  const bar   = document.getElementById(`prow-bar-${mutationId}`);
+  const pct   = document.getElementById(`prow-pct-${mutationId}`);
+  const badge = document.getElementById(`prow-badge-${mutationId}`);
+  const time  = document.getElementById(`prow-time-${mutationId}`);
+  if (bar)   { bar.style.width = '100%'; bar.style.background = 'var(--green)'; }
+  if (pct)   { pct.textContent = '100%'; pct.style.color = 'var(--green)'; }
+  if (badge) badge.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
+  if (time)  time.textContent = `${data.result.elapsed_s}s · ${data.result.energy_ha} Hₐ`;
 }
 
 // ── Pipeline stage animator ────────────────────────────────────────────────

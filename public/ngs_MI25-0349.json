@@ -1,0 +1,74 @@
+{
+  "report_id": "MI25-0349",
+  "report_date": "18/06/2025",
+  "institution": "Emek Medical Center",
+  "cancer_type": "Adenocarcinoma",
+  "origin": "Pulmonary",
+  "tumor_purity": "65%",
+  "biomarkers": {
+    "EGFR_ALK_KRAS_RET": "Not detected",
+    "TMB_value": 7.6,
+    "TMB_tier": "Low",
+    "MSI_value": 7.77,
+    "MSI_status": "Stable"
+  },
+  "variants": [
+    {
+      "gene": "TP53",
+      "mutation": "p.Cys275Phe",
+      "hgvs": "c.824G>T",
+      "allele_frequency": 0.1266,
+      "chromosome": "17",
+      "tier": "I",
+      "badge_type": "Contact",
+      "simulation_id": "TP53_C275F",
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "color": "#E8A020"
+    },
+    {
+      "gene": "TP53",
+      "mutation": "p.Tyr220Cys",
+      "hgvs": "c.659A>G",
+      "allele_frequency": 0.089,
+      "chromosome": "17",
+      "tier": "I",
+      "badge_type": "Contact",
+      "simulation_id": "TP53_Y220C",
+      "active_electrons": 38,
+      "full_qubits": 76,
+      "color": "#E8A020"
+    },
+    {
+      "gene": "KEAP1",
+      "mutation": "p.Cys196Leufs*",
+      "allele_frequency": 0.1290,
+      "tier": "III",
+      "badge_type": "PPI",
+      "simulation_id": "KEAP1_LOF",
+      "active_electrons": 52,
+      "full_qubits": 104,
+      "color": "#b47fd4"
+    },
+    {
+      "gene": "STK11",
+      "mutation": "Loss-of-function",
+      "tier": "II",
+      "badge_type": "SL",
+      "simulation_id": "STK11_LKB1",
+      "active_electrons": 46,
+      "full_qubits": 92,
+      "color": "#60a5fa"
+    },
+    {
+      "gene": "CDKN2A",
+      "mutation": "Deletion (0.4×)",
+      "tier": "I",
+      "badge_type": "CNV",
+      "simulation_id": "CDKN2A_P16",
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "color": "#a78bfa"
+    }
+  ]
+}
