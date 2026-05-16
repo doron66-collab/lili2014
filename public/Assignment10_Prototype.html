@@ -435,24 +435,14 @@
   <!-- Live Research Pipeline Status -->
   <div class="card" style="margin-top:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="card-title" style="margin-bottom:0">Live Research Pipeline — 5 Active Targets</div>
+      <div class="card-title" style="margin-bottom:0" id="pipeline-card-title">Live Research Pipeline — 1 Active Target</div>
       <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green)">
         <div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
         <span id="dash-sys-status">System Online · PennyLane default.qubit · Phase 3A Live</span>
       </div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="min-width:130px">
-        <div style="font-weight:700;font-size:12px;color:var(--gold)">TP53 C275F</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
-      </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-TP53_C275F" style="width:0%;background:linear-gradient(90deg,var(--teal),rgba(0,168,214,0.55))"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-TP53_C275F">—</div>
-      <div style="min-width:95px" id="prow-badge-TP53_C275F"><span class="badge badge-gray">○ Pending</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_C275F">Not yet run</div>
-    </div>
-
+    <!-- Y220C — always visible (structural reference target) -->
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#60a5fa">TP53 Y220C</div>
@@ -462,6 +452,19 @@
       <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-TP53_Y220C">—</div>
       <div style="min-width:95px" id="prow-badge-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_Y220C">Not yet run</div>
+    </div>
+
+    <!-- NGS-driven pipeline rows — hidden until an NGS report is loaded -->
+    <div id="ngs-pipeline-rows" style="display:none">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:130px">
+        <div style="font-weight:700;font-size:12px;color:var(--gold)">TP53 C275F</div>
+        <div style="font-size:10px;color:var(--gray)">VQE · Ry-CNOT-Ry · 2q (Phase 3A)</div>
+      </div>
+      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-TP53_C275F" style="width:0%;background:linear-gradient(90deg,var(--teal),rgba(0,168,214,0.55))"></div></div></div>
+      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-TP53_C275F">—</div>
+      <div style="min-width:95px" id="prow-badge-TP53_C275F"><span class="badge badge-gray">○ Pending</span></div>
+      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_C275F">Not yet run</div>
     </div>
 
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -496,6 +499,7 @@
       <div style="min-width:95px" id="prow-badge-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-STK11_LKB1">Not yet run</div>
     </div>
+    </div><!-- /ngs-pipeline-rows -->
   </div>
 
   <div style="text-align:center;margin-top:20px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
@@ -1622,9 +1626,15 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // Show NGS-driven mutation rows
+  // Show NGS-driven mutation rows and pipeline rows; update header count
   const ngsRows = document.getElementById('ngs-mutation-rows');
   if (ngsRows) ngsRows.style.display = '';
+  const ngsPipeRows = document.getElementById('ngs-pipeline-rows');
+  if (ngsPipeRows) ngsPipeRows.style.display = '';
+  const ngsCount = (ngs.variants || []).filter(v => v.simulation_id && v.simulation_id !== 'TP53_Y220C').length;
+  const pipeTitle = document.getElementById('pipeline-card-title');
+  const totalTargets = 1 + ngsCount;
+  if (pipeTitle) pipeTitle.textContent = `Live Research Pipeline — ${totalTargets} Active Target${totalTargets !== 1 ? 's' : ''}`;
 
   // Auto-fetch structure sources for all variants
   lookupStructureSources(ngs.variants || []);
@@ -1767,9 +1777,13 @@ function resetPlatform() {
   const ssCard = document.getElementById('structure-sources-card');
   if (ssCard) ssCard.style.display = 'none';
 
-  // Hide NGS-driven mutation rows (Y220C always stays visible)
+  // Hide NGS-driven mutation rows and pipeline rows (Y220C always stays visible)
   const ngsRows = document.getElementById('ngs-mutation-rows');
   if (ngsRows) ngsRows.style.display = 'none';
+  const ngsPipeRows = document.getElementById('ngs-pipeline-rows');
+  if (ngsPipeRows) ngsPipeRows.style.display = 'none';
+  const pipeTitle = document.getElementById('pipeline-card-title');
+  if (pipeTitle) pipeTitle.textContent = 'Live Research Pipeline — 1 Active Target';
 
   // Mutation registry + pipeline rows + BQP table
   PQ_ALL.forEach(id => {
