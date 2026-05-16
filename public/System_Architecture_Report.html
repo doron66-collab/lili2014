@@ -607,6 +607,67 @@
     from the RCSB PDB crystal structures already resolved by the platform's structure-source layer."
   </div>
 
+  <!-- ── P1-P9 FRAMING ── -->
+  <h2>9. The P1–P9 Schema — What It Is and What Guarantees It</h2>
+
+  <p>
+    A natural committee question is: <em>"Who guarantees that P1–P9 is acceptable as a compliance framework?"</em>
+    This section answers that directly.
+  </p>
+
+  <h3>What P1–P9 is</h3>
+  <p>
+    P1–P9 is an <strong>original contribution of this dissertation</strong>. It is a nine-field provenance
+    schema derived from FDA 21 CFR Part 11 audit trail requirements, adapted specifically for
+    quantum simulation outputs. It is not a ratified regulatory standard, an ISO protocol,
+    or a published industry specification. No external body has validated it — the dissertation
+    itself is the validation process.
+  </p>
+
+  <h3>What protects it</h3>
+  <table>
+    <tr><th>What you have</th><th>Why it holds</th></tr>
+    <tr>
+      <td>Each P field maps to a specific §11.10 requirement</td>
+      <td>The framework is grounded in real regulation, not invented from scratch</td>
+    </tr>
+    <tr>
+      <td>SHA-256 is a NIST-approved cryptographic algorithm</td>
+      <td>The P8 seal is cryptographically defensible</td>
+    </tr>
+    <tr>
+      <td>Supabase PostgreSQL with Row Level Security</td>
+      <td>The audit trail is immutable — records can be verified but not silently modified</td>
+    </tr>
+    <tr>
+      <td>Labeled "Phase 3A POC" throughout</td>
+      <td>Appropriate epistemic scope — no overclaiming</td>
+    </tr>
+    <tr>
+      <td>Schema is identical in Phase 3A and Phase 3B</td>
+      <td>Demonstrates architectural thinking, not a throwaway demo</td>
+    </tr>
+  </table>
+
+  <h3>What it does not claim</h3>
+  <p>
+    P1–P9 is designed to demonstrate that quantum simulation pipelines
+    <em>can</em> be instrumented for regulatory traceability — a necessary precondition
+    for clinical deployment. It is not a substitute for the full regulatory submission process.
+    Production clinical systems would additionally require PKI infrastructure,
+    qualified timestamping authorities, and hardware security modules beyond the
+    scope of this proof-of-concept.
+  </p>
+
+  <div class="alert alert-gold">
+    <strong>Recommended framing if the committee questions P1–P9:</strong>
+    "The P1–P9 provenance schema is an original contribution of this dissertation,
+    derived from FDA 21 CFR Part 11 audit trail requirements adapted for quantum simulation outputs.
+    It is not a ratified regulatory standard. Its purpose is to demonstrate that quantum simulation
+    pipelines can be instrumented for regulatory traceability — a necessary precondition for
+    clinical deployment, not a substitute for the full regulatory submission process."
+  </div>
+
   <!-- ── SOFT POINTS ── -->
   <h2>10. Soft Points — Things to Watch</h2>
   <table>

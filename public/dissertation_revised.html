@@ -2343,6 +2343,9 @@
       <h4>Regulatory Scope</h4>
       <p>The compliance framework addresses data governance and audit trail requirements. It does not constitute an FDA submission or clinical trial regulation.</p>
 
+      <h4>P1–P9 Provenance Schema</h4>
+      <p>The P1–P9 provenance schema is an original contribution of this dissertation, derived from FDA 21 CFR Part 11 audit trail requirements adapted for quantum simulation outputs. It is not a ratified regulatory standard, an ISO protocol, or a published industry specification. Its purpose is to demonstrate that quantum simulation pipelines can be instrumented for regulatory traceability — capturing circuit fingerprint, compilation lineage, device calibration, error budget, raw outcomes, error mitigation, statistical estimator, cryptographic seal, and ML-decoder provenance as first-class governed artifacts. Each field maps to a specific §11.10 requirement. The framework is a necessary precondition for clinical deployment, not a substitute for the full regulatory submission process. SHA-256 sealing is NIST-approved and cryptographically sound for this scope; production clinical systems would additionally employ PKI infrastructure, qualified timestamping authorities, and hardware security modules beyond the scope of this proof-of-concept.</p>
+
       <h4>Generalizability</h4>
       <p>The platform is designed around NSCLC mutations but the orchestration architecture is mutation-agnostic and applicable to any BQP-relevant molecular simulation target.</p>
 
