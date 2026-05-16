@@ -246,6 +246,20 @@
   </div>
 </div>
 
+<!-- ── WAKE-UP OVERLAY ─────────────────────────────────────────────────────── -->
+<div id="wakeup-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,15,35,0.97);z-index:10000;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+  <div style="font-size:48px;animation:spin 1.4s linear infinite;display:inline-block;transform-origin:center">⏳</div>
+  <div style="color:#00c8b4;font-size:22px;font-weight:700;letter-spacing:0.5px">Platform Waking Up</div>
+  <div style="color:#cbd5e1;font-size:14px;text-align:center;max-width:380px;line-height:1.8">
+    The database was idle and is starting up.<br>
+    This takes about <strong style="color:#f0b429">~30 seconds</strong> — please wait.
+  </div>
+  <div style="width:300px;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden">
+    <div id="wakeup-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00c8b4,#60a5fa);border-radius:3px;transition:width 0.9s linear"></div>
+  </div>
+  <div id="wakeup-elapsed" style="color:#64748b;font-size:12px;letter-spacing:0.5px">Elapsed: 0s · Retrying automatically…</div>
+</div>
+
 <!-- ══════════════════════════════════════════════════
      TOP NAVIGATION
 ═══════════════════════════════════════════════════ -->
@@ -1219,6 +1233,44 @@
 <script>
 const API_BASE = window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com';
 
+// ── Supabase wake-up detection ────────────────────────────────────────────────
+let _wakeupInterval = null;
+let _wakeupRetry    = null;
+let _wakeupSec      = 0;
+
+function showWakeup() {
+  const ov = document.getElementById('wakeup-overlay');
+  if (!ov || ov.style.display === 'flex') return;
+  ov.style.display = 'flex';
+  _wakeupSec = 0;
+  _wakeupInterval = setInterval(() => {
+    _wakeupSec++;
+    const el  = document.getElementById('wakeup-elapsed');
+    const bar = document.getElementById('wakeup-bar');
+    if (el)  el.textContent = `Elapsed: ${_wakeupSec}s · Retrying automatically…`;
+    if (bar) bar.style.width = `${Math.min(_wakeupSec / 30 * 100, 100)}%`;
+  }, 1000);
+}
+
+function hideWakeup() {
+  const ov = document.getElementById('wakeup-overlay');
+  if (ov) ov.style.display = 'none';
+  if (_wakeupInterval) { clearInterval(_wakeupInterval); _wakeupInterval = null; }
+  if (_wakeupRetry)    { clearInterval(_wakeupRetry);    _wakeupRetry    = null; }
+  const bar = document.getElementById('wakeup-bar');
+  if (bar) bar.style.width = '100%';
+}
+
+async function waitForSupabase(onReady) {
+  showWakeup();
+  _wakeupRetry = setInterval(async () => {
+    try {
+      const { error } = await supa.auth.getSession();
+      if (!error) { hideWakeup(); onReady(); }
+    } catch { /* still asleep */ }
+  }, 5000);
+}
+
 // ── Supabase Auth ──────────────────────────────────────────────────────────
 const SUPA_URL = 'https://lzzuxtnubznrkxwxjaab.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6enV4dG51Ynpucmt4d3hqYWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTQ0MzgsImV4cCI6MjA5NDQ5MDQzOH0.fKApXc3ZPHXh4O008A5oFE5vbTNqJ168AI9NzIl4vHA';
@@ -1234,15 +1286,47 @@ async function doLogin() {
   btn.disabled = true;
   btn.textContent = 'Signing in…';
 
+  // If auth hangs >4s the database is likely waking up — show overlay and auto-retry
+  let loginDone = false;
+  const loginGuard = setTimeout(() => {
+    if (!loginDone) {
+      btn.textContent = '⏳ Waking up…';
+      showWakeup();
+      // Keep retrying the login every 6s until Supabase responds
+      _wakeupRetry = setInterval(async () => {
+        const { data: rd, error: re } = await supa.auth.signInWithPassword({ email, password });
+        if (!re) {
+          loginDone = true;
+          hideWakeup();
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          showPlatform(rd.user);
+        } else if (!re.message.includes('fetch') && !re.message.includes('network') && !re.message.includes('Load failed')) {
+          // Real auth error (wrong password) — stop retrying
+          loginDone = true;
+          hideWakeup();
+          errBox.textContent = re.message;
+          errBox.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+        }
+      }, 6000);
+    }
+  }, 4000);
+
   const { data, error } = await supa.auth.signInWithPassword({ email, password });
+  loginDone = true;
+  clearTimeout(loginGuard);
 
   if (error) {
+    hideWakeup();
     errBox.textContent = error.message;
     errBox.style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Sign In';
     return;
   }
+  hideWakeup();
   showPlatform(data.user);
 }
 
@@ -1312,10 +1396,29 @@ async function changePassword() {
 
 // Check existing session on load
 document.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await supa.auth.getSession();
-  if (session) {
-    showPlatform(session.user);
+  // Detect if Supabase is paused — show wake-up overlay if no response in 4s
+  let supaDone = false;
+  const wakeupGuard = setTimeout(() => {
+    if (!supaDone) waitForSupabase(async () => {
+      const { data: { session } } = await supa.auth.getSession();
+      if (session) showPlatform(session.user);
+    });
+  }, 4000);
+
+  try {
+    const { data: { session }, error } = await supa.auth.getSession();
+    supaDone = true;
+    clearTimeout(wakeupGuard);
+    if (session) showPlatform(session.user);
+  } catch {
+    supaDone = true;
+    clearTimeout(wakeupGuard);
+    waitForSupabase(async () => {
+      const { data: { session } } = await supa.auth.getSession();
+      if (session) showPlatform(session.user);
+    });
   }
+
   // Warm Render backend
   fetch(`${API_BASE}/health`).catch(() => {});
   // Allow Enter key on login form
