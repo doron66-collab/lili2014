@@ -2322,7 +2322,7 @@
         </table>
       </div>
 
-      <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Simulation results are scientifically informed illustrative values. The 3D visualization is a schematic representation of known TP53 secondary structure, loop topology, and zinc coordination — not crystallographic data. All five artifacts together demonstrate the architecture's design logic, provenance obligations, and stakeholder communication capability.</p>
+      <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Phase 3A is live: VQE ground-state energies are computed in real time by the PennyLane <code>default.qubit</code> simulator backend and stored with full P1–P9 provenance records in Supabase. The 3D visualization is a schematic representation of known TP53 secondary structure, loop topology, and zinc coordination — not crystallographic data. All five artifacts together demonstrate the architecture's design logic, provenance obligations, and stakeholder communication capability.</p>
 
     </section>
 
@@ -2332,7 +2332,7 @@
       <h2 class="section-title">What This Is, And Isn't.</h2>
 
       <h4>Simulation Results</h4>
-      <p>Binding energy values in the current prototype are scientifically informed estimates, not outputs of executed quantum simulations. Phase 3 proof-of-concept will produce real computed outputs on a simulator backend.</p>
+      <p>Phase 3A is operational: VQE ground-state energies are real computed outputs produced by the PennyLane <code>default.qubit</code> simulator using a hardware-efficient Ry–CNOT–Ry ansatz over 120 gradient-descent steps. Each run is sealed with a SHA-256 P8 cryptographic hash and persisted to Supabase. Full-scale hardware execution (44e / 88 qubits on IBM Heron r3) is designated Phase 3B, contingent on IBM Quantum Network access.</p>
 
       <h4>3D Visualization</h4>
       <p>Atomic coordinates are procedurally generated and schematic; they correctly represent structural topology but are not derived from PDB crystallographic data.</p>
