@@ -179,7 +179,7 @@ def build_p8_seal(record: dict) -> str:
 
 # ── API endpoint ───────────────────────────────────────────────────────────────
 
-@router.post("/{mutation_id}")
+@router.get("/{mutation_id}")
 async def run_simulation(mutation_id: str):
     config = MUTATION_CONFIGS.get(mutation_id)
     if not config:
