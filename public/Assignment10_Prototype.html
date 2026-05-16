@@ -892,8 +892,8 @@
         <td><strong>~88</strong></td>
         <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
         <td><span class="badge badge-gold">BQP ★</span></td>
-        <td><strong class="teal">−0.8520 Hₐ <span style="font-size:9px;color:var(--gray)">(3A POC)</span></strong></td>
-        <td><span class="badge badge-green">✓ 3A Live</span></td>
+        <td id="bqp-de-TP53_C275F"><strong class="teal">— <span style="font-size:9px;color:var(--gray)">(not yet run)</span></strong></td>
+        <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr>
         <td><strong style="color:#60a5fa">TP53</strong></td>
@@ -902,8 +902,8 @@
         <td>~56</td>
         <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
-        <td class="teal">−9.4 kcal/mol</td>
-        <td><span class="badge badge-green">✓ Complete</span></td>
+        <td id="bqp-de-TP53_Y220C" style="color:var(--gray)">—</td>
+        <td id="bqp-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr>
         <td><strong style="color:#b47fd4">KEAP1</strong></td>
@@ -912,8 +912,8 @@
         <td>~56</td>
         <td><span class="badge badge-gold">VQE · UCCSD</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
-        <td style="color:var(--gray)">—</td>
-        <td><span class="badge badge-gold">⏳ Queued</span></td>
+        <td id="bqp-de-KEAP1_LOF" style="color:var(--gray)">—</td>
+        <td id="bqp-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr>
         <td><strong style="color:#a78bfa">CDKN2A</strong></td>
@@ -922,8 +922,8 @@
         <td>~52</td>
         <td><span class="badge badge-gold">VQE · UCCSD</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
-        <td style="color:var(--gray)">—</td>
-        <td><span class="badge badge-gray">○ Pending</span></td>
+        <td id="bqp-de-CDKN2A_P16" style="color:var(--gray)">—</td>
+        <td id="bqp-status-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr>
         <td><strong style="color:#34d399">STK11</strong></td>
@@ -932,8 +932,8 @@
         <td>~48</td>
         <td><span class="badge badge-gold">VQE · UCCSD</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
-        <td style="color:var(--gray)">—</td>
-        <td><span class="badge badge-gray">○ Pending</span></td>
+        <td id="bqp-de-STK11_LKB1" style="color:var(--gray)">—</td>
+        <td id="bqp-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
     </table>
     <div class="footnote" style="margin-top:8px">★ C275F is the primary doctoral target — structural mutant at the classical FCI boundary. JW = Jordan-Wigner encoding. All 5 mutations are within IBM Heron r3 capacity (156 qubits max).</div>
@@ -1686,10 +1686,14 @@ async function lookupStructureSources(variants) {
 }
 
 function updateDashboardAfterRun(mutationId, data) {
-  // Mutation table status badge
+  const energy = data.result.energy_ha;
+  const elapsed = data.result.elapsed_s;
+
+  // Mutation registry table status badge
   const statusEl = document.getElementById(`mut-status-${mutationId}`);
   if (statusEl) statusEl.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
-  // Pipeline row
+
+  // Pipeline row (bottom of Dashboard)
   const bar   = document.getElementById(`prow-bar-${mutationId}`);
   const pct   = document.getElementById(`prow-pct-${mutationId}`);
   const badge = document.getElementById(`prow-badge-${mutationId}`);
@@ -1697,7 +1701,14 @@ function updateDashboardAfterRun(mutationId, data) {
   if (bar)   { bar.style.width = '100%'; bar.style.background = 'var(--green)'; }
   if (pct)   { pct.textContent = '100%'; pct.style.color = 'var(--green)'; }
   if (badge) badge.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
-  if (time)  time.textContent = `${data.result.elapsed_s}s · ${data.result.energy_ha} Hₐ`;
+  if (time)  time.textContent = `${elapsed}s · ${energy} Hₐ`;
+
+  // BQP All-Target Summary table (Results tab)
+  const bqpStatus = document.getElementById(`bqp-status-${mutationId}`);
+  const bqpDe     = document.getElementById(`bqp-de-${mutationId}`);
+  if (bqpStatus) bqpStatus.innerHTML = `<span class="badge badge-green">✓ 3A Live</span>`;
+  if (bqpDe)     bqpDe.innerHTML =
+    `<strong style="color:var(--teal)">${(+energy).toFixed(4)} Hₐ <span style="font-size:9px;color:var(--gray)">(3A POC)</span></strong>`;
 }
 
 // ── Pipeline stage animator ────────────────────────────────────────────────
