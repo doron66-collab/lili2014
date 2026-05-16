@@ -1,6 +1,7 @@
 """
 PDB proxy — fetches real protein structure data from RCSB PDB REST API.
-Caches responses for 24 h to avoid hammering the external API.
+Also proxies UniProt gene lookup and AlphaFold predictions.
+Caches responses for 24 h to avoid hammering external APIs.
 """
 import time
 from functools import lru_cache
@@ -10,9 +11,11 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
-RCSB_BASE = "https://data.rcsb.org/rest/v1/core"
-RCSB_SEARCH = "https://search.rcsb.org/rcsbsearch/v2/query"
-PDB_DOWNLOAD = "https://files.rcsb.org/download"
+RCSB_BASE      = "https://data.rcsb.org/rest/v1/core"
+RCSB_SEARCH    = "https://search.rcsb.org/rcsbsearch/v2/query"
+PDB_DOWNLOAD   = "https://files.rcsb.org/download"
+UNIPROT_SEARCH = "https://rest.uniprot.org/uniprotkb/search"
+ALPHAFOLD_API  = "https://alphafold.ebi.ac.uk/api/prediction"
 
 # PDB IDs relevant to the five NSCLC mutations in this study
 MUTATION_PDB_MAP = {
@@ -114,4 +117,93 @@ async def list_study_pdbs():
              "structure_url": f"{PDB_DOWNLOAD}/{v}.cif"}
             for k, v in MUTATION_PDB_MAP.items()
         ]
+    }
+
+
+# ── UniProt gene lookup ────────────────────────────────────────────────────
+
+@lru_cache(maxsize=64)
+def _uniprot_gene(gene_symbol: str, _ttl: int) -> dict:
+    params = {
+        "query":  f"gene_exact:{gene_symbol} AND organism_id:9606 AND reviewed:true",
+        "fields": "accession,protein_name,gene_names,xref_pdb",
+        "format": "json",
+        "size":   "1",
+    }
+    with httpx.Client(timeout=15.0) as client:
+        r = client.get(UNIPROT_SEARCH, params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+@router.get("/lookup/gene/{gene_symbol}")
+async def lookup_gene(gene_symbol: str):
+    """Look up a human gene in UniProt — returns UniProt accession + linked PDB IDs."""
+    ttl = int(time.time()) // 86400
+    try:
+        data = _uniprot_gene(gene_symbol.upper(), ttl)
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"UniProt unreachable: {e}")
+
+    results = data.get("results", [])
+    if not results:
+        return {"gene": gene_symbol, "found": False, "uniprot_id": None,
+                "protein_name": None, "pdb_ids": [], "alphafold_url": None}
+
+    entry      = results[0]
+    accession  = entry.get("primaryAccession", "")
+    prot_name  = (entry.get("proteinDescription", {})
+                       .get("recommendedName", {})
+                       .get("fullName", {})
+                       .get("value", ""))
+    pdb_ids = [x["id"] for x in entry.get("uniProtKBCrossReferences", [])
+               if x.get("database") == "PDB"]
+
+    return {
+        "gene":         gene_symbol.upper(),
+        "found":        True,
+        "uniprot_id":   accession,
+        "protein_name": prot_name,
+        "pdb_ids":      pdb_ids[:10],
+        "rcsb_url":     f"https://www.rcsb.org/search?query={accession}",
+        "alphafold_url": f"https://alphafold.ebi.ac.uk/entry/{accession}",
+        "alphafold_model_url": f"https://alphafold.ebi.ac.uk/files/AF-{accession}-F1-model_v4.pdb",
+        "_source": "UniProt REST API",
+    }
+
+
+# ── AlphaFold lookup ───────────────────────────────────────────────────────
+
+@lru_cache(maxsize=64)
+def _alphafold_fetch(uniprot_id: str, _ttl: int) -> list:
+    with httpx.Client(timeout=15.0) as client:
+        r = client.get(f"{ALPHAFOLD_API}/{uniprot_id}")
+        if r.status_code == 404:
+            return []
+        r.raise_for_status()
+        return r.json()
+
+
+@router.get("/alphafold/{uniprot_id}")
+async def get_alphafold(uniprot_id: str):
+    """Return AlphaFold prediction metadata for a UniProt accession."""
+    ttl = int(time.time()) // 86400
+    try:
+        data = _alphafold_fetch(uniprot_id.upper(), ttl)
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"AlphaFold DB unreachable: {e}")
+
+    if not data:
+        return {"uniprot_id": uniprot_id, "available": False}
+
+    pred = data[0]
+    return {
+        "uniprot_id":  uniprot_id,
+        "available":   True,
+        "entry_id":    pred.get("entryId"),
+        "pLDDT":       pred.get("globalMetricValue"),
+        "organism":    pred.get("organismScientificName"),
+        "model_url":   pred.get("pdbUrl"),
+        "view_url":    f"https://alphafold.ebi.ac.uk/entry/{uniprot_id}",
+        "_source":     "AlphaFold DB · EMBL-EBI",
     }

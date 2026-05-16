@@ -399,6 +399,17 @@
     </div>
   </div>
 
+  <!-- Structure Sources -->
+  <div class="card" id="structure-sources-card" style="margin-bottom:16px;display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">Protein Structure Sources — Auto-resolved from NGS Variants</div>
+      <div style="font-size:10px;color:var(--gray)">RCSB PDB · AlphaFold DB · UniProt</div>
+    </div>
+    <div id="structure-sources-body">
+      <div style="color:var(--gray);font-size:12px">Load an NGS report to resolve structure sources.</div>
+    </div>
+  </div>
+
   <!-- Why QC is needed -->
   <div class="card">
     <div class="card-title">Why Classical Methods Fail — The BQP Argument</div>
@@ -1586,6 +1597,92 @@ function loadNGSReport(ngs) {
   // Footer
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
+
+  // Auto-fetch structure sources for all variants
+  lookupStructureSources(ngs.variants || []);
+}
+
+async function lookupStructureSources(variants) {
+  const card = document.getElementById('structure-sources-card');
+  const body = document.getElementById('structure-sources-body');
+  if (!card || !body) return;
+  card.style.display = 'block';
+
+  // Deduplicate genes
+  const genes = [...new Set(variants.map(v => v.gene))];
+
+  body.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:4px 0">
+    Resolving ${genes.length} gene(s) via UniProt → RCSB PDB → AlphaFold DB…</div>`;
+
+  const rows = [];
+  for (const gene of genes) {
+    // UniProt lookup (via our backend proxy)
+    let uniRow = { gene, found: false, uniprot_id: '—', protein_name: '—', pdb_ids: [], alphafold_url: null };
+    let afRow  = { available: false };
+    try {
+      const ur = await fetch(`${API_BASE}/api/pdb/lookup/gene/${gene}`);
+      if (ur.ok) uniRow = await ur.json();
+    } catch {}
+
+    // AlphaFold lookup if we have a UniProt ID
+    if (uniRow.uniprot_id && uniRow.uniprot_id !== '—') {
+      try {
+        const ar = await fetch(`${API_BASE}/api/pdb/alphafold/${uniRow.uniprot_id}`);
+        if (ar.ok) afRow = await ar.json();
+      } catch {}
+    }
+
+    rows.push({ gene, uniRow, afRow });
+
+    // Render incrementally as each gene resolves
+    body.innerHTML = `
+      <table>
+        <tr>
+          <th>Gene</th><th>UniProt ID</th><th>Protein</th>
+          <th>PDB Structures</th><th>AlphaFold</th><th>Links</th>
+        </tr>
+        ${rows.map(r => `
+        <tr>
+          <td style="font-weight:700;color:var(--teal)">${r.gene}</td>
+          <td style="font-family:monospace;font-size:11px">
+            ${r.uniRow.found
+              ? `<a href="https://www.uniprot.org/uniprotkb/${r.uniRow.uniprot_id}" target="_blank"
+                    style="color:var(--teal)">${r.uniRow.uniprot_id}</a>`
+              : '<span style="color:var(--gray)">Not found</span>'}
+          </td>
+          <td style="font-size:11px">${r.uniRow.protein_name || '—'}</td>
+          <td style="font-size:11px">
+            ${r.uniRow.pdb_ids.length
+              ? r.uniRow.pdb_ids.slice(0,4).map(id =>
+                  `<a href="https://www.rcsb.org/structure/${id}" target="_blank"
+                      style="color:var(--teal);font-family:monospace;margin-right:4px">${id}</a>`
+                ).join('') + (r.uniRow.pdb_ids.length > 4 ? `<span style="color:var(--gray)">+${r.uniRow.pdb_ids.length - 4} more</span>` : '')
+              : '<span style="color:var(--gray)">None in RCSB</span>'}
+          </td>
+          <td style="font-size:11px">
+            ${r.afRow.available
+              ? `<span style="color:var(--green)">✓ Available</span>
+                 <span style="color:var(--gray);font-size:10px"> · pLDDT ${r.afRow.pLDDT?.toFixed(1) ?? '—'}</span>`
+              : '<span style="color:var(--gray)">—</span>'}
+          </td>
+          <td style="font-size:11px;white-space:nowrap">
+            ${r.uniRow.pdb_ids[0]
+              ? `<a href="https://www.rcsb.org/structure/${r.uniRow.pdb_ids[0]}" target="_blank"
+                    style="color:var(--teal);margin-right:6px">RCSB ↗</a>`
+              : ''}
+            ${r.afRow.available
+              ? `<a href="${r.afRow.view_url}" target="_blank" style="color:var(--teal)">AlphaFold ↗</a>`
+              : ''}
+          </td>
+        </tr>`).join('')}
+      </table>
+      ${rows.length < genes.length
+        ? `<div style="color:var(--gray);font-size:11px;margin-top:8px">Fetching ${genes.length - rows.length} more…</div>`
+        : `<div style="color:var(--gray);font-size:10px;margin-top:8px">
+            Sources: UniProt REST API · RCSB PDB REST API · AlphaFold DB EMBL-EBI · All queries cached 24h
+           </div>`}
+    `;
+  }
 }
 
 function updateDashboardAfterRun(mutationId, data) {
