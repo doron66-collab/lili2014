@@ -342,19 +342,22 @@
           <th>Active e⁻</th>
           <th>Status</th>
         </tr>
+        <!-- Y220C — always present (structural reference target) -->
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
-          <td>p.Cys275Phe <span class="badge badge-red">Contact</span></td>
-          <td id="mut-freq-TP53_C275F" style="color:var(--gray)">—</td>
-          <td>~44 <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
-          <td id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
-        </tr>
-        <tr>
-          <td style="font-weight:700;color:#E8A020">TP53</td>
-          <td>p.Tyr220Cys <span class="badge badge-red">Contact</span></td>
+          <td>p.Tyr220Cys <span class="badge badge-gold">Structural</span></td>
           <td id="mut-freq-TP53_Y220C" style="color:var(--gray)">—</td>
           <td>~38 <span style="color:var(--gray);font-size:10px">(binding pocket)</span></td>
           <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
+        </tr>
+        <!-- NGS-driven rows — hidden until an NGS report is loaded -->
+        <tbody id="ngs-mutation-rows" style="display:none">
+        <tr>
+          <td style="font-weight:700;color:#E8A020">TP53</td>
+          <td>p.Cys275Phe <span class="badge badge-gold">Structural</span></td>
+          <td id="mut-freq-TP53_C275F" style="color:var(--gray)">—</td>
+          <td>~44 <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
+          <td id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
@@ -377,8 +380,9 @@
           <td>~28 <span style="color:var(--gray);font-size:10px">(CDK4/6 interface)</span></td>
           <td id="mut-status-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
+        </tbody>
       </table>
-      <div class="footnote" style="margin-top:10px">★ Contact = disrupts DNA binding directly · PPI = protein–protein interface · SL = synthetic lethality</div>
+      <div class="footnote" style="margin-top:10px">★ Structural = alters protein fold / zinc coordination · PPI = protein–protein interface · SL = synthetic lethality · CNV = copy-number variant</div>
     </div>
 
     <!-- Patient NGS Panel -->
@@ -1534,8 +1538,7 @@ const MI25_0349 = {
   origin: 'Pulmonary', tumor_purity: '65%',
   biomarkers: { EGFR_ALK_KRAS_RET: 'Not detected', TMB_value: 7.6, TMB_tier: 'Low', MSI_value: 7.77, MSI_status: 'Stable' },
   variants: [
-    { gene:'TP53', mutation:'p.Cys275Phe', hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I', badge_type:'Contact', simulation_id:'TP53_C275F', active_electrons:44, full_qubits:88 },
-    { gene:'TP53', mutation:'p.Tyr220Cys', hgvs:'c.659A>G', allele_frequency:0.089, chromosome:'17', tier:'I', badge_type:'Contact', simulation_id:'TP53_Y220C', active_electrons:38, full_qubits:76 },
+    { gene:'TP53', mutation:'p.Cys275Phe', hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I', badge_type:'Structural', simulation_id:'TP53_C275F', active_electrons:44, full_qubits:88 },
     { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290, tier:'III', badge_type:'PPI', simulation_id:'KEAP1_LOF', active_electrons:52, full_qubits:104 },
     { gene:'STK11', mutation:'Loss-of-function', tier:'II', badge_type:'SL', simulation_id:'STK11_LKB1', active_electrons:46, full_qubits:92 },
     { gene:'CDKN2A', mutation:'Deletion (0.4×)', tier:'I', badge_type:'CNV', simulation_id:'CDKN2A_P16', active_electrons:28, full_qubits:56 },
@@ -1618,6 +1621,10 @@ function loadNGSReport(ngs) {
   // Footer
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
+
+  // Show NGS-driven mutation rows
+  const ngsRows = document.getElementById('ngs-mutation-rows');
+  if (ngsRows) ngsRows.style.display = '';
 
   // Auto-fetch structure sources for all variants
   lookupStructureSources(ngs.variants || []);
@@ -1759,6 +1766,10 @@ function resetPlatform() {
   // Structure sources card
   const ssCard = document.getElementById('structure-sources-card');
   if (ssCard) ssCard.style.display = 'none';
+
+  // Hide NGS-driven mutation rows (Y220C always stays visible)
+  const ngsRows = document.getElementById('ngs-mutation-rows');
+  if (ngsRows) ngsRows.style.display = 'none';
 
   // Mutation registry + pipeline rows + BQP table
   PQ_ALL.forEach(id => {

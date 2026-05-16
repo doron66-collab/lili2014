@@ -20,23 +20,10 @@
       "allele_frequency": 0.1266,
       "chromosome": "17",
       "tier": "I",
-      "badge_type": "Contact",
+      "badge_type": "Structural",
       "simulation_id": "TP53_C275F",
       "active_electrons": 44,
       "full_qubits": 88,
-      "color": "#E8A020"
-    },
-    {
-      "gene": "TP53",
-      "mutation": "p.Tyr220Cys",
-      "hgvs": "c.659A>G",
-      "allele_frequency": 0.089,
-      "chromosome": "17",
-      "tier": "I",
-      "badge_type": "Contact",
-      "simulation_id": "TP53_Y220C",
-      "active_electrons": 38,
-      "full_qubits": 76,
       "color": "#E8A020"
     },
     {
