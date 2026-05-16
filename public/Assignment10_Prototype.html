@@ -696,11 +696,7 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <select id="sim-target" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
-        <option value="TP53_C275F">TP53 p.Cys275Phe (C275F)</option>
         <option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>
-        <option value="KEAP1_LOF">KEAP1 Loss-of-Function</option>
-        <option value="STK11_LKB1">STK11/LKB1 Loss-of-Function</option>
-        <option value="CDKN2A_P16">CDKN2A p16/INK4a Deletion</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
         ▶ Run Live Simulation
@@ -742,23 +738,23 @@
 
   <!-- Phase 3A Live Results -->
   <div class="card" id="s3-live-card" style="margin-bottom:16px;border:1px solid rgba(0,168,214,0.4);background:rgba(0,168,214,0.05)">
-    <div class="card-title" style="color:var(--teal)">Phase 3A Live Results — PennyLane Simulator · <span id="s3-mutation">TP53 p.Cys275Phe</span></div>
+    <div class="card-title" style="color:var(--teal)">Phase 3A Live Results — PennyLane Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
       <div class="stat">
-        <div class="stat-val teal" style="font-size:20px" id="s3-energy">−0.8520 Hₐ</div>
+        <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-energy">—</div>
         <div class="stat-lbl">Ground-state energy · 2e/2orb active space</div>
       </div>
       <div class="stat">
-        <div class="stat-val green" style="font-size:20px" id="s3-runtime">9.5s</div>
+        <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-runtime">—</div>
         <div class="stat-lbl">VQE runtime · 120 iterations · PennyLane default.qubit</div>
       </div>
       <div class="stat">
-        <div class="stat-val gold" style="font-size:20px" id="s3-circuit">2q / 5g / d3</div>
+        <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-circuit">—</div>
         <div class="stat-lbl">Qubits / gates / depth · Ry-CNOT-Ry ansatz</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="font-size:13px;color:#a78bfa;word-break:break-all;font-family:monospace" id="s3-seal">75e9b1cf…47e8f</div>
-        <div class="stat-lbl" id="s3-runid">P8 SHA-256 seal · Run 31bf47c2… · Stored to Supabase</div>
+        <div class="stat-val" style="font-size:13px;color:var(--gray);word-break:break-all;font-family:monospace" id="s3-seal">—</div>
+        <div class="stat-lbl" id="s3-runid">P8 SHA-256 seal · Run a simulation to populate</div>
       </div>
     </div>
     <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px">
@@ -1020,59 +1016,16 @@
     <p>FDA 21 CFR Part 11 · Reproducibility Engine · Provenance Metadata · ★ Novel IT Contribution</p>
   </div>
 
-  <div class="alert alert-green" style="margin-bottom:16px" id="comp-status-alert">
-    <strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 compliant · Run ID: 31bf47c2-f802-410c-baeb-c8270f65d33f · Phase 3A LIVE
+  <div class="alert" style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border)" id="comp-status-alert">
+    <span style="color:var(--gray)">○ No simulation run yet — load an NGS report and run a VQE simulation to generate a compliance record.</span>
   </div>
 
   <div class="grid-2" style="margin-bottom:16px">
     <!-- Audit Trail -->
     <div class="card">
       <div class="card-title">Audit Trail — Full Run Log</div>
-      <div id="audit-trail-live"></div>
-      <div class="audit-row">
-        <div class="audit-time">08:14:03</div>
-        <div class="audit-dot" style="background:var(--teal)"></div>
-        <div><strong>Run initiated</strong> — Target: TP53 p.Cys275Phe · User: d.cohen@cgu.edu · Run ID: 31bf47c2-f802-410c-baeb-c8270f65d33f · Phase 3A PennyLane simulator</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">08:14:11</div>
-        <div class="audit-dot" style="background:var(--teal)"></div>
-        <div><strong>Stage 1 active space</strong> — CASSCF(16,16) · 16e / 16 orbitals · mutation site only · PDB: 2OCJ</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">08:14:18</div>
-        <div class="audit-dot" style="background:var(--teal)"></div>
-        <div><strong>Stage 2 active space expanded</strong> — Full binding pocket · ~44 electrons · ~44 orbitals · CASSCF(44,44)</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">08:14:22</div>
-        <div class="audit-dot" style="background:var(--teal)"></div>
-        <div><strong>Qubit encoding applied</strong> — Jordan-Wigner mapping · 44e × 2 spin-orbitals → <strong>88 qubits</strong> · Tapering: 4 qubits saved</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">08:15:00</div>
-        <div class="audit-dot" style="background:var(--gold)"></div>
-        <div><strong>Job dispatched to IBM Heron</strong> — Backend: ibm_torino · Shots: 8,192 · Circuit depth: 124</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">14:08:47</div>
-        <div class="audit-dot" style="background:var(--teal)"></div>
-        <div><strong>VQE converged</strong> — Iteration 120 · Energy: −0.85204341 Hₐ · Ry-CNOT-Ry ansatz · 2 qubits · PennyLane default.qubit · elapsed 9.532s</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">14:09:12</div>
-        <div class="audit-dot" style="background:var(--violet)"></div>
-        <div><strong>AI rescoring complete</strong> — DeepChem GNN v2.1 · Corrected energy: −10.8 kcal/mol · P7 (statistical estimator + 95% CI) emitted</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">14:09:18</div>
-        <div class="audit-dot" style="background:#ff9944"></div>
-        <div><strong>P9 ML-decoder lineage captured</strong> — Nvidia Ising 3D CNN QEC decoder · Model: ising-qec-v1.2 · Weight checksum: e9f3a1… · Training corpus hash: 4bc72d… · Inference config locked</div>
-      </div>
-      <div class="audit-row">
-        <div class="audit-time">14:09:30</div>
-        <div class="audit-dot" style="background:var(--green)"></div>
-        <div><strong>P8 cryptographic seal applied</strong> — SHA-256 hash chain: P1→P2→…→P7+P9→P8 · Seal: 7f4d2c… · All 9 provenance elements (P1–P9) verified · Report signed electronically · FDA 21 CFR Part 11 compliant</div>
+      <div id="audit-trail-live">
+        <div id="audit-trail-empty" style="color:var(--gray);font-size:12px;padding:8px 0">No run completed yet — run a simulation to populate the audit trail.</div>
       </div>
     </div>
 
@@ -1144,34 +1097,34 @@
 
   <!-- Reproducibility Metadata P1–P9 — dynamically rendered -->
   <div class="card" id="p1p9-record">
-    <div class="card-title" id="p1p9-title">Reproducibility Metadata — Full P1–P9 Provenance Record · Run 31bf47c2… · Phase 3A LIVE</div>
+    <div class="card-title" id="p1p9-title">Reproducibility Metadata — Full P1–P9 Provenance Record · Run a simulation to populate</div>
     <div id="p1p9-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:8px;font-size:11px">
 
       <div style="padding:10px 14px;border-right:1px solid var(--border)">
         <div style="color:var(--teal);font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">Layer 1 · QC Kernel</div>
-        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P1</span> <span style="color:var(--gray)">Circuit fingerprint</span><br><span id="p1-val">Ansatz: Ry-CNOT-Ry · Depth: 3 · Qubits: 2 · Hash: df5bf3e1…</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P3</span> <span style="color:var(--gray)">Device &amp; calibration</span><br><span id="p3-val">Backend: default.qubit (PennyLane simulator) · Noiseless</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P4</span> <span style="color:var(--gray)">Error budget snapshot</span><br><span id="p4-val">Gate error: 0.0 · Readout error: 0.0 · T1/T2: N/A (simulator)</span></div>
-        <div><span style="color:var(--teal);font-weight:700">P5</span> <span style="color:var(--gray)">Raw outcome distribution</span><br><span id="p5-val">Shots: N/A · Energy: −0.85204341 Hₐ · Steps: 120 · Elapsed: 9.532s</span></div>
+        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P1</span> <span style="color:var(--gray)">Circuit fingerprint</span><br><span id="p1-val" style="color:var(--gray)">—</span></div>
+        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P3</span> <span style="color:var(--gray)">Device &amp; calibration</span><br><span id="p3-val" style="color:var(--gray)">—</span></div>
+        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P4</span> <span style="color:var(--gray)">Error budget snapshot</span><br><span id="p4-val" style="color:var(--gray)">—</span></div>
+        <div><span style="color:var(--teal);font-weight:700">P5</span> <span style="color:var(--gray)">Raw outcome distribution</span><br><span id="p5-val" style="color:var(--gray)">—</span></div>
       </div>
 
       <div style="padding:10px 14px;border-right:1px solid var(--border)">
         <div style="color:var(--gold);font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">Layer 2 · Hybrid Substrate</div>
-        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P2</span> <span style="color:var(--gray)">Compilation lineage</span><br><span id="p2-val">Compiler: PennyLane v0.38.0 · Encoding: Jordan-Wigner (manual 2e/2orb) · Basis: STO-3G proxy</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P6</span> <span style="color:var(--gray)">Error-mitigation lineage</span><br><span id="p6-val">Method: none — noiseless simulator · Phase 3B: ZNE + Pauli Twirling on IBM Heron r3</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P7</span> <span style="color:var(--gray)">Statistical estimator + 95% CI</span><br><span id="p7-val">Energy: −0.85204341 Hₐ · CI: [−0.85204341, −0.85204341] · Confidence: 95%</span></div>
+        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P2</span> <span style="color:var(--gray)">Compilation lineage</span><br><span id="p2-val" style="color:var(--gray)">—</span></div>
+        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P6</span> <span style="color:var(--gray)">Error-mitigation lineage</span><br><span id="p6-val" style="color:var(--gray)">—</span></div>
+        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P7</span> <span style="color:var(--gray)">Statistical estimator + 95% CI</span><br><span id="p7-val" style="color:var(--gray)">—</span></div>
         <div style="padding:7px 9px;background:rgba(255,153,68,0.08);border:1px solid rgba(255,153,68,0.3);border-radius:6px">
           <span style="color:#ff9944;font-weight:700">P9*</span> <span style="color:var(--gray)">ML-decoder lineage</span><br>
-          <span id="p9-val">Not applicable — Phase 3A noiseless simulator. Activates in Phase 3B with Nvidia Ising 3D CNN QEC decoder.</span>
+          <span id="p9-val" style="color:var(--gray)">—</span>
         </div>
       </div>
 
       <div style="padding:10px 14px">
         <div style="color:#b47fd4;font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">Layer 3 · Governance</div>
-        <div style="margin-bottom:6px"><span style="color:#b47fd4;font-weight:700">P8</span> <span style="color:var(--gray)">Cryptographic seal</span><br>SHA-256 hash chain<br>P1→P2→P3→P4→P5→P6→P7+P9→P8<br>Seal: <span id="p8-val" style="font-family:monospace;font-size:10px;word-break:break-all;color:var(--gold)">75e9b1cfff6e0d8ea7ccb1383ee1f73cc9cae6986f415e04b625a28358b47e8f</span><br>Sealed: <span id="p8-time">2026-05-16T10:19:08Z</span></div>
+        <div style="margin-bottom:6px"><span style="color:#b47fd4;font-weight:700">P8</span> <span style="color:var(--gray)">Cryptographic seal</span><br>SHA-256 hash chain<br>P1→P2→P3→P4→P5→P6→P7+P9→P8<br>Seal: <span id="p8-val" style="font-family:monospace;font-size:10px;word-break:break-all;color:var(--gray)">—</span><br>Sealed: <span id="p8-time" style="color:var(--gray)">—</span></div>
         <div style="margin-top:10px;padding:8px 10px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:6px;font-size:10.5px">
-          <div style="color:var(--green);font-weight:700;margin-bottom:4px">✓ Chain integrity verified</div>
-          <div style="color:var(--light)" id="p8-meta">Platform: Phase 3A · PennyLane: v0.38.0<br>Backend: default.qubit (noiseless)<br>Ansatz: Ry-CNOT-Ry · Active space: 2e/2orb<br>Encoding: Jordan-Wigner · Basis: STO-3G proxy</div>
+          <div style="color:var(--green);font-weight:700;margin-bottom:4px" id="p8-integrity-label">○ Awaiting run</div>
+          <div style="color:var(--light)" id="p8-meta" style="color:var(--gray)">—</div>
         </div>
       </div>
 
@@ -1397,17 +1350,27 @@ function updateAllTabs(data) {
   // ── Results tab — Phase 3A live card ─────────────────────────────────
   const s3card = document.getElementById('s3-live-card');
   if (s3card) {
-    document.getElementById('s3-mutation').textContent  = rec.mutation_name;
-    document.getElementById('s3-energy').textContent   = `${r.energy_ha} Hₐ`;
-    document.getElementById('s3-runtime').textContent  = `${r.elapsed_s}s`;
-    document.getElementById('s3-circuit').textContent  = `${r.qubits_used}q / ${r.gate_count}g / d${r.depth}`;
-    document.getElementById('s3-seal').textContent     = rec.p8_hash.slice(0,20) + '…';
-    document.getElementById('s3-runid').textContent    = `Run ${runShort}… · ${now}`;
+    const s3Mut = document.getElementById('s3-mutation');
+    if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
+    const s3E = document.getElementById('s3-energy');
+    if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
+    const s3R = document.getElementById('s3-runtime');
+    if (s3R) { s3R.textContent = `${r.elapsed_s}s`; s3R.style.color = 'var(--green)'; }
+    const s3C = document.getElementById('s3-circuit');
+    if (s3C) { s3C.textContent = `${r.qubits_used}q / ${r.gate_count}g / d${r.depth}`; s3C.style.color = 'var(--gold)'; }
+    const s3S = document.getElementById('s3-seal');
+    if (s3S) { s3S.textContent = rec.p8_hash.slice(0,20) + '…'; s3S.style.color = '#a78bfa'; }
+    const s3Ri = document.getElementById('s3-runid');
+    if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
   }
 
   // ── Compliance tab — status alert ─────────────────────────────────────
-  document.getElementById('comp-status-alert').innerHTML =
-    `<strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 compliant · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
+  const compAlert = document.getElementById('comp-status-alert');
+  if (compAlert) {
+    compAlert.className = 'alert alert-green';
+    compAlert.style.cssText = 'margin-bottom:16px';
+    compAlert.innerHTML = `<strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 compliant · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
+  }
 
   // ── Compliance tab — audit trail ─────────────────────────────────────
   document.getElementById('audit-trail-live').innerHTML = `
@@ -1653,6 +1616,26 @@ function loadNGSReport(ngs) {
   activeTargets = ['TP53_Y220C', ...ngsSimIds];
   const ngsCount = ngsSimIds.length;
   const totalTargets = 1 + ngsCount;
+
+  // Add NGS mutation options to VQE dropdown
+  const simTarget = document.getElementById('sim-target');
+  if (simTarget) {
+    // Remove any previously added NGS options
+    [...simTarget.options].forEach(o => { if (o.dataset.ngs) o.remove(); });
+    const OPTION_LABELS = {
+      TP53_C275F: 'TP53 p.Cys275Phe (C275F)',
+      KEAP1_LOF:  'KEAP1 Loss-of-Function',
+      STK11_LKB1: 'STK11/LKB1 Loss-of-Function',
+      CDKN2A_P16: 'CDKN2A p16/INK4a Deletion',
+    };
+    ngsSimIds.forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = OPTION_LABELS[id] || id;
+      opt.dataset.ngs = '1';
+      simTarget.appendChild(opt);
+    });
+  }
   const pipeTitle = document.getElementById('pipeline-card-title');
   if (pipeTitle) pipeTitle.textContent = `Live Research Pipeline — ${totalTargets} Active Target${totalTargets !== 1 ? 's' : ''}`;
   const bqpTitle = document.getElementById('bqp-card-title');
@@ -1850,6 +1833,55 @@ function resetPlatform() {
   const pipeMut = document.getElementById('pipe-mutation');
   if (pipeMut) pipeMut.textContent = 'Select a mutation and run to begin';
   updateJobCard('', 'idle');
+
+  // VQE Engine dropdown — keep only Y220C
+  const simTarget = document.getElementById('sim-target');
+  if (simTarget) {
+    [...simTarget.options].forEach(o => { if (o.dataset.ngs) o.remove(); });
+    simTarget.value = 'TP53_Y220C';
+  }
+
+  // Phase 3A Live Results card (s3)
+  const s3Mut = document.getElementById('s3-mutation');
+  if (s3Mut) { s3Mut.textContent = 'No run yet'; s3Mut.style.color = 'var(--gray)'; }
+  ['s3-energy','s3-runtime','s3-circuit','s3-seal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
+  });
+  const s3RunId = document.getElementById('s3-runid');
+  if (s3RunId) s3RunId.textContent = 'P8 SHA-256 seal · Run a simulation to populate';
+
+  // VQE Sim result panel (Orchestration tab)
+  const simResult = document.getElementById('sim-result');
+  if (simResult) simResult.style.display = 'none';
+  const simStatus = document.getElementById('sim-status');
+  if (simStatus) simStatus.textContent = '';
+
+  // Compliance status banner
+  const compAlert = document.getElementById('comp-status-alert');
+  if (compAlert) {
+    compAlert.className = 'alert';
+    compAlert.style.cssText = 'margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border)';
+    compAlert.innerHTML = '<span style="color:var(--gray)">○ No simulation run yet — load an NGS report and run a VQE simulation to generate a compliance record.</span>';
+  }
+
+  // Audit trail
+  const auditLive = document.getElementById('audit-trail-live');
+  if (auditLive) auditLive.innerHTML = '<div id="audit-trail-empty" style="color:var(--gray);font-size:12px;padding:8px 0">No run completed yet — run a simulation to populate the audit trail.</div>';
+
+  // P1-P9 Provenance Record
+  const p1p9Title = document.getElementById('p1p9-title');
+  if (p1p9Title) p1p9Title.textContent = 'Reproducibility Metadata — Full P1–P9 Provenance Record · Run a simulation to populate';
+  ['p1-val','p2-val','p3-val','p4-val','p5-val','p6-val','p7-val','p8-val','p9-val'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
+  });
+  const p8Time = document.getElementById('p8-time');
+  if (p8Time) { p8Time.textContent = '—'; p8Time.style.color = 'var(--gray)'; }
+  const p8Label = document.getElementById('p8-integrity-label');
+  if (p8Label) { p8Label.textContent = '○ Awaiting run'; p8Label.style.color = 'var(--gray)'; }
+  const p8Meta = document.getElementById('p8-meta');
+  if (p8Meta) { p8Meta.textContent = '—'; }
 }
 
 function updateDashboardAfterRun(mutationId, data) {
