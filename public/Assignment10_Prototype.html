@@ -490,50 +490,51 @@
 
   <!-- Pipeline Steps -->
   <div class="card" style="margin-bottom:16px">
-    <div class="card-title">Simulation Pipeline — TP53 p.Cys275Phe · Active Space CASSCF(16,16)</div>
+    <div class="card-title">Simulation Pipeline — <span id="pipe-mutation" style="color:var(--teal)">Select a mutation and run to begin</span></div>
     <div class="steps" style="margin-top:12px">
       <div class="step">
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot done">✓</div>
+          <div class="step-dot pending" id="pipe-dot-1">1</div>
           <div class="step-label">Target Selection</div>
         </div>
-        <div class="step-line done"></div>
+        <div class="step-line" id="pipe-line-1"></div>
       </div>
       <div class="step">
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot done">✓</div>
+          <div class="step-dot pending" id="pipe-dot-2">2</div>
           <div class="step-label">Active Space</div>
         </div>
-        <div class="step-line done"></div>
+        <div class="step-line" id="pipe-line-2"></div>
       </div>
       <div class="step">
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot done">✓</div>
+          <div class="step-dot pending" id="pipe-dot-3">3</div>
           <div class="step-label">Qubit Encoding</div>
         </div>
-        <div class="step-line done"></div>
+        <div class="step-line" id="pipe-line-3"></div>
       </div>
       <div class="step">
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot active">4</div>
+          <div class="step-dot pending" id="pipe-dot-4">4</div>
           <div class="step-label">Compute Dispatch</div>
         </div>
-        <div class="step-line"></div>
+        <div class="step-line" id="pipe-line-4"></div>
       </div>
       <div class="step">
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending">5</div>
+          <div class="step-dot pending" id="pipe-dot-5">5</div>
           <div class="step-label">Result Aggregation</div>
         </div>
-        <div class="step-line"></div>
+        <div class="step-line" id="pipe-line-5"></div>
       </div>
       <div class="step">
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending">6</div>
-          <div class="step-label">Validation</div>
+          <div class="step-dot pending" id="pipe-dot-6">6</div>
+          <div class="step-label">Validation &amp; Seal</div>
         </div>
       </div>
     </div>
+    <div id="pipe-status-line" style="font-size:11px;color:var(--gray);margin-top:6px;min-height:16px"></div>
   </div>
 
   <div class="grid-2" style="margin-bottom:16px">
@@ -544,13 +545,13 @@
       <div class="job-card">
         <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
         <div class="job-info">
-          <div class="job-name">VQE — Active Space (16e, 16o)</div>
-          <div class="job-sub">Backend: IBM Heron · Algorithm: SqDRIFT · Qubits: 32</div>
+          <div class="job-name" id="job-vqe-name">VQE — Awaiting simulation run</div>
+          <div class="job-sub" id="job-vqe-sub">Backend: PennyLane default.qubit · Algorithm: Ry-CNOT-Ry · Qubits: 2</div>
           <div style="margin-top:6px">
-            <div class="progress-wrap"><div class="progress-fill" style="width:68%;background:var(--teal)"></div></div>
+            <div class="progress-wrap"><div class="progress-fill" id="job-vqe-bar" style="width:0%;background:var(--teal)"></div></div>
           </div>
         </div>
-        <div class="job-status teal">68%</div>
+        <div class="job-status" id="job-vqe-status" style="color:var(--gray)">Idle</div>
       </div>
 
       <div class="job-card">
@@ -600,16 +601,16 @@
       <table>
         <tr><th>Backend</th><th>Type</th><th>Algorithm</th><th>Status</th></tr>
         <tr>
-          <td style="font-weight:600">IBM Heron</td>
+          <td style="font-weight:600">IBM Heron r3</td>
           <td><span class="badge badge-teal">QC</span></td>
           <td>SqDRIFT / VQE</td>
-          <td><span style="color:var(--green)">● Active</span></td>
+          <td><span style="color:var(--gray)">○ Phase 3B</span></td>
         </tr>
         <tr>
           <td style="font-weight:600">PennyLane Sim</td>
           <td><span class="badge badge-teal">QC-SIM</span></td>
-          <td>VQE (UCCSD)</td>
-          <td><span style="color:var(--gray)">○ Standby</span></td>
+          <td>VQE Ry-CNOT-Ry</td>
+          <td><span id="hw-pennylane-status" style="color:var(--green)">● Active (Phase 3A)</span></td>
         </tr>
         <tr>
           <td style="font-weight:600">HPC Cluster</td>
@@ -1435,16 +1436,28 @@ async function runLiveVQE() {
   document.getElementById('sim-result').style.display = 'none';
   errBox.style.display = 'none';
 
+  // Animate pipeline stages while waiting for the backend
+  setPipelineState(mutationId, 1);          // stage 4 active — dispatching
+  updateJobCard(mutationId, 'running');
+  const t2 = setTimeout(() => setPipelineState(mutationId, 2), 4000);  // stage 5
+  const t3 = setTimeout(() => setPipelineState(mutationId, 3), 8000);  // stage 6
+
   try {
     const res = await fetch(`${API_BASE}/api/simulate/${mutationId}`);
+    clearTimeout(t2); clearTimeout(t3);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const data = await res.json();
+    setPipelineState(mutationId, 4);        // all 6 done
+    updateJobCard(mutationId, 'done', data);
     updateAllTabs(data);
     status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated · record sealed & stored to Supabase`;
   } catch (e) {
+    clearTimeout(t2); clearTimeout(t3);
+    setPipelineState(mutationId, 0);        // reset on error
+    updateJobCard(mutationId, 'idle');
     errBox.textContent = `Backend error: ${e.message}. Is the Render service deployed? (cold start may take ~30s)`;
     errBox.style.display = 'block';
     status.textContent = '';
@@ -1481,6 +1494,73 @@ async function loadLiveResults() {
       ${tableRows}</table>`;
   } catch (e) {
     el.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:8px 0">Backend not reachable — results appear after first simulation.</div>`;
+  }
+}
+
+// ── Pipeline stage animator ────────────────────────────────────────────────
+const MUTATION_LABELS = {
+  TP53_C275F: 'TP53 p.Cys275Phe · 2e/2orb POC',
+  TP53_Y220C: 'TP53 p.Tyr220Cys · 2e/2orb POC',
+  KEAP1_LOF:  'KEAP1 Loss-of-Function · 2e/2orb POC',
+  STK11_LKB1: 'STK11/LKB1 Loss-of-Function · 2e/2orb POC',
+  CDKN2A_P16: 'CDKN2A p16/INK4a Deletion · 2e/2orb POC',
+};
+
+// stageIndex: 0=idle, 1=dispatching, 2=aggregating, 3=validating, 4=complete
+function setPipelineState(mutationId, stageIndex) {
+  const mutEl = document.getElementById('pipe-mutation');
+  if (mutEl) mutEl.textContent = MUTATION_LABELS[mutationId] || mutationId;
+
+  const configs = [
+    // [dot1..6 classes], status line text
+    [['pending','pending','pending','pending','pending','pending'], ''],
+    [['done','done','done','active','pending','pending'], '⏳ Stage 4 — dispatching to PennyLane simulator…'],
+    [['done','done','done','done','active','pending'],   '⏳ Stage 5 — aggregating VQE results…'],
+    [['done','done','done','done','done','active'],      '⏳ Stage 6 — computing P8 cryptographic seal…'],
+    [['done','done','done','done','done','done'],        '✓ All 6 stages complete · P8 seal stored to Supabase'],
+  ];
+  const [dots, statusText] = configs[stageIndex] || configs[0];
+
+  for (let i = 1; i <= 6; i++) {
+    const dot = document.getElementById(`pipe-dot-${i}`);
+    if (!dot) continue;
+    const state = dots[i - 1];
+    dot.className = `step-dot ${state}`;
+    dot.textContent = state === 'done' ? '✓' : i;
+  }
+  for (let i = 1; i <= 5; i++) {
+    const line = document.getElementById(`pipe-line-${i}`);
+    if (line) line.className = `step-line${dots[i - 1] === 'done' ? ' done' : ''}`;
+  }
+  const sl = document.getElementById('pipe-status-line');
+  if (sl) sl.textContent = statusText;
+}
+
+function updateJobCard(mutationId, state, data) {
+  const name   = document.getElementById('job-vqe-name');
+  const sub    = document.getElementById('job-vqe-sub');
+  const bar    = document.getElementById('job-vqe-bar');
+  const status = document.getElementById('job-vqe-status');
+  if (!name) return;
+  const label = MUTATION_LABELS[mutationId] || mutationId;
+  if (state === 'running') {
+    name.textContent   = `VQE — ${label}`;
+    sub.textContent    = 'Backend: PennyLane default.qubit · Algorithm: Ry-CNOT-Ry · Qubits: 2 · Steps: 120';
+    bar.style.width    = '60%';
+    status.textContent = 'Running';
+    status.style.color = 'var(--gold)';
+  } else if (state === 'done' && data) {
+    name.textContent   = `VQE — ${label}`;
+    sub.textContent    = `Energy: ${data.result.energy_ha} Hₐ · ${data.result.elapsed_s}s · Gate count: ${data.result.gate_count} · Depth: ${data.result.depth}`;
+    bar.style.width    = '100%';
+    status.textContent = 'Done ✓';
+    status.style.color = 'var(--green)';
+  } else {
+    name.textContent   = 'VQE — Awaiting simulation run';
+    sub.textContent    = 'Backend: PennyLane default.qubit · Algorithm: Ry-CNOT-Ry · Qubits: 2';
+    bar.style.width    = '0%';
+    status.textContent = 'Idle';
+    status.style.color = 'var(--gray)';
   }
 }
 
