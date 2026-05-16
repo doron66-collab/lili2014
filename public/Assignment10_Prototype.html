@@ -305,6 +305,7 @@
       <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--teal);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Demo (MI25-0349)</button>
       <button onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
       <input type="file" id="ngs-upload-input" accept=".json" style="display:none" onchange="handleNGSUpload(event)">
+      <button onclick="resetPlatform()" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.35);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↺ Reset Platform</button>
     </div>
   </div>
   <div id="ngs-load-banner" style="display:none;background:rgba(0,200,180,0.1);border:1px solid rgba(0,200,180,0.3);border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:var(--teal)"></div>
@@ -1200,18 +1201,20 @@
         </div>
       </div>
 
-      <div style="padding:12px;border-radius:8px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.22)">
+      <div id="pq-card" style="padding:12px;border-radius:8px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.22)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-weight:700;font-size:13px;color:var(--gold)">PQ — Performance</div>
-          <span class="badge badge-gold">IN PROGRESS</span>
+          <span id="pq-badge" class="badge badge-gold">IN PROGRESS</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <div><span class="green">✓</span> TP53 Y220C benchmark run</div>
-          <div><span class="teal">▶</span> TP53 C275F active validation</div>
-          <div><span style="color:var(--gray)">○</span> KEAP1 · CDKN2A · STK11</div>
-          <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility</div>
+          <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
+          <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
+          <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
+          <div><span id="pq-dot-CDKN2A_P16"  style="color:var(--gray)">○</span> CDKN2A p16 validation</div>
+          <div><span id="pq-dot-STK11_LKB1"  style="color:var(--gray)">○</span> STK11 LKB1 validation</div>
+          <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility <span style="color:var(--gray);font-size:10px">(Phase 3B)</span></div>
         </div>
-        <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
+        <div id="pq-footer" style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
           Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3
         </div>
       </div>
@@ -1685,6 +1688,95 @@ async function lookupStructureSources(variants) {
   }
 }
 
+// ── PQ checklist ──────────────────────────────────────────────────────────
+const pqCompleted = new Set();
+const PQ_ALL = ['TP53_C275F','TP53_Y220C','KEAP1_LOF','CDKN2A_P16','STK11_LKB1'];
+
+function updatePQAfterRun(mutationId) {
+  const dot = document.getElementById(`pq-dot-${mutationId}`);
+  if (dot) { dot.textContent = '✓'; dot.style.color = 'var(--green)'; }
+  pqCompleted.add(mutationId);
+
+  if (PQ_ALL.every(id => pqCompleted.has(id))) {
+    const badge = document.getElementById('pq-badge');
+    if (badge) { badge.textContent = 'PASSED'; badge.className = 'badge badge-green'; }
+    const card = document.getElementById('pq-card');
+    if (card) { card.style.background = 'rgba(34,197,94,0.06)'; card.style.borderColor = 'rgba(34,197,94,0.22)'; }
+    const footer = document.getElementById('pq-footer');
+    if (footer) footer.textContent = `Completed: ${new Date().toLocaleDateString()} · Signed: D. Cohen · Doc: PQ-v1.0`;
+  }
+}
+
+// ── Reset platform ─────────────────────────────────────────────────────────
+function resetPlatform() {
+  if (!confirm('Reset all simulation data and NGS report? This clears the current session — it does not delete Supabase records.')) return;
+
+  lastRunData = null;
+  pqCompleted.clear();
+
+  // NGS banner + subtitle
+  const banner = document.getElementById('ngs-load-banner');
+  if (banner) banner.style.display = 'none';
+  const sub = document.getElementById('dash-subtitle');
+  if (sub) sub.textContent = 'NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349';
+
+  // NGS panel defaults
+  const pt = document.getElementById('ngs-panel-title');
+  if (pt) pt.textContent = 'Active Patient NGS Profile — MI25-0349';
+  const alert = document.getElementById('ngs-tier1-alert');
+  if (alert) alert.innerHTML = '<strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> TP53 p.Cys275Phe · c.824G>T · AF 12.66% · Chromosome 17';
+  const egfr = document.getElementById('ngs-egfr');
+  if (egfr) egfr.innerHTML = '<span class="badge badge-gray">Not detected</span>';
+  const tmb = document.getElementById('ngs-tmb');
+  if (tmb) tmb.innerHTML = '7.6 Mut/Mb <span class="badge badge-red">Low</span>';
+  const msi = document.getElementById('ngs-msi');
+  if (msi) msi.textContent = 'Stable (7.77)';
+  const keap = document.getElementById('ngs-keap1');
+  if (keap) keap.innerHTML = 'p.Cys196Leufs* <span class="badge badge-violet">Tier III</span>';
+  const cdkn = document.getElementById('ngs-cdkn2a');
+  if (cdkn) cdkn.innerHTML = 'Deletion (0.4×) <span class="badge badge-gold">Tier I</span>';
+  const foot = document.getElementById('ngs-footer');
+  if (foot) foot.textContent = 'Cancer type: Adenocarcinoma · Pulmonary origin · Tumor purity 65% · Emek Medical Center · 18/06/2025';
+
+  // Structure sources card
+  const ssCard = document.getElementById('structure-sources-card');
+  if (ssCard) ssCard.style.display = 'none';
+
+  // Mutation registry + pipeline rows + BQP table
+  PQ_ALL.forEach(id => {
+    const ms = document.getElementById(`mut-status-${id}`);
+    if (ms) ms.innerHTML = '<span class="badge badge-gray">○ Pending</span>';
+    const bar = document.getElementById(`prow-bar-${id}`);
+    if (bar) { bar.style.width = '0%'; bar.style.background = 'var(--teal)'; }
+    const pct = document.getElementById(`prow-pct-${id}`);
+    if (pct) { pct.textContent = '—'; pct.style.color = 'var(--gray)'; }
+    const pbadge = document.getElementById(`prow-badge-${id}`);
+    if (pbadge) pbadge.innerHTML = '<span class="badge badge-gray">○ Pending</span>';
+    const ptime = document.getElementById(`prow-time-${id}`);
+    if (ptime) ptime.textContent = 'Not yet run';
+    const bs = document.getElementById(`bqp-status-${id}`);
+    if (bs) bs.innerHTML = '<span class="badge badge-gray">○ Pending</span>';
+    const bde = document.getElementById(`bqp-de-${id}`);
+    if (bde) bde.innerHTML = '<span style="color:var(--gray)">—</span>';
+    const pdot = document.getElementById(`pq-dot-${id}`);
+    if (pdot) { pdot.textContent = '○'; pdot.style.color = 'var(--gray)'; }
+  });
+
+  // PQ card reset
+  const pqBadge = document.getElementById('pq-badge');
+  if (pqBadge) { pqBadge.textContent = 'IN PROGRESS'; pqBadge.className = 'badge badge-gold'; }
+  const pqCard = document.getElementById('pq-card');
+  if (pqCard) { pqCard.style.background = 'rgba(232,160,32,0.06)'; pqCard.style.borderColor = 'rgba(232,160,32,0.22)'; }
+  const pqFoot = document.getElementById('pq-footer');
+  if (pqFoot) pqFoot.textContent = 'Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3';
+
+  // Orchestration pipeline reset
+  setPipelineState('', 0);
+  const pipeMut = document.getElementById('pipe-mutation');
+  if (pipeMut) pipeMut.textContent = 'Select a mutation and run to begin';
+  updateJobCard('', 'idle');
+}
+
 function updateDashboardAfterRun(mutationId, data) {
   const energy = data.result.energy_ha;
   const elapsed = data.result.elapsed_s;
@@ -1709,6 +1801,9 @@ function updateDashboardAfterRun(mutationId, data) {
   if (bqpStatus) bqpStatus.innerHTML = `<span class="badge badge-green">✓ 3A Live</span>`;
   if (bqpDe)     bqpDe.innerHTML =
     `<strong style="color:var(--teal)">${(+energy).toFixed(4)} Hₐ <span style="font-size:9px;color:var(--gray)">(3A POC)</span></strong>`;
+
+  // PQ checklist (Compliance tab)
+  updatePQAfterRun(mutationId);
 }
 
 // ── Pipeline stage animator ────────────────────────────────────────────────
