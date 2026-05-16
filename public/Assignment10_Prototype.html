@@ -2000,14 +2000,13 @@ function displayRunResults(data) {
 }
 
 function exportPDF() {
-  if (!lastRunData) {
+  const runs = runHistory.length ? runHistory : (lastRunData ? [lastRunData] : []);
+  if (!runs.length) {
     alert('Run a simulation first — no provenance record loaded yet.');
     return;
   }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const rec = lastRunData.full_record;
-  const r   = lastRunData.result;
   const W   = 210, M = 16, CW = W - M * 2;
 
   // ── helpers ────────────────────────────────────────────────────────────
@@ -2044,118 +2043,151 @@ function exportPDF() {
   };
 
   // ── Cover ──────────────────────────────────────────────────────────────
+  const multi = runs.length > 1;
   doc.setFillColor(15, 31, 61); doc.rect(0, 0, W, 42, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(255, 255, 255);
   doc.text('QC·AI·HPC Simulation Platform', M, 14);
   doc.setFontSize(11); doc.setTextColor(20, 200, 200);
-  doc.text('Full P1–P9 Provenance Report · Phase 3A', M, 22);
+  const subtitle = multi
+    ? `Multi-Mutation Provenance Report · ${runs.length} Mutations · Phase 3A`
+    : 'Full P1–P9 Provenance Report · Phase 3A';
+  doc.text(subtitle, M, 22);
   doc.setFontSize(8); doc.setTextColor(148, 163, 184);
   doc.text('IST 697 · Doron Cohen · Claremont Graduate University · 2026', M, 29);
   doc.text(`Generated: ${new Date().toISOString()}`, M, 35);
   y = 50;
 
-  // ── Run identity ───────────────────────────────────────────────────────
-  h1('Run Identity');
-  row('Run ID',        lastRunData.run_id);
-  row('Mutation',      rec.mutation_name);
-  row('Mutation ID',   rec.mutation_id);
-  row('PDB Structure', rec.pdb_id);
-  row('Phase',         rec.phase);
-  row('Created At',    rec.created_at);
-  line(M, W - M);
+  if (multi) {
+    h1(`Mutations in This Report (${runs.length})`);
+    runs.forEach((rd, i) => {
+      const rec0 = rd.full_record;
+      row(`${i + 1}.`, `${rec0.mutation_name}  ·  ${rec0.mutation_id}  ·  ${rd.result.energy_ha} Hₐ`);
+    });
+    line(M, W - M);
+  }
 
-  // ── Result summary ─────────────────────────────────────────────────────
-  h1('Simulation Result');
-  row('Ground-State Energy', `${r.energy_ha} Hₐ`);
-  row('95% CI Lower',        `${r.ci_lower} Hₐ`);
-  row('95% CI Upper',        `${r.ci_upper} Hₐ`);
-  row('Confidence',          r.confidence);
-  row('Qubits Used',         r.qubits_used);
-  row('Gate Count',          r.gate_count);
-  row('Circuit Depth',       r.depth);
-  row('Elapsed Time',        `${r.elapsed_s} seconds`);
-  row('Phase Target',        r.full_target);
-  line(M, W - M);
+  // ── Per-mutation sections ──────────────────────────────────────────────
+  runs.forEach((runData, idx) => {
+    const rec = runData.full_record;
+    const r   = runData.result;
 
-  // ── P1 ─────────────────────────────────────────────────────────────────
-  h2('P1 — Circuit Fingerprint', [14, 116, 144]);
-  row('Circuit Hash',  rec.p1_circuit_hash);
-  row('Gate Count',    rec.p1_gate_count);
-  row('Depth',         rec.p1_depth);
-  row('Qubit Count',   rec.p1_qubit_count);
-  row('Ansatz',        rec.p1_ansatz);
-  nl(2);
+    if (idx > 0 || multi) {
+      doc.addPage();
+      y = 18;
+      // coloured section header banner
+      const mutColor = MUT_COLORS[rec.mutation_id] || '#0e7490';
+      const [hr, hg, hb] = mutColor.startsWith('#')
+        ? [parseInt(mutColor.slice(1,3),16), parseInt(mutColor.slice(3,5),16), parseInt(mutColor.slice(5,7),16)]
+        : [14, 116, 144];
+      doc.setFillColor(hr, hg, hb); doc.rect(0, 0, W, 10, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+      doc.text(`Mutation ${idx + 1} of ${runs.length} — ${rec.mutation_name} (${rec.mutation_id})`, M, 7);
+      y = 18;
+    }
 
-  // ── P2 ─────────────────────────────────────────────────────────────────
-  h2('P2 — Compilation Lineage', [14, 116, 144]);
-  row('Compiler',         rec.p2_compiler);
-  row('Version',          rec.p2_compiler_version);
-  row('Encoding',         rec.p2_encoding);
-  row('Basis Set',        rec.p2_basis_set);
-  row('Active Electrons', rec.p2_active_electrons);
-  row('Active Orbitals',  rec.p2_active_orbitals);
-  nl(2);
+    // ── Run identity ──────────────────────────────────────────────────────
+    h1('Run Identity');
+    row('Run ID',        runData.run_id);
+    row('Mutation',      rec.mutation_name);
+    row('Mutation ID',   rec.mutation_id);
+    row('PDB Structure', rec.pdb_id);
+    row('Phase',         rec.phase);
+    row('Created At',    rec.created_at);
+    line(M, W - M);
 
-  // ── P3 ─────────────────────────────────────────────────────────────────
-  h2('P3 — Device & Calibration', [14, 116, 144]);
-  row('Backend',            rec.p3_backend);
-  row('Backend Version',    rec.p3_backend_version);
-  row('Calibration Epoch',  rec.p3_calibration_epoch);
-  row('Simulator',          rec.p3_simulator ? 'Yes (noiseless)' : 'No');
-  nl(2);
+    // ── Result summary ────────────────────────────────────────────────────
+    h1('Simulation Result');
+    row('Ground-State Energy', `${r.energy_ha} Hₐ`);
+    row('95% CI Lower',        `${r.ci_lower} Hₐ`);
+    row('95% CI Upper',        `${r.ci_upper} Hₐ`);
+    row('Confidence',          r.confidence);
+    row('Qubits Used',         r.qubits_used);
+    row('Gate Count',          r.gate_count);
+    row('Circuit Depth',       r.depth);
+    row('Elapsed Time',        `${r.elapsed_s} seconds`);
+    row('Phase Target',        r.full_target);
+    line(M, W - M);
 
-  // ── P4 ─────────────────────────────────────────────────────────────────
-  h2('P4 — Error Budget', [14, 116, 144]);
-  row('Gate Error Rate',    rec.p4_gate_error_rate);
-  row('Readout Error Rate', rec.p4_readout_error_rate);
-  row('T1 (µs)',            rec.p4_t1_us ?? 'N/A (simulator)');
-  row('T2 (µs)',            rec.p4_t2_us ?? 'N/A (simulator)');
-  row('Note',               rec.p4_note);
-  nl(2);
+    // ── P1 ────────────────────────────────────────────────────────────────
+    h2('P1 — Circuit Fingerprint', [14, 116, 144]);
+    row('Circuit Hash',  rec.p1_circuit_hash);
+    row('Gate Count',    rec.p1_gate_count);
+    row('Depth',         rec.p1_depth);
+    row('Qubit Count',   rec.p1_qubit_count);
+    row('Ansatz',        rec.p1_ansatz);
+    nl(2);
 
-  // ── P5 ─────────────────────────────────────────────────────────────────
-  h2('P5 — Raw Outcome Distribution', [14, 116, 144]);
-  row('Shots',           rec.p5_shots ?? 'N/A (simulator)');
-  row('Raw Energy (Hₐ)', rec.p5_raw_energy);
-  row('Energy Variance', rec.p5_energy_variance);
-  row('Opt Steps',       rec.p5_opt_steps);
-  row('Elapsed (s)',     rec.p5_elapsed_s);
-  nl(2);
+    // ── P2 ────────────────────────────────────────────────────────────────
+    h2('P2 — Compilation Lineage', [14, 116, 144]);
+    row('Compiler',         rec.p2_compiler);
+    row('Version',          rec.p2_compiler_version);
+    row('Encoding',         rec.p2_encoding);
+    row('Basis Set',        rec.p2_basis_set);
+    row('Active Electrons', rec.p2_active_electrons);
+    row('Active Orbitals',  rec.p2_active_orbitals);
+    nl(2);
 
-  // ── P6 ─────────────────────────────────────────────────────────────────
-  h2('P6 — Error Mitigation', [14, 116, 144]);
-  row('Method', rec.p6_method);
-  row('Note',   rec.p6_note);
-  nl(2);
+    // ── P3 ────────────────────────────────────────────────────────────────
+    h2('P3 — Device & Calibration', [14, 116, 144]);
+    row('Backend',            rec.p3_backend);
+    row('Backend Version',    rec.p3_backend_version);
+    row('Calibration Epoch',  rec.p3_calibration_epoch);
+    row('Simulator',          rec.p3_simulator ? 'Yes (noiseless)' : 'No');
+    nl(2);
 
-  // ── P7 ─────────────────────────────────────────────────────────────────
-  h2('P7 — Statistical Estimator', [14, 116, 144]);
-  row('Energy (Hₐ)',   rec.p7_energy_ha);
-  row('CI Lower',      rec.p7_ci_lower);
-  row('CI Upper',      rec.p7_ci_upper);
-  row('Confidence',    rec.p7_confidence);
-  row('Method',        rec.p7_method);
-  nl(2);
+    // ── P4 ────────────────────────────────────────────────────────────────
+    h2('P4 — Error Budget', [14, 116, 144]);
+    row('Gate Error Rate',    rec.p4_gate_error_rate);
+    row('Readout Error Rate', rec.p4_readout_error_rate);
+    row('T1 (µs)',            rec.p4_t1_us ?? 'N/A (simulator)');
+    row('T2 (µs)',            rec.p4_t2_us ?? 'N/A (simulator)');
+    row('Note',               rec.p4_note);
+    nl(2);
 
-  // ── P9 ─────────────────────────────────────────────────────────────────
-  h2('P9* — ML Decoder Lineage', [255, 153, 68]);
-  row('Applicable', rec.p9_applicable ? 'Yes' : 'No');
-  row('Note',       rec.p9_note);
-  nl(2);
+    // ── P5 ────────────────────────────────────────────────────────────────
+    h2('P5 — Raw Outcome Distribution', [14, 116, 144]);
+    row('Shots',           rec.p5_shots ?? 'N/A (simulator)');
+    row('Raw Energy (Hₐ)', rec.p5_raw_energy);
+    row('Energy Variance', rec.p5_energy_variance);
+    row('Opt Steps',       rec.p5_opt_steps);
+    row('Elapsed (s)',     rec.p5_elapsed_s);
+    nl(2);
 
-  // ── P8 seal — last, prominent ──────────────────────────────────────────
-  check(40);
-  doc.setFillColor(15, 31, 61); doc.roundedRect(M, y - 2, CW, 38, 2, 2, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(20, 200, 200);
-  doc.text('P8 — Cryptographic Seal (SHA-256)', M + 4, y + 6);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(240, 180, 41);
-  const hashLines = doc.splitTextToSize(rec.p8_hash, CW - 8);
-  doc.text(hashLines, M + 4, y + 13);
-  doc.setTextColor(148, 163, 184);
-  doc.text(`Algorithm: ${rec.p8_algorithm}   Sealed: ${rec.p8_sealed_at}`, M + 4, y + 22);
-  doc.setTextColor(34, 197, 94);
-  doc.text('✓ Integrity verified — P1→P2→P3→P4→P5→P6→P7+P9→P8 · FDA 21 CFR Part 11 compliant', M + 4, y + 29);
-  nl(44);
+    // ── P6 ────────────────────────────────────────────────────────────────
+    h2('P6 — Error Mitigation', [14, 116, 144]);
+    row('Method', rec.p6_method);
+    row('Note',   rec.p6_note);
+    nl(2);
+
+    // ── P7 ────────────────────────────────────────────────────────────────
+    h2('P7 — Statistical Estimator', [14, 116, 144]);
+    row('Energy (Hₐ)',   rec.p7_energy_ha);
+    row('CI Lower',      rec.p7_ci_lower);
+    row('CI Upper',      rec.p7_ci_upper);
+    row('Confidence',    rec.p7_confidence);
+    row('Method',        rec.p7_method);
+    nl(2);
+
+    // ── P9 ────────────────────────────────────────────────────────────────
+    h2('P9* — ML Decoder Lineage', [255, 153, 68]);
+    row('Applicable', rec.p9_applicable ? 'Yes' : 'No');
+    row('Note',       rec.p9_note);
+    nl(2);
+
+    // ── P8 seal ───────────────────────────────────────────────────────────
+    check(40);
+    doc.setFillColor(15, 31, 61); doc.roundedRect(M, y - 2, CW, 38, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(20, 200, 200);
+    doc.text('P8 — Cryptographic Seal (SHA-256)', M + 4, y + 6);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(240, 180, 41);
+    const hashLines = doc.splitTextToSize(rec.p8_hash, CW - 8);
+    doc.text(hashLines, M + 4, y + 13);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Algorithm: ${rec.p8_algorithm}   Sealed: ${rec.p8_sealed_at}`, M + 4, y + 22);
+    doc.setTextColor(34, 197, 94);
+    doc.text('✓ Integrity verified — P1→P2→P3→P4→P5→P6→P7+P9→P8 · FDA 21 CFR Part 11 compliant', M + 4, y + 29);
+    nl(44);
+  });
 
   // ── Footer on every page ───────────────────────────────────────────────
   const totalPages = doc.getNumberOfPages();
@@ -2166,7 +2198,11 @@ function exportPDF() {
     doc.text(`Page ${i} of ${totalPages}`, W - M - 12, 292);
   }
 
-  doc.save(`P1-P9_Provenance_${rec.mutation_id}_${lastRunData.run_id.slice(0,8)}.pdf`);
+  const firstName = runs[0].full_record;
+  const saveName = multi
+    ? `Multi-Mutation_Report_${runs.length}runs_${new Date().toISOString().slice(0,10)}.pdf`
+    : `P1-P9_Provenance_${firstName.mutation_id}_${runs[0].run_id.slice(0,8)}.pdf`;
+  doc.save(saveName);
 }
 
 </script>
