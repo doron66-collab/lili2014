@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QC·AI·HPC Platform — Prototype · Doron Cohen · IST 697 · CGU</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -165,9 +166,79 @@
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
     .nav-tab span.hide-sm { display: none; }
   }
+
+  /* ── LOGIN OVERLAY ── */
+  #login-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #061122 0%, #0b1e3d 60%, #0d2a4a 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px; padding: 40px 36px; width: 360px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .login-logo { text-align: center; margin-bottom: 28px; }
+  .login-logo-icon {
+    width: 52px; height: 52px; background: var(--teal);
+    border-radius: 14px; display: flex; align-items: center;
+    justify-content: center; font-size: 26px; margin: 0 auto 12px;
+  }
+  .login-logo h1 { font-size: 17px; font-weight: 800; color: var(--white); }
+  .login-logo p  { font-size: 11px; color: var(--gray); margin-top: 3px; }
+  .login-field { margin-bottom: 14px; }
+  .login-field label { display: block; font-size: 11px; font-weight: 600;
+    color: var(--gray); margin-bottom: 5px; letter-spacing: 0.3px; }
+  .login-field input {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 8px;
+    padding: 10px 13px; color: var(--white); font-size: 13px;
+    outline: none; transition: border 0.2s;
+  }
+  .login-field input:focus { border-color: var(--teal); }
+  .login-btn {
+    width: 100%; background: var(--teal); color: var(--white);
+    border: none; border-radius: 8px; padding: 11px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    margin-top: 6px; transition: background 0.2s;
+  }
+  .login-btn:hover { background: var(--teal2); }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5; border-radius: 6px; padding: 8px 12px;
+    font-size: 12px; margin-top: 12px; display: none;
+  }
+  .login-footer { text-align: center; font-size: 10px; color: var(--gray); margin-top: 20px; }
 </style>
 </head>
 <body>
+
+<!-- ── LOGIN OVERLAY ──────────────────────────────────────────────────────── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">⚛</div>
+      <h1>QC·AI·HPC Platform</h1>
+      <p>IST 697 · Doron Cohen · CGU 2026</p>
+    </div>
+    <div class="login-field">
+      <label>Email Address</label>
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-footer">
+      NSCLC Quantum Simulation Platform · Phase 3A<br>
+      Restricted access — authorized researchers only
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════
      TOP NAVIGATION
@@ -189,8 +260,9 @@
   </div>
 
   <div class="user-chip">
-    <div class="avatar">DC</div>
-    <span>Doron Cohen · CGU</span>
+    <div class="avatar" id="user-avatar">DC</div>
+    <span id="user-label">Doron Cohen · CGU</span>
+    <button onclick="doLogout()" style="background:rgba(255,255,255,0.08);color:var(--gray);border:1px solid rgba(255,255,255,0.12);padding:3px 10px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:4px">Sign out</button>
   </div>
 </div>
 
@@ -1116,6 +1188,62 @@
 <script>
 const API_BASE = window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com';
 
+// ── Supabase Auth ──────────────────────────────────────────────────────────
+const SUPA_URL = 'https://lzzuxtnubznrkxwxjaab.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6enV4dG51Ynpucmt4d3hqYWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTQ0MzgsImV4cCI6MjA5NDQ5MDQzOH0.fKApXc3ZPHXh4O008A5oFE5vbTNqJ168AI9NzIl4vHA';
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn      = document.getElementById('login-btn');
+  const errBox   = document.getElementById('login-error');
+
+  errBox.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  const { data, error } = await supa.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    errBox.textContent = error.message;
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    return;
+  }
+  showPlatform(data.user);
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-btn').textContent = 'Sign In';
+}
+
+function showPlatform(user) {
+  document.getElementById('login-overlay').style.display = 'none';
+  const email   = user.email || '';
+  const initials = email.slice(0, 2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-label').textContent  = email + ' · CGU';
+}
+
+// Check existing session on load
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    showPlatform(session.user);
+  }
+  // Warm Render backend
+  fetch(`${API_BASE}/health`).catch(() => {});
+  // Allow Enter key on login form
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+});
+
 // ── Navigation ─────────────────────────────────────────────────────────────
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1454,9 +1582,6 @@ function exportPDF() {
   doc.save(`P1-P9_Provenance_${rec.mutation_id}_${lastRunData.run_id.slice(0,8)}.pdf`);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  fetch(`${API_BASE}/health`).catch(() => {});
-});
 </script>
 </body>
 </html>
