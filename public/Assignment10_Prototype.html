@@ -342,7 +342,8 @@
           <th>Active e⁻</th>
           <th>Status</th>
         </tr>
-        <!-- Y220C — always present (structural reference target) -->
+        <!-- All rows hidden until an NGS report is loaded -->
+        <tbody id="ngs-mutation-rows" style="display:none">
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Tyr220Cys <span class="badge badge-gold">Structural</span></td>
@@ -350,8 +351,6 @@
           <td>~38 <span style="color:var(--gray);font-size:10px">(binding pocket)</span></td>
           <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
-        <!-- NGS-driven rows — hidden until an NGS report is loaded -->
-        <tbody id="ngs-mutation-rows" style="display:none">
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Cys275Phe <span class="badge badge-gold">Structural</span></td>
@@ -442,7 +441,8 @@
       </div>
     </div>
 
-    <!-- Y220C — always visible (structural reference target) -->
+    <!-- All rows hidden until an NGS report is loaded -->
+    <div id="ngs-pipeline-rows" style="display:none">
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#60a5fa">TP53 Y220C</div>
@@ -453,9 +453,6 @@
       <div style="min-width:95px" id="prow-badge-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_Y220C">Not yet run</div>
     </div>
-
-    <!-- NGS-driven pipeline rows — hidden until an NGS report is loaded -->
-    <div id="ngs-pipeline-rows" style="display:none">
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:var(--gold)">TP53 C275F</div>
@@ -696,7 +693,7 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <select id="sim-target" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
-        <option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>
+        <option value="" disabled selected>— Load NGS to select target —</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
         ▶ Run Live Simulation
@@ -890,8 +887,8 @@
           <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th>ΔE Result</th><th>Status</th>
         </tr>
       </thead>
-      <tbody>
-      <!-- Y220C — always visible -->
+      <!-- All rows hidden until NGS report loaded -->
+      <tbody id="ngs-bqp-rows" style="display:none">
       <tr>
         <td><strong style="color:#60a5fa">TP53</strong></td>
         <td>Y220C <span class="badge badge-gold">Structural</span></td>
@@ -902,9 +899,6 @@
         <td id="bqp-de-TP53_Y220C" style="color:var(--gray)">—</td>
         <td id="bqp-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      </tbody>
-      <!-- NGS-driven rows — hidden until NGS report loaded -->
-      <tbody id="ngs-bqp-rows" style="display:none">
       <tr style="background:rgba(232,160,32,0.06)">
         <td><strong style="color:var(--gold)">TP53</strong></td>
         <td>C275F <span class="badge badge-gold">Structural</span></td>
@@ -1174,10 +1168,9 @@
           <span id="pq-badge" class="badge badge-gold">IN PROGRESS</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <!-- Y220C — always visible -->
-          <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
-          <!-- NGS-driven PQ items — hidden until NGS report loaded -->
+          <!-- All items hidden until NGS report loaded -->
           <div id="ngs-pq-items" style="display:none">
+            <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
             <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
             <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
             <div><span id="pq-dot-CDKN2A_P16"  style="color:var(--gray)">○</span> CDKN2A p16 validation</div>
@@ -1601,45 +1594,33 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // Show all NGS-driven sections; update header counts
-  const ngsRows = document.getElementById('ngs-mutation-rows');
-  if (ngsRows) ngsRows.style.display = '';
-  const ngsPipeRows = document.getElementById('ngs-pipeline-rows');
-  if (ngsPipeRows) ngsPipeRows.style.display = '';
-  const ngsBqpRows = document.getElementById('ngs-bqp-rows');
-  if (ngsBqpRows) ngsBqpRows.style.display = '';
-  const ngsPqItems = document.getElementById('ngs-pq-items');
-  if (ngsPqItems) ngsPqItems.style.display = '';
-  const ngsSimIds = (ngs.variants || [])
-    .map(v => v.simulation_id)
-    .filter(id => id && id !== 'TP53_Y220C');
-  activeTargets = ['TP53_Y220C', ...ngsSimIds];
-  const ngsCount = ngsSimIds.length;
-  const totalTargets = 1 + ngsCount;
+  // Show all mutation lists
+  ['ngs-mutation-rows','ngs-pipeline-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = '';
+  });
+  const ngsSimIds = (ngs.variants || []).map(v => v.simulation_id).filter(Boolean);
+  activeTargets = ngsSimIds;
+  const n = ngsSimIds.length;
+  const pipeTitle = document.getElementById('pipeline-card-title');
+  if (pipeTitle) pipeTitle.textContent = `Live Research Pipeline — ${n} Active Target${n !== 1 ? 's' : ''}`;
+  const bqpTitle = document.getElementById('bqp-card-title');
+  if (bqpTitle) bqpTitle.textContent = `All-Target Summary — ${n} NSCLC Mutation${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status`;
 
-  // Add NGS mutation options to VQE dropdown
+  // Rebuild VQE dropdown from NGS variants
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
-    // Remove any previously added NGS options
-    [...simTarget.options].forEach(o => { if (o.dataset.ngs) o.remove(); });
-    const OPTION_LABELS = {
-      TP53_C275F: 'TP53 p.Cys275Phe (C275F)',
-      KEAP1_LOF:  'KEAP1 Loss-of-Function',
-      STK11_LKB1: 'STK11/LKB1 Loss-of-Function',
+    simTarget.innerHTML = '';
+    const LABELS = {
+      TP53_Y220C: 'TP53 p.Tyr220Cys (Y220C)', TP53_C275F: 'TP53 p.Cys275Phe (C275F)',
+      KEAP1_LOF: 'KEAP1 Loss-of-Function', STK11_LKB1: 'STK11/LKB1 Loss-of-Function',
       CDKN2A_P16: 'CDKN2A p16/INK4a Deletion',
     };
     ngsSimIds.forEach(id => {
       const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = OPTION_LABELS[id] || id;
-      opt.dataset.ngs = '1';
+      opt.value = id; opt.textContent = LABELS[id] || id;
       simTarget.appendChild(opt);
     });
   }
-  const pipeTitle = document.getElementById('pipeline-card-title');
-  if (pipeTitle) pipeTitle.textContent = `Live Research Pipeline — ${totalTargets} Active Target${totalTargets !== 1 ? 's' : ''}`;
-  const bqpTitle = document.getElementById('bqp-card-title');
-  if (bqpTitle) bqpTitle.textContent = `All-Target Summary — ${totalTargets} NSCLC Mutation${totalTargets !== 1 ? 's' : ''} · BQP Classification & Simulation Status`;
 
   // Auto-fetch structure sources for all variants
   lookupStructureSources(ngs.variants || []);
@@ -1730,8 +1711,8 @@ async function lookupStructureSources(variants) {
 
 // ── PQ checklist ──────────────────────────────────────────────────────────
 const pqCompleted = new Set();
-// activeTargets tracks which mutation IDs are currently loaded (Y220C always present)
-let activeTargets = ['TP53_Y220C'];
+// activeTargets tracks which mutation IDs are currently loaded (populated from NGS)
+let activeTargets = [];
 
 function updatePQAfterRun(mutationId) {
   const dot = document.getElementById(`pq-dot-${mutationId}`);
@@ -1754,7 +1735,13 @@ function resetPlatform() {
 
   lastRunData = null;
   pqCompleted.clear();
-  activeTargets = ['TP53_Y220C'];
+  activeTargets = [];
+
+  // Clear VQE dropdown
+  const simTarget = document.getElementById('sim-target');
+  if (simTarget) {
+    simTarget.innerHTML = '<option value="" disabled selected>— Load NGS to select target —</option>';
+  }
 
   // NGS banner + subtitle
   const banner = document.getElementById('ngs-load-banner');
@@ -1784,19 +1771,15 @@ function resetPlatform() {
   const ssCard = document.getElementById('structure-sources-card');
   if (ssCard) ssCard.style.display = 'none';
 
-  // Hide all NGS-driven sections (Y220C always stays visible)
-  const ngsRows = document.getElementById('ngs-mutation-rows');
-  if (ngsRows) ngsRows.style.display = 'none';
-  const ngsPipeRows = document.getElementById('ngs-pipeline-rows');
-  if (ngsPipeRows) ngsPipeRows.style.display = 'none';
-  const ngsBqpRows = document.getElementById('ngs-bqp-rows');
-  if (ngsBqpRows) ngsBqpRows.style.display = 'none';
-  const ngsPqItems = document.getElementById('ngs-pq-items');
-  if (ngsPqItems) ngsPqItems.style.display = 'none';
+  // Hide all mutation lists — shown only when NGS is loaded
+  ['ngs-mutation-rows','ngs-pipeline-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   const pipeTitle = document.getElementById('pipeline-card-title');
-  if (pipeTitle) pipeTitle.textContent = 'Live Research Pipeline — 1 Active Target';
+  if (pipeTitle) pipeTitle.textContent = 'Live Research Pipeline — No NGS loaded';
   const bqpTitle = document.getElementById('bqp-card-title');
-  if (bqpTitle) bqpTitle.textContent = 'All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status';
+  if (bqpTitle) bqpTitle.textContent = 'All-Target Summary — No NGS loaded';
 
   // Mutation registry + pipeline rows + BQP table
   PQ_ALL.forEach(id => {
