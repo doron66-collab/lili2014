@@ -11,8 +11,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(simulate.router,   prefix="/api/simulate",   tags=["Simulation"])
