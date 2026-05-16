@@ -345,35 +345,35 @@
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Cys275Phe <span class="badge badge-red">Contact</span></td>
-          <td>12.66% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
+          <td id="mut-freq-TP53_C275F" style="color:var(--gray)">—</td>
           <td>~44 <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
           <td id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Tyr220Cys <span class="badge badge-red">Contact</span></td>
-          <td>8.90% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
+          <td id="mut-freq-TP53_Y220C" style="color:var(--gray)">—</td>
           <td>~38 <span style="color:var(--gray);font-size:10px">(binding pocket)</span></td>
           <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
           <td>p.Cys196Leufs* <span class="badge badge-violet">PPI</span></td>
-          <td>12.90% <span style="color:var(--gray);font-size:10px">(NGS)</span></td>
+          <td id="mut-freq-KEAP1_LOF" style="color:var(--gray)">—</td>
           <td>~52 <span style="color:var(--gray);font-size:10px">(NRF2 interface)</span></td>
           <td id="mut-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#60a5fa">STK11</td>
           <td>Loss-of-function <span class="badge badge-gray">SL</span></td>
-          <td>14–25%</td>
+          <td id="mut-freq-STK11_LKB1" style="color:var(--gray)">—</td>
           <td>~46 <span style="color:var(--gray);font-size:10px">(kinase domain)</span></td>
           <td id="mut-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr>
           <td style="font-weight:700;color:#a78bfa">CDKN2A</td>
           <td>Deletion (0.4×) <span class="badge badge-violet">CNV</span></td>
-          <td>22–31%</td>
+          <td id="mut-freq-CDKN2A_P16" style="color:var(--gray)">—</td>
           <td>~28 <span style="color:var(--gray);font-size:10px">(CDK4/6 interface)</span></td>
           <td id="mut-status-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
@@ -383,20 +383,18 @@
 
     <!-- Patient NGS Panel -->
     <div class="card">
-      <div class="card-title" id="ngs-panel-title">Active Patient NGS Profile — MI25-0349</div>
-      <div class="alert alert-gold" id="ngs-tier1-alert" style="margin-bottom:12px">
-        <strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> TP53 p.Cys275Phe · c.824G>T · AF 12.66% · Chromosome 17
-      </div>
+      <div class="card-title" id="ngs-panel-title">Patient NGS Profile — No report loaded</div>
+      <div class="alert alert-gold" id="ngs-tier1-alert" style="margin-bottom:12px;display:none"></div>
       <table>
         <tr><th>Biomarker</th><th>Result</th><th>Implication</th></tr>
-        <tr><td>EGFR / ALK / KRAS / RET</td><td id="ngs-egfr"><span class="badge badge-gray">Not detected</span></td><td style="color:var(--gray);font-size:11px">No approved targeted therapy</td></tr>
-        <tr><td>TMB</td><td id="ngs-tmb">7.6 Mut/Mb <span class="badge badge-red">Low</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response likely</td></tr>
-        <tr><td>MSI</td><td id="ngs-msi">Stable (7.77)</td><td style="color:var(--gray);font-size:11px">Not MSI-high</td></tr>
-        <tr><td>KEAP1</td><td id="ngs-keap1">p.Cys196Leufs* <span class="badge badge-violet">Tier III</span></td><td style="color:var(--gray);font-size:11px">Reduced IO response</td></tr>
-        <tr><td>CDKN2A</td><td id="ngs-cdkn2a">Deletion (0.4×) <span class="badge badge-gold">Tier I</span></td><td style="color:var(--gray);font-size:11px">Poor prognosis marker</td></tr>
+        <tr><td>EGFR / ALK / KRAS / RET</td><td id="ngs-egfr" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
+        <tr><td>TMB</td><td id="ngs-tmb" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
+        <tr><td>MSI</td><td id="ngs-msi" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
+        <tr><td>KEAP1</td><td id="ngs-keap1" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
+        <tr><td>CDKN2A</td><td id="ngs-cdkn2a" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
       </table>
       <div class="divider"></div>
-      <div id="ngs-footer" style="font-size:11px;color:var(--gray)">Cancer type: Adenocarcinoma · Pulmonary origin · Tumor purity 65% · Emek Medical Center · 18/06/2025</div>
+      <div id="ngs-footer" style="font-size:11px;color:var(--gray)">Upload an NGS report or load the demo to populate patient data.</div>
     </div>
   </div>
 
@@ -1579,9 +1577,29 @@ function loadNGSReport(ngs) {
   // Tier I alert — first tier I variant
   const tier1 = (ngs.variants || []).find(v => v.tier === 'I');
   const alertEl = document.getElementById('ngs-tier1-alert');
-  if (alertEl && tier1) {
-    alertEl.innerHTML = `<strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> ${tier1.gene} ${tier1.mutation}${tier1.hgvs ? ' · ' + tier1.hgvs : ''} · AF ${(tier1.allele_frequency * 100).toFixed(2)}%${tier1.chromosome ? ' · Chromosome ' + tier1.chromosome : ''}`;
+  if (alertEl) {
+    if (tier1) {
+      alertEl.innerHTML = `<strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> ${tier1.gene} ${tier1.mutation}${tier1.hgvs ? ' · ' + tier1.hgvs : ''}${tier1.allele_frequency != null ? ' · AF ' + (tier1.allele_frequency * 100).toFixed(2) + '%' : ''}${tier1.chromosome ? ' · Chromosome ' + tier1.chromosome : ''}`;
+      alertEl.style.display = 'block';
+    } else {
+      alertEl.innerHTML = '';
+      alertEl.style.display = 'none';
+    }
   }
+
+  // Mutation frequency cells
+  (ngs.variants || []).forEach(v => {
+    const freqEl = document.getElementById(`mut-freq-${v.simulation_id}`);
+    if (freqEl) {
+      if (v.allele_frequency != null) {
+        freqEl.textContent = `${(v.allele_frequency * 100).toFixed(2)}% (NGS)`;
+        freqEl.style.color = '';
+      } else {
+        freqEl.textContent = v.mutation || '—';
+        freqEl.style.color = 'var(--gray)';
+      }
+    }
+  });
   // Biomarkers
   const bm = ngs.biomarkers || {};
   const egfr = document.getElementById('ngs-egfr');
@@ -1718,25 +1736,25 @@ function resetPlatform() {
   const banner = document.getElementById('ngs-load-banner');
   if (banner) banner.style.display = 'none';
   const sub = document.getElementById('dash-subtitle');
-  if (sub) sub.textContent = 'NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349';
+  if (sub) sub.textContent = 'NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar';
 
-  // NGS panel defaults
+  // NGS panel — blank state
   const pt = document.getElementById('ngs-panel-title');
-  if (pt) pt.textContent = 'Active Patient NGS Profile — MI25-0349';
+  if (pt) pt.textContent = 'Patient NGS Profile — No report loaded';
   const alert = document.getElementById('ngs-tier1-alert');
-  if (alert) alert.innerHTML = '<strong style="color:var(--gold)">⚠ Tier I Pathogenic:</strong> TP53 p.Cys275Phe · c.824G>T · AF 12.66% · Chromosome 17';
+  if (alert) { alert.innerHTML = ''; alert.style.display = 'none'; }
   const egfr = document.getElementById('ngs-egfr');
-  if (egfr) egfr.innerHTML = '<span class="badge badge-gray">Not detected</span>';
+  if (egfr) egfr.innerHTML = '—';
   const tmb = document.getElementById('ngs-tmb');
-  if (tmb) tmb.innerHTML = '7.6 Mut/Mb <span class="badge badge-red">Low</span>';
+  if (tmb) tmb.innerHTML = '—';
   const msi = document.getElementById('ngs-msi');
-  if (msi) msi.textContent = 'Stable (7.77)';
+  if (msi) msi.textContent = '—';
   const keap = document.getElementById('ngs-keap1');
-  if (keap) keap.innerHTML = 'p.Cys196Leufs* <span class="badge badge-violet">Tier III</span>';
+  if (keap) keap.innerHTML = '—';
   const cdkn = document.getElementById('ngs-cdkn2a');
-  if (cdkn) cdkn.innerHTML = 'Deletion (0.4×) <span class="badge badge-gold">Tier I</span>';
+  if (cdkn) cdkn.innerHTML = '—';
   const foot = document.getElementById('ngs-footer');
-  if (foot) foot.textContent = 'Cancer type: Adenocarcinoma · Pulmonary origin · Tumor purity 65% · Emek Medical Center · 18/06/2025';
+  if (foot) foot.textContent = 'Upload an NGS report or load the demo to populate patient data.';
 
   // Structure sources card
   const ssCard = document.getElementById('structure-sources-card');
@@ -1760,6 +1778,8 @@ function resetPlatform() {
     if (bde) bde.innerHTML = '<span style="color:var(--gray)">—</span>';
     const pdot = document.getElementById(`pq-dot-${id}`);
     if (pdot) { pdot.textContent = '○'; pdot.style.color = 'var(--gray)'; }
+    const freq = document.getElementById(`mut-freq-${id}`);
+    if (freq) { freq.textContent = '—'; freq.style.color = 'var(--gray)'; }
   });
 
   // PQ card reset
