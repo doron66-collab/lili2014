@@ -32,7 +32,11 @@
   .header .pill {
     display: inline-block; background: rgba(14,165,201,0.2); color: var(--teal);
     border: 1px solid rgba(14,165,201,0.4); padding: 3px 12px; border-radius: 20px;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-top: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-top: 10px; margin-right: 6px;
+  }
+  .header .pill-green {
+    background: rgba(34,197,94,0.2); color: #22c55e;
+    border: 1px solid rgba(34,197,94,0.4);
   }
 
   .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
@@ -47,10 +51,11 @@
     background: white; border: 1px solid var(--border); border-radius: 10px;
     padding: 18px 20px; border-top: 3px solid var(--teal);
   }
-  .tool-card.gold  { border-top-color: var(--gold); }
-  .tool-card.green { border-top-color: var(--green); }
-  .tool-card.violet{ border-top-color: var(--violet); }
-  .tool-card.red   { border-top-color: var(--red); }
+  .tool-card.gold   { border-top-color: var(--gold); }
+  .tool-card.green  { border-top-color: var(--green); }
+  .tool-card.violet { border-top-color: var(--violet); }
+  .tool-card.red    { border-top-color: var(--red); }
+  .tool-card.gray   { border-top-color: var(--gray); }
 
   .tool-name { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
   .tool-url  { font-size: 11px; color: var(--teal); font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
@@ -83,7 +88,7 @@
 
   table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 12.5px; }
   th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
-  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
   tr:nth-child(even) { background: #f8fafc; }
 
   .alert {
@@ -100,6 +105,21 @@
   }
   .badge-3a { background: rgba(14,165,201,0.12); color: #0369a1; border: 1px solid rgba(14,165,201,0.3); }
   .badge-3b { background: rgba(240,180,41,0.12); color: #92400e; border: 1px solid rgba(240,180,41,0.3); }
+  .badge-done { background: rgba(34,197,94,0.12); color: #166534; border: 1px solid rgba(34,197,94,0.3); }
+
+  .changelog-item {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 10px; border-left: 4px solid var(--teal);
+  }
+  .changelog-item.gold   { border-left-color: var(--gold); }
+  .changelog-item.green  { border-left-color: var(--green); }
+  .changelog-item.violet { border-left-color: var(--violet); }
+  .changelog-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--teal); margin-bottom: 4px; }
+  .changelog-tag.gold   { color: #92400e; }
+  .changelog-tag.green  { color: #166534; }
+  .changelog-tag.violet { color: #5b21b6; }
+  .changelog-title { font-size: 13.5px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .changelog-desc  { font-size: 12.5px; color: var(--gray); line-height: 1.6; }
 
   .footnote { font-size: 11px; color: var(--gray); margin-top: 6px; font-style: italic; }
 
@@ -109,9 +129,10 @@
 <body>
 
 <div class="header">
-  <h1>QC·AI·HPC Platform — System Architecture & Implementation Report</h1>
+  <h1>QC·AI·HPC Platform — System Architecture &amp; Implementation Report</h1>
   <p>IST 697 · Doron Cohen · Claremont Graduate University · 2026</p>
   <div class="pill">Phase 3A — PennyLane Simulator Backend · LIVE</div>
+  <div class="pill pill-green">Auth · NGS Upload · Structure Sources · Pipeline Live</div>
 </div>
 
 <div class="container">
@@ -119,10 +140,11 @@
   <!-- ── WHAT WE BUILT ── -->
   <h2>1. What We Built</h2>
   <p>
-    We transformed the QC·AI·HPC platform from a static HTML mockup into a
+    The QC·AI·HPC platform has evolved from a static HTML mockup into a
     <strong>live, end-to-end quantum simulation system</strong> with a real computation engine,
-    a cloud database, and a deployed API. Every simulation run now produces a
-    <strong>genuine VQE (Variational Quantum Eigensolver) result</strong> with a full
+    a cloud database, authenticated access control, NGS report ingestion, and automatic
+    protein structure resolution from three external scientific databases.
+    Every simulation run produces a <strong>genuine VQE result</strong> with a full
     P1–P9 provenance record cryptographically sealed by SHA-256.
   </p>
 
@@ -133,17 +155,127 @@
     Phase 3B will replace the simulator with IBM Heron r3 hardware.
   </div>
 
+  <!-- ── CHANGELOG ── -->
+  <h2>2. What Was Built — Session Log</h2>
+  <p>Everything below was implemented and deployed in the current development session (2026-05-16).</p>
+
+  <div class="changelog-item green">
+    <div class="changelog-tag green">Auth · Security</div>
+    <div class="changelog-title">Supabase Auth Login Screen</div>
+    <div class="changelog-desc">
+      Full email/password login overlay added to the prototype using Supabase Auth JS v2.
+      Users must authenticate before accessing any platform feature. The login screen displays
+      an "Authorized Access Only" notice with FDA 21 CFR Part 11 compliance footer to signal
+      clinical-grade access control. User sessions persist across page refreshes.
+    </div>
+  </div>
+
+  <div class="changelog-item green">
+    <div class="changelog-tag green">Auth · User Management</div>
+    <div class="changelog-title">Change Password Functionality</div>
+    <div class="changelog-desc">
+      Authenticated users can change their password from the nav menu (user avatar → Change Password).
+      Uses Supabase <code>auth.updateUser()</code>. Users are created manually in the Supabase
+      Auth dashboard; passwords can also be set directly via SQL if email delivery is blocked.
+      New users are managed per-reviewer for controlled dissertation access.
+    </div>
+  </div>
+
+  <div class="changelog-item">
+    <div class="changelog-tag">Orchestration</div>
+    <div class="changelog-title">Live Pipeline Stage Animation</div>
+    <div class="changelog-desc">
+      The 6-stage simulation pipeline on the Orchestration tab now animates in real time during
+      each VQE run. Stage 4 (Compute Dispatch) activates on run start, Stage 5 (Result Aggregation)
+      at ~4s, Stage 6 (Validation &amp; Seal) at ~8s, all 6 complete on response. The pipeline title
+      updates to show the active mutation name. On error the pipeline resets to idle.
+    </div>
+  </div>
+
+  <div class="changelog-item">
+    <div class="changelog-tag">Orchestration</div>
+    <div class="changelog-title">Job Dispatcher &amp; Hardware Selector Wired</div>
+    <div class="changelog-desc">
+      The VQE job card in the Orchestration tab now shows real data after each run: mutation name,
+      energy result, elapsed time, gate count, and depth. The Hardware Backend Selector table
+      was corrected — PennyLane <code>default.qubit</code> now shows as Active (Phase 3A);
+      IBM Heron r3 correctly shows as Phase 3B target.
+    </div>
+  </div>
+
+  <div class="changelog-item gold">
+    <div class="changelog-tag gold">Dashboard · NGS</div>
+    <div class="changelog-title">NGS Report Upload (JSON)</div>
+    <div class="changelog-desc">
+      The Dashboard now has two buttons: <strong>Upload NGS Report</strong> (accepts any
+      <code>.json</code> file matching the platform schema) and <strong>Load Demo (MI25-0349)</strong>
+      (loads the real patient case instantly without a file). On load, all dashboard fields update
+      automatically: report ID, patient info, tier I alert, biomarkers table, and footer.
+      A green confirmation banner confirms the loaded report. A downloadable sample file
+      (<code>ngs_MI25-0349.json</code>) is included in the repository.
+    </div>
+  </div>
+
+  <div class="changelog-item gold">
+    <div class="changelog-tag gold">Dashboard · Structures</div>
+    <div class="changelog-title">Protein Structure Auto-Resolution (UniProt → RCSB PDB → AlphaFold)</div>
+    <div class="changelog-desc">
+      When any NGS report is loaded, the platform automatically resolves protein structure sources
+      for every gene in the report. For each gene: (1) queries UniProt REST API to get the UniProt
+      accession and protein name; (2) retrieves all linked RCSB PDB crystal structure IDs;
+      (3) queries AlphaFold DB for predicted structure availability and pLDDT confidence score.
+      Results render incrementally in a live table with clickable links to RCSB structure viewer
+      and AlphaFold entry page. Works for <em>any</em> gene — not just the 5 current mutations.
+    </div>
+  </div>
+
+  <div class="changelog-item gold">
+    <div class="changelog-tag gold">Dashboard · Live</div>
+    <div class="changelog-title">Dashboard Pipeline Rows &amp; Mutation Status Wired</div>
+    <div class="changelog-desc">
+      After each simulation run, the Dashboard updates automatically: the mutation's row in the
+      target registry shows "Phase 3A Done ✓", and the corresponding pipeline row turns 100% green
+      with actual energy (Hₐ) and elapsed time. System status corrected from "IBM Heron r3" to
+      "PennyLane default.qubit · Phase 3A Live". All 5 pipeline rows reset to "Not yet run" on load.
+    </div>
+  </div>
+
+  <div class="changelog-item violet">
+    <div class="changelog-tag violet">Backend · API</div>
+    <div class="changelog-title">New Backend Endpoints: UniProt &amp; AlphaFold Proxies</div>
+    <div class="changelog-desc">
+      Two new proxy endpoints added to <code>/api/pdb</code> in the FastAPI backend:<br>
+      • <code>GET /api/pdb/lookup/gene/{gene_symbol}</code> — queries UniProt REST API for a human gene,
+      returns UniProt accession, protein name, and all linked RCSB PDB IDs (up to 10). Cached 24h.<br>
+      • <code>GET /api/pdb/alphafold/{uniprot_id}</code> — queries AlphaFold DB EMBL-EBI for
+      prediction metadata including pLDDT confidence and model download URL. Cached 24h.
+    </div>
+  </div>
+
+  <div class="changelog-item violet">
+    <div class="changelog-tag violet">Dissertation</div>
+    <div class="changelog-title">Dissertation §07 &amp; §08 Text Corrected</div>
+    <div class="changelog-desc">
+      Two outdated passages in <code>dissertation_revised.html</code> were updated to reflect
+      Phase 3A is now live:<br>
+      • §07 closing paragraph: replaced "Simulation results are scientifically informed illustrative
+      values" with a statement that Phase 3A is live with real VQE energies and P1–P9 provenance.<br>
+      • §08 Simulation Results: replaced "binding energy values are scientifically informed estimates,
+      not outputs of executed quantum simulations" with an accurate description of the live system.
+    </div>
+  </div>
+
   <!-- ── TOOLS & ROLES ── -->
-  <h2>2. Tools — What Each One Does</h2>
+  <h2>3. Tools — What Each One Does</h2>
 
   <div class="tool-grid">
     <div class="tool-card">
       <div class="tool-name">Netlify</div>
       <div class="tool-url">nsclc-quantum-viewer.netlify.app</div>
       <div class="tool-desc">
-        Hosts the public-facing prototype (HTML/CSS/JS). Auto-deploys every time
-        code is pushed to GitHub. This is what users see — the dashboard, orchestration,
-        results, and compliance tabs. Zero configuration needed; free tier is permanent.
+        Hosts the public-facing prototype (HTML/CSS/JS). Auto-deploys on every GitHub push.
+        Serves the Dashboard, Orchestration, Results, and Compliance tabs.
+        Zero configuration; free tier is permanent.
       </div>
     </div>
 
@@ -152,9 +284,8 @@
       <div class="tool-url">qcaihpc-simulation-api.onrender.com</div>
       <div class="tool-desc">
         Hosts the FastAPI Python backend. Runs the real PennyLane VQE engine.
-        When the "Run Live Simulation" button is clicked, this server executes
-        120 quantum optimization steps and returns the result. Sleeps after
-        15 min of inactivity (free tier); wakes in ~30s on first request.
+        Also proxies RCSB PDB, UniProt, and AlphaFold DB requests with 24h caching.
+        Sleeps after 15 min idle (free tier); wakes in ~30s.
       </div>
     </div>
 
@@ -162,10 +293,9 @@
       <div class="tool-name">Supabase</div>
       <div class="tool-url">lzzuxtnubznrkxwxjaab.supabase.co</div>
       <div class="tool-desc">
-        PostgreSQL cloud database. Stores every simulation run as a complete
-        P1–P9 provenance record. Row Level Security enforces who can see what.
-        The audit trail is immutable — records can be verified but never silently modified.
-        FDA 21 CFR Part 11 compliant.
+        PostgreSQL cloud database + Auth provider. Stores every simulation run as a complete
+        P1–P9 provenance record. Manages user accounts (email/password). Row Level Security
+        enforces access control. FDA 21 CFR Part 11 compliant.
       </div>
     </div>
 
@@ -175,7 +305,7 @@
       <div class="tool-desc">
         Source of truth for all code. Every push triggers automatic redeployment
         on both Netlify (frontend) and Render (backend). Branch:
-        claude/code-access-clarification-ab1W8. All history is preserved.
+        <code>claude/code-access-clarification-ab1W8</code>.
       </div>
     </div>
 
@@ -184,55 +314,144 @@
       <div class="tool-url">pennylane.ai · v0.38.0</div>
       <div class="tool-desc">
         Quantum computing framework running inside the Render backend.
-        Executes the VQE algorithm on a noiseless <code>default.qubit</code>
-        simulator. Handles the Jordan-Wigner Hamiltonian, Ry-CNOT-Ry ansatz,
-        gradient descent optimizer, and circuit fingerprinting.
+        Executes VQE on a noiseless <code>default.qubit</code> simulator using
+        Jordan-Wigner encoding, Ry-CNOT-Ry ansatz, and gradient descent over 120 steps.
       </div>
     </div>
 
     <div class="tool-card">
       <div class="tool-name">FastAPI</div>
-      <div class="tool-url">Python API framework</div>
+      <div class="tool-url">Python API framework · Uvicorn</div>
       <div class="tool-desc">
-        The Python web framework that exposes three route groups:
+        Exposes four route groups:
         <code>/api/simulate</code> (VQE engine),
-        <code>/api/pdb</code> (RCSB protein structure proxy),
-        <code>/api/provenance</code> (P1–P9 CRUD + seal verification).
-        Runs via Uvicorn on Render.
+        <code>/api/pdb</code> (RCSB + UniProt + AlphaFold proxy),
+        <code>/api/provenance</code> (P1–P9 CRUD + seal verification),
+        <code>/health</code> (warm-up endpoint).
+      </div>
+    </div>
+
+    <div class="tool-card gold">
+      <div class="tool-name">RCSB Protein Data Bank</div>
+      <div class="tool-url">data.rcsb.org · REST API v1</div>
+      <div class="tool-desc">
+        Gold standard protein structure database. Queried via backend proxy for crystal structure
+        metadata (resolution, deposition date, atom count, organism) and structure file download URLs
+        (.pdb / .cif). Five mutation PDB IDs pre-mapped: 2OCJ, 2VUK, 2FLU, 2QK7, 2A5E.
+      </div>
+    </div>
+
+    <div class="tool-card green">
+      <div class="tool-name">UniProt REST API</div>
+      <div class="tool-url">rest.uniprot.org · UniProtKB</div>
+      <div class="tool-desc">
+        Protein knowledge database. Used to go from a gene symbol (e.g. TP53) to a UniProt
+        accession ID, protein name, and all linked RCSB PDB crystal structure IDs.
+        Queries reviewed human entries only (organism_id:9606). Results cached 24h.
+      </div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-name">AlphaFold DB</div>
+      <div class="tool-url">alphafold.ebi.ac.uk · EMBL-EBI</div>
+      <div class="tool-desc">
+        DeepMind / EMBL-EBI predicted protein structure database. Queried as fallback when
+        no experimental crystal structure exists. Returns pLDDT confidence score and
+        downloadable predicted structure model URL. Covers nearly all human proteins.
+      </div>
+    </div>
+
+    <div class="tool-card gold">
+      <div class="tool-name">Supabase Auth JS v2</div>
+      <div class="tool-url">@supabase/supabase-js · CDN</div>
+      <div class="tool-desc">
+        Handles login (<code>signInWithPassword</code>), logout (<code>signOut</code>),
+        password change (<code>updateUser</code>), and session management
+        (<code>getSession</code>) entirely client-side. No backend auth code needed.
       </div>
     </div>
   </div>
 
   <!-- ── DATA FLOW ── -->
-  <h2>3. How the System Connects</h2>
+  <h2>4. How the System Connects</h2>
 
+  <h3>Simulation flow</h3>
   <div class="flow-diagram">
     <div class="flow-box violet">GitHub<br><span style="font-size:10px;font-weight:400">source code</span></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-box teal">Netlify<br><span style="font-size:10px;font-weight:400">frontend</span></div>
+    <div class="flow-box teal">Netlify<br><span style="font-size:10px;font-weight:400">frontend + auth</span></div>
     <div class="flow-arrow">←→</div>
-    <div class="flow-box gold">Render / FastAPI<br><span style="font-size:10px;font-weight:400">VQE backend</span></div>
+    <div class="flow-box gold">Render / FastAPI<br><span style="font-size:10px;font-weight:400">VQE + proxy</span></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-box green">Supabase<br><span style="font-size:10px;font-weight:400">P1–P9 database</span></div>
+    <div class="flow-box green">Supabase<br><span style="font-size:10px;font-weight:400">P1–P9 + users</span></div>
   </div>
 
   <table>
     <tr><th>Step</th><th>Action</th><th>Where it happens</th></tr>
-    <tr><td>1</td><td>User opens the prototype and selects a mutation target</td><td>Browser → Netlify</td></tr>
-    <tr><td>2</td><td>Clicks "Run Live Simulation" — browser calls GET /api/simulate/{mutation_id}</td><td>Browser → Render</td></tr>
-    <tr><td>3</td><td>FastAPI runs PennyLane VQE — 120 gradient descent steps on default.qubit</td><td>Render (Python)</td></tr>
-    <tr><td>4</td><td>Assembles P1–P9 provenance record, computes SHA-256 P8 seal</td><td>Render (Python)</td></tr>
-    <tr><td>5</td><td>Inserts the sealed record into simulation_runs table</td><td>Render → Supabase</td></tr>
-    <tr><td>6</td><td>Returns JSON result to browser — energy, CI, circuit metadata, P8 hash</td><td>Render → Browser</td></tr>
-    <tr><td>7</td><td>Prototype displays live result in the UI</td><td>Browser → Netlify</td></tr>
+    <tr><td>1</td><td>User visits prototype — login overlay appears</td><td>Browser → Netlify</td></tr>
+    <tr><td>2</td><td>Email + password submitted → Supabase Auth validates</td><td>Browser → Supabase Auth</td></tr>
+    <tr><td>3</td><td>Session granted — platform becomes accessible</td><td>Browser (JS session)</td></tr>
+    <tr><td>4</td><td>User selects mutation, clicks "Run Live Simulation"</td><td>Browser → Render GET /api/simulate/{id}</td></tr>
+    <tr><td>5</td><td>FastAPI runs PennyLane VQE — 120 gradient descent steps</td><td>Render (Python)</td></tr>
+    <tr><td>6</td><td>Assembles P1–P9 record, computes SHA-256 P8 seal</td><td>Render (Python)</td></tr>
+    <tr><td>7</td><td>Inserts sealed record into simulation_runs table</td><td>Render → Supabase PostgreSQL</td></tr>
+    <tr><td>8</td><td>Returns JSON to browser — energy, CI, circuit metadata, P8 hash</td><td>Render → Browser</td></tr>
+    <tr><td>9</td><td>All tabs update: pipeline stages complete, dashboard rows green, compliance P1–P9 populated</td><td>Browser (JS)</td></tr>
   </table>
 
+  <h3>NGS upload + structure resolution flow</h3>
+  <div class="flow-diagram">
+    <div class="flow-box teal">NGS .json upload<br><span style="font-size:10px;font-weight:400">or demo load</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box gold">UniProt API<br><span style="font-size:10px;font-weight:400">gene → accession</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box teal">RCSB PDB<br><span style="font-size:10px;font-weight:400">crystal structures</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box green">AlphaFold DB<br><span style="font-size:10px;font-weight:400">predicted model</span></div>
+  </div>
+
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Where it happens</th></tr>
+    <tr><td>1</td><td>User uploads NGS JSON file or clicks "Load Demo (MI25-0349)"</td><td>Browser (file reader / hardcoded)</td></tr>
+    <tr><td>2</td><td>Dashboard fields populate: patient info, tier I alert, biomarkers, mutation table</td><td>Browser (JS)</td></tr>
+    <tr><td>3</td><td>For each unique gene, backend called: GET /api/pdb/lookup/gene/{gene}</td><td>Browser → Render → UniProt REST</td></tr>
+    <tr><td>4</td><td>UniProt returns accession ID + all linked PDB IDs</td><td>Render (cached 24h)</td></tr>
+    <tr><td>5</td><td>Backend called: GET /api/pdb/alphafold/{uniprot_id}</td><td>Browser → Render → AlphaFold EMBL-EBI</td></tr>
+    <tr><td>6</td><td>Structure Sources table renders incrementally — RCSB links + AlphaFold pLDDT + viewer links</td><td>Browser (JS)</td></tr>
+  </table>
+
+  <!-- ── NGS SCHEMA ── -->
+  <h2>5. NGS Report JSON Schema</h2>
+  <p>The platform accepts any <code>.json</code> file conforming to this schema. The sample file <code>ngs_MI25-0349.json</code> is included in the repository.</p>
+
+  <div class="result-box" style="line-height:1.8">
+    <span style="color:#94a3b8">{</span><br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"report_id"</span>: <span style="color:#14d9b8">"MI25-0349"</span>,<br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"report_date"</span>: <span style="color:#14d9b8">"18/06/2025"</span>,<br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"institution"</span>: <span style="color:#14d9b8">"Emek Medical Center"</span>,<br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"cancer_type"</span>: <span style="color:#14d9b8">"Adenocarcinoma"</span>,<br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"tumor_purity"</span>: <span style="color:#14d9b8">"65%"</span>,<br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"biomarkers"</span>: { <span style="color:#94a3b8">TMB, MSI, EGFR/ALK/KRAS/RET status</span> },<br>
+    &nbsp;&nbsp;<span style="color:#f0b429">"variants"</span>: [<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;{<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"gene"</span>: <span style="color:#14d9b8">"TP53"</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"mutation"</span>: <span style="color:#14d9b8">"p.Cys275Phe"</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"hgvs"</span>: <span style="color:#14d9b8">"c.824G&gt;T"</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"allele_frequency"</span>: <span style="color:#14d9b8">0.1266</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"tier"</span>: <span style="color:#14d9b8">"I"</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"simulation_id"</span>: <span style="color:#14d9b8">"TP53_C275F"</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"active_electrons"</span>: <span style="color:#14d9b8">44</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"full_qubits"</span>: <span style="color:#14d9b8">88</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;}, <span style="color:#94a3b8">... more variants</span><br>
+    &nbsp;&nbsp;]<br>
+    <span style="color:#94a3b8">}</span>
+  </div>
+
   <!-- ── UNDERSTANDING THE RESULTS ── -->
-  <h2>4. Understanding the Simulation Results</h2>
+  <h2>6. Understanding the Simulation Results</h2>
 
   <div class="result-box">
-    <div class="result-label">Sample output — TP53 p.Cys275Phe (C275F) · Phase 3A run</div>
-    <br>
+    <div class="result-label">Sample output — TP53 p.Cys275Phe (C275F) · Phase 3A run</div><br>
     <span class="result-label">Ground-state energy</span><br>
     <span class="result-val">−0.85204341 Hₐ  (Hartree atomic units)</span><br><br>
     <span class="result-label">95% Confidence interval</span><br>
@@ -240,143 +459,146 @@
     <span class="result-label">Circuit</span><br>
     <span class="result-val">2 qubits · 5 gates · depth 3 · Ry-CNOT-Ry ansatz</span><br><br>
     <span class="result-label">Elapsed time</span><br>
-    <span class="result-val">9.532 seconds (120 VQE iterations on PennyLane default.qubit)</span><br><br>
+    <span class="result-val">~10 seconds (120 VQE iterations on PennyLane default.qubit)</span><br><br>
     <span class="result-label">P8 cryptographic seal (SHA-256)</span><br>
     <span class="result-hash">75e9b1cfff6e0d8ea7ccb1383ee1f73cc9cae6986f415e04b625a28358b47e8f</span>
   </div>
 
-  <h3>What do these numbers mean?</h3>
   <table>
     <tr><th>Field</th><th>Meaning</th><th>Context</th></tr>
     <tr>
       <td><strong>−0.852 Hₐ</strong></td>
-      <td>Ground-state energy of the minimal 2-electron / 2-orbital active space proxy Hamiltonian</td>
-      <td>This is the Jordan-Wigner H₂ STO-3G Hamiltonian — a validated stand-in for the full π-fragment</td>
+      <td>Ground-state energy of the 2e/2orb active space proxy Hamiltonian</td>
+      <td>Jordan-Wigner H₂ STO-3G — validated stand-in for the full π-fragment</td>
     </tr>
     <tr>
       <td><strong>2 qubits</strong></td>
-      <td>Minimal active space POC (2e / 2 orbitals → 4 spin-orbitals → 2 qubits after tapering)</td>
-      <td>Full Phase 3B target: ~44 active electrons → 88 qubits on IBM Heron r3</td>
+      <td>Minimal active space POC (2e / 2 orbitals)</td>
+      <td>Full Phase 3B: ~44 active electrons → 88 qubits on IBM Heron r3</td>
     </tr>
     <tr>
       <td><strong>5 gates, depth 3</strong></td>
-      <td>Circuit complexity of the Ry-CNOT-Ry hardware-efficient ansatz</td>
+      <td>Ry-CNOT-Ry hardware-efficient ansatz circuit complexity</td>
       <td>P1 circuit fingerprint — changes if ansatz or encoding changes</td>
     </tr>
     <tr>
       <td><strong>CI [x, x]</strong></td>
-      <td>Bootstrap confidence interval over last 20 optimization steps — near-zero = fully converged</td>
+      <td>Bootstrap CI over last 20 steps — near-zero = fully converged</td>
       <td>P7 statistical estimator</td>
     </tr>
     <tr>
-      <td><strong>P8 SHA-256 hash</strong></td>
-      <td>Cryptographic seal of all P1–P7 + P9 fields — proves the record was not tampered with</td>
-      <td>FDA 21 CFR Part 11 compliance — can be re-verified at any time via /api/provenance/runs/{id}/verify</td>
+      <td><strong>P8 SHA-256</strong></td>
+      <td>Cryptographic seal of all P1–P7 + P9 fields</td>
+      <td>FDA 21 CFR Part 11 — re-verifiable at any time via /api/provenance</td>
     </tr>
   </table>
 
-  <div class="alert alert-teal">
-    <strong>Is this real science?</strong> Yes. The VQE algorithm, Jordan-Wigner encoding, and
-    Hamiltonian coefficients are physically motivated. The 2-qubit active space is a deliberate
-    POC scale-down (Phase 3A) — the same code path, same P1–P9 record structure, and same
-    cryptographic provenance that will be used on IBM Heron r3 (Phase 3B) with 44e / 88 qubits.
-    The energy value is reproducible: same input → same hash → same result.
-  </div>
-
   <!-- ── PHASE MAP ── -->
-  <h2>5. Phase 3A vs Phase 3B</h2>
+  <h2>7. Phase 3A vs Phase 3B</h2>
   <table>
-    <tr><th>Dimension</th><th><span class="phase-badge badge-3a">Phase 3A (NOW — LIVE)</span></th><th><span class="phase-badge badge-3b">Phase 3B (Future)</span></th></tr>
+    <tr><th>Dimension</th><th><span class="phase-badge badge-3a">Phase 3A (LIVE)</span></th><th><span class="phase-badge badge-3b">Phase 3B (Future)</span></th></tr>
     <tr><td>Backend</td><td>PennyLane default.qubit (noiseless simulator)</td><td>IBM Heron r3 (real QPU)</td></tr>
     <tr><td>Active space</td><td>2e / 2 orbitals (2 qubits)</td><td>~44e / ~44 orbitals (~88 qubits)</td></tr>
+    <tr><td>Hamiltonian</td><td>Proxy H₂ STO-3G coefficients (Jordan-Wigner)</td><td>Full molecular Hamiltonian from PySCF + OpenFermion</td></tr>
     <tr><td>Error mitigation</td><td>None (noiseless)</td><td>ZNE + Pauli Twirling</td></tr>
     <tr><td>P4 error budget</td><td>0.0 (simulator)</td><td>Real T1/T2/gate fidelity from IBM calibration</td></tr>
     <tr><td>P9 ML decoder</td><td>Not applicable</td><td>Nvidia Ising 3D CNN QEC decoder</td></tr>
     <tr><td>P1–P8 provenance</td><td>✓ Full record, SHA-256 sealed</td><td>✓ Same schema, richer hardware data</td></tr>
     <tr><td>Supabase storage</td><td>✓ Every run stored</td><td>✓ Same database schema</td></tr>
+    <tr><td>Auth</td><td>✓ Supabase email/password</td><td>✓ Same</td></tr>
     <tr><td>Run time</td><td>~10 seconds</td><td>Hours (QPU queue + error mitigation)</td></tr>
   </table>
 
-  <!-- ── SOFT POINTS / WARNINGS ── -->
-  <h2>6. Soft Points — Things to Watch</h2>
+  <!-- ── SOFT POINTS ── -->
+  <h2>8. Soft Points — Things to Watch</h2>
   <table>
     <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
     <tr>
       <td><strong>Render cold start</strong></td>
       <td>First simulation after ~15 min idle takes 30–50s</td>
-      <td>Open /health URL first to wake it; or upgrade to Render Starter ($7/mo) for always-on</td>
+      <td>Open <code>/health</code> endpoint first to wake it; upgrade to Render Starter ($7/mo) before defense for always-on</td>
     </tr>
     <tr>
       <td><strong>Render free tier build cache</strong></td>
-      <td>Every code change requires a full rebuild (~8 min)</td>
-      <td>Batch multiple fixes into one commit; consider Starter tier before dissertation defense</td>
+      <td>Every code change requires full rebuild (~8 min)</td>
+      <td>Batch fixes into single commits; Starter tier eliminates this</td>
     </tr>
     <tr>
-      <td><strong>Supabase free tier</strong></td>
-      <td>Project pauses after 1 week of inactivity</td>
-      <td>Log in to Supabase monthly to keep it active; or upgrade before defense</td>
+      <td><strong>Supabase free tier inactivity</strong></td>
+      <td>Project pauses after 1 week of no activity</td>
+      <td>Log in to Supabase dashboard monthly to keep active; upgrade before defense</td>
     </tr>
     <tr>
       <td><strong>2-qubit active space</strong></td>
-      <td>Energy is a POC proxy, not the full molecular result</td>
-      <td>Label clearly as Phase 3A minimal active space — which the UI already does</td>
+      <td>Energy is a POC proxy — not the full molecular result</td>
+      <td>Clearly labelled as Phase 3A minimal active space throughout the UI and dissertation</td>
     </tr>
     <tr>
-      <td><strong>No authentication yet</strong></td>
-      <td>Anyone who knows the URL can run simulations</td>
-      <td>Add Supabase Auth when needed (schema and RLS policies are already in place)</td>
+      <td><strong>New mutation Hamiltonians</strong></td>
+      <td>New NGS mutations resolve structure sources but cannot yet run VQE (Hamiltonian must be added to backend)</td>
+      <td>Phase 3B scope: PySCF + OpenFermion pipeline generates Hamiltonians from PDB structures automatically</td>
     </tr>
     <tr>
-      <td><strong>P1-P9 stored but not displayed in full</strong></td>
-      <td>Compliance tab still shows static mockup data</td>
-      <td>Next step: wire Compliance tab to live Supabase records (see Section 7)</td>
+      <td><strong>UniProt/AlphaFold latency</strong></td>
+      <td>Structure lookup adds ~2–5s per gene on first call; cached 24h after</td>
+      <td>Incremental rendering keeps UI responsive; results appear gene by gene</td>
     </tr>
   </table>
 
   <!-- ── HOW TO USE ── -->
-  <h2>7. How to Use What We Built</h2>
+  <h2>9. How to Use What We Built</h2>
+
+  <h3>Accessing the platform (first time)</h3>
+  <ol style="font-size:13px;padding-left:20px;line-height:2.2">
+    <li>Open the prototype URL (from dissertation Chapter 7)</li>
+    <li>Enter your email and password on the login screen</li>
+    <li>If no account exists: go to Supabase dashboard → Authentication → Users → Add user</li>
+    <li>If password forgotten: open Supabase → SQL Editor → run <code>UPDATE auth.users SET encrypted_password = crypt('newpass', gen_salt('bf')) WHERE email = 'you@email.com';</code></li>
+  </ol>
 
   <h3>Running a live simulation</h3>
   <ol style="font-size:13px;padding-left:20px;line-height:2.2">
-    <li>Go to <strong>nsclc-quantum-viewer.netlify.app/Assignment10_Prototype.html</strong></li>
+    <li>Log in to the platform</li>
     <li>Click the <strong>Orchestration</strong> tab</li>
-    <li>Select a mutation from the dropdown</li>
+    <li>Select a mutation from the dropdown (5 available)</li>
     <li>Click <strong>Run Live Simulation</strong></li>
-    <li>Wait 10–30s (cold start on first run of the day)</li>
-    <li>Result shows: ground-state energy, 95% CI, circuit metadata, P8 seal</li>
+    <li>Watch the 6 pipeline stages animate in real time (~10s)</li>
+    <li>All tabs update automatically: energy, CI, P1–P9 record, dashboard rows, compliance audit trail</li>
   </ol>
 
-  <h3>Viewing stored results</h3>
+  <h3>Loading an NGS report</h3>
   <ol style="font-size:13px;padding-left:20px;line-height:2.2">
-    <li>Go to the <strong>Results</strong> tab in the prototype — scroll to "Live Results"</li>
-    <li>Or query directly: <code>GET https://qcaihpc-simulation-api.onrender.com/api/simulate/results</code></li>
-    <li>Or open Supabase dashboard → Table Editor → simulation_runs</li>
+    <li>Go to the <strong>Dashboard</strong> tab</li>
+    <li>Click <strong>Load Demo (MI25-0349)</strong> — or — click <strong>Upload NGS Report</strong> and select a <code>.json</code> file</li>
+    <li>Dashboard fields update instantly; Structure Sources card appears</li>
+    <li>UniProt → RCSB PDB → AlphaFold lookup runs automatically for each gene (~2–5s per gene)</li>
+    <li>Click RCSB or AlphaFold links to view protein structures in external viewers</li>
+  </ol>
+
+  <h3>Adding a reviewer / committee member</h3>
+  <ol style="font-size:13px;padding-left:20px;line-height:2.2">
+    <li>Go to Supabase → Authentication → Users → Add user</li>
+    <li>Enter their email + a temporary password → Create user</li>
+    <li>Send them the prototype URL + their credentials</li>
+    <li>They can change their password from the nav menu after first login</li>
   </ol>
 
   <h3>Verifying a P8 seal (integrity check)</h3>
   <p style="font-size:13px">
-    Given a run ID, call:<br>
+    Given a run ID:<br>
     <code>GET https://qcaihpc-simulation-api.onrender.com/api/provenance/runs/{run_id}/verify</code><br>
-    Returns <strong>PASS</strong> if the stored P8 hash matches the recomputed SHA-256 — proving the record was never modified.
+    Returns <strong>PASS</strong> if the stored P8 hash matches the recomputed SHA-256.
   </p>
 
-  <h3>Deploying a code change</h3>
-  <ol style="font-size:13px;padding-left:20px;line-height:2.2">
-    <li>Edit code locally (or in GitHub)</li>
-    <li>Push to branch <code>claude/code-access-clarification-ab1W8</code></li>
-    <li>Netlify redeploys automatically (2–3 min)</li>
-    <li>Render redeploys automatically (8–10 min)</li>
-  </ol>
-
   <div class="alert alert-gold" style="margin-top:32px">
-    <strong>For the dissertation defense:</strong> Upgrade Render to Starter ($7/mo) ~1 week before.
-    This eliminates the cold-start delay and gives you a always-on, professional demo.
+    <strong>For the dissertation defense:</strong> Upgrade Render to Starter ($7/mo) ~1 week before to eliminate cold-start delay.
     Keep the Supabase project active by logging in monthly.
+    The platform URL, login credentials for committee members, and the sample NGS file are all you need to demonstrate the full system live.
   </div>
 
   <div style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border);font-size:11px;color:var(--gray);text-align:center">
     QC·AI·HPC Platform — IST 697 · Doron Cohen · CGU 2026 ·
-    Phase 3A Implementation Report · Generated 2026-05-16
+    System Architecture &amp; Implementation Report · Updated 2026-05-16
   </div>
 
 </div>
