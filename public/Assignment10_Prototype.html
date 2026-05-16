@@ -342,8 +342,7 @@
           <th>Active e⁻</th>
           <th>Status</th>
         </tr>
-        <!-- All rows hidden until an NGS report is loaded -->
-        <tbody id="ngs-mutation-rows" style="display:none">
+        <!-- Y220C — always visible reference target -->
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Tyr220Cys <span class="badge badge-gold">Structural</span></td>
@@ -351,6 +350,8 @@
           <td>~38 <span style="color:var(--gray);font-size:10px">(binding pocket)</span></td>
           <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
+        <!-- NGS-driven rows — hidden until NGS loaded -->
+        <tbody id="ngs-mutation-rows" style="display:none">
         <tr>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Cys275Phe <span class="badge badge-gold">Structural</span></td>
@@ -441,8 +442,7 @@
       </div>
     </div>
 
-    <!-- All rows hidden until an NGS report is loaded -->
-    <div id="ngs-pipeline-rows" style="display:none">
+    <!-- Y220C — always visible reference target -->
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#60a5fa">TP53 Y220C</div>
@@ -453,6 +453,8 @@
       <div style="min-width:95px" id="prow-badge-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_Y220C">Not yet run</div>
     </div>
+    <!-- NGS-driven pipeline rows — hidden until NGS loaded -->
+    <div id="ngs-pipeline-rows" style="display:none">
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:var(--gold)">TP53 C275F</div>
@@ -463,7 +465,6 @@
       <div style="min-width:95px" id="prow-badge-TP53_C275F"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-TP53_C275F">Not yet run</div>
     </div>
-
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#b47fd4">KEAP1 LOF</div>
@@ -474,7 +475,6 @@
       <div style="min-width:95px" id="prow-badge-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-KEAP1_LOF">Not yet run</div>
     </div>
-
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#a78bfa">CDKN2A p16Δ</div>
@@ -485,7 +485,6 @@
       <div style="min-width:95px" id="prow-badge-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-CDKN2A_P16">Not yet run</div>
     </div>
-
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
       <div style="min-width:130px">
         <div style="font-weight:700;font-size:12px;color:#34d399">STK11 LKB1 LOF</div>
@@ -693,7 +692,7 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <select id="sim-target" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
-        <option value="" disabled selected>— Load NGS to select target —</option>
+        <option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
         ▶ Run Live Simulation
@@ -887,8 +886,8 @@
           <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th>ΔE Result</th><th>Status</th>
         </tr>
       </thead>
-      <!-- All rows hidden until NGS report loaded -->
-      <tbody id="ngs-bqp-rows" style="display:none">
+      <!-- Y220C — always visible -->
+      <tbody>
       <tr>
         <td><strong style="color:#60a5fa">TP53</strong></td>
         <td>Y220C <span class="badge badge-gold">Structural</span></td>
@@ -899,6 +898,9 @@
         <td id="bqp-de-TP53_Y220C" style="color:var(--gray)">—</td>
         <td id="bqp-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
+      </tbody>
+      <!-- NGS-driven rows — hidden until NGS loaded -->
+      <tbody id="ngs-bqp-rows" style="display:none">
       <tr style="background:rgba(232,160,32,0.06)">
         <td><strong style="color:var(--gold)">TP53</strong></td>
         <td>C275F <span class="badge badge-gold">Structural</span></td>
@@ -1032,55 +1034,55 @@
           <td><strong class="teal">P1</strong></td>
           <td>Circuit fingerprint — ansatz type, gate count, depth, qubit map</td>
           <td><span class="badge badge-teal">QC Kernel</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p1"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P2</strong></td>
           <td>Compilation lineage — transpiler version, SWAP overhead, native gate set</td>
           <td><span class="badge badge-gold">Hybrid</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p2"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P3</strong></td>
           <td>Device &amp; calibration — backend ID, calibration epoch, T1/T2/gate fidelity snapshot</td>
           <td><span class="badge badge-teal">QC Kernel</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p3"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P4</strong></td>
           <td>Error budget snapshot — per-gate error rates at execution time</td>
           <td><span class="badge badge-teal">QC Kernel</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p4"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P5</strong></td>
           <td>Raw outcome distribution — shot-level bitstring histogram before mitigation</td>
           <td><span class="badge badge-teal">QC Kernel</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p5"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P6</strong></td>
           <td>Error-mitigation lineage — ZNE noise factors, Pauli twirling config, mitigation version</td>
           <td><span class="badge badge-gold">Hybrid</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p6"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P7</strong></td>
           <td>Statistical estimator + 95% CI — mitigated energy, bootstrap interval, GNN-corrected value</td>
           <td><span class="badge badge-gold">Hybrid</span></td>
-          <td><span class="green">✓ Captured</span></td>
+          <td id="schema-status-p7"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr>
           <td><strong class="teal">P8</strong></td>
           <td>Cryptographic seal — SHA-256 hash chain P1→P2→…→P7+P9→P8 · tamper-evident seal</td>
           <td><span class="badge badge-violet">Governance</span></td>
-          <td><span class="green">✓ Sealed</span></td>
+          <td id="schema-status-p8"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr style="background:rgba(255,153,68,0.06)">
           <td><strong style="color:#ff9944">P9*</strong></td>
           <td>ML-decoder lineage — Nvidia Ising 3D CNN model ID, weight checksum, training corpus hash, inference config <em style="color:var(--gray)">(conditional: present when QEC uses a learned ML decoder)</em></td>
           <td><span class="badge badge-gold">Hybrid</span></td>
-          <td><span style="color:#ff9944">✓ Captured*</span></td>
+          <td id="schema-status-p9"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
       </table>
       <div class="alert alert-teal" style="margin-top:12px">
@@ -1168,9 +1170,10 @@
           <span id="pq-badge" class="badge badge-gold">IN PROGRESS</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <!-- All items hidden until NGS report loaded -->
+          <!-- Y220C — always visible -->
+          <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
+          <!-- NGS-driven items — hidden until NGS loaded -->
           <div id="ngs-pq-items" style="display:none">
-            <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
             <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
             <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
             <div><span id="pq-dot-CDKN2A_P16"  style="color:var(--gray)">○</span> CDKN2A p16 validation</div>
@@ -1356,6 +1359,23 @@ function updateAllTabs(data) {
     const s3Ri = document.getElementById('s3-runid');
     if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
   }
+
+  // ── Compliance tab — P1-P9 schema table statuses ─────────────────────
+  const schemaStatuses = {
+    p1: '<span class="green">✓ Captured</span>',
+    p2: '<span class="green">✓ Captured</span>',
+    p3: '<span class="green">✓ Captured</span>',
+    p4: '<span class="green">✓ Captured</span>',
+    p5: '<span class="green">✓ Captured</span>',
+    p6: '<span class="green">✓ Captured</span>',
+    p7: '<span class="green">✓ Captured</span>',
+    p8: '<span class="green">✓ Sealed</span>',
+    p9: '<span style="color:#ff9944">✓ Captured*</span>',
+  };
+  Object.entries(schemaStatuses).forEach(([p, html]) => {
+    const cell = document.getElementById(`schema-status-${p}`);
+    if (cell) cell.innerHTML = html;
+  });
 
   // ── Compliance tab — status alert ─────────────────────────────────────
   const compAlert = document.getElementById('comp-status-alert');
@@ -1606,16 +1626,16 @@ function loadNGSReport(ngs) {
   const bqpTitle = document.getElementById('bqp-card-title');
   if (bqpTitle) bqpTitle.textContent = `All-Target Summary — ${n} NSCLC Mutation${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status`;
 
-  // Rebuild VQE dropdown from NGS variants
+  // Rebuild VQE dropdown: Y220C always first, then NGS mutations
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
-    simTarget.innerHTML = '';
     const LABELS = {
       TP53_Y220C: 'TP53 p.Tyr220Cys (Y220C)', TP53_C275F: 'TP53 p.Cys275Phe (C275F)',
       KEAP1_LOF: 'KEAP1 Loss-of-Function', STK11_LKB1: 'STK11/LKB1 Loss-of-Function',
       CDKN2A_P16: 'CDKN2A p16/INK4a Deletion',
     };
-    ngsSimIds.forEach(id => {
+    simTarget.innerHTML = '<option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>';
+    ngsSimIds.filter(id => id !== 'TP53_Y220C').forEach(id => {
       const opt = document.createElement('option');
       opt.value = id; opt.textContent = LABELS[id] || id;
       simTarget.appendChild(opt);
@@ -1736,7 +1756,7 @@ function resetPlatform() {
   // ── State ──────────────────────────────────────────────────────────────
   lastRunData = null;
   pqCompleted.clear();
-  activeTargets = [];
+  activeTargets = ['TP53_Y220C'];
 
   // ── Dashboard — NGS banner + subtitle ─────────────────────────────────
   const el = id => document.getElementById(id);
@@ -1783,7 +1803,7 @@ function resetPlatform() {
   updateJobCard('', 'idle');
 
   // ── Orchestration — VQE engine dropdown + result panel ───────────────
-  el('sim-target') && (el('sim-target').innerHTML = '<option value="" disabled selected>— Load NGS to select target —</option>');
+  el('sim-target') && (el('sim-target').innerHTML = '<option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>');
   el('sim-result') && (el('sim-result').style.display = 'none');
   el('sim-status') && (el('sim-status').textContent = '');
   ['r-energy','r-ci','r-circuit','r-runid','r-seal'].forEach(id => { if (el(id)) el(id).textContent = ''; });
@@ -1794,6 +1814,12 @@ function resetPlatform() {
     if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
   el('s3-runid') && (el('s3-runid').textContent = 'P8 SHA-256 seal · Run a simulation to populate');
+
+  // ── Compliance — P1-P9 schema table statuses ─────────────────────────
+  ['p1','p2','p3','p4','p5','p6','p7','p8','p9'].forEach(p => {
+    const cell = el(`schema-status-${p}`);
+    if (cell) cell.innerHTML = '<span style="color:var(--gray)">○ Pending</span>';
+  });
 
   // ── Compliance — status banner ────────────────────────────────────────
   if (el('comp-status-alert')) {
