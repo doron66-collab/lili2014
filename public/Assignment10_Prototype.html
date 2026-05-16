@@ -885,38 +885,45 @@
     <div class="footnote" style="margin-top:8px">This benchmarking framework — comparing methods specifically for BQP-class drugless NSCLC targets — is an original contribution not published in existing literature.</div>
   </div>
 
-  <!-- All-5 Mutations Summary Table -->
+  <!-- All-Target Summary Table -->
   <div class="card" style="margin-bottom:16px">
-    <div class="card-title">All-Target Summary — 5 NSCLC Mutations · BQP Classification & Simulation Status</div>
+    <div class="card-title" id="bqp-card-title">All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status</div>
     <table>
-      <tr>
-        <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th>ΔE Result</th><th>Status</th>
-      </tr>
-      <tr style="background:rgba(232,160,32,0.06)">
-        <td><strong style="color:var(--gold)">TP53</strong></td>
-        <td>C275F <span class="badge badge-red">Contact</span></td>
-        <td>~44</td>
-        <td><strong>~88</strong></td>
-        <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
-        <td><span class="badge badge-gold">BQP ★</span></td>
-        <td id="bqp-de-TP53_C275F"><strong class="teal">— <span style="font-size:9px;color:var(--gray)">(not yet run)</span></strong></td>
-        <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
-      </tr>
+      <thead>
+        <tr>
+          <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th>ΔE Result</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+      <!-- Y220C — always visible -->
       <tr>
         <td><strong style="color:#60a5fa">TP53</strong></td>
-        <td>Y220C <span class="badge badge-teal">Cavity</span></td>
-        <td>~28</td>
-        <td>~56</td>
+        <td>Y220C <span class="badge badge-gold">Structural</span></td>
+        <td>~38</td>
+        <td>~76</td>
         <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-TP53_Y220C" style="color:var(--gray)">—</td>
         <td id="bqp-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
+      </tbody>
+      <!-- NGS-driven rows — hidden until NGS report loaded -->
+      <tbody id="ngs-bqp-rows" style="display:none">
+      <tr style="background:rgba(232,160,32,0.06)">
+        <td><strong style="color:var(--gold)">TP53</strong></td>
+        <td>C275F <span class="badge badge-gold">Structural</span></td>
+        <td>~44</td>
+        <td><strong>~88</strong></td>
+        <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
+        <td><span class="badge badge-gold">BQP ★</span></td>
+        <td id="bqp-de-TP53_C275F"><span style="color:var(--gray)">—</span></td>
+        <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
+      </tr>
       <tr>
         <td><strong style="color:#b47fd4">KEAP1</strong></td>
         <td>C196Leufs* <span class="badge badge-violet">PPI</span></td>
-        <td>22–28</td>
-        <td>~56</td>
+        <td>~52</td>
+        <td>~104</td>
         <td><span class="badge badge-gold">VQE · UCCSD</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-KEAP1_LOF" style="color:var(--gray)">—</td>
@@ -925,8 +932,8 @@
       <tr>
         <td><strong style="color:#a78bfa">CDKN2A</strong></td>
         <td>p16 deletion <span class="badge badge-violet">CNV</span></td>
-        <td>20–26</td>
-        <td>~52</td>
+        <td>~28</td>
+        <td>~56</td>
         <td><span class="badge badge-gold">VQE · UCCSD</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-CDKN2A_P16" style="color:var(--gray)">—</td>
@@ -935,15 +942,16 @@
       <tr>
         <td><strong style="color:#34d399">STK11</strong></td>
         <td>LKB1 LOF <span class="badge badge-gray">SL</span></td>
-        <td>18–24</td>
-        <td>~48</td>
+        <td>~46</td>
+        <td>~92</td>
         <td><span class="badge badge-gold">VQE · UCCSD</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-STK11_LKB1" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
+      </tbody>
     </table>
-    <div class="footnote" style="margin-top:8px">★ C275F is the primary doctoral target — structural mutant at the classical FCI boundary. JW = Jordan-Wigner encoding. All 5 mutations are within IBM Heron r3 capacity (156 qubits max).</div>
+    <div class="footnote" style="margin-top:8px">★ C275F is the primary doctoral target — structural mutant at the classical FCI boundary. JW = Jordan-Wigner encoding. Load an NGS report to add patient-specific targets.</div>
   </div>
 
   <!-- Quantum Advantage Scaling Chart -->
@@ -1213,11 +1221,15 @@
           <span id="pq-badge" class="badge badge-gold">IN PROGRESS</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
+          <!-- Y220C — always visible -->
           <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
-          <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
-          <div><span id="pq-dot-CDKN2A_P16"  style="color:var(--gray)">○</span> CDKN2A p16 validation</div>
-          <div><span id="pq-dot-STK11_LKB1"  style="color:var(--gray)">○</span> STK11 LKB1 validation</div>
+          <!-- NGS-driven PQ items — hidden until NGS report loaded -->
+          <div id="ngs-pq-items" style="display:none">
+            <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
+            <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
+            <div><span id="pq-dot-CDKN2A_P16"  style="color:var(--gray)">○</span> CDKN2A p16 validation</div>
+            <div><span id="pq-dot-STK11_LKB1"  style="color:var(--gray)">○</span> STK11 LKB1 validation</div>
+          </div>
           <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility <span style="color:var(--gray);font-size:10px">(Phase 3B)</span></div>
         </div>
         <div id="pq-footer" style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
@@ -1626,15 +1638,25 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // Show NGS-driven mutation rows and pipeline rows; update header count
+  // Show all NGS-driven sections; update header counts
   const ngsRows = document.getElementById('ngs-mutation-rows');
   if (ngsRows) ngsRows.style.display = '';
   const ngsPipeRows = document.getElementById('ngs-pipeline-rows');
   if (ngsPipeRows) ngsPipeRows.style.display = '';
-  const ngsCount = (ngs.variants || []).filter(v => v.simulation_id && v.simulation_id !== 'TP53_Y220C').length;
-  const pipeTitle = document.getElementById('pipeline-card-title');
+  const ngsBqpRows = document.getElementById('ngs-bqp-rows');
+  if (ngsBqpRows) ngsBqpRows.style.display = '';
+  const ngsPqItems = document.getElementById('ngs-pq-items');
+  if (ngsPqItems) ngsPqItems.style.display = '';
+  const ngsSimIds = (ngs.variants || [])
+    .map(v => v.simulation_id)
+    .filter(id => id && id !== 'TP53_Y220C');
+  activeTargets = ['TP53_Y220C', ...ngsSimIds];
+  const ngsCount = ngsSimIds.length;
   const totalTargets = 1 + ngsCount;
+  const pipeTitle = document.getElementById('pipeline-card-title');
   if (pipeTitle) pipeTitle.textContent = `Live Research Pipeline — ${totalTargets} Active Target${totalTargets !== 1 ? 's' : ''}`;
+  const bqpTitle = document.getElementById('bqp-card-title');
+  if (bqpTitle) bqpTitle.textContent = `All-Target Summary — ${totalTargets} NSCLC Mutation${totalTargets !== 1 ? 's' : ''} · BQP Classification & Simulation Status`;
 
   // Auto-fetch structure sources for all variants
   lookupStructureSources(ngs.variants || []);
@@ -1725,14 +1747,15 @@ async function lookupStructureSources(variants) {
 
 // ── PQ checklist ──────────────────────────────────────────────────────────
 const pqCompleted = new Set();
-const PQ_ALL = ['TP53_C275F','TP53_Y220C','KEAP1_LOF','CDKN2A_P16','STK11_LKB1'];
+// activeTargets tracks which mutation IDs are currently loaded (Y220C always present)
+let activeTargets = ['TP53_Y220C'];
 
 function updatePQAfterRun(mutationId) {
   const dot = document.getElementById(`pq-dot-${mutationId}`);
   if (dot) { dot.textContent = '✓'; dot.style.color = 'var(--green)'; }
   pqCompleted.add(mutationId);
 
-  if (PQ_ALL.every(id => pqCompleted.has(id))) {
+  if (activeTargets.every(id => pqCompleted.has(id))) {
     const badge = document.getElementById('pq-badge');
     if (badge) { badge.textContent = 'PASSED'; badge.className = 'badge badge-green'; }
     const card = document.getElementById('pq-card');
@@ -1748,6 +1771,7 @@ function resetPlatform() {
 
   lastRunData = null;
   pqCompleted.clear();
+  activeTargets = ['TP53_Y220C'];
 
   // NGS banner + subtitle
   const banner = document.getElementById('ngs-load-banner');
@@ -1777,13 +1801,19 @@ function resetPlatform() {
   const ssCard = document.getElementById('structure-sources-card');
   if (ssCard) ssCard.style.display = 'none';
 
-  // Hide NGS-driven mutation rows and pipeline rows (Y220C always stays visible)
+  // Hide all NGS-driven sections (Y220C always stays visible)
   const ngsRows = document.getElementById('ngs-mutation-rows');
   if (ngsRows) ngsRows.style.display = 'none';
   const ngsPipeRows = document.getElementById('ngs-pipeline-rows');
   if (ngsPipeRows) ngsPipeRows.style.display = 'none';
+  const ngsBqpRows = document.getElementById('ngs-bqp-rows');
+  if (ngsBqpRows) ngsBqpRows.style.display = 'none';
+  const ngsPqItems = document.getElementById('ngs-pq-items');
+  if (ngsPqItems) ngsPqItems.style.display = 'none';
   const pipeTitle = document.getElementById('pipeline-card-title');
   if (pipeTitle) pipeTitle.textContent = 'Live Research Pipeline — 1 Active Target';
+  const bqpTitle = document.getElementById('bqp-card-title');
+  if (bqpTitle) bqpTitle.textContent = 'All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status';
 
   // Mutation registry + pipeline rows + BQP table
   PQ_ALL.forEach(id => {
