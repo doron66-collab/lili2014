@@ -9,8 +9,8 @@ import time
 import uuid
 from datetime import datetime, timezone
 
-import numpy as np
 import pennylane as qml
+import pennylane.numpy as np
 from fastapi import APIRouter, HTTPException
 from supabase import create_client
 
