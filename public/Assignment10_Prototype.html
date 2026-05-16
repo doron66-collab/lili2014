@@ -1733,138 +1733,86 @@ function updatePQAfterRun(mutationId) {
 function resetPlatform() {
   if (!confirm('Reset all simulation data and NGS report? This clears the current session — it does not delete Supabase records.')) return;
 
+  // ── State ──────────────────────────────────────────────────────────────
   lastRunData = null;
   pqCompleted.clear();
   activeTargets = [];
 
-  // Clear VQE dropdown
-  const simTarget = document.getElementById('sim-target');
-  if (simTarget) {
-    simTarget.innerHTML = '<option value="" disabled selected>— Load NGS to select target —</option>';
-  }
+  // ── Dashboard — NGS banner + subtitle ─────────────────────────────────
+  const el = id => document.getElementById(id);
+  el('ngs-load-banner') && (el('ngs-load-banner').style.display = 'none');
+  el('dash-subtitle') && (el('dash-subtitle').textContent = 'NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar');
 
-  // NGS banner + subtitle
-  const banner = document.getElementById('ngs-load-banner');
-  if (banner) banner.style.display = 'none';
-  const sub = document.getElementById('dash-subtitle');
-  if (sub) sub.textContent = 'NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar';
+  // ── Dashboard — NGS panel ─────────────────────────────────────────────
+  el('ngs-panel-title') && (el('ngs-panel-title').textContent = 'Patient NGS Profile — No report loaded');
+  if (el('ngs-tier1-alert')) { el('ngs-tier1-alert').innerHTML = ''; el('ngs-tier1-alert').style.display = 'none'; }
+  ['ngs-egfr','ngs-tmb','ngs-msi','ngs-keap1','ngs-cdkn2a'].forEach(id => { if (el(id)) el(id).innerHTML = '—'; });
+  el('ngs-footer') && (el('ngs-footer').textContent = 'Upload an NGS report or load the demo to populate patient data.');
 
-  // NGS panel — blank state
-  const pt = document.getElementById('ngs-panel-title');
-  if (pt) pt.textContent = 'Patient NGS Profile — No report loaded';
-  const alert = document.getElementById('ngs-tier1-alert');
-  if (alert) { alert.innerHTML = ''; alert.style.display = 'none'; }
-  const egfr = document.getElementById('ngs-egfr');
-  if (egfr) egfr.innerHTML = '—';
-  const tmb = document.getElementById('ngs-tmb');
-  if (tmb) tmb.innerHTML = '—';
-  const msi = document.getElementById('ngs-msi');
-  if (msi) msi.textContent = '—';
-  const keap = document.getElementById('ngs-keap1');
-  if (keap) keap.innerHTML = '—';
-  const cdkn = document.getElementById('ngs-cdkn2a');
-  if (cdkn) cdkn.innerHTML = '—';
-  const foot = document.getElementById('ngs-footer');
-  if (foot) foot.textContent = 'Upload an NGS report or load the demo to populate patient data.';
+  // ── Dashboard — structure sources ─────────────────────────────────────
+  el('structure-sources-card') && (el('structure-sources-card').style.display = 'none');
 
-  // Structure sources card
-  const ssCard = document.getElementById('structure-sources-card');
-  if (ssCard) ssCard.style.display = 'none';
-
-  // Hide all mutation lists — shown only when NGS is loaded
+  // ── All mutation lists (all tabs) — hide completely ───────────────────
   ['ngs-mutation-rows','ngs-pipeline-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
+    if (el(id)) el(id).style.display = 'none';
   });
-  const pipeTitle = document.getElementById('pipeline-card-title');
-  if (pipeTitle) pipeTitle.textContent = 'Live Research Pipeline — No NGS loaded';
-  const bqpTitle = document.getElementById('bqp-card-title');
-  if (bqpTitle) bqpTitle.textContent = 'All-Target Summary — No NGS loaded';
+  el('pipeline-card-title') && (el('pipeline-card-title').textContent = 'Live Research Pipeline — No NGS loaded');
+  el('bqp-card-title')      && (el('bqp-card-title').textContent      = 'All-Target Summary — No NGS loaded');
 
-  // Mutation registry + pipeline rows + BQP table
-  PQ_ALL.forEach(id => {
-    const ms = document.getElementById(`mut-status-${id}`);
-    if (ms) ms.innerHTML = '<span class="badge badge-gray">○ Pending</span>';
-    const bar = document.getElementById(`prow-bar-${id}`);
-    if (bar) { bar.style.width = '0%'; bar.style.background = 'var(--teal)'; }
-    const pct = document.getElementById(`prow-pct-${id}`);
-    if (pct) { pct.textContent = '—'; pct.style.color = 'var(--gray)'; }
-    const pbadge = document.getElementById(`prow-badge-${id}`);
-    if (pbadge) pbadge.innerHTML = '<span class="badge badge-gray">○ Pending</span>';
-    const ptime = document.getElementById(`prow-time-${id}`);
-    if (ptime) ptime.textContent = 'Not yet run';
-    const bs = document.getElementById(`bqp-status-${id}`);
-    if (bs) bs.innerHTML = '<span class="badge badge-gray">○ Pending</span>';
-    const bde = document.getElementById(`bqp-de-${id}`);
-    if (bde) bde.innerHTML = '<span style="color:var(--gray)">—</span>';
-    const pdot = document.getElementById(`pq-dot-${id}`);
-    if (pdot) { pdot.textContent = '○'; pdot.style.color = 'var(--gray)'; }
-    const freq = document.getElementById(`mut-freq-${id}`);
-    if (freq) { freq.textContent = '—'; freq.style.color = 'var(--gray)'; }
+  // ── Reset per-mutation cells (status badges, progress bars, freq) ─────
+  ['TP53_C275F','TP53_Y220C','KEAP1_LOF','STK11_LKB1','CDKN2A_P16'].forEach(id => {
+    if (el(`mut-status-${id}`))  el(`mut-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
+    if (el(`mut-freq-${id}`))  { el(`mut-freq-${id}`).textContent  = '—'; el(`mut-freq-${id}`).style.color = 'var(--gray)'; }
+    if (el(`prow-bar-${id}`))  { el(`prow-bar-${id}`).style.width  = '0%'; }
+    if (el(`prow-pct-${id}`))  { el(`prow-pct-${id}`).textContent  = '—'; el(`prow-pct-${id}`).style.color = 'var(--gray)'; }
+    if (el(`prow-badge-${id}`))  el(`prow-badge-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
+    if (el(`prow-time-${id}`))   el(`prow-time-${id}`).textContent = 'Not yet run';
+    if (el(`bqp-status-${id}`))  el(`bqp-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
+    if (el(`bqp-de-${id}`))      el(`bqp-de-${id}`).innerHTML      = '<span style="color:var(--gray)">—</span>';
+    if (el(`pq-dot-${id}`))    { el(`pq-dot-${id}`).textContent    = '○'; el(`pq-dot-${id}`).style.color = 'var(--gray)'; }
   });
 
-  // PQ card reset
-  const pqBadge = document.getElementById('pq-badge');
-  if (pqBadge) { pqBadge.textContent = 'IN PROGRESS'; pqBadge.className = 'badge badge-gold'; }
-  const pqCard = document.getElementById('pq-card');
-  if (pqCard) { pqCard.style.background = 'rgba(232,160,32,0.06)'; pqCard.style.borderColor = 'rgba(232,160,32,0.22)'; }
-  const pqFoot = document.getElementById('pq-footer');
-  if (pqFoot) pqFoot.textContent = 'Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3';
+  // ── Compliance — PQ card ──────────────────────────────────────────────
+  if (el('pq-badge')) { el('pq-badge').textContent = 'IN PROGRESS'; el('pq-badge').className = 'badge badge-gold'; }
+  if (el('pq-card'))  { el('pq-card').style.background = 'rgba(232,160,32,0.06)'; el('pq-card').style.borderColor = 'rgba(232,160,32,0.22)'; }
+  el('pq-footer') && (el('pq-footer').textContent = 'Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3');
 
-  // Orchestration pipeline reset
+  // ── Orchestration — pipeline + job card ──────────────────────────────
   setPipelineState('', 0);
-  const pipeMut = document.getElementById('pipe-mutation');
-  if (pipeMut) pipeMut.textContent = 'Select a mutation and run to begin';
+  el('pipe-mutation') && (el('pipe-mutation').textContent = 'Select a mutation and run to begin');
   updateJobCard('', 'idle');
 
-  // VQE Engine dropdown — keep only Y220C
-  const simTarget = document.getElementById('sim-target');
-  if (simTarget) {
-    [...simTarget.options].forEach(o => { if (o.dataset.ngs) o.remove(); });
-    simTarget.value = 'TP53_Y220C';
-  }
+  // ── Orchestration — VQE engine dropdown + result panel ───────────────
+  el('sim-target') && (el('sim-target').innerHTML = '<option value="" disabled selected>— Load NGS to select target —</option>');
+  el('sim-result') && (el('sim-result').style.display = 'none');
+  el('sim-status') && (el('sim-status').textContent = '');
+  ['r-energy','r-ci','r-circuit','r-runid','r-seal'].forEach(id => { if (el(id)) el(id).textContent = ''; });
 
-  // Phase 3A Live Results card (s3)
-  const s3Mut = document.getElementById('s3-mutation');
-  if (s3Mut) { s3Mut.textContent = 'No run yet'; s3Mut.style.color = 'var(--gray)'; }
+  // ── Results — Phase 3A live card ─────────────────────────────────────
+  if (el('s3-mutation')) { el('s3-mutation').textContent = 'No run yet'; el('s3-mutation').style.color = 'var(--gray)'; }
   ['s3-energy','s3-runtime','s3-circuit','s3-seal'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
+    if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
-  const s3RunId = document.getElementById('s3-runid');
-  if (s3RunId) s3RunId.textContent = 'P8 SHA-256 seal · Run a simulation to populate';
+  el('s3-runid') && (el('s3-runid').textContent = 'P8 SHA-256 seal · Run a simulation to populate');
 
-  // VQE Sim result panel (Orchestration tab)
-  const simResult = document.getElementById('sim-result');
-  if (simResult) simResult.style.display = 'none';
-  const simStatus = document.getElementById('sim-status');
-  if (simStatus) simStatus.textContent = '';
-
-  // Compliance status banner
-  const compAlert = document.getElementById('comp-status-alert');
-  if (compAlert) {
-    compAlert.className = 'alert';
-    compAlert.style.cssText = 'margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border)';
-    compAlert.innerHTML = '<span style="color:var(--gray)">○ No simulation run yet — load an NGS report and run a VQE simulation to generate a compliance record.</span>';
+  // ── Compliance — status banner ────────────────────────────────────────
+  if (el('comp-status-alert')) {
+    el('comp-status-alert').className = 'alert';
+    el('comp-status-alert').style.cssText = 'margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border)';
+    el('comp-status-alert').innerHTML = '<span style="color:var(--gray)">○ No simulation run yet — load an NGS report and run a VQE simulation to generate a compliance record.</span>';
   }
 
-  // Audit trail
-  const auditLive = document.getElementById('audit-trail-live');
-  if (auditLive) auditLive.innerHTML = '<div id="audit-trail-empty" style="color:var(--gray);font-size:12px;padding:8px 0">No run completed yet — run a simulation to populate the audit trail.</div>';
+  // ── Compliance — audit trail ──────────────────────────────────────────
+  el('audit-trail-live') && (el('audit-trail-live').innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">No run completed yet — run a simulation to populate the audit trail.</div>');
 
-  // P1-P9 Provenance Record
-  const p1p9Title = document.getElementById('p1p9-title');
-  if (p1p9Title) p1p9Title.textContent = 'Reproducibility Metadata — Full P1–P9 Provenance Record · Run a simulation to populate';
+  // ── Compliance — P1-P9 record ─────────────────────────────────────────
+  el('p1p9-title') && (el('p1p9-title').textContent = 'Reproducibility Metadata — Full P1–P9 Provenance Record · Run a simulation to populate');
   ['p1-val','p2-val','p3-val','p4-val','p5-val','p6-val','p7-val','p8-val','p9-val'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
+    if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
-  const p8Time = document.getElementById('p8-time');
-  if (p8Time) { p8Time.textContent = '—'; p8Time.style.color = 'var(--gray)'; }
-  const p8Label = document.getElementById('p8-integrity-label');
-  if (p8Label) { p8Label.textContent = '○ Awaiting run'; p8Label.style.color = 'var(--gray)'; }
-  const p8Meta = document.getElementById('p8-meta');
-  if (p8Meta) { p8Meta.textContent = '—'; }
+  if (el('p8-time'))  { el('p8-time').textContent = '—'; el('p8-time').style.color = 'var(--gray)'; }
+  if (el('p8-integrity-label')) { el('p8-integrity-label').textContent = '○ Awaiting run'; el('p8-integrity-label').style.color = 'var(--gray)'; }
+  el('p8-meta') && (el('p8-meta').textContent = '—');
 }
 
 function updateDashboardAfterRun(mutationId, data) {
