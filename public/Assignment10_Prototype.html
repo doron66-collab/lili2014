@@ -211,6 +211,8 @@
     font-size: 12px; margin-top: 12px; display: none;
   }
   .login-footer { text-align: center; font-size: 10px; color: var(--gray); margin-top: 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin 0.9s linear infinite; transform-origin: center; }
 </style>
 </head>
 <body>
@@ -733,6 +735,12 @@
   </div>
 
   <!-- Phase 3A Live Results -->
+  <!-- Run history selector — populated after each completed run -->
+  <div id="run-history-bar" style="display:none;margin-bottom:12px">
+    <div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Completed Runs — click to review</div>
+    <div id="run-history-chips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
+
   <div class="card" id="s3-live-card" style="margin-bottom:16px;border:1px solid rgba(0,168,214,0.4);background:rgba(0,168,214,0.05)">
     <div class="card-title" style="color:var(--teal)">Phase 3A Live Results — PennyLane Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
@@ -1330,6 +1338,7 @@ function show(id) {
 // ── Update ALL tabs with the result from any simulation run ───────────────
 function updateAllTabs(data) {
   lastRunData = data;
+  addRunToHistory(data);
   const r   = data.result;
   const rec = data.full_record;
   const now = new Date(rec.created_at).toLocaleString();
@@ -1457,7 +1466,7 @@ async function runLiveVQE() {
   const errBox = document.getElementById('sim-error');
 
   btn.disabled = true;
-  btn.textContent = '⏳ Running VQE…';
+  btn.innerHTML = '<span class="spin">⏳</span> Running VQE…';
   status.textContent = 'Sending to PennyLane simulator (Render.com)…';
   document.getElementById('sim-result').style.display = 'none';
   errBox.style.display = 'none';
@@ -1489,7 +1498,7 @@ async function runLiveVQE() {
     status.textContent = '';
   } finally {
     btn.disabled = false;
-    btn.textContent = '▶ Run Live Simulation';
+    btn.innerHTML = '▶ Run Live Simulation';
   }
 }
 
@@ -1757,6 +1766,9 @@ function resetPlatform() {
   lastRunData = null;
   pqCompleted.clear();
   activeTargets = ['TP53_Y220C'];
+  runHistory.length = 0;
+  const rhBar = document.getElementById('run-history-bar');
+  if (rhBar) rhBar.style.display = 'none';
 
   // ── Dashboard — NGS banner + subtitle ─────────────────────────────────
   const el = id => document.getElementById(id);
@@ -1939,6 +1951,53 @@ function updateJobCard(mutationId, state, data) {
 
 // ── Export full P1-P9 provenance report as PDF ────────────────────────────
 let lastRunData = null;  // set by updateAllTabs()
+const runHistory = [];   // all completed runs this session
+
+const MUT_COLORS = {
+  TP53_Y220C: '#60a5fa', TP53_C275F: '#E8A020',
+  KEAP1_LOF: '#b47fd4', STK11_LKB1: '#34d399', CDKN2A_P16: '#a78bfa',
+};
+
+function addRunToHistory(data) {
+  runHistory.push(data);
+  const bar   = document.getElementById('run-history-bar');
+  const chips = document.getElementById('run-history-chips');
+  if (!bar || !chips) return;
+  bar.style.display = 'block';
+  chips.innerHTML = '';
+  runHistory.forEach((d, i) => {
+    const mid   = d.full_record?.mutation_id || '';
+    const color = MUT_COLORS[mid] || 'var(--teal)';
+    const label = d.full_record?.mutation_name || mid;
+    const chip  = document.createElement('button');
+    chip.textContent = `${label} · ${d.result.energy_ha} Hₐ`;
+    chip.style.cssText = `background:rgba(0,0,0,0.25);color:${color};border:1px solid ${color};
+      padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap`;
+    chip.onclick = () => displayRunResults(d);
+    chips.appendChild(chip);
+  });
+}
+
+function displayRunResults(data) {
+  const rec = data.full_record;
+  const r   = data.result;
+  const now = new Date(rec.created_at).toLocaleString();
+  const runShort = data.run_id.slice(0, 8);
+
+  // Results tab s3 card
+  const s3Mut = document.getElementById('s3-mutation');
+  if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
+  const s3E = document.getElementById('s3-energy');
+  if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
+  const s3R = document.getElementById('s3-runtime');
+  if (s3R) { s3R.textContent = `${r.elapsed_s}s`; s3R.style.color = 'var(--green)'; }
+  const s3C = document.getElementById('s3-circuit');
+  if (s3C) { s3C.textContent = `${r.qubits_used}q / ${r.gate_count}g / d${r.depth}`; s3C.style.color = 'var(--gold)'; }
+  const s3S = document.getElementById('s3-seal');
+  if (s3S) { s3S.textContent = rec.p8_hash.slice(0, 20) + '…'; s3S.style.color = '#a78bfa'; }
+  const s3Ri = document.getElementById('s3-runid');
+  if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
+}
 
 function exportPDF() {
   if (!lastRunData) {
