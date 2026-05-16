@@ -260,10 +260,32 @@
   </div>
 
   <div class="user-chip">
-    <div class="avatar" id="user-avatar">DC</div>
-    <span id="user-label">Doron Cohen · CGU</span>
+    <div class="avatar" id="user-avatar" onclick="toggleUserMenu()" style="cursor:pointer" title="Account settings">DC</div>
+    <span id="user-label" onclick="toggleUserMenu()" style="cursor:pointer">Doron Cohen · CGU</span>
     <button onclick="doLogout()" style="background:rgba(255,255,255,0.08);color:var(--gray);border:1px solid rgba(255,255,255,0.12);padding:3px 10px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:4px">Sign out</button>
   </div>
+</div>
+
+<!-- ── USER MENU DROPDOWN ──────────────────────────────────────────────────── -->
+<div id="user-menu" style="display:none;position:fixed;top:58px;right:16px;z-index:500;
+  background:#0f1f3d;border:1px solid rgba(255,255,255,0.14);border-radius:10px;
+  padding:16px;width:280px;box-shadow:0 12px 40px rgba(0,0,0,0.5)">
+  <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase">Account Settings</div>
+  <div style="font-size:12px;color:var(--white);margin-bottom:14px" id="menu-email"></div>
+
+  <div style="font-size:11px;font-weight:600;color:var(--gray);margin-bottom:6px">Change Password</div>
+  <input type="password" id="new-password" placeholder="New password (min 6 chars)"
+    style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+    border-radius:6px;padding:8px 10px;color:var(--white);font-size:12px;outline:none;margin-bottom:6px">
+  <input type="password" id="confirm-password" placeholder="Confirm new password"
+    style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+    border-radius:6px;padding:8px 10px;color:var(--white);font-size:12px;outline:none;margin-bottom:8px">
+  <button onclick="changePassword()"
+    style="width:100%;background:var(--teal);color:var(--white);border:none;border-radius:6px;
+    padding:8px;font-size:12px;font-weight:700;cursor:pointer">
+    Update Password
+  </button>
+  <div id="pw-msg" style="font-size:11px;margin-top:8px;display:none"></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════
@@ -1224,10 +1246,59 @@ async function doLogout() {
 
 function showPlatform(user) {
   document.getElementById('login-overlay').style.display = 'none';
-  const email   = user.email || '';
+  const email    = user.email || '';
   const initials = email.slice(0, 2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-label').textContent  = email + ' · CGU';
+  document.getElementById('user-label').textContent  = email;
+  document.getElementById('menu-email').textContent  = email;
+}
+
+function toggleUserMenu() {
+  const m = document.getElementById('user-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('pw-msg').style.display = 'none';
+  document.getElementById('new-password').value = '';
+  document.getElementById('confirm-password').value = '';
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', e => {
+  const menu   = document.getElementById('user-menu');
+  const avatar = document.getElementById('user-avatar');
+  const label  = document.getElementById('user-label');
+  if (menu && !menu.contains(e.target) && e.target !== avatar && e.target !== label) {
+    menu.style.display = 'none';
+  }
+});
+
+async function changePassword() {
+  const np  = document.getElementById('new-password').value;
+  const cp  = document.getElementById('confirm-password').value;
+  const msg = document.getElementById('pw-msg');
+
+  msg.style.display = 'block';
+
+  if (np.length < 6) {
+    msg.style.color = '#fca5a5';
+    msg.textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+  if (np !== cp) {
+    msg.style.color = '#fca5a5';
+    msg.textContent = 'Passwords do not match.';
+    return;
+  }
+
+  const { error } = await supa.auth.updateUser({ password: np });
+  if (error) {
+    msg.style.color = '#fca5a5';
+    msg.textContent = error.message;
+  } else {
+    msg.style.color = '#86efac';
+    msg.textContent = '✓ Password updated successfully.';
+    document.getElementById('new-password').value = '';
+    document.getElementById('confirm-password').value = '';
+  }
 }
 
 // Check existing session on load
