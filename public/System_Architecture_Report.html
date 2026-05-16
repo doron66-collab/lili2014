@@ -509,8 +509,106 @@
     <tr><td>Run time</td><td>~10 seconds</td><td>Hours (QPU queue + error mitigation)</td></tr>
   </table>
 
+
+  <!-- ── SCIENTIFIC FRAMING ── -->
+  <h2>8. What the 2-Electron Runs Actually Mean — Defense Framing</h2>
+
+  <p>
+    A natural committee question is: <em>"If all five mutations use the same 2-electron / 2-orbital
+    active space, what scientifically distinguishes them from each other?"</em>
+    This section answers that question directly and provides the correct framing for the dissertation defense.
+  </p>
+
+  <h3>What Phase 3A is — and is not</h3>
+  <p>
+    Phase 3A is <strong>pipeline validation</strong>, not molecular science. The research question it answers is:
+    <em>"Does every component of the QC·AI·HPC architecture work correctly end-to-end?"</em>
+    The 2-electron active space is the smallest chemically meaningful quantum system that exercises
+    every stage of the pipeline — NGS input, Hamiltonian construction, VQE execution, provenance assembly,
+    cryptographic sealing, and Supabase storage. Running a 44-electron job on IBM Heron r3 without
+    first validating the pipeline on a simulator would be scientifically irresponsible and practically
+    impossible (QPU time is expensive and scarce).
+  </p>
+
+  <div class="alert alert-teal">
+    <strong>The dissertation contribution is the architecture — not the energy number.</strong>
+    Phase 3A proves the highway works. Phase 3B drives the scientific payload on it.
+  </div>
+
+  <h3>What differs between the 5 mutations in Phase 3A</h3>
+  <p>
+    Each mutation has a distinct set of Jordan-Wigner Hamiltonian coefficients in the backend.
+    These produce different ground-state energies, different convergence behavior, and — critically —
+    different SHA-256 P8 seals. Every run is provably unique.
+  </p>
+
+  <div class="result-box" style="line-height:2">
+    <span class="result-label">Hamiltonian coefficients — Jordan-Wigner 2e/2orb (6 Pauli terms each)</span><br><br>
+    <span style="color:#b47fd4;font-weight:600">TP53_C275F </span><span class="result-val">[-0.24274, 0.18093, -0.24274, 0.17627, 0.04475, 0.04475]  →  E ≈ −0.8520 Hₐ</span><br>
+    <span style="color:#60a5fa;font-weight:600">TP53_Y220C </span><span class="result-val">[-0.23274, 0.17893, -0.23274, 0.16827, 0.04275, 0.04275]  →  E ≈ −0.8320 Hₐ</span><br>
+    <span style="color:#b47fd4;font-weight:600">KEAP1_LOF  </span><span class="result-val">[-0.25274, 0.19093, -0.25274, 0.18627, 0.05475, 0.05475]  →  E ≈ −0.8720 Hₐ</span><br>
+    <span style="color:#34d399;font-weight:600">STK11_LKB1 </span><span class="result-val">[-0.22874, 0.17293, -0.22874, 0.16227, 0.03975, 0.03975]  →  E ≈ −0.8120 Hₐ</span><br>
+    <span style="color:#a78bfa;font-weight:600">CDKN2A_P16 </span><span class="result-val">[-0.21274, 0.16093, -0.21274, 0.15427, 0.03275, 0.03275]  →  E ≈ −0.7920 Hₐ</span><br>
+  </div>
+
+  <h3>Honest characterization of the Phase 3A Hamiltonians</h3>
+  <p>
+    The coefficients above are <strong>physically motivated proxy values</strong> — manually varied
+    H₂ STO-3G Jordan-Wigner terms used as stand-ins for the real molecular Hamiltonians.
+    They are <em>not</em> derived from quantum chemistry calculations of each mutation's actual
+    molecular geometry. They represent different electronic environments in the chemically
+    plausible range for each target — sufficient to demonstrate pipeline differentiation,
+    but not sufficient to claim molecular accuracy.
+  </p>
+
+  <table>
+    <tr><th>What Phase 3A proves</th><th>What Phase 3A does NOT prove</th></tr>
+    <tr>
+      <td>The pipeline handles 5 distinct Hamiltonians and produces 5 distinct sealed records</td>
+      <td>That the energies are scientifically accurate for each specific mutation</td>
+    </tr>
+    <tr>
+      <td>Each mutation produces a unique, reproducible P8 SHA-256 hash</td>
+      <td>That the Hamiltonians reflect the real molecular geometry from PDB structures</td>
+    </tr>
+    <tr>
+      <td>The full P1–P9 provenance schema works correctly for any input</td>
+      <td>The actual binding energy difference between TP53 C275F and KEAP1 LOF</td>
+    </tr>
+    <tr>
+      <td>The architecture is ready to receive Phase 3B molecular Hamiltonians</td>
+      <td>Clinical or druggability conclusions about any specific mutation</td>
+    </tr>
+  </table>
+
+  <h3>Where the real scientific differentiation lives — Phase 3B</h3>
+  <p>
+    In Phase 3B, the proxy coefficients are replaced by Hamiltonians generated from PDB crystal
+    structures using PySCF (quantum chemistry) and OpenFermion (qubit encoding). At that scale,
+    the five mutations are genuinely different molecules with different electronic structures,
+    different active space sizes, and different binding affinities:
+  </p>
+
+  <table>
+    <tr><th>Mutation</th><th>Active electrons (Phase 3B)</th><th>Qubits (Jordan-Wigner)</th><th>Biological target</th></tr>
+    <tr><td><strong style="color:#E8A020">TP53 C275F</strong></td><td>~44e</td><td>~88q</td><td>Zinc coordination π-fragment · DNA binding domain</td></tr>
+    <tr><td><strong style="color:#60a5fa">TP53 Y220C</strong></td><td>~38e</td><td>~76q</td><td>Binding pocket cavity · stabilizer drug target</td></tr>
+    <tr><td><strong style="color:#b47fd4">KEAP1 LOF</strong></td><td>~52e</td><td>~104q</td><td>NRF2 protein–protein interface</td></tr>
+    <tr><td><strong style="color:#34d399">STK11 LKB1</strong></td><td>~46e</td><td>~92q</td><td>Kinase domain · synthetic lethality target</td></tr>
+    <tr><td><strong style="color:#a78bfa">CDKN2A p16</strong></td><td>~28e</td><td>~56q</td><td>CDK4/6 binding interface · cell cycle regulation</td></tr>
+  </table>
+
+  <div class="alert alert-gold">
+    <strong>Recommended defense framing:</strong>
+    "Phase 3A validates that five distinct Hamiltonians produce five distinct verified provenance
+    records through the same pipeline. The Hamiltonians are physically motivated proxies — the
+    correct framing for Phase 3A is pipeline validation, not molecular prediction.
+    Phase 3B replaces the proxy Hamiltonians with PySCF-computed molecular Hamiltonians derived
+    from the RCSB PDB crystal structures already resolved by the platform's structure-source layer."
+  </div>
+
   <!-- ── SOFT POINTS ── -->
-  <h2>8. Soft Points — Things to Watch</h2>
+  <h2>10. Soft Points — Things to Watch</h2>
   <table>
     <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
     <tr>
@@ -546,7 +644,7 @@
   </table>
 
   <!-- ── HOW TO USE ── -->
-  <h2>9. How to Use What We Built</h2>
+  <h2>11. How to Use What We Built</h2>
 
   <h3>Accessing the platform (first time)</h3>
   <ol style="font-size:13px;padding-left:20px;line-height:2.2">
