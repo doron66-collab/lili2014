@@ -3,6 +3,11 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/System_Architecture_Report"
+  to   = "/System_Architecture_Report.html"
+  status = 200
+
+[[redirects]]
   from = "/dissertation_revised"
   to   = "/dissertation_revised.html"
   status = 200
