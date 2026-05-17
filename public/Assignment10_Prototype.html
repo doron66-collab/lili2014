@@ -6,6 +6,7 @@
 <title>QC·AI·HPC Platform — Prototype · Doron Cohen · IST 697 · CGU</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -260,6 +261,84 @@
   <div id="wakeup-elapsed" style="color:#64748b;font-size:12px;letter-spacing:0.5px">Elapsed: 0s · Retrying automatically…</div>
 </div>
 
+<!-- ── NGS PDF REVIEW MODAL ───────────────────────────────────────────────── -->
+<div id="ngs-review-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,35,0.92);z-index:9500;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#0f1e3d;border:1px solid rgba(0,200,180,0.3);border-radius:14px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:28px 32px">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="color:var(--teal);font-size:16px;font-weight:700">NGS Report Review</div>
+        <div style="color:var(--gray);font-size:11px;margin-top:3px">Extracted from PDF — please verify and correct before loading</div>
+      </div>
+      <button onclick="closeNGSReview()" style="background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;line-height:1">✕</button>
+    </div>
+
+    <!-- Metadata -->
+    <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Report Metadata</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Report ID</label>
+        <input id="rev-report-id" class="rev-input" placeholder="e.g. MI25-0349"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Report Date</label>
+        <input id="rev-report-date" class="rev-input" placeholder="e.g. 18/06/2025"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Institution</label>
+        <input id="rev-institution" class="rev-input" placeholder="e.g. Emek Medical Center"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Tumor Purity</label>
+        <input id="rev-purity" class="rev-input" placeholder="e.g. 65%"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Cancer Type</label>
+        <input id="rev-cancer-type" class="rev-input" placeholder="e.g. Adenocarcinoma"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Origin</label>
+        <input id="rev-origin" class="rev-input" placeholder="e.g. Pulmonary"></div>
+    </div>
+
+    <!-- Biomarkers -->
+    <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Biomarkers</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">EGFR / ALK / KRAS / RET</label>
+        <input id="rev-egfr" class="rev-input" placeholder="e.g. Not detected"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">TMB Value (mut/Mb)</label>
+        <input id="rev-tmb-val" class="rev-input" type="number" step="0.1" placeholder="e.g. 7.6"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">TMB Tier</label>
+        <select id="rev-tmb-tier" class="rev-input">
+          <option value="">— select —</option>
+          <option>Low</option><option>Intermediate</option><option>High</option>
+        </select></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">MSI Value (%)</label>
+        <input id="rev-msi-val" class="rev-input" type="number" step="0.01" placeholder="e.g. 7.77"></div>
+      <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">MSI Status</label>
+        <select id="rev-msi-status" class="rev-input">
+          <option value="">— select —</option>
+          <option>Stable</option><option>Unstable</option>
+        </select></div>
+    </div>
+
+    <!-- Variants -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px">Detected Variants</div>
+      <button onclick="addReviewVariant()" style="background:rgba(0,200,180,0.12);color:var(--teal);border:1px solid var(--teal);padding:4px 10px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">+ Add Variant</button>
+    </div>
+    <div id="rev-variants-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px"></div>
+
+    <div id="rev-parse-note" style="font-size:11px;color:var(--gray);margin-bottom:16px;padding:10px;background:rgba(255,255,255,0.03);border-radius:6px;display:none"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeNGSReview()" style="background:rgba(255,255,255,0.05);color:var(--gray);border:1px solid rgba(255,255,255,0.1);padding:9px 20px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Cancel</button>
+      <button onclick="confirmNGSReview()" style="background:var(--teal);color:#0a1628;border:none;padding:9px 24px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✓ Load Report</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.rev-input {
+  width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);
+  border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;
+}
+.rev-input:focus { outline:none;border-color:var(--teal); }
+.rev-variant-row {
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;padding:12px;display:grid;grid-template-columns:80px 1fr 80px 60px 60px 28px;gap:8px;align-items:end;
+}
+</style>
+
 <!-- ══════════════════════════════════════════════════
      TOP NAVIGATION
 ═══════════════════════════════════════════════════ -->
@@ -320,7 +399,7 @@
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--teal);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Demo (MI25-0349)</button>
       <button onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
-      <input type="file" id="ngs-upload-input" accept=".json" style="display:none" onchange="handleNGSUpload(event)">
+      <input type="file" id="ngs-upload-input" accept=".json,.pdf" style="display:none" onchange="handleNGSUpload(event)">
       <button onclick="resetPlatform()" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.35);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↺ Reset Platform</button>
     </div>
   </div>
@@ -1651,9 +1730,222 @@ const MI25_0349 = {
 
 function loadDemoNGS() { loadNGSReport(MI25_0349); }
 
+// ── Known gene → platform mapping ─────────────────────────────────────────
+const GENE_MAP = {
+  TP53:   { badge_type:'Structural', color:'#E8A020', active_electrons:44, full_qubits:88  },
+  KEAP1:  { badge_type:'PPI',        color:'#b47fd4', active_electrons:52, full_qubits:104 },
+  STK11:  { badge_type:'SL',         color:'#60a5fa', active_electrons:46, full_qubits:92  },
+  CDKN2A: { badge_type:'CNV',        color:'#a78bfa', active_electrons:28, full_qubits:56  },
+  KRAS:   { badge_type:'Structural', color:'#34d399', active_electrons:40, full_qubits:80  },
+  BRAF:   { badge_type:'Structural', color:'#f87171', active_electrons:44, full_qubits:88  },
+  EGFR:   { badge_type:'Structural', color:'#fbbf24', active_electrons:48, full_qubits:96  },
+  ALK:    { badge_type:'SL',         color:'#a78bfa', active_electrons:44, full_qubits:88  },
+};
+
+function geneSimId(gene, mutation) {
+  const g = (gene || '').toUpperCase();
+  const m = (mutation || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+  return m ? `${g}_${m}` : `${g}_VAR`;
+}
+
+// ── PDF text extraction ────────────────────────────────────────────────────
+async function extractPDFText(file) {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page    = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(s => s.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+// ── Regex-based field extraction ───────────────────────────────────────────
+function parseNGSText(text) {
+  const get = (re) => { const m = text.match(re); return m ? m[1]?.trim() : ''; };
+
+  const tmb  = get(/TMB[^:]*?[:\s]+(\d+\.?\d*)/i)  || get(/Tumor\s+Mutation\s+Burden[^:]*?:\s*(\d+\.?\d*)/i);
+  const msi  = get(/MSI[^:]*?[:\s]+(\d+\.?\d*)/i)  || get(/Microsatellite[^:]*?:\s*(\d+\.?\d*)/i);
+  const msiS = text.match(/MSI[^-\n]*?(Stable|Unstable|MSS|MSI-H)/i)?.[1]
+                  ?.replace('MSS','Stable').replace('MSI-H','Unstable') || '';
+  const tmbT = text.match(/TMB[^-\n]*?(Low|High|Intermediate)/i)?.[1] || (Number(tmb) >= 10 ? 'High' : Number(tmb) > 0 ? 'Low' : '');
+  const purity = get(/[Tt]umor\s+[Pp]urity[:\s]+(\d+\s*%?)/i) || get(/[Pp]urity[:\s]+(\d+\s*%?)/i);
+  const institution = get(/(?:Hospital|Medical Center|Institute|Lab|Laboratory|Center)[^:\n]{0,40}[:\n]?\s*([A-Z][^,\n]{3,50})/i)
+                   || get(/(?:Issued by|Prepared by|Reporting Lab)[:\s]+([^\n]{3,60})/i);
+  const date  = get(/(?:Report\s*Date|Date of Report|Collection\s*Date)[:\s]+([0-9\/\.\-]{6,12})/i)
+             || get(/(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/);
+  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s]+([^\n,]{4,50})/i);
+  const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Organ)[:\s]+([^\n,]{3,40})/i);
+  const egfr   = text.match(/(?:EGFR|ALK|KRAS|RET)[^\n]*?(Not\s+detected|Detected|Positive|Negative)/i)?.[0]
+                  ?.replace(/\n/g,' ') || '';
+
+  // Detect variants — look for gene name + p. notation near allele frequency
+  const variants = [];
+  const knownGenes = Object.keys(GENE_MAP).concat(['MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA']);
+  const variantRe = new RegExp(
+    `(${knownGenes.join('|')})\\s+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*]+|Loss[^\\n]{0,20}|Deletion[^\\n]{0,20}|Amplification[^\\n]{0,20}))`,
+    'gi'
+  );
+  let vm;
+  while ((vm = variantRe.exec(text)) !== null) {
+    const gene = vm[1].toUpperCase();
+    const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
+    // Try to find allele frequency nearby
+    const nearby = text.slice(Math.max(0,vm.index-80), vm.index+200);
+    const afM    = nearby.match(/(?:AF|VAF|Allele\s*Freq(?:uency)?)[:\s]+(\d+\.?\d*)\s*%?/i)
+                || nearby.match(/(\d+\.\d+)\s*%/);
+    const af     = afM ? parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1) : '';
+    const tierM  = nearby.match(/Tier[:\s]+([IVX1-4]+)/i);
+    const tier   = tierM ? tierM[1] : '';
+    if (!variants.find(v => v.gene === gene)) {
+      variants.push({ gene, mutation: mut, allele_frequency: af, tier });
+    }
+  }
+
+  return { date, institution, cancer_type: cancer, origin, tumor_purity: purity,
+           tmb, tmb_tier: tmbT, msi, msi_status: msiS, egfr, variants };
+}
+
+// ── Review modal ───────────────────────────────────────────────────────────
+let _pdfParseNote = '';
+
+function openNGSReview(parsed) {
+  const s = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  s('rev-report-id',   '');
+  s('rev-report-date', parsed.date);
+  s('rev-institution', parsed.institution);
+  s('rev-purity',      parsed.tumor_purity);
+  s('rev-cancer-type', parsed.cancer_type);
+  s('rev-origin',      parsed.origin);
+  s('rev-egfr',        parsed.egfr);
+  s('rev-tmb-val',     parsed.tmb);
+  s('rev-msi-val',     parsed.msi);
+  const tmbTier = document.getElementById('rev-tmb-tier');
+  if (tmbTier) { tmbTier.value = parsed.tmb_tier || ''; }
+  const msiSt = document.getElementById('rev-msi-status');
+  if (msiSt) { msiSt.value = parsed.msi_status || ''; }
+
+  const list = document.getElementById('rev-variants-list');
+  list.innerHTML = '';
+  const variants = parsed.variants.length ? parsed.variants : [{ gene:'', mutation:'', allele_frequency:'', tier:'' }];
+  variants.forEach(v => addReviewVariant(v));
+
+  const noteEl = document.getElementById('rev-parse-note');
+  if (parsed.variants.length === 0) {
+    noteEl.style.display = 'block';
+    noteEl.textContent = '⚠ No variants were auto-detected. Please fill in the variant rows manually — the PDF may use a non-standard layout.';
+  } else {
+    noteEl.style.display = 'block';
+    noteEl.textContent = `✓ ${parsed.variants.length} variant(s) auto-detected. Platform-specific fields (Tier, Badge, Simulation ID) are assigned automatically from our gene database. Please verify all values before loading.`;
+  }
+
+  const modal = document.getElementById('ngs-review-modal');
+  modal.style.display = 'flex';
+}
+
+function addReviewVariant(v = {}) {
+  const list = document.getElementById('rev-variants-list');
+  const row  = document.createElement('div');
+  row.className = 'rev-variant-row';
+  row.innerHTML = `
+    <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Gene</label>
+      <input class="rev-input rev-gene" placeholder="TP53" value="${v.gene||''}"></div>
+    <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Mutation / Description</label>
+      <input class="rev-input rev-mut" placeholder="p.Cys275Phe" value="${v.mutation||''}"></div>
+    <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Allele Freq</label>
+      <input class="rev-input rev-af" type="number" step="0.001" min="0" max="1" placeholder="0.12" value="${v.allele_frequency||''}"></div>
+    <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Tier</label>
+      <select class="rev-input rev-tier">
+        <option value="">—</option>
+        <option ${v.tier==='I'?'selected':''}>I</option>
+        <option ${v.tier==='II'?'selected':''}>II</option>
+        <option ${v.tier==='III'?'selected':''}>III</option>
+      </select></div>
+    <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Auto-Badge</label>
+      <div class="rev-badge-preview" style="font-size:10px;color:var(--gray);padding:8px 0">—</div></div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+      <button onclick="this.closest('.rev-variant-row').remove()" style="background:rgba(255,80,80,0.15);color:#f87171;border:1px solid rgba(255,80,80,0.3);border-radius:5px;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:1">✕</button>
+    </div>`;
+  // Live gene-lookup preview
+  const geneInput = row.querySelector('.rev-gene');
+  const preview   = row.querySelector('.rev-badge-preview');
+  const updatePreview = () => {
+    const g = geneInput.value.toUpperCase().trim();
+    const m = GENE_MAP[g];
+    preview.textContent  = m ? m.badge_type : '—';
+    preview.style.color  = m ? m.color : 'var(--gray)';
+  };
+  geneInput.addEventListener('input', updatePreview);
+  updatePreview();
+  list.appendChild(row);
+}
+
+function closeNGSReview() {
+  document.getElementById('ngs-review-modal').style.display = 'none';
+}
+
+function confirmNGSReview() {
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const variants = [];
+  document.querySelectorAll('.rev-variant-row').forEach(row => {
+    const gene = row.querySelector('.rev-gene')?.value?.toUpperCase().trim();
+    const mut  = row.querySelector('.rev-mut')?.value?.trim();
+    if (!gene) return;
+    const af   = parseFloat(row.querySelector('.rev-af')?.value) || 0;
+    const tier = row.querySelector('.rev-tier')?.value || 'III';
+    const gm   = GENE_MAP[gene] || { badge_type:'Structural', color:'#60a5fa', active_electrons:40, full_qubits:80 };
+    variants.push({
+      gene, mutation: mut, allele_frequency: af, tier,
+      badge_type:      gm.badge_type,
+      color:           gm.color,
+      active_electrons: gm.active_electrons,
+      full_qubits:     gm.full_qubits,
+      simulation_id:   geneSimId(gene, mut),
+    });
+  });
+
+  const ngs = {
+    report_id:    g('rev-report-id')   || `PDF-${Date.now()}`,
+    report_date:  g('rev-report-date'),
+    institution:  g('rev-institution'),
+    cancer_type:  g('rev-cancer-type'),
+    origin:       g('rev-origin'),
+    tumor_purity: g('rev-purity'),
+    biomarkers: {
+      EGFR_ALK_KRAS_RET: g('rev-egfr'),
+      TMB_value:  parseFloat(g('rev-tmb-val')) || 0,
+      TMB_tier:   g('rev-tmb-tier'),
+      MSI_value:  parseFloat(g('rev-msi-val')) || 0,
+      MSI_status: g('rev-msi-status'),
+    },
+    variants,
+  };
+  closeNGSReview();
+  loadNGSReport(ngs);
+}
+
+// ── File upload handler — JSON or PDF ─────────────────────────────────────
 function handleNGSUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
+  e.target.value = '';
+
+  if (file.name.toLowerCase().endsWith('.pdf')) {
+    extractPDFText(file).then(text => {
+      const parsed = parseNGSText(text);
+      openNGSReview(parsed);
+    }).catch(() => {
+      alert('Could not read PDF — it may be image-based (scanned). Please use the JSON format or fill in the review form manually.');
+      openNGSReview({});
+    });
+    return;
+  }
+
+  // JSON path
   const reader = new FileReader();
   reader.onload = ev => {
     try {
@@ -1664,7 +1956,6 @@ function handleNGSUpload(e) {
     }
   };
   reader.readAsText(file);
-  e.target.value = '';
 }
 
 function loadNGSReport(ngs) {
