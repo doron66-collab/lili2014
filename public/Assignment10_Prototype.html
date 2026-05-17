@@ -678,40 +678,40 @@
         <div class="job-status" id="job-vqe-status" style="color:var(--gray)">Idle</div>
       </div>
 
-      <div class="job-card">
-        <div class="job-icon" style="background:rgba(232,160,32,0.15)">⚙</div>
+      <div class="job-card" style="opacity:0.7">
+        <div class="job-icon" style="background:rgba(232,160,32,0.1)">⚙</div>
         <div class="job-info">
-          <div class="job-name">MD Simulation — 50ns Trajectory</div>
-          <div class="job-sub">Backend: HPC Cluster · Tool: GROMACS · Conformers: 1,240</div>
+          <div class="job-name">MD Simulation — 50ns Trajectory <span class="badge badge-gray" style="font-size:9px;margin-left:6px">Phase 3B</span></div>
+          <div class="job-sub">Backend: HPC Cluster · Tool: GROMACS · Conformers: 1,240 · Literature reference values</div>
           <div style="margin-top:6px">
-            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:rgba(255,255,255,0.15)"></div></div>
           </div>
         </div>
-        <div class="job-status green">Done ✓</div>
+        <div class="job-status" style="color:var(--gray);font-size:10px">Reference</div>
       </div>
 
-      <div class="job-card">
-        <div class="job-icon" style="background:rgba(239,68,68,0.12)">📐</div>
+      <div class="job-card" style="opacity:0.7">
+        <div class="job-icon" style="background:rgba(239,68,68,0.08)">📐</div>
         <div class="job-info">
-          <div class="job-name">DFT Baseline — B3LYP/6-31G*</div>
-          <div class="job-sub">Backend: HPC · Tool: ORCA · Purpose: Classical benchmark</div>
+          <div class="job-name">DFT Baseline — B3LYP/6-31G* <span class="badge badge-gray" style="font-size:9px;margin-left:6px">Phase 3B</span></div>
+          <div class="job-sub">Backend: HPC · Tool: ORCA · Classical benchmark · Literature reference values</div>
           <div style="margin-top:6px">
-            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:rgba(255,255,255,0.15)"></div></div>
           </div>
         </div>
-        <div class="job-status green">Done ✓</div>
+        <div class="job-status" style="color:var(--gray);font-size:10px">Reference</div>
       </div>
 
       <div class="job-card">
         <div class="job-icon" style="background:rgba(122,61,143,0.18)">🤖</div>
         <div class="job-info">
           <div class="job-name">AI Binding Affinity Prediction</div>
-          <div class="job-sub">Backend: GPU · Model: DeepChem GNN · Waiting for VQE output</div>
+          <div id="job-ai-sub" class="job-sub">Backend: GPU · Model: DeepChem GNN · Waiting for VQE output</div>
           <div style="margin-top:6px">
-            <div class="progress-wrap"><div class="progress-fill" style="width:0%;background:var(--violet)"></div></div>
+            <div class="progress-wrap"><div class="progress-fill" id="job-ai-bar" style="width:0%;background:var(--violet)"></div></div>
           </div>
         </div>
-        <div class="job-status" style="color:var(--gray)">Waiting</div>
+        <div class="job-status" id="job-ai-status" style="color:var(--gray)">Waiting</div>
       </div>
     </div>
 
@@ -877,7 +877,7 @@
   <div class="grid-2" style="margin-bottom:16px">
     <!-- Energy Comparison Chart -->
     <div class="card">
-      <div class="card-title">Binding Energy Comparison · TP53 C275F Active Space</div>
+      <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space</div>
       <div class="bar-chart" style="align-items:flex-end;padding-top:12px">
         <div class="bar-group">
           <div class="bar-val red">−8.4</div>
@@ -885,8 +885,8 @@
           <div class="bar-label">DFT<br>B3LYP</div>
         </div>
         <div class="bar-group">
-          <div class="bar-val teal">−11.7</div>
-          <div class="bar" style="height:95px;background:rgba(0,168,214,0.85)"></div>
+          <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
+          <div class="bar" id="vqe-bar-fill" style="height:95px;background:rgba(0,168,214,0.85)"></div>
           <div class="bar-label">VQE<br>SqDRIFT</div>
         </div>
         <div class="bar-group">
@@ -901,33 +901,30 @@
         </div>
       </div>
       <div class="divider"></div>
-      <div class="footnote">DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span></div>
+      <div class="footnote" id="energy-chart-footnote">DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span></div>
     </div>
 
     <!-- VQE Convergence -->
     <div class="card">
-      <div class="card-title">VQE Energy Convergence — Optimization Iterations</div>
+      <div class="card-title" id="convergence-title">VQE Energy Convergence — Optimization Iterations</div>
       <div style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px">
         <svg width="100%" height="100%" viewBox="0 0 300 110" preserveAspectRatio="none">
-          <!-- Grid lines -->
           <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
           <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
           <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <!-- Convergence curve -->
-          <polyline points="0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92"
+          <polyline id="convergence-polyline"
+            points="0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92"
             fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <!-- Target line -->
-          <line x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
-          <!-- Convergence marker -->
-          <circle cx="220" cy="91.5" r="4" fill="var(--gold)"/>
-          <text x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
+          <line id="convergence-target-line" x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+          <circle id="convergence-marker" cx="220" cy="91.5" r="4" fill="var(--gold)"/>
+          <text id="convergence-marker-label" x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
         </svg>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
+      <div id="convergence-iter-labels" style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
         <span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>
       </div>
       <div class="divider"></div>
-      <div class="footnote">Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron</div>
+      <div class="footnote" id="convergence-footnote">Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron</div>
     </div>
   </div>
 
@@ -958,10 +955,10 @@
       </tr>
       <tr style="background:rgba(0,168,214,0.05)">
         <td><strong><span class="badge badge-teal">VQE SqDRIFT</span></strong></td>
-        <td><strong>32 (exact)</strong></td>
-        <td><strong>−11.7</strong></td>
-        <td><span class="teal"><strong>0.5 kcal/mol ✓</strong></span></td>
-        <td>6h</td>
+        <td id="bench-vqe-electrons"><strong>32 (exact)</strong></td>
+        <td id="bench-vqe-energy"><strong>−11.7</strong></td>
+        <td id="bench-vqe-error"><span class="teal"><strong>0.5 kcal/mol ✓</strong></span></td>
+        <td id="bench-vqe-time">6h</td>
         <td>$85</td>
         <td><span class="teal"><strong>Yes (poly.)</strong></span></td>
       </tr>
@@ -1518,6 +1515,79 @@ function show(id) {
 }
 
 // ── Update ALL tabs with the result from any simulation run ───────────────
+// ── Live Results Charts (bar chart, convergence, benchmark table, AI card) ──
+function updateResultsCharts(data) {
+  const rec  = data.full_record;
+  const r    = data.result;
+  const mutName = rec.mutation_name || rec.mutation_id;
+  const electrons = rec.p2_active_electrons || '2';
+
+  // 1. Bar chart — update VQE bar value + card title
+  const barVal = document.getElementById('vqe-bar-val');
+  if (barVal) barVal.textContent = `${r.energy_ha} Hₐ*`;
+  const chartTitle = document.getElementById('energy-chart-title');
+  if (chartTitle) chartTitle.textContent = `Binding Energy Comparison · ${mutName} Active Space`;
+  const chartFn = document.getElementById('energy-chart-footnote');
+  if (chartFn) chartFn.innerHTML =
+    `DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold · ` +
+    `<span class="teal">* Live VQE: ${r.energy_ha} Hₐ (${electrons}e/2orb Phase 3A minimal active space)</span>`;
+
+  // 2. Convergence chart — synthetic curve from actual steps + energy
+  const steps   = rec.p5_opt_steps || 120;
+  const convIter = Math.round(steps * 0.72);
+  const nPts    = 18;
+  const yTop = 10, yBot = 95;
+  const seed = Math.abs(r.energy_ha * 1000) % 100;  // deterministic per run
+  const pts = [];
+  for (let i = 0; i < nPts; i++) {
+    const t  = i / (nPts - 1);
+    const x  = Math.round(t * 300);
+    const decay = 1 - Math.exp(-6 * t);
+    const noise = i < nPts - 4 ? (((seed * (i + 1) * 7919) % 100) / 100 - 0.5) * 3 * (1 - t) : 0;
+    const y  = +(yTop + (yBot - yTop) * decay + noise).toFixed(1);
+    pts.push(`${x},${Math.min(yBot, Math.max(yTop, y))}`);
+  }
+  const poly = document.getElementById('convergence-polyline');
+  if (poly) poly.setAttribute('points', pts.join(' '));
+  // Move convergence marker to ~72% of x-axis
+  const mx = Math.round(convIter / steps * 300);
+  const marker = document.getElementById('convergence-marker');
+  const markerLabel = document.getElementById('convergence-marker-label');
+  if (marker) { marker.setAttribute('cx', mx); marker.setAttribute('cy', yBot); }
+  if (markerLabel) { markerLabel.setAttribute('x', Math.min(mx + 5, 250)); markerLabel.setAttribute('y', yBot - 6); }
+  // Iteration axis labels
+  const iterLabels = document.getElementById('convergence-iter-labels');
+  if (iterLabels) iterLabels.innerHTML =
+    `<span>Iter 0</span><span>Iter ${Math.round(steps*0.33)}</span><span>Iter ~${convIter} ✓</span><span>Iter ${steps}</span>`;
+  // Convergence title + footnote
+  const convTitle = document.getElementById('convergence-title');
+  if (convTitle) convTitle.textContent = `VQE Energy Convergence — ${mutName} · ${steps} Optimization Steps`;
+  const convFn = document.getElementById('convergence-footnote');
+  if (convFn) convFn.innerHTML =
+    `<span class="teal">Simulated convergence curve</span> · Converged at iteration ~${convIter} · ` +
+    `ΔE threshold 0.001 Hₐ · ${rec.p1_ansatz} ansatz · ${r.qubits_used} qubits · ` +
+    `Final energy: ${r.energy_ha} Hₐ`;
+
+  // 3. Benchmark table — update VQE row with live values
+  const bEl = document.getElementById('bench-vqe-electrons');
+  if (bEl) bEl.innerHTML = `<strong>${electrons}e (Phase 3A)</strong>`;
+  const bEn = document.getElementById('bench-vqe-energy');
+  if (bEn) bEn.innerHTML = `<strong>${r.energy_ha} Hₐ</strong>`;
+  const bErr = document.getElementById('bench-vqe-error');
+  if (bErr) bErr.innerHTML = `<span class="teal"><strong>CI ±${((r.ci_upper - r.ci_lower)/2).toFixed(4)} Hₐ ✓</strong></span>`;
+  const bTime = document.getElementById('bench-vqe-time');
+  if (bTime) bTime.textContent = `${r.elapsed_s}s`;
+
+  // 4. AI Binding card — acknowledge VQE output received
+  const aiSub = document.getElementById('job-ai-sub');
+  if (aiSub) aiSub.textContent =
+    `VQE energy received: ${r.energy_ha} Hₐ · ${mutName} · Phase 3B integration pending`;
+  const aiBar = document.getElementById('job-ai-bar');
+  if (aiBar) aiBar.style.width = '30%';
+  const aiStatus = document.getElementById('job-ai-status');
+  if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
+}
+
 function updateAllTabs(data) {
   lastRunData = data;
   addRunToHistory(data);
@@ -1632,6 +1702,9 @@ function updateAllTabs(data) {
   document.getElementById('p8-time').textContent = rec.p8_sealed_at;
   document.getElementById('p8-meta').innerHTML =
     `Platform: Phase 3A · PennyLane: v${rec.p2_compiler_version}<br>Backend: ${rec.p3_backend} (noiseless)<br>Ansatz: ${rec.p1_ansatz}<br>Active space: ${rec.p2_active_electrons}e/${rec.p2_active_orbitals}orb · Encoding: ${rec.p2_encoding}`;
+
+  // ── Results tab — live chart + convergence + benchmark updates ───────────
+  updateResultsCharts(data);
 
   // ── Results tab live Supabase table ───────────────────────────────────
   loadLiveResults();
@@ -2163,6 +2236,40 @@ function resetPlatform() {
   runHistory.length = 0;
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';
+
+  // ── Results tab — reset charts to reference state ─────────────────────
+  const vbv = document.getElementById('vqe-bar-val');
+  if (vbv) vbv.textContent = '−11.7';
+  const ect = document.getElementById('energy-chart-title');
+  if (ect) ect.textContent = 'Binding Energy Comparison · TP53 C275F Active Space';
+  const ecf = document.getElementById('energy-chart-footnote');
+  if (ecf) ecf.innerHTML = 'DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span>';
+  const cpoly = document.getElementById('convergence-polyline');
+  if (cpoly) cpoly.setAttribute('points','0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92');
+  const cm = document.getElementById('convergence-marker');
+  if (cm) { cm.setAttribute('cx','220'); cm.setAttribute('cy','91.5'); }
+  const cml = document.getElementById('convergence-marker-label');
+  if (cml) { cml.setAttribute('x','225'); cml.setAttribute('y','86'); }
+  const cil = document.getElementById('convergence-iter-labels');
+  if (cil) cil.innerHTML = '<span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>';
+  const ct = document.getElementById('convergence-title');
+  if (ct) ct.textContent = 'VQE Energy Convergence — Optimization Iterations';
+  const cf = document.getElementById('convergence-footnote');
+  if (cf) cf.innerHTML = 'Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron';
+  const bEl = document.getElementById('bench-vqe-electrons');
+  if (bEl) bEl.innerHTML = '<strong>32 (exact)</strong>';
+  const bEn = document.getElementById('bench-vqe-energy');
+  if (bEn) bEn.innerHTML = '<strong>−11.7</strong>';
+  const bErr = document.getElementById('bench-vqe-error');
+  if (bErr) bErr.innerHTML = '<span class="teal"><strong>0.5 kcal/mol ✓</strong></span>';
+  const bTm = document.getElementById('bench-vqe-time');
+  if (bTm) bTm.textContent = '6h';
+  const aiSub = document.getElementById('job-ai-sub');
+  if (aiSub) aiSub.textContent = 'Backend: GPU · Model: DeepChem GNN · Waiting for VQE output';
+  const aiBar = document.getElementById('job-ai-bar');
+  if (aiBar) aiBar.style.width = '0%';
+  const aiSt = document.getElementById('job-ai-status');
+  if (aiSt) { aiSt.textContent = 'Waiting'; aiSt.style.color = 'var(--gray)'; }
 
   // ── Dashboard — NGS banner + subtitle ─────────────────────────────────
   const el = id => document.getElementById(id);
