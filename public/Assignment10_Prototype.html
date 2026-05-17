@@ -1071,31 +1071,48 @@
         <line x1="0" y1="37" x2="420" y2="37" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
         <line x1="0" y1="75" x2="420" y2="75" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
         <line x1="0" y1="112" x2="420" y2="112" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <!-- Intractable zone (right of classical wall) -->
+        <rect x="125" y="0" width="295" height="150" fill="rgba(239,68,68,0.04)"/>
         <!-- FCI O(2^N) — steepest, off chart quickly -->
         <polyline points="0,145 30,140 55,132 80,118 105,98 125,72 140,46 152,22 160,8"
           fill="none" stroke="rgba(239,80,60,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="5,3"/>
-        <!-- CCSD(T) O(N^7) — steep but slightly slower -->
-        <polyline points="0,145 40,140 80,130 120,115 160,94 200,68 235,42 255,22 268,10"
-          fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- CCSD(T) O(N^7) — solid until wall, then dashed/fading to show breakdown -->
+        <polyline points="0,145 40,140 80,130 120,115 125,112"
+          fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+        <polyline points="125,112 160,94 200,68 235,42 255,22 268,10"
+          fill="none" stroke="rgba(239,68,68,0.35)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6,3"/>
         <!-- VQE O(poly N) — gentle slope, stays tractable -->
         <polyline points="0,145 60,137 120,129 180,121 240,113 300,106 360,100 420,95"
           fill="none" stroke="rgba(0,168,214,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- C275F vertical marker (~44e) -->
-        <line x1="265" y1="0" x2="265" y2="150" stroke="rgba(255,221,34,0.35)" stroke-width="1.2" stroke-dasharray="4,3"/>
-        <text x="268" y="14" fill="rgba(255,221,34,0.95)" font-size="9" font-weight="bold">C275F (~44e, ~88q)</text>
         <!-- Classical wall marker (~18e) -->
-        <line x1="125" y1="0" x2="125" y2="150" stroke="rgba(239,68,68,0.25)" stroke-width="1" stroke-dasharray="3,3"/>
-        <text x="128" y="28" fill="rgba(239,68,68,0.7)" font-size="8">Classical wall</text>
-        <!-- Labels on curves -->
-        <text x="270" y="50" fill="rgba(239,68,68,0.85)" font-size="9">CCSD(T) · O(N⁷)</text>
-        <text x="195" y="35" fill="rgba(239,80,60,0.65)" font-size="8">FCI · O(2ᴺ)</text>
-        <text x="340" y="92" fill="rgba(0,168,214,0.9)" font-size="9">VQE · O(poly N)</text>
+        <line x1="125" y1="0" x2="125" y2="150" stroke="rgba(239,68,68,0.5)" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <text x="128" y="22" fill="rgba(239,68,68,0.85)" font-size="8" font-weight="600">Classical wall</text>
+        <text x="128" y="32" fill="rgba(239,68,68,0.55)" font-size="7">CCSD(T) intractable →</text>
+        <!-- C275F vertical marker — same x=265 as x-axis label below -->
+        <line x1="265" y1="0" x2="265" y2="150" stroke="rgba(255,221,34,0.6)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="268" y="14" fill="rgba(255,221,34,0.95)" font-size="9" font-weight="bold">C275F (~44e, ~88q)</text>
+        <!-- CCSD breakdown callout: X marker + arrow label at breakdown point -->
+        <circle cx="125" cy="112" r="4" fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="1.5"/>
+        <line x1="122" y1="109" x2="128" y2="115" stroke="rgba(239,68,68,0.9)" stroke-width="1.5"/>
+        <line x1="128" y1="109" x2="122" y2="115" stroke="rgba(239,68,68,0.9)" stroke-width="1.5"/>
+        <!-- Labels placed ON the curves -->
+        <text x="55" y="104" fill="rgba(239,80,60,0.8)" font-size="8" font-weight="600">FCI · O(2ᴺ)</text>
+        <text x="38" y="138" fill="rgba(239,68,68,0.95)" font-size="8.5" font-weight="600">CCSD(T) · O(N⁷)</text>
+        <!-- Breakdown annotation -->
+        <text x="130" y="108" fill="rgba(239,68,68,0.85)" font-size="7" font-style="italic">breaks down here</text>
+        <text x="300" y="102" fill="rgba(0,168,214,0.9)" font-size="9">VQE · O(poly N)</text>
         <!-- Y-axis label -->
         <text x="2" y="10" fill="rgba(136,153,187,0.6)" font-size="8">Cost</text>
       </svg>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 12px">
-      <span>N=8e⁻</span><span>N=16e⁻</span><span>N=24e⁻</span><span>N=32e⁻</span><span>N=44e⁻ (C275F)</span><span>N=60e⁻</span>
+    <!-- X-axis labels positioned to align with SVG x coordinates (viewBox 420px wide) -->
+    <div style="position:relative;height:18px;padding:0 12px;margin-top:2px">
+      <span style="position:absolute;left:12px;font-size:10px;color:var(--gray)">N=8e⁻</span>
+      <span style="position:absolute;left:calc(12px + 15.5%);font-size:10px;color:var(--gray)">N=16e⁻</span>
+      <span style="position:absolute;left:calc(12px + 30.7%);font-size:10px;color:var(--gray)">N=24e⁻</span>
+      <span style="position:absolute;left:calc(12px + 46.2%);font-size:10px;color:var(--gray)">N=32e⁻</span>
+      <span style="position:absolute;left:calc(12px + 63.1%);font-size:10px;color:rgba(255,221,34,0.8);font-weight:600">N=44e⁻ (C275F)</span>
+      <span style="position:absolute;right:12px;font-size:10px;color:var(--gray)">N=60e⁻</span>
     </div>
     <div class="divider"></div>
     <div class="footnote">Classical CCSD(T) becomes intractable beyond ~18–20 electrons. VQE on quantum hardware maintains polynomial scaling past this boundary — the core BQP necessity argument for this dissertation. C275F at ~44 active electrons sits firmly in the quantum-required zone.</div>
