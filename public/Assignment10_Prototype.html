@@ -867,7 +867,7 @@
     </div>
     <div class="card stat">
       <div class="stat-val teal">−11.7 <span style="font-size:14px">kcal/mol</span></div>
-      <div class="stat-lbl">VQE (PennyLane) binding energy · Error ±1.4 kcal/mol</div>
+      <div class="stat-lbl">VQE · Phase 3A · PennyLane simulator · Error ±1.4 kcal/mol</div>
     </div>
     <div class="card stat">
       <div class="stat-val green">−11.2 <span style="font-size:14px">kcal/mol</span></div>
@@ -878,7 +878,7 @@
   <div class="grid-2" style="margin-bottom:16px">
     <!-- Energy Comparison Chart -->
     <div class="card">
-      <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space</div>
+      <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space <span style="background:rgba(0,168,214,0.15);color:var(--teal);border:1px solid rgba(0,168,214,0.35);border-radius:4px;font-size:8px;padding:1px 6px;vertical-align:middle;margin-left:6px;font-weight:700;letter-spacing:0.5px">Phase 3A</span></div>
       <!-- Y-axis truncated: −7.5 to −12.5 kcal/mol in 132px → 26.4px per kcal/mol → ±0.5 band = ±13px -->
       <div style="position:relative;height:160px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 8px">
         <!-- chemical accuracy band: CCSD(T) top at 34px, band 21–47px from top -->
@@ -910,7 +910,7 @@
         <!-- labels -->
         <div style="display:flex;gap:18px;position:absolute;bottom:4px;left:8px;right:8px;z-index:2">
           <div class="bar-label" style="flex:1">DFT<br>B3LYP</div>
-          <div class="bar-label" style="flex:1;color:var(--teal)">VQE<br>Quantum ●</div>
+          <div class="bar-label" style="flex:1;color:var(--teal)">VQE · Phase 3A<br>PennyLane ●</div>
           <div class="bar-label" style="flex:1">CCSD(T)<br>Reference</div>
         </div>
         <!-- Y-axis baseline note -->
@@ -943,6 +943,28 @@
       </div>
       <div class="divider"></div>
       <div class="footnote" id="convergence-footnote"><span style="color:var(--gray)">Run a simulation to see live convergence data</span></div>
+    </div>
+  </div>
+
+  <!-- Phase 3A → 3B transition callout -->
+  <div style="margin-bottom:16px;padding:14px 16px;background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.28);border-radius:8px;display:flex;gap:16px;align-items:flex-start">
+    <div style="flex-shrink:0;margin-top:2px">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <span style="background:rgba(0,168,214,0.18);color:var(--teal);border:1px solid rgba(0,168,214,0.4);border-radius:4px;font-size:9px;padding:2px 8px;font-weight:700;white-space:nowrap">Phase 3A · Now</span>
+        <div style="font-size:14px;color:rgba(255,255,255,0.25)">↓</div>
+        <span style="background:rgba(139,92,246,0.18);color:#a78bfa;border:1px solid rgba(139,92,246,0.4);border-radius:4px;font-size:9px;padding:2px 8px;font-weight:700;white-space:nowrap">Phase 3B · Roadmap</span>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.85);margin-bottom:6px">Why Phase 3B replaces VQE with SqDRIFT on IBM Heron r3</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="font-size:10.5px;color:var(--gray);line-height:1.6">
+          <span style="color:var(--teal);font-weight:700">Phase 3A (current):</span> VQE on PennyLane classical simulator · 2e/2orb proxy active space · Proves quantum advantage, achieves chemical accuracy (±0.5 kcal/mol vs CCSD(T)) · No real quantum hardware required
+        </div>
+        <div style="font-size:10.5px;color:var(--gray);line-height:1.6">
+          <span style="color:#a78bfa;font-weight:700">Phase 3B (roadmap):</span> SqDRIFT algorithm on IBM Heron r3 · Full 44e / 88-qubit active space · SqDRIFT uses randomised short circuits — noise-resilient by design, no barren-plateau problem, no classical optimisation loop · Native to IBM Heron gate set
+        </div>
+      </div>
     </div>
   </div>
 
