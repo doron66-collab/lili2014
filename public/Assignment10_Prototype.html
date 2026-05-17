@@ -879,33 +879,35 @@
     <!-- Energy Comparison Chart -->
     <div class="card">
       <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space</div>
-      <div style="height:150px;overflow:hidden;display:flex;align-items:flex-end;padding:0 8px 4px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border)">
-        <div class="bar-chart" style="align-items:flex-end;margin-top:0;width:100%;height:100%">
-        <div class="bar-group">
-          <div class="bar-val red">−8.4</div>
-          <div class="bar" style="height:55px;background:rgba(239,68,68,0.7)"></div>
-          <div class="bar-label">DFT<br>B3LYP</div>
-        </div>
-        <div class="bar-group" style="position:relative">
-          <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
-          <div class="bar" id="vqe-bar-fill" style="height:95px;background:rgba(0,168,214,0.85);position:relative">
-            <div id="vqe-live-badge" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(0,200,180,0.2);border:1px solid var(--teal);border-radius:4px;padding:2px 5px;font-size:9px;color:var(--teal);font-weight:700;white-space:nowrap">● LIVE</div>
+      <div style="position:relative;height:160px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 8px">
+        <div style="display:flex;align-items:flex-end;gap:18px;height:100%;padding-bottom:28px">
+          <div class="bar-group">
+            <div class="bar-val red">−8.4</div>
+            <div class="bar" style="height:42px;background:rgba(239,68,68,0.7)"></div>
           </div>
-          <div class="bar-label">VQE<br>SqDRIFT</div>
+          <div class="bar-group" style="position:relative">
+            <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
+            <div class="bar" id="vqe-bar-fill" style="height:72px;background:rgba(0,168,214,0.85);position:relative">
+              <div id="vqe-live-badge" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(0,200,180,0.2);border:1px solid var(--teal);border-radius:4px;padding:2px 5px;font-size:9px;color:var(--teal);font-weight:700;white-space:nowrap">● LIVE</div>
+            </div>
+          </div>
+          <div class="bar-group">
+            <div class="bar-val green">−11.2</div>
+            <div class="bar" style="height:68px;background:rgba(34,197,94,0.7)"></div>
+          </div>
+          <div class="bar-group">
+            <div class="bar-val" style="color:var(--violet)">−10.8</div>
+            <div class="bar" style="height:65px;background:rgba(122,61,143,0.7)"></div>
+          </div>
         </div>
-        <div class="bar-group">
-          <div class="bar-val green">−11.2</div>
-          <div class="bar" style="height:90px;background:rgba(34,197,94,0.7)"></div>
-          <div class="bar-label">CCSD(T)<br>Reference</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-val" style="color:var(--violet)">−10.8</div>
-          <div class="bar" style="height:86px;background:rgba(122,61,143,0.7)"></div>
-          <div class="bar-label">AI+QC<br>Corrected</div>
-        </div>
+        <div style="display:flex;gap:18px;position:absolute;bottom:4px;left:8px;right:8px">
+          <div class="bar-label" style="flex:1">DFT<br>B3LYP</div>
+          <div class="bar-label" style="flex:1">VQE<br>SqDRIFT</div>
+          <div class="bar-label" style="flex:1">CCSD(T)<br>Reference</div>
+          <div class="bar-label" style="flex:1">AI+QC<br>Corrected</div>
         </div>
       </div>
-      <div style="height:24px"></div>
+      <div style="height:4px"></div>
       <div class="divider"></div>
       <div class="footnote" id="energy-chart-footnote">DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span></div>
     </div>
