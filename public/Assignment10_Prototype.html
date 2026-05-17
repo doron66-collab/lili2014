@@ -1093,15 +1093,15 @@
         <!-- C275F vertical marker -->
         <line x1="265" y1="0" x2="265" y2="155" stroke="rgba(255,221,34,0.55)" stroke-width="1.5" stroke-dasharray="4,3"/>
         <text x="265" y="11" fill="rgba(255,221,34,0.95)" font-size="8.5" font-weight="bold" text-anchor="middle">C275F · 44e · 88 qubits</text>
-        <!-- Curve end labels — placed at right end of each curve, no crowding -->
-        <!-- FCI label at end of visible curve -->
-        <text x="153" y="25" fill="rgba(239,80,60,0.8)" font-size="8" font-weight="600">FCI · O(2ᴺ) ↑</text>
-        <!-- CCSD(T) label on solid segment, before wall -->
-        <text x="32" y="156" fill="rgba(239,68,68,0.95)" font-size="8" font-weight="600">CCSD(T) · O(N⁷)</text>
-        <!-- CCSD breakdown annotation to the right of the dot -->
-        <text x="130" y="119" fill="rgba(239,68,68,0.7)" font-size="6.5" font-style="italic">breaks down →</text>
-        <!-- VQE label near end of line -->
-        <text x="310" y="105" fill="rgba(0,168,214,0.9)" font-size="9" font-weight="600">VQE · O(poly N)</text>
+        <!-- FCI: goes off chart past wall (still exact, just off-scale expensive — does NOT break) -->
+        <text x="155" y="44" fill="rgba(239,80,60,0.85)" font-size="8" font-weight="600">FCI · O(2ᴺ)</text>
+        <text x="155" y="54" fill="rgba(239,80,60,0.6)" font-size="6.5" font-style="italic">(off-scale, exact)</text>
+        <!-- CCSD(T) label on solid segment mid-curve, well inside viewBox -->
+        <text x="42" y="126" fill="rgba(239,68,68,0.95)" font-size="8.5" font-weight="600">CCSD(T) · O(N⁷)</text>
+        <!-- CCSD breakdown: dot + "wrong results" label right of dot -->
+        <text x="130" y="112" fill="rgba(239,68,68,0.75)" font-size="6.5" font-style="italic">wrong results past here →</text>
+        <!-- VQE label above the blue line -->
+        <text x="305" y="98" fill="rgba(0,168,214,0.95)" font-size="9" font-weight="600">VQE · O(poly N)</text>
         <!-- Y-axis label -->
         <text x="2" y="22" fill="rgba(136,153,187,0.5)" font-size="7.5">Cost ↑</text>
       </svg>
