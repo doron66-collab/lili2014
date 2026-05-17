@@ -523,7 +523,7 @@
       </div>
       <div style="padding:8px 12px;border-radius:8px;background:rgba(0,168,214,0.08);border:1px solid rgba(0,168,214,0.25)">
         <div style="font-weight:700;color:var(--teal);margin-bottom:4px">✅ QC Solution</div>
-        <div style="font-size:11.5px;line-height:1.6">IBM Heron + SqDRIFT: 32 e⁻<br>VQE: polynomial circuit depth<br>Complexity class: BQP</div>
+        <div style="font-size:11.5px;line-height:1.6">IBM Heron + Ry-CNOT-Ry: 32 e⁻<br>VQE: polynomial circuit depth<br>Complexity class: BQP</div>
       </div>
     </div>
   </div>
@@ -728,7 +728,7 @@
         <tr>
           <td style="font-weight:600">IBM Heron r3</td>
           <td><span class="badge badge-teal">QC</span></td>
-          <td>SqDRIFT / VQE</td>
+          <td>Ry-CNOT-Ry / VQE</td>
           <td><span style="color:var(--gray)">○ Phase 3B</span></td>
         </tr>
         <tr>
@@ -867,7 +867,7 @@
     </div>
     <div class="card stat">
       <div class="stat-val teal">−11.7 <span style="font-size:14px">kcal/mol</span></div>
-      <div class="stat-lbl">VQE (SqDRIFT) binding energy · Error ±1.4 kcal/mol</div>
+      <div class="stat-lbl">VQE (Ry-CNOT-Ry) binding energy · Error ±1.4 kcal/mol</div>
     </div>
     <div class="card stat">
       <div class="stat-val green">−11.2 <span style="font-size:14px">kcal/mol</span></div>
@@ -879,32 +879,33 @@
     <!-- Energy Comparison Chart -->
     <div class="card">
       <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space</div>
+      <!-- Y-axis truncated: −7.5 to −12.5 kcal/mol in 132px → 26.4px per kcal/mol → ±0.5 band = ±13px -->
       <div style="position:relative;height:160px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 8px">
-        <!-- chemical accuracy band -->
-        <div style="position:absolute;top:61px;left:0;right:0;height:6px;background:rgba(0,200,180,0.13);z-index:1;pointer-events:none">
-          <div style="position:absolute;top:0;left:0;right:0;border-top:1px dashed rgba(0,200,180,0.8)"></div>
-          <div style="position:absolute;bottom:0;left:0;right:0;border-top:1px dashed rgba(0,200,180,0.8)"></div>
-          <span style="position:absolute;left:4px;top:-13px;font-size:7.5px;color:rgba(0,200,180,0.9);white-space:nowrap">▲ +0.5 kcal/mol</span>
-          <span style="position:absolute;left:4px;bottom:-12px;font-size:7.5px;color:rgba(0,200,180,0.9);white-space:nowrap">▼ −0.5 kcal/mol</span>
-          <span style="position:absolute;right:6px;top:-4px;font-size:7px;color:rgba(0,200,180,0.6);white-space:nowrap;font-style:italic">chemical accuracy zone</span>
+        <!-- chemical accuracy band: CCSD(T) top at 34px, band 21–47px from top -->
+        <div style="position:absolute;top:21px;left:0;right:0;height:26px;background:rgba(0,200,180,0.1);z-index:1;pointer-events:none">
+          <div style="position:absolute;top:0;left:0;right:0;border-top:1.5px dashed rgba(0,200,180,0.9)"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;border-top:1.5px dashed rgba(0,200,180,0.9)"></div>
+          <span style="position:absolute;left:4px;top:-14px;font-size:8px;color:rgba(0,200,180,1);white-space:nowrap;font-weight:600">+0.5 kcal/mol</span>
+          <span style="position:absolute;left:4px;bottom:-14px;font-size:8px;color:rgba(0,200,180,1);white-space:nowrap;font-weight:600">−0.5 kcal/mol</span>
+          <span style="position:absolute;right:6px;top:6px;font-size:7.5px;color:rgba(0,200,180,0.7);white-space:nowrap;font-style:italic">chemical accuracy zone</span>
         </div>
-        <!-- bars -->
+        <!-- bars: heights use truncated Y-axis (base −7.5 kcal/mol, scale 26.4px/kcal/mol) -->
         <div style="display:flex;align-items:flex-end;gap:18px;height:100%;padding-bottom:28px;position:relative;z-index:2">
           <div class="bar-group">
             <div class="bar-val red">−8.4</div>
-            <div class="bar" style="height:51px;width:44px;background:rgba(239,68,68,0.7)"></div>
+            <div class="bar" style="height:24px;width:44px;background:rgba(239,68,68,0.7)"></div>
           </div>
           <div class="bar-group">
             <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
-            <div class="bar" id="vqe-bar-fill" style="height:71px;width:44px;background:rgba(0,168,214,0.85);outline:2px solid rgba(0,200,180,0.6);outline-offset:1px"></div>
+            <div class="bar" id="vqe-bar-fill" style="height:111px;width:44px;background:rgba(0,168,214,0.85);outline:2px solid rgba(0,200,180,0.7);outline-offset:1px"></div>
           </div>
           <div class="bar-group">
             <div class="bar-val green">−11.2</div>
-            <div class="bar" style="height:68px;width:44px;background:rgba(34,197,94,0.7)"></div>
+            <div class="bar" style="height:98px;width:44px;background:rgba(34,197,94,0.7)"></div>
           </div>
           <div class="bar-group">
             <div class="bar-val" style="color:var(--violet)">−10.8</div>
-            <div class="bar" style="height:66px;width:44px;background:rgba(122,61,143,0.45)"></div>
+            <div class="bar" style="height:87px;width:44px;background:rgba(122,61,143,0.45)"></div>
           </div>
         </div>
         <!-- labels -->
@@ -914,6 +915,8 @@
           <div class="bar-label" style="flex:1">CCSD(T)<br>Reference</div>
           <div class="bar-label" style="flex:1;opacity:0.5">AI+QC<br>Classical ML</div>
         </div>
+        <!-- Y-axis baseline note -->
+        <div style="position:absolute;bottom:28px;left:10px;font-size:7px;color:rgba(255,255,255,0.2)">−7.5</div>
       </div>
       <div style="height:4px"></div>
       <div class="divider"></div>
@@ -971,7 +974,7 @@
         <td><span class="red">No (exp.)</span></td>
       </tr>
       <tr style="background:rgba(0,168,214,0.05)">
-        <td><strong><span class="badge badge-teal">VQE SqDRIFT</span></strong></td>
+        <td><strong><span class="badge badge-teal">VQE Ry-CNOT-Ry</span></strong></td>
         <td id="bench-vqe-electrons"><strong>32 (exact)</strong></td>
         <td id="bench-vqe-energy"><strong>−11.7</strong></td>
         <td id="bench-vqe-error"><span class="teal"><strong>0.5 kcal/mol ✓</strong></span></td>
@@ -1008,7 +1011,7 @@
         <td>Y220C <span class="badge badge-gold">Structural</span></td>
         <td>~38</td>
         <td>~76</td>
-        <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
+        <td><span class="badge badge-teal">VQE · Ry-CNOT-Ry</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-TP53_Y220C" style="color:var(--gray)">—</td>
         <td id="bqp-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
@@ -1021,7 +1024,7 @@
         <td>C275F <span class="badge badge-gold">Structural</span></td>
         <td>~44</td>
         <td><strong>~88</strong></td>
-        <td><span class="badge badge-teal">VQE · sqDRIFT</span></td>
+        <td><span class="badge badge-teal">VQE · Ry-CNOT-Ry</span></td>
         <td><span class="badge badge-gold">BQP ★</span></td>
         <td id="bqp-de-TP53_C275F"><span style="color:var(--gray)">—</span></td>
         <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
