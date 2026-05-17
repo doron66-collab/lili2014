@@ -1690,30 +1690,47 @@ function updateResultsCharts(data) {
     `DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold · ` +
     `<span class="teal">* Live VQE: ${r.energy_ha} Hₐ (${electrons}e/2orb Phase 3A minimal active space)</span>`;
 
-  // 2. Convergence chart — synthetic curve from actual steps + energy
-  const steps   = rec.p5_opt_steps || 120;
+  // 2. Convergence chart — mutation-specific synthetic curve + draw animation
+  const steps = rec.p5_opt_steps || 120;
   const convIter = Math.round(steps * 0.72);
-  const nPts    = 18;
-  const yTop = 10, yBot = 95;
-  const seed = Math.abs(r.energy_ha * 1000) % 100;  // deterministic per run
+  const nPts = 22;
+  const yTop = 8, yBot = 94;
+  // Per-mutation convergence profile: [rate, noiseAmp, convFrac]
+  const mutId = rec.mutation_id || '';
+  const profiles = {
+    TP53_Y220C: [4.5, 6, 0.60],   // moderate, noisy early phase
+    TP53_C275F: [3.5, 8, 0.68],   // slower, noisier
+    KEAP1_LOF:  [2.8, 4, 0.78],   // slow smooth convergence
+    STK11_LKB1: [5.5, 5, 0.55],   // fast drop, early plateau
+    CDKN2A_P16: [7.0, 3, 0.45],   // very fast, clean (small system)
+  };
+  const [rate, noiseAmp, convFrac] = profiles[mutId] || [4.0, 5, 0.65];
+  const seed = Math.abs(r.energy_ha * 1e6) % 1000;
   const pts = [];
   for (let i = 0; i < nPts; i++) {
-    const t  = i / (nPts - 1);
-    const x  = Math.round(t * 300);
-    const decay = 1 - Math.exp(-6 * t);
-    const noise = i < nPts - 4 ? (((seed * (i + 1) * 7919) % 100) / 100 - 0.5) * 3 * (1 - t) : 0;
-    const y  = +(yTop + (yBot - yTop) * decay + noise).toFixed(1);
+    const t = i / (nPts - 1);
+    const x = Math.round(t * 300);
+    const decay = 1 - Math.exp(-rate * t);
+    const inNoisyZone = t < convFrac;
+    const noiseFactor = inNoisyZone ? (1 - t / convFrac) : 0;
+    const noise = inNoisyZone
+      ? (((seed * (i + 3) * 6271 + i * 1301) % 1000) / 1000 - 0.5) * noiseAmp * noiseFactor
+      : 0;
+    const y = +(yTop + (yBot - yTop) * decay + noise).toFixed(1);
     pts.push(`${x},${Math.min(yBot, Math.max(yTop, y))}`);
   }
   const poly = document.getElementById('convergence-polyline');
   if (poly) {
     poly.setAttribute('points', pts.join(' '));
-    // flash the chart wrapper to signal update
-    const wrap = document.getElementById('convergence-wrap');
-    if (wrap) {
-      wrap.style.background = 'rgba(0,200,180,0.07)';
-      setTimeout(() => { wrap.style.background = ''; }, 600);
-    }
+    // Animate the line drawing itself by cycling stroke-dashoffset
+    poly.style.transition = 'none';
+    const len = 600;
+    poly.style.strokeDasharray = len;
+    poly.style.strokeDashoffset = len;
+    requestAnimationFrame(() => {
+      poly.style.transition = 'stroke-dashoffset 1.4s ease-out';
+      poly.style.strokeDashoffset = '0';
+    });
   }
   // Energy label top-left of SVG
   const eLabel = document.getElementById('convergence-energy-label');
