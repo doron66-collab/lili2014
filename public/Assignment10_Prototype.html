@@ -1066,43 +1066,44 @@
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Quantum Advantage — Computational Cost Scaling vs. System Size (Active Electrons)</div>
     <div style="position:relative;height:175px;margin-top:10px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 12px 0 12px">
-      <svg width="100%" height="100%" viewBox="0 0 420 150" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 420 155" preserveAspectRatio="none">
         <!-- Grid lines -->
         <line x1="0" y1="37" x2="420" y2="37" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
         <line x1="0" y1="75" x2="420" y2="75" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
         <line x1="0" y1="112" x2="420" y2="112" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
         <!-- Intractable zone (right of classical wall) -->
-        <rect x="125" y="0" width="295" height="150" fill="rgba(239,68,68,0.04)"/>
+        <rect x="125" y="0" width="295" height="155" fill="rgba(239,68,68,0.04)"/>
         <!-- FCI O(2^N) — steepest, off chart quickly -->
-        <polyline points="0,145 30,140 55,132 80,118 105,98 125,72 140,46 152,22 160,8"
-          fill="none" stroke="rgba(239,80,60,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="5,3"/>
+        <polyline points="0,148 30,143 55,135 80,121 105,101 125,75 140,49 150,28"
+          fill="none" stroke="rgba(239,80,60,0.55)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="5,3"/>
         <!-- CCSD(T) O(N^7) — solid until wall, then dashed/fading to show breakdown -->
-        <polyline points="0,145 40,140 80,130 120,115 125,112"
-          fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-        <polyline points="125,112 160,94 200,68 235,42 255,22 268,10"
-          fill="none" stroke="rgba(239,68,68,0.35)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6,3"/>
+        <polyline points="0,148 40,143 80,133 120,118 125,115"
+          fill="none" stroke="rgba(239,68,68,0.95)" stroke-width="2.5" stroke-linecap="round"/>
+        <polyline points="125,115 160,97 200,71 235,45 252,26"
+          fill="none" stroke="rgba(239,68,68,0.3)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6,3"/>
         <!-- VQE O(poly N) — gentle slope, stays tractable -->
-        <polyline points="0,145 60,137 120,129 180,121 240,113 300,106 360,100 420,95"
+        <polyline points="0,148 60,140 120,132 180,124 240,116 300,109 360,103 420,98"
           fill="none" stroke="rgba(0,168,214,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- Classical wall marker (~18e) -->
-        <line x1="125" y1="0" x2="125" y2="150" stroke="rgba(239,68,68,0.5)" stroke-width="1.2" stroke-dasharray="3,3"/>
-        <text x="128" y="22" fill="rgba(239,68,68,0.85)" font-size="8" font-weight="600">Classical wall</text>
-        <text x="128" y="32" fill="rgba(239,68,68,0.55)" font-size="7">CCSD(T) intractable →</text>
-        <!-- C275F vertical marker — same x=265 as x-axis label below -->
-        <line x1="265" y1="0" x2="265" y2="150" stroke="rgba(255,221,34,0.6)" stroke-width="1.5" stroke-dasharray="4,3"/>
-        <text x="268" y="14" fill="rgba(255,221,34,0.95)" font-size="9" font-weight="bold">C275F (~44e, ~88q)</text>
-        <!-- CCSD breakdown callout: X marker + arrow label at breakdown point -->
-        <circle cx="125" cy="112" r="4" fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="1.5"/>
-        <line x1="122" y1="109" x2="128" y2="115" stroke="rgba(239,68,68,0.9)" stroke-width="1.5"/>
-        <line x1="128" y1="109" x2="122" y2="115" stroke="rgba(239,68,68,0.9)" stroke-width="1.5"/>
-        <!-- Labels placed ON the curves -->
-        <text x="55" y="104" fill="rgba(239,80,60,0.8)" font-size="8" font-weight="600">FCI · O(2ᴺ)</text>
-        <text x="38" y="138" fill="rgba(239,68,68,0.95)" font-size="8.5" font-weight="600">CCSD(T) · O(N⁷)</text>
-        <!-- Breakdown annotation -->
-        <text x="130" y="108" fill="rgba(239,68,68,0.85)" font-size="7" font-style="italic">breaks down here</text>
-        <text x="300" y="102" fill="rgba(0,168,214,0.9)" font-size="9">VQE · O(poly N)</text>
+        <!-- Classical wall marker (~18–20e) -->
+        <line x1="125" y1="0" x2="125" y2="155" stroke="rgba(239,68,68,0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <!-- Classical wall label above the line, centered on it -->
+        <text x="125" y="11" fill="rgba(239,68,68,0.85)" font-size="7.5" font-weight="600" text-anchor="middle">Classical wall (~18e)</text>
+        <!-- CCSD breakdown dot at wall -->
+        <circle cx="125" cy="115" r="3.5" fill="rgba(239,68,68,0.9)"/>
+        <!-- C275F vertical marker -->
+        <line x1="265" y1="0" x2="265" y2="155" stroke="rgba(255,221,34,0.55)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="265" y="11" fill="rgba(255,221,34,0.95)" font-size="8.5" font-weight="bold" text-anchor="middle">C275F · 44e · 88 qubits</text>
+        <!-- Curve end labels — placed at right end of each curve, no crowding -->
+        <!-- FCI label at end of visible curve -->
+        <text x="153" y="25" fill="rgba(239,80,60,0.8)" font-size="8" font-weight="600">FCI · O(2ᴺ) ↑</text>
+        <!-- CCSD(T) label on solid segment, before wall -->
+        <text x="32" y="156" fill="rgba(239,68,68,0.95)" font-size="8" font-weight="600">CCSD(T) · O(N⁷)</text>
+        <!-- CCSD breakdown annotation to the right of the dot -->
+        <text x="130" y="119" fill="rgba(239,68,68,0.7)" font-size="6.5" font-style="italic">breaks down →</text>
+        <!-- VQE label near end of line -->
+        <text x="310" y="105" fill="rgba(0,168,214,0.9)" font-size="9" font-weight="600">VQE · O(poly N)</text>
         <!-- Y-axis label -->
-        <text x="2" y="10" fill="rgba(136,153,187,0.6)" font-size="8">Cost</text>
+        <text x="2" y="22" fill="rgba(136,153,187,0.5)" font-size="7.5">Cost ↑</text>
       </svg>
     </div>
     <!-- X-axis labels positioned to align with SVG x coordinates (viewBox 420px wide) -->
