@@ -2,6 +2,7 @@
 VQE simulation engine — Phase 3A PennyLane simulator backend.
 Each run produces a complete P1–P9 provenance record stored in Supabase.
 """
+import base64
 import hashlib
 import json
 import os
@@ -11,7 +12,7 @@ from datetime import datetime, timezone
 
 import pennylane as qml
 import pennylane.numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from supabase import create_client
 
 router = APIRouter()
@@ -179,16 +180,32 @@ def build_p8_seal(record: dict) -> str:
 
 # ── API endpoint ───────────────────────────────────────────────────────────────
 
+def _extract_user_id(authorization: str | None) -> str | None:
+    """Decode Supabase JWT without verification to extract sub (user_id)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        token = authorization[7:]
+        payload_b64 = token.split(".")[1]
+        payload_b64 += "=" * (-len(payload_b64) % 4)  # pad
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        return payload.get("sub")
+    except Exception:
+        return None
+
+
 @router.get("/{mutation_id}")
-async def run_simulation(mutation_id: str):
+async def run_simulation(mutation_id: str, authorization: str | None = Header(None)):
     config = MUTATION_CONFIGS.get(mutation_id)
     if not config:
         raise HTTPException(status_code=404,
                             detail=f"Unknown mutation: {mutation_id}. "
                                    f"Valid: {list(MUTATION_CONFIGS.keys())}")
+    user_id = _extract_user_id(authorization)
 
     now = datetime.now(timezone.utc).isoformat()
     run_id = str(uuid.uuid4())
+
 
     # ── Run VQE ────────────────────────────────────────────────────────────────
     vqe = run_vqe(config)
@@ -261,7 +278,7 @@ async def run_simulation(mutation_id: str):
     # ── Persist to Supabase ────────────────────────────────────────────────────
     sb = get_supabase()
     if sb:
-        sb.table("simulation_runs").insert(record).execute()
+        sb.table("simulation_runs").insert({**record, "user_id": user_id}).execute()
 
     return {
         "run_id":   run_id,

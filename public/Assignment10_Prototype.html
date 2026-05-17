@@ -356,6 +356,7 @@
     <button class="nav-tab" onclick="show('s2')">⚙️ Orchestration</button>
     <button class="nav-tab" onclick="show('s3')">📈 Results</button>
     <button class="nav-tab" onclick="show('s4')">🔒 Compliance</button>
+    <button class="nav-tab" id="admin-nav-tab" onclick="show('s5')" style="display:none;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)">🛡 Admin</button>
   </div>
 
   <div class="user-chip">
@@ -1306,6 +1307,55 @@
   </div>
 </div>
 
+<!-- ── ADMIN SCREEN ─────────────────────────────────────────────────────────── -->
+<div class="screen" id="s5">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div>
+      <div style="font-size:18px;font-weight:700;color:#f87171">🛡 Admin Console</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:3px">Platform access log · Simulation runs · User management</div>
+    </div>
+    <button onclick="show('s1')" style="background:rgba(255,255,255,0.05);color:var(--gray);border:1px solid var(--border);padding:7px 16px;border-radius:6px;font-size:11px;cursor:pointer">← Back</button>
+  </div>
+
+  <!-- Stats row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div class="card" style="text-align:center;padding:16px">
+      <div id="admin-stat-runs" style="font-size:28px;font-weight:700;color:var(--teal)">—</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px">Total Runs</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div id="admin-stat-users" style="font-size:28px;font-weight:700;color:var(--gold)">—</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px">Users</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div id="admin-stat-mutations" style="font-size:28px;font-weight:700;color:var(--violet)">—</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px">Mutations Run</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div id="admin-stat-last" style="font-size:13px;font-weight:700;color:var(--green)">—</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px">Last Run</div>
+    </div>
+  </div>
+
+  <!-- All runs table -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">All Simulation Runs</div>
+    <div id="admin-runs-table" style="color:var(--gray);font-size:12px;padding:8px 0">Loading…</div>
+  </div>
+
+  <!-- Provenance audit log -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Provenance Audit Log</div>
+    <div id="admin-audit-table" style="color:var(--gray);font-size:12px;padding:8px 0">Loading…</div>
+  </div>
+
+  <!-- Users -->
+  <div class="card">
+    <div class="card-title">User Profiles</div>
+    <div id="admin-users-table" style="color:var(--gray);font-size:12px;padding:8px 0">Loading…</div>
+  </div>
+</div>
+
 <script>
 const API_BASE = window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com';
 
@@ -1413,13 +1463,112 @@ async function doLogout() {
   document.getElementById('login-btn').textContent = 'Sign In';
 }
 
-function showPlatform(user) {
+async function showPlatform(user) {
   document.getElementById('login-overlay').style.display = 'none';
   const email    = user.email || '';
   const initials = email.slice(0, 2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
   document.getElementById('user-label').textContent  = email;
   document.getElementById('menu-email').textContent  = email;
+
+  // Detect admin role and show admin tab if applicable
+  try {
+    const { data: profile } = await supa
+      .from('users_profile').select('role, full_name').eq('id', user.id).single();
+    if (profile?.role === 'admin') showAdminTab();
+  } catch { /* no profile = regular user */ }
+
+  // Restore previous runs from Supabase
+  loadSessionHistory();
+}
+
+// ── Admin tab ──────────────────────────────────────────────────────────────
+function showAdminTab() {
+  const t = document.getElementById('admin-nav-tab');
+  if (t) t.style.display = '';
+}
+
+async function loadAdminView() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) return;
+  const headers = { Authorization: `Bearer ${session.access_token}` };
+
+  // Stats
+  try {
+    const s = await fetch(`${API_BASE}/api/admin/stats`, { headers }).then(r => r.json());
+    const el = id => document.getElementById(id);
+    if (el('admin-stat-runs'))      el('admin-stat-runs').textContent      = s.total_runs ?? '—';
+    if (el('admin-stat-users'))     el('admin-stat-users').textContent     = s.total_users ?? '—';
+    if (el('admin-stat-mutations')) el('admin-stat-mutations').textContent = Object.keys(s.by_mutation || {}).length;
+    if (el('admin-stat-last'))      el('admin-stat-last').textContent      = s.last_run_at
+      ? new Date(s.last_run_at).toLocaleString() : '—';
+  } catch { /* non-fatal */ }
+
+  // All runs
+  try {
+    const r = await fetch(`${API_BASE}/api/admin/runs`, { headers }).then(r => r.json());
+    const tbl = document.getElementById('admin-runs-table');
+    if (tbl && r.data?.length) {
+      tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr style="color:var(--gray);text-transform:uppercase;font-size:10px">
+          <th style="text-align:left;padding:4px 8px">Time</th>
+          <th style="text-align:left;padding:4px 8px">Mutation</th>
+          <th style="text-align:left;padding:4px 8px">Energy (Hₐ)</th>
+          <th style="text-align:left;padding:4px 8px">Phase</th>
+          <th style="text-align:left;padding:4px 8px">Run ID</th>
+        </tr>
+        ${r.data.map(row => `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:5px 8px;color:var(--gray)">${new Date(row.created_at).toLocaleString()}</td>
+          <td style="padding:5px 8px;color:var(--teal);font-weight:700">${row.mutation_name}</td>
+          <td style="padding:5px 8px;color:var(--gold)">${row.p7_energy_ha?.toFixed(6) ?? '—'} Hₐ</td>
+          <td style="padding:5px 8px;color:var(--gray)">${row.phase}</td>
+          <td style="padding:5px 8px;color:var(--gray);font-size:10px;font-family:monospace">${row.id?.slice(0,12)}…</td>
+        </tr>`).join('')}
+      </table>`;
+    } else if (tbl) tbl.textContent = 'No runs yet.';
+  } catch(e) { document.getElementById('admin-runs-table').textContent = `Error: ${e.message}`; }
+
+  // Audit log
+  try {
+    const a = await fetch(`${API_BASE}/api/admin/access-log`, { headers }).then(r => r.json());
+    const tbl = document.getElementById('admin-audit-table');
+    if (tbl && a.data?.length) {
+      tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr style="color:var(--gray);text-transform:uppercase;font-size:10px">
+          <th style="text-align:left;padding:4px 8px">Time</th>
+          <th style="text-align:left;padding:4px 8px">Action</th>
+          <th style="text-align:left;padding:4px 8px">Result</th>
+        </tr>
+        ${a.data.map(row => `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:5px 8px;color:var(--gray)">${new Date(row.created_at).toLocaleString()}</td>
+          <td style="padding:5px 8px;color:var(--light)">${row.action}</td>
+          <td style="padding:5px 8px;color:${row.result==='success'?'var(--green)':'var(--gray)'}">${row.result ?? '—'}</td>
+        </tr>`).join('')}
+      </table>`;
+    } else if (tbl) tbl.textContent = 'No audit entries yet.';
+  } catch(e) { document.getElementById('admin-audit-table').textContent = `Error: ${e.message}`; }
+
+  // Users
+  try {
+    const u = await fetch(`${API_BASE}/api/admin/users`, { headers }).then(r => r.json());
+    const tbl = document.getElementById('admin-users-table');
+    if (tbl && u.data?.length) {
+      tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr style="color:var(--gray);text-transform:uppercase;font-size:10px">
+          <th style="text-align:left;padding:4px 8px">Name</th>
+          <th style="text-align:left;padding:4px 8px">Role</th>
+          <th style="text-align:left;padding:4px 8px">Institution</th>
+          <th style="text-align:left;padding:4px 8px">Since</th>
+        </tr>
+        ${u.data.map(row => `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:5px 8px;color:var(--light)">${row.full_name || '—'}</td>
+          <td style="padding:5px 8px;color:${row.role==='admin'?'#f87171':'var(--teal)'};font-weight:700">${row.role}</td>
+          <td style="padding:5px 8px;color:var(--gray)">${row.institution || '—'}</td>
+          <td style="padding:5px 8px;color:var(--gray)">${new Date(row.created_at).toLocaleDateString()}</td>
+        </tr>`).join('')}
+      </table>`;
+    } else if (tbl) tbl.textContent = 'No user profiles yet.';
+  } catch(e) { document.getElementById('admin-users-table').textContent = `Error: ${e.message}`; }
 }
 
 function toggleUserMenu() {
@@ -1508,10 +1657,16 @@ function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const map = {s1:0, s2:1, s3:2, s4:3};
-  document.querySelectorAll('.nav-tab')[map[id]].classList.add('active');
+  const map = {s1:0, s2:1, s3:2, s4:3, s5:'admin-nav-tab'};
+  const tabRef = map[id];
+  if (typeof tabRef === 'string') {
+    document.getElementById(tabRef)?.classList.add('active');
+  } else {
+    document.querySelectorAll('.nav-tab')[tabRef]?.classList.add('active');
+  }
   window.scrollTo({top:0, behavior:'smooth'});
   if (id === 's3') loadLiveResults();
+  if (id === 's5') loadAdminView();
 }
 
 // ── Update ALL tabs with the result from any simulation run ───────────────
@@ -1733,7 +1888,10 @@ async function runLiveVQE() {
   const t3 = setTimeout(() => setPipelineState(mutationId, 3), 8000);  // stage 6
 
   try {
-    const res = await fetch(`${API_BASE}/api/simulate/${mutationId}`);
+    const { data: { session } } = await supa.auth.getSession();
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` } : {};
+    const res = await fetch(`${API_BASE}/api/simulate/${mutationId}`, { headers });
     clearTimeout(t2); clearTimeout(t3);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -2459,14 +2617,45 @@ const MUT_COLORS = {
   KEAP1_LOF: '#b47fd4', STK11_LKB1: '#34d399', CDKN2A_P16: '#a78bfa',
 };
 
-function addRunToHistory(data) {
-  runHistory.push(data);
+const MUT_META = {
+  TP53_Y220C: { full_electrons: 38,  full_qubits: 76,  backend: 'IBM Heron r3' },
+  TP53_C275F: { full_electrons: 44,  full_qubits: 88,  backend: 'IBM Heron r3' },
+  KEAP1_LOF:  { full_electrons: 52,  full_qubits: 104, backend: 'IBM Heron r3' },
+  STK11_LKB1: { full_electrons: 46,  full_qubits: 92,  backend: 'IBM Heron r3' },
+  CDKN2A_P16: { full_electrons: 28,  full_qubits: 56,  backend: 'IBM Heron r3' },
+};
+
+// ── Reconstruct runData shape from a Supabase simulation_runs row ────────────
+function rowToRunData(row) {
+  const m = MUT_META[row.mutation_id] || { full_electrons: '?', full_qubits: '?', backend: 'IBM Heron r3' };
+  return {
+    run_id: row.id,
+    mutation: row.mutation_name,
+    result: {
+      energy_ha:   row.p7_energy_ha,
+      ci_lower:    row.p7_ci_lower,
+      ci_upper:    row.p7_ci_upper,
+      confidence:  '95%',
+      gate_count:  row.p1_gate_count,
+      depth:       row.p1_depth,
+      qubits_used: row.p1_qubit_count,
+      elapsed_s:   row.p5_elapsed_s,
+      phase:       row.phase,
+      full_target: `${m.full_electrons}e / ${m.full_qubits} qubits on ${m.backend} (Phase 3B)`,
+    },
+    full_record: row,
+  };
+}
+
+// ── Rebuild run-history chip bar from runHistory[] ───────────────────────────
+function rebuildHistoryChips() {
   const bar   = document.getElementById('run-history-bar');
   const chips = document.getElementById('run-history-chips');
   if (!bar || !chips) return;
+  if (!runHistory.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'block';
   chips.innerHTML = '';
-  runHistory.forEach((d, i) => {
+  runHistory.forEach(d => {
     const mid   = d.full_record?.mutation_id || '';
     const color = MUT_COLORS[mid] || 'var(--teal)';
     const label = d.full_record?.mutation_name || mid;
@@ -2477,6 +2666,44 @@ function addRunToHistory(data) {
     chip.onclick = () => displayRunResults(d);
     chips.appendChild(chip);
   });
+}
+
+function addRunToHistory(data) {
+  runHistory.push(data);
+  rebuildHistoryChips();
+}
+
+// ── Load previous runs from Supabase on login ─────────────────────────────────
+async function loadSessionHistory() {
+  try {
+    const { data, error } = await supa
+      .from('simulation_runs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (error || !data?.length) return;
+    runHistory.length = 0;
+    [...data].reverse().forEach(row => {
+      runHistory.push(rowToRunData(row));
+      pqCompleted.add(row.mutation_id);
+    });
+    rebuildHistoryChips();
+    // Restore most recent run into Results tab + charts
+    lastRunData = runHistory[runHistory.length - 1];
+    displayRunResults(lastRunData);
+    updateResultsCharts(lastRunData);
+    // Mark P1–P9 as captured (at least one run exists)
+    ['p1','p2','p3','p4','p5','p6','p7'].forEach(p => {
+      const c = document.getElementById(`schema-status-${p}`);
+      if (c) c.innerHTML = '<span class="green">✓ Captured</span>';
+    });
+    const p8 = document.getElementById('schema-status-p8');
+    if (p8) p8.innerHTML = '<span class="green">✓ Sealed</span>';
+    const p9 = document.getElementById('schema-status-p9');
+    if (p9) p9.innerHTML = '<span style="color:#ff9944">✓ Captured*</span>';
+  } catch(e) {
+    console.warn('loadSessionHistory:', e);
+  }
 }
 
 function displayRunResults(data) {

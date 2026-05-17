@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import simulate, pdb, provenance
+from routes import simulate, pdb, provenance, admin
 
 app = FastAPI(
     title="QC·AI·HPC Simulation API",
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(simulate.router,   prefix="/api/simulate",   tags=["Simulation"])
 app.include_router(pdb.router,        prefix="/api/pdb",        tags=["PDB"])
 app.include_router(provenance.router, prefix="/api/provenance", tags=["Provenance"])
+app.include_router(admin.router,      prefix="/api/admin",      tags=["Admin"])
 
 @app.get("/")
 def root():
