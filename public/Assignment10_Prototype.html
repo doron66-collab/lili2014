@@ -908,7 +908,7 @@
     <!-- VQE Convergence -->
     <div class="card">
       <div class="card-title" id="convergence-title">VQE Energy Convergence — Optimization Iterations</div>
-      <div style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px">
+      <div id="convergence-wrap" style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px;transition:background 0.4s">
         <svg width="100%" height="100%" viewBox="0 0 300 110" preserveAspectRatio="none">
           <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
           <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
@@ -919,6 +919,7 @@
           <line id="convergence-target-line" x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
           <circle id="convergence-marker" cx="220" cy="91.5" r="4" fill="var(--gold)"/>
           <text id="convergence-marker-label" x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
+          <text id="convergence-energy-label" x="4" y="20" fill="rgba(0,200,180,0.6)" font-size="8" font-family="monospace"></text>
         </svg>
       </div>
       <div id="convergence-iter-labels" style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
@@ -1537,12 +1538,14 @@ async function loadAdminView() {
         <tr style="color:var(--gray);text-transform:uppercase;font-size:10px">
           <th style="text-align:left;padding:4px 8px">Time</th>
           <th style="text-align:left;padding:4px 8px">Action</th>
-          <th style="text-align:left;padding:4px 8px">Result</th>
+          <th style="text-align:left;padding:4px 8px">Detail</th>
+          <th style="text-align:left;padding:4px 8px">Status</th>
         </tr>
         ${a.data.map(row => `<tr style="border-top:1px solid var(--border)">
           <td style="padding:5px 8px;color:var(--gray)">${new Date(row.created_at).toLocaleString()}</td>
-          <td style="padding:5px 8px;color:var(--light)">${row.action}</td>
-          <td style="padding:5px 8px;color:${row.result==='success'?'var(--green)':'var(--gray)'}">${row.result ?? '—'}</td>
+          <td style="padding:5px 8px;color:var(--teal);font-weight:600">${row.action}</td>
+          <td style="padding:5px 8px;color:var(--light);font-size:10px;font-family:monospace">${row.detail ?? '—'}</td>
+          <td style="padding:5px 8px;color:${row.result==='success'?'var(--green)':'var(--gray)'}">✓ ${row.result ?? '—'}</td>
         </tr>`).join('')}
       </table>`;
     } else if (tbl) tbl.textContent = 'No audit entries yet.';
@@ -1703,7 +1706,18 @@ function updateResultsCharts(data) {
     pts.push(`${x},${Math.min(yBot, Math.max(yTop, y))}`);
   }
   const poly = document.getElementById('convergence-polyline');
-  if (poly) poly.setAttribute('points', pts.join(' '));
+  if (poly) {
+    poly.setAttribute('points', pts.join(' '));
+    // flash the chart wrapper to signal update
+    const wrap = document.getElementById('convergence-wrap');
+    if (wrap) {
+      wrap.style.background = 'rgba(0,200,180,0.07)';
+      setTimeout(() => { wrap.style.background = ''; }, 600);
+    }
+  }
+  // Energy label top-left of SVG
+  const eLabel = document.getElementById('convergence-energy-label');
+  if (eLabel) eLabel.textContent = `E₀ = ${r.energy_ha} Hₐ`;
   // Move convergence marker to ~72% of x-axis
   const mx = Math.round(convIter / steps * 300);
   const marker = document.getElementById('convergence-marker');
@@ -2414,6 +2428,8 @@ function resetPlatform() {
   if (ct) ct.textContent = 'VQE Energy Convergence — Optimization Iterations';
   const cf = document.getElementById('convergence-footnote');
   if (cf) cf.innerHTML = 'Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron';
+  const cel = document.getElementById('convergence-energy-label');
+  if (cel) cel.textContent = '';
   const bEl = document.getElementById('bench-vqe-electrons');
   if (bEl) bEl.innerHTML = '<strong>32 (exact)</strong>';
   const bEn = document.getElementById('bench-vqe-energy');

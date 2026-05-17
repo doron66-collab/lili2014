@@ -71,16 +71,27 @@ async def admin_users(authorization: str | None = Header(None)):
 
 @router.get("/access-log")
 async def admin_access_log(limit: int = 100, authorization: str | None = Header(None)):
-    """Auth audit log — logins, logouts, token refreshes."""
+    """Provenance audit log — simulation runs as audit trail."""
     sb = get_supabase()
     _require_admin(authorization, sb)
-    # auth.audit_log_entries is only accessible via service_role
-    res = (sb.table("provenance_audit")
-             .select("*")
+    res = (sb.table("simulation_runs")
+             .select("id, created_at, user_id, mutation_name, mutation_id, p7_energy_ha, p8_hash, phase")
              .order("created_at", desc=True)
              .limit(limit)
              .execute())
-    return {"data": res.data, "count": len(res.data)}
+    rows = res.data or []
+    audit = [
+        {
+            "created_at": r["created_at"],
+            "action": f"VQE simulation — {r['mutation_name']} ({r['mutation_id']})",
+            "result": "success",
+            "detail": f"Energy: {r['p7_energy_ha']} Hₐ · Phase: {r['phase']} · Seal: {(r['p8_hash'] or '')[:16]}…",
+            "user_id": r["user_id"],
+            "run_id": r["id"],
+        }
+        for r in rows
+    ]
+    return {"data": audit, "count": len(audit)}
 
 
 @router.get("/stats")
