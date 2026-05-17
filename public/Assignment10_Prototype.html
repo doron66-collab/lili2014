@@ -887,9 +887,7 @@
           </div>
           <div class="bar-group" style="position:relative">
             <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
-            <div class="bar" id="vqe-bar-fill" style="height:72px;width:44px;background:rgba(0,168,214,0.85);position:relative">
-              <div id="vqe-live-badge" style="display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,200,180,0.15);border:1px solid var(--teal);border-radius:4px;padding:2px 6px;font-size:9px;color:var(--teal);font-weight:700;white-space:nowrap">● LIVE</div>
-            </div>
+            <div class="bar" id="vqe-bar-fill" style="height:72px;width:44px;background:rgba(0,168,214,0.85)"></div>
           </div>
           <div class="bar-group">
             <div class="bar-val green">−11.2</div>
@@ -1687,14 +1685,9 @@ function updateResultsCharts(data) {
   const mutName = rec.mutation_name || rec.mutation_id;
   const electrons = rec.p2_active_electrons || '2';
 
-  // 1. Bar chart — update VQE bar value + card title + live badge
+  // 1. Bar chart — update VQE bar value label with live energy
   const barVal = document.getElementById('vqe-bar-val');
-  if (barVal) barVal.textContent = `−11.7`;   // keep reference scale value
-  const liveBadge = document.getElementById('vqe-live-badge');
-  if (liveBadge) {
-    liveBadge.style.display = 'block';
-    liveBadge.textContent = `● ${(+r.energy_ha).toFixed(4)} Hₐ`;
-  }
+  if (barVal) barVal.textContent = `${(+r.energy_ha).toFixed(4)} Hₐ`;
   const chartTitle = document.getElementById('energy-chart-title');
   if (chartTitle) chartTitle.textContent = `Binding Energy Comparison · ${mutName} Active Space`;
   const chartFn = document.getElementById('energy-chart-footnote');
@@ -2455,8 +2448,8 @@ function resetPlatform() {
   if (cil) cil.innerHTML = '<span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>';
   const ct = document.getElementById('convergence-title');
   if (ct) ct.innerHTML = 'VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span>';
-  const lb = document.getElementById('vqe-live-badge');
-  if (lb) lb.style.display = 'none';
+  const vbv2 = document.getElementById('vqe-bar-val');
+  if (vbv2) vbv2.textContent = '−11.7';
   const cf = document.getElementById('convergence-footnote');
   if (cf) cf.innerHTML = 'Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron';
   const cel = document.getElementById('convergence-energy-label');
