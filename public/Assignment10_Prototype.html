@@ -880,14 +880,25 @@
     <div class="card">
       <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space</div>
       <div style="position:relative;height:160px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 8px">
-        <div style="display:flex;align-items:flex-end;gap:18px;height:100%;padding-bottom:28px">
+        <!-- upper dashed line: +0.5 kcal/mol above CCSD(T) -->
+        <div style="position:absolute;top:61px;left:0;right:0;border-top:1px dashed rgba(0,200,180,0.65);z-index:1;pointer-events:none">
+          <span style="position:absolute;right:4px;top:-13px;font-size:7.5px;color:rgba(0,200,180,0.8);white-space:nowrap">+0.5 kcal/mol</span>
+        </div>
+        <!-- band fill -->
+        <div style="position:absolute;top:62px;left:0;right:0;height:5px;background:rgba(0,200,180,0.07);z-index:0;pointer-events:none"></div>
+        <!-- lower dashed line: −0.5 kcal/mol below CCSD(T) -->
+        <div style="position:absolute;top:67px;left:0;right:0;border-top:1px dashed rgba(0,200,180,0.65);z-index:1;pointer-events:none">
+          <span style="position:absolute;right:4px;top:2px;font-size:7.5px;color:rgba(0,200,180,0.8);white-space:nowrap">−0.5 kcal/mol</span>
+        </div>
+        <!-- bars -->
+        <div style="display:flex;align-items:flex-end;gap:18px;height:100%;padding-bottom:28px;position:relative;z-index:2">
           <div class="bar-group">
             <div class="bar-val red">−8.4</div>
-            <div class="bar" style="height:42px;width:44px;background:rgba(239,68,68,0.7)"></div>
+            <div class="bar" style="height:51px;width:44px;background:rgba(239,68,68,0.7)"></div>
           </div>
-          <div class="bar-group" style="position:relative">
+          <div class="bar-group">
             <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
-            <div class="bar" id="vqe-bar-fill" style="height:72px;width:44px;background:rgba(0,168,214,0.85)"></div>
+            <div class="bar" id="vqe-bar-fill" style="height:71px;width:44px;background:rgba(0,168,214,0.85)"></div>
           </div>
           <div class="bar-group">
             <div class="bar-val green">−11.2</div>
@@ -895,10 +906,11 @@
           </div>
           <div class="bar-group">
             <div class="bar-val" style="color:var(--violet)">−10.8</div>
-            <div class="bar" style="height:65px;width:44px;background:rgba(122,61,143,0.7)"></div>
+            <div class="bar" style="height:66px;width:44px;background:rgba(122,61,143,0.7)"></div>
           </div>
         </div>
-        <div style="display:flex;gap:18px;position:absolute;bottom:4px;left:8px;right:8px">
+        <!-- labels -->
+        <div style="display:flex;gap:18px;position:absolute;bottom:4px;left:8px;right:8px;z-index:2">
           <div class="bar-label" style="flex:1">DFT<br>B3LYP</div>
           <div class="bar-label" style="flex:1">VQE<br>Phase 3A ●</div>
           <div class="bar-label" style="flex:1">CCSD(T)<br>Reference</div>
