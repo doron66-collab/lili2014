@@ -883,21 +883,21 @@
         <div style="display:flex;align-items:flex-end;gap:18px;height:100%;padding-bottom:28px">
           <div class="bar-group">
             <div class="bar-val red">−8.4</div>
-            <div class="bar" style="height:42px;background:rgba(239,68,68,0.7)"></div>
+            <div class="bar" style="height:42px;width:44px;background:rgba(239,68,68,0.7)"></div>
           </div>
           <div class="bar-group" style="position:relative">
             <div class="bar-val teal" id="vqe-bar-val">−11.7</div>
-            <div class="bar" id="vqe-bar-fill" style="height:72px;background:rgba(0,168,214,0.85);position:relative">
-              <div id="vqe-live-badge" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(0,200,180,0.2);border:1px solid var(--teal);border-radius:4px;padding:2px 5px;font-size:9px;color:var(--teal);font-weight:700;white-space:nowrap">● LIVE</div>
+            <div class="bar" id="vqe-bar-fill" style="height:72px;width:44px;background:rgba(0,168,214,0.85);position:relative">
+              <div id="vqe-live-badge" style="display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,200,180,0.15);border:1px solid var(--teal);border-radius:4px;padding:2px 6px;font-size:9px;color:var(--teal);font-weight:700;white-space:nowrap">● LIVE</div>
             </div>
           </div>
           <div class="bar-group">
             <div class="bar-val green">−11.2</div>
-            <div class="bar" style="height:68px;background:rgba(34,197,94,0.7)"></div>
+            <div class="bar" style="height:68px;width:44px;background:rgba(34,197,94,0.7)"></div>
           </div>
           <div class="bar-group">
             <div class="bar-val" style="color:var(--violet)">−10.8</div>
-            <div class="bar" style="height:65px;background:rgba(122,61,143,0.7)"></div>
+            <div class="bar" style="height:65px;width:44px;background:rgba(122,61,143,0.7)"></div>
           </div>
         </div>
         <div style="display:flex;gap:18px;position:absolute;bottom:4px;left:8px;right:8px">
@@ -1693,7 +1693,7 @@ function updateResultsCharts(data) {
   const liveBadge = document.getElementById('vqe-live-badge');
   if (liveBadge) {
     liveBadge.style.display = 'block';
-    liveBadge.textContent = `● ${r.energy_ha} Hₐ`;
+    liveBadge.textContent = `● ${(+r.energy_ha).toFixed(4)} Hₐ`;
   }
   const chartTitle = document.getElementById('energy-chart-title');
   if (chartTitle) chartTitle.textContent = `Binding Energy Comparison · ${mutName} Active Space`;
