@@ -879,7 +879,8 @@
     <!-- Energy Comparison Chart -->
     <div class="card">
       <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space</div>
-      <div class="bar-chart" style="align-items:flex-end;padding-top:12px;margin-top:38px">
+      <div style="height:150px;overflow:hidden;display:flex;align-items:flex-end;padding:0 8px 4px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border)">
+        <div class="bar-chart" style="align-items:flex-end;margin-top:0;width:100%;height:100%">
         <div class="bar-group">
           <div class="bar-val red">−8.4</div>
           <div class="bar" style="height:55px;background:rgba(239,68,68,0.7)"></div>
@@ -902,7 +903,9 @@
           <div class="bar" style="height:86px;background:rgba(122,61,143,0.7)"></div>
           <div class="bar-label">AI+QC<br>Corrected</div>
         </div>
+        </div>
       </div>
+      <div style="height:24px"></div>
       <div class="divider"></div>
       <div class="footnote" id="energy-chart-footnote">DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span></div>
     </div>
