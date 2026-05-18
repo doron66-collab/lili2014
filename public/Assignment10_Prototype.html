@@ -909,53 +909,6 @@
     </div>
   </div>
 
-  <!-- Benchmark Table -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">★ Benchmarking Framework — Novel IT Contribution</div>
-    <table>
-      <tr>
-        <th>Method</th><th>Active e⁻</th><th>Energy (kcal/mol)</th><th>Error vs Ref</th><th>Wall Time</th><th>Cost</th><th>Scalable?</th>
-      </tr>
-      <tr>
-        <td><span class="badge badge-red">DFT B3LYP</span></td>
-        <td>All (approx)</td>
-        <td>−8.4</td>
-        <td><span class="red">2.8 kcal/mol ✗</span></td>
-        <td>2h</td>
-        <td>$12</td>
-        <td><span class="green">Yes</span></td>
-      </tr>
-      <tr>
-        <td><span class="badge badge-green">CCSD(T) Ref</span></td>
-        <td>16 (exact)</td>
-        <td>−11.2</td>
-        <td><span class="green">Reference</span></td>
-        <td>48h</td>
-        <td>$290</td>
-        <td><span class="red">No (exp.)</span></td>
-      </tr>
-      <tr style="background:rgba(0,168,214,0.05)">
-        <td><strong><span class="badge badge-teal">VQE PennyLane</span></strong></td>
-        <td id="bench-vqe-electrons"><strong>32 (exact)</strong></td>
-        <td id="bench-vqe-energy"><strong>−11.7</strong></td>
-        <td id="bench-vqe-error"><span class="teal"><strong>0.5 kcal/mol ✓</strong></span></td>
-        <td id="bench-vqe-time">6h</td>
-        <td>$85</td>
-        <td><span class="teal"><strong>Yes (poly.)</strong></span></td>
-      </tr>
-      <tr>
-        <td><span class="badge badge-violet">AI+QC</span></td>
-        <td>32 + ML</td>
-        <td>−10.8</td>
-        <td><span class="teal">0.4 kcal/mol ✓</span></td>
-        <td>6.5h</td>
-        <td>$88</td>
-        <td><span class="teal">Yes</span></td>
-      </tr>
-    </table>
-    <div class="footnote" style="margin-top:8px">This benchmarking framework — comparing methods specifically for BQP-class drugless NSCLC targets — is an original contribution not published in existing literature.</div>
-  </div>
-
   <!-- All-Target Summary Table -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title" id="bqp-card-title">All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status</div>
