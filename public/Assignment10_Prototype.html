@@ -1129,7 +1129,7 @@
           <td id="schema-status-p8"><span style="color:var(--gray)">○ Pending</span></td>
         </tr>
         <tr style="background:rgba(255,153,68,0.06)">
-          <td><strong style="color:#ff9944">P9*</strong></td>
+          <td><strong style="color:var(--teal)">P9</strong></td>
           <td>ML-decoder lineage — Nvidia Ising 3D CNN model ID, weight checksum, training corpus hash, inference config <em style="color:var(--gray)">(conditional: present when QEC uses a learned ML decoder)</em></td>
           <td><span class="badge badge-gold">Hybrid</span></td>
           <td id="schema-status-p9"><span style="color:var(--gray)">○ Pending</span></td>
@@ -1728,7 +1728,7 @@ function updateAllTabs(data) {
     p6: '<span class="green">✓ Captured</span>',
     p7: '<span class="green">✓ Captured</span>',
     p8: '<span class="green">✓ Sealed</span>',
-    p9: '<span style="color:#ff9944">✓ Captured*</span>',
+    p9: '<span class="green">✓ Sealed (minimal)</span>',
   };
   Object.entries(schemaStatuses).forEach(([p, html]) => {
     const cell = document.getElementById(`schema-status-${p}`);
@@ -1740,7 +1740,7 @@ function updateAllTabs(data) {
   if (compAlert) {
     compAlert.className = 'alert alert-green';
     compAlert.style.cssText = 'margin-bottom:16px';
-    compAlert.innerHTML = `<strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 compliant · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
+    compAlert.innerHTML = `<strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 audit-trail requirements satisfied · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
   }
 
   // ── Compliance tab — audit trail ─────────────────────────────────────
