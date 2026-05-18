@@ -1294,7 +1294,7 @@
 
         <a href="#appendix-a" class="toc-entry toc-major">
           <span class="toc-num">App. A</span>
-          <span class="toc-title">Complete Glossary (80 entries)</span>
+          <span class="toc-title">Complete Glossary (81 entries)</span>
         </a>
       </div>
     </section>
@@ -1306,7 +1306,7 @@
 
       <p><em>A reader's guide to the eighteen terms that recur most often across this proposal.</em></p>
 
-      <p>This dissertation sits at the intersection of information systems, quantum computing, computational chemistry, and FDA regulatory science. Each of these fields contributes vocabulary that is unfamiliar to readers from the others. The eighteen terms below are the minimum set required to follow the argument from the Problem Statement through the Methodology section without consulting external references. A complete glossary of eighty terms appears as <a href="#appendix-a">Appendix A</a>.</p>
+      <p>This dissertation sits at the intersection of information systems, quantum computing, computational chemistry, and FDA regulatory science. Each of these fields contributes vocabulary that is unfamiliar to readers from the others. The eighteen terms below are the minimum set required to follow the argument from the Problem Statement through the Methodology section without consulting external references. A complete glossary of eighty-one terms appears as <a href="#appendix-a">Appendix A</a>.</p>
 
       <p><em>Terms are listed alphabetically. Where a term has both a formal definition and a specific role in this dissertation, the role is given priority — readers seeking deeper coverage are referred to <a href="#appendix-a">Appendix A</a>.</em></p>
 
@@ -1414,7 +1414,7 @@
         </table>
       </div>
 
-      <p><em>See also: <a href="#appendix-a">Appendix A — Complete Glossary</a> (eighty entries) for full coverage of acronyms, methods, and technical terms appearing throughout the dissertation, prototype, and supporting artifacts.</em></p>
+      <p><em>See also: <a href="#appendix-a">Appendix A — Complete Glossary</a> (eighty-one entries) for full coverage of acronyms, methods, and technical terms appearing throughout the dissertation, prototype, and supporting artifacts.</em></p>
     </section>
 
     <div class="ornament">
@@ -2776,13 +2776,13 @@
     <!-- ========== APPENDIX A — COMPLETE GLOSSARY ========== -->
     <section class="doc-section reveal" id="appendix-a">
       <div class="section-number">Appendix A <span class="dash"></span> Complete Glossary</div>
-      <h2 class="section-title">Eighty Entries.</h2>
+      <h2 class="section-title">Eighty-One Entries.</h2>
 
       <p><em>A Translational QC·AI·HPC Orchestration Platform for Non-druggable NSCLC Tumor-Suppressor Mutations</em></p>
 
       <p>This glossary consolidates every acronym and technical term that appears across the dissertation proposal, conference poster, deployed prototype (<code>nsclc-quantum-viewer.netlify.app</code>), and supporting coursework artifacts. Each entry pairs the standard definition with the term's specific role in this dissertation, so a reader unfamiliar with quantum computing, computational chemistry, FDA regulation, or oncology can follow the work without external reference. Terms are listed alphabetically.</p>
 
-      <p><strong>Total entries:</strong> <strong>80</strong></p>
+      <p><strong>Total entries:</strong> <strong>81</strong></p>
 
       <div class="table-wrap">
         <table>
@@ -3123,6 +3123,11 @@
               <td><strong>QM/MM</strong></td>
               <td><em>Quantum Mechanics / Molecular Mechanics hybrid partitioning</em></td>
               <td>A multi-scale modeling approach in which a small chemically critical region is treated quantum-mechanically while the surrounding environment is treated classically. The dissertation requires a novel QM/MM scheme tailored to TP53's Zn²⁺ site for C275F - itself a research contribution within the broader pipeline.</td>
+            </tr>
+            <tr id="glos-Qiskit">
+              <td><strong>Qiskit</strong></td>
+              <td><em>IBM's open-source quantum computing SDK</em></td>
+              <td>The primary software development kit for IBM quantum hardware, providing tools for circuit construction, compilation, Hamiltonian simulation, and execution via IBM Quantum services. In this dissertation, Qiskit Runtime is the execution layer for Phase 3B (SqDRIFT on IBM Heron r3), providing production-grade primitives for Trotter compilation, drift sampling, and per-circuit telemetry sufficient to populate the P1–P9 provenance record. Qiskit is also the baseline comparator in the Layer-4 capability benchmark (§05).</td>
             </tr>
             <tr id="glos-QPU">
               <td><strong>QPU</strong></td>
