@@ -194,6 +194,20 @@ def _extract_user_id(authorization: str | None) -> str | None:
         return None
 
 
+@router.get("/results")
+async def get_results(limit: int = 20):
+    """Return the most recent simulation runs from Supabase."""
+    sb = get_supabase()
+    if not sb:
+        return {"error": "Supabase not configured", "data": []}
+    res = (sb.table("simulation_runs")
+             .select("id, created_at, mutation_id, mutation_name, p7_energy_ha, p7_ci_lower, p7_ci_upper, p8_hash, phase")
+             .order("created_at", desc=True)
+             .limit(limit)
+             .execute())
+    return {"data": res.data, "count": len(res.data)}
+
+
 @router.get("/{mutation_id}")
 async def run_simulation(mutation_id: str, authorization: str | None = Header(None)):
     config = MUTATION_CONFIGS.get(mutation_id)
@@ -305,17 +319,3 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
         },
         "full_record": record,
     }
-
-
-@router.get("/results")
-async def get_results(limit: int = 20):
-    """Return the most recent simulation runs from Supabase."""
-    sb = get_supabase()
-    if not sb:
-        return {"error": "Supabase not configured", "data": []}
-    res = (sb.table("simulation_runs")
-             .select("id, created_at, mutation_id, mutation_name, p7_energy_ha, p7_ci_lower, p7_ci_upper, p8_hash, phase")
-             .order("created_at", desc=True)
-             .limit(limit)
-             .execute())
-    return {"data": res.data, "count": len(res.data)}
