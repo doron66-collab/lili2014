@@ -347,7 +347,7 @@
     <div class="brand-icon">⚛</div>
     <div>
       <div class="brand-name">QC·AI·HPC Platform</div>
-      <div class="brand-sub">Drugless NSCLC · IST 697 Prototype · CGU 2026</div>
+      <div class="brand-sub">Non-Druggable NSCLC · IST 697 Prototype · CGU 2026</div>
     </div>
   </div>
 
@@ -395,7 +395,7 @@
   <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div>
       <h2>Clinical Target Dashboard</h2>
-      <p id="dash-subtitle">NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
+      <p id="dash-subtitle">NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--teal);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Report (MI25-0349)</button>
@@ -429,7 +429,7 @@
   <div class="grid-2" style="margin-bottom:16px">
     <!-- Mutation Table -->
     <div class="card">
-      <div class="card-title">Drugless Target Registry — Active Queue</div>
+      <div class="card-title">Non-Druggable Target Registry — Active Queue</div>
       <table>
         <tr>
           <th>Gene</th>
@@ -2112,7 +2112,7 @@ function loadNGSReport(ngs) {
   const id = ngs.report_id || 'Unknown';
   // Header
   const sub = document.getElementById('dash-subtitle');
-  if (sub) sub.textContent = `NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report ${id}`;
+  if (sub) sub.textContent = `NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report ${id}`;
   // Banner
   const banner = document.getElementById('ngs-load-banner');
   if (banner) {
@@ -2357,7 +2357,7 @@ function resetPlatform() {
   // ── Dashboard — NGS banner + subtitle ─────────────────────────────────
   const el = id => document.getElementById(id);
   el('ngs-load-banner') && (el('ngs-load-banner').style.display = 'none');
-  el('dash-subtitle') && (el('dash-subtitle').textContent = 'NSCLC Drugless Mutation Profiles · Source: TCGA · COSMIC · ClinVar');
+  el('dash-subtitle') && (el('dash-subtitle').textContent = 'NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar');
 
   // ── Dashboard — NGS panel ─────────────────────────────────────────────
   el('ngs-panel-title') && (el('ngs-panel-title').textContent = 'Patient NGS Profile — No report loaded');
