@@ -742,25 +742,6 @@
     </div>
   </div>
 
-  <!-- Error Mitigation -->
-  <div class="card">
-    <div class="card-title">Error Mitigation Module — NISQ Era Noise Compensation</div>
-    <div class="grid-3" style="margin-top:4px">
-      <div style="padding:10px">
-        <div style="font-weight:700;color:var(--teal);margin-bottom:4px">Zero-Noise Extrapolation (ZNE)</div>
-        <div style="font-size:11.5px;line-height:1.6;color:var(--light)">Runs circuit at multiple noise levels, extrapolates to zero-noise limit. Applied to all VQE energy estimates. Reduces effective error by ~60%.</div>
-      </div>
-      <div style="padding:10px;border-left:1px solid var(--border);border-right:1px solid var(--border)">
-        <div style="font-weight:700;color:var(--gold);margin-bottom:4px">Pauli Twirling</div>
-        <div style="font-size:11.5px;line-height:1.6;color:var(--light)">Converts arbitrary gate noise into depolarizing noise. Makes error model more predictable and easier to characterize. Applied before ZNE.</div>
-      </div>
-      <div style="padding:10px">
-        <div style="font-weight:700;color:var(--violet);margin-bottom:4px">ML Error Correction</div>
-        <div style="font-size:11.5px;line-height:1.6;color:var(--light)">AI model trained on noise signatures of each backend. Applies post-hoc correction to energy output. Hardware-specific calibration.</div>
-      </div>
-    </div>
-  </div>
-
   <!-- Live VQE Runner -->
   <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
     <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A PennyLane Simulator</div>
