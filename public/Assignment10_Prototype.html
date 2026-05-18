@@ -1776,29 +1776,6 @@ function updateAllTabs(data) {
       <div><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: ${rec.p8_hash} · All provenance elements locked · FDA 21 CFR Part 11 compliant</div>
     </div>`;
 
-  // ── Compliance tab — P1-P9 record ─────────────────────────────────────
-  document.getElementById('p1p9-title').textContent =
-    `Reproducibility Metadata — Full P1–P9 Provenance Record · Run ${data.run_id} · Phase 3A LIVE`;
-  document.getElementById('p1-val').textContent =
-    `Ansatz: ${rec.p1_ansatz} · Depth: ${rec.p1_depth} · Qubits: ${rec.p1_qubit_count} · Gates: ${rec.p1_gate_count} · Hash: ${rec.p1_circuit_hash?.slice(0,16)}…`;
-  document.getElementById('p3-val').textContent =
-    `Backend: ${rec.p3_backend} (${rec.p3_backend_version}) · Simulator: ${rec.p3_simulator ? 'Yes (noiseless)' : 'No'}`;
-  document.getElementById('p4-val').textContent =
-    `Gate error: ${rec.p4_gate_error_rate} · Readout: ${rec.p4_readout_error_rate} · T1: ${rec.p4_t1_us ?? 'N/A'} · T2: ${rec.p4_t2_us ?? 'N/A'}`;
-  document.getElementById('p5-val').textContent =
-    `Shots: ${rec.p5_shots ?? 'N/A'} · Raw energy: ${rec.p5_raw_energy} Hₐ · Steps: ${rec.p5_opt_steps} · Elapsed: ${rec.p5_elapsed_s}s`;
-  document.getElementById('p2-val').textContent =
-    `Compiler: ${rec.p2_compiler} v${rec.p2_compiler_version} · Encoding: ${rec.p2_encoding} · Basis: ${rec.p2_basis_set}`;
-  document.getElementById('p6-val').textContent =
-    `Method: ${rec.p6_method} · Note: ${rec.p6_note}`;
-  document.getElementById('p7-val').textContent =
-    `Energy: ${rec.p7_energy_ha} Hₐ · CI: [${rec.p7_ci_lower?.toFixed(8)}, ${rec.p7_ci_upper?.toFixed(8)}] · Confidence: ${rec.p7_confidence * 100}%`;
-  document.getElementById('p9-val').textContent =
-    rec.p9_applicable ? 'Active — see ML decoder config' : rec.p9_note;
-  document.getElementById('p8-val').textContent  = rec.p8_hash;
-  document.getElementById('p8-time').textContent = rec.p8_sealed_at;
-  document.getElementById('p8-meta').innerHTML =
-    `Platform: Phase 3A · PennyLane: v${rec.p2_compiler_version}<br>Backend: ${rec.p3_backend} (noiseless)<br>Ansatz: ${rec.p1_ansatz}<br>Active space: ${rec.p2_active_electrons}e/${rec.p2_active_orbitals}orb · Encoding: ${rec.p2_encoding}`;
 
   // ── Results tab — live chart + convergence + benchmark updates ───────────
   updateResultsCharts(data);
@@ -2451,7 +2428,6 @@ function resetPlatform() {
   el('audit-trail-live') && (el('audit-trail-live').innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">No run completed yet — run a simulation to populate the audit trail.</div>');
 
   // ── Compliance — P1-P9 record ─────────────────────────────────────────
-  el('p1p9-title') && (el('p1p9-title').textContent = 'Reproducibility Metadata — Full P1–P9 Provenance Record · Run a simulation to populate');
   ['p1-val','p2-val','p3-val','p4-val','p5-val','p6-val','p7-val','p8-val','p9-val'].forEach(id => {
     if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
