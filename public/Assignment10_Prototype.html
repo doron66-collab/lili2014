@@ -1138,42 +1138,6 @@
     </div>
   </div>
 
-  <!-- Reproducibility Metadata P1–P9 — dynamically rendered -->
-  <div class="card" id="p1p9-record">
-    <div class="card-title" id="p1p9-title">Reproducibility Metadata — Full P1–P9 Provenance Record · Run a simulation to populate</div>
-    <div id="p1p9-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:8px;font-size:11px">
-
-      <div style="padding:10px 14px;border-right:1px solid var(--border)">
-        <div style="color:var(--teal);font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">Layer 1 · QC Kernel</div>
-        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P1</span> <span style="color:var(--gray)">Circuit fingerprint</span><br><span id="p1-val" style="color:var(--gray)">—</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P3</span> <span style="color:var(--gray)">Device &amp; calibration</span><br><span id="p3-val" style="color:var(--gray)">—</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--teal);font-weight:700">P4</span> <span style="color:var(--gray)">Error budget snapshot</span><br><span id="p4-val" style="color:var(--gray)">—</span></div>
-        <div><span style="color:var(--teal);font-weight:700">P5</span> <span style="color:var(--gray)">Raw outcome distribution</span><br><span id="p5-val" style="color:var(--gray)">—</span></div>
-      </div>
-
-      <div style="padding:10px 14px;border-right:1px solid var(--border)">
-        <div style="color:var(--gold);font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">Layer 2 · Hybrid Substrate</div>
-        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P2</span> <span style="color:var(--gray)">Compilation lineage</span><br><span id="p2-val" style="color:var(--gray)">—</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P6</span> <span style="color:var(--gray)">Error-mitigation lineage</span><br><span id="p6-val" style="color:var(--gray)">—</span></div>
-        <div style="margin-bottom:6px"><span style="color:var(--gold);font-weight:700">P7</span> <span style="color:var(--gray)">Statistical estimator + 95% CI</span><br><span id="p7-val" style="color:var(--gray)">—</span></div>
-        <div style="padding:7px 9px;background:rgba(255,153,68,0.08);border:1px solid rgba(255,153,68,0.3);border-radius:6px">
-          <span style="color:#ff9944;font-weight:700">P9*</span> <span style="color:var(--gray)">ML-decoder lineage</span><br>
-          <span id="p9-val" style="color:var(--gray)">—</span>
-        </div>
-      </div>
-
-      <div style="padding:10px 14px">
-        <div style="color:#b47fd4;font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">Layer 3 · Governance</div>
-        <div style="margin-bottom:6px"><span style="color:#b47fd4;font-weight:700">P8</span> <span style="color:var(--gray)">Cryptographic seal</span><br>SHA-256 hash chain<br>P1→P2→P3→P4→P5→P6→P7+P9→P8<br>Seal: <span id="p8-val" style="font-family:monospace;font-size:10px;word-break:break-all;color:var(--gray)">—</span><br>Sealed: <span id="p8-time" style="color:var(--gray)">—</span></div>
-        <div style="margin-top:10px;padding:8px 10px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:6px;font-size:10.5px">
-          <div style="color:var(--green);font-weight:700;margin-bottom:4px" id="p8-integrity-label">○ Awaiting run</div>
-          <div style="color:var(--light)" id="p8-meta" style="color:var(--gray)">—</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
   <!-- Platform Qualification Record (IQ/OQ/PQ) -->
   <div class="card" style="margin-top:16px">
     <div class="card-title">Platform Qualification Record — System Validation Status (VP-2026-001)</div>
