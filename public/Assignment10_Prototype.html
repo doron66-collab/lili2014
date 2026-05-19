@@ -537,15 +537,6 @@
           <td>~56 <span style="color:var(--gray);font-size:10px">(NRF2 interface)</span></td>
           <td id="mut-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
-        <!-- CLASS C — FILTERED OUT -->
-        <tr id="mut-row-CDKN2A_P16" data-bqp="C">
-          <td><span class="badge badge-gray" style="font-size:9px">C</span></td>
-          <td style="font-weight:700;color:#a78bfa">CDKN2A</td>
-          <td>p16 Deletion <span class="badge badge-violet">CNV</span></td>
-          <td style="font-size:10px;color:var(--teal)">★ NGS</td>
-          <td>~48 <span style="color:var(--gray);font-size:10px">(CDK4/6 interface)</span></td>
-          <td id="mut-status-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></td>
-        </tr>
         </tbody>
       </table>
       <div class="footnote" style="margin-top:10px">★ NGS = detected in patient report MI25-0349 · Sibling = same gene/domain, Class A or B · Class A/B rows are quantum simulation targets · Class C rows filtered out after NGS load</div>
@@ -561,7 +552,6 @@
         <tr><td>TMB</td><td id="ngs-tmb" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
         <tr><td>MSI</td><td id="ngs-msi" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
         <tr><td>KEAP1</td><td id="ngs-keap1" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
-        <tr><td>CDKN2A</td><td id="ngs-cdkn2a" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
       </table>
       <div class="divider"></div>
       <div id="ngs-footer" style="font-size:11px;color:var(--gray)">Upload an NGS report or load the demo to populate patient data.</div>
@@ -622,16 +612,6 @@
       <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-KEAP1_LOF">—</div>
       <div style="min-width:95px" id="prow-badge-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></div>
       <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-KEAP1_LOF">Not yet run</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="min-width:130px">
-        <div style="font-weight:700;font-size:12px;color:#a78bfa">CDKN2A p16Δ</div>
-        <div style="font-size:10px;color:var(--gray)">VQE · PennyLane · 2q (Phase 3A)</div>
-      </div>
-      <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-CDKN2A_P16" style="width:0%"></div></div></div>
-      <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-CDKN2A_P16">—</div>
-      <div style="min-width:95px" id="prow-badge-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></div>
-      <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-CDKN2A_P16">Not yet run</div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
       <div style="min-width:130px">
@@ -1024,16 +1004,6 @@
         <td id="bqp-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr>
-        <td><strong style="color:#a78bfa">CDKN2A</strong></td>
-        <td>p16 deletion <span class="badge badge-violet">CNV</span></td>
-        <td>~28</td>
-        <td>~56</td>
-        <td><span class="badge badge-gold">VQE · UCCSD</span></td>
-        <td><span class="badge badge-teal">BQP</span></td>
-        <td id="bqp-de-CDKN2A_P16" style="color:var(--gray)">—</td>
-        <td id="bqp-status-CDKN2A_P16"><span class="badge badge-gray">○ Pending</span></td>
-      </tr>
-      <tr>
         <td><strong style="color:#34d399">STK11</strong></td>
         <td>LKB1 LOF <span class="badge badge-gray">SL</span></td>
         <td>~46</td>
@@ -1257,7 +1227,6 @@
           <div id="ngs-pq-items" style="display:none">
             <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
             <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
-            <div><span id="pq-dot-CDKN2A_P16"  style="color:var(--gray)">○</span> CDKN2A p16 validation</div>
             <div><span id="pq-dot-STK11_LKB1"  style="color:var(--gray)">○</span> STK11 LKB1 validation</div>
           </div>
           <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility <span style="color:var(--gray);font-size:10px">(Phase 3B)</span></div>
@@ -1683,7 +1652,6 @@ function updateResultsCharts(data) {
     TP53_C275F: [3.5, 8, 0.68],   // slower, noisier
     KEAP1_LOF:  [2.8, 4, 0.78],   // slow smooth convergence
     STK11_LKB1: [5.5, 5, 0.55],   // fast drop, early plateau
-    CDKN2A_P16: [7.0, 3, 0.45],   // very fast, clean (small system)
   };
   const [rate, noiseAmp, convFrac] = profiles[mutId] || [4.0, 5, 0.65];
   const seed = Math.abs(r.energy_ha * 1e6) % 1000;
@@ -1944,7 +1912,6 @@ const MI25_0349 = {
     { gene:'TP53', mutation:'p.Cys275Phe', hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I', badge_type:'Structural', simulation_id:'TP53_C275F', active_electrons:44, full_qubits:88 },
     { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290, tier:'III', badge_type:'PPI', simulation_id:'KEAP1_LOF', active_electrons:52, full_qubits:104 },
     { gene:'STK11', mutation:'Loss-of-function', tier:'II', badge_type:'SL', simulation_id:'STK11_LKB1', active_electrons:46, full_qubits:92 },
-    { gene:'CDKN2A', mutation:'Deletion (0.4×)', tier:'I', badge_type:'CNV', simulation_id:'CDKN2A_P16', active_electrons:28, full_qubits:56 },
   ]
 };
 
@@ -1955,7 +1922,6 @@ const GENE_MAP = {
   TP53:   { badge_type:'Structural', color:'#E8A020', active_electrons:44, full_qubits:88  },
   KEAP1:  { badge_type:'PPI',        color:'#b47fd4', active_electrons:52, full_qubits:104 },
   STK11:  { badge_type:'SL',         color:'#60a5fa', active_electrons:46, full_qubits:92  },
-  CDKN2A: { badge_type:'CNV',        color:'#a78bfa', active_electrons:28, full_qubits:56  },
   KRAS:   { badge_type:'Structural', color:'#34d399', active_electrons:40, full_qubits:80  },
   BRAF:   { badge_type:'Structural', color:'#f87171', active_electrons:44, full_qubits:88  },
   EGFR:   { badge_type:'Structural', color:'#fbbf24', active_electrons:48, full_qubits:96  },
@@ -2253,7 +2219,7 @@ function loadNGSReport(ngs) {
   const BQP_CLASS = {
     TP53_C275F:'A', STK11_LKB1:'A', STK11_F354L:'A', STK11_D194N:'A',
     KEAP1_LOF:'B',  KEAP1_G333C:'B', KEAP1_R320Q:'B',
-    TP53_Y220C:'C', CDKN2A_P16:'C',
+    TP53_Y220C:'C',
   };
   Object.entries(BQP_CLASS).forEach(([id, cls]) => {
     const row = document.getElementById(`mut-row-${id}`);
@@ -2277,12 +2243,11 @@ function loadNGSReport(ngs) {
       KEAP1_LOF:   'KEAP1 Loss-of-Function [B]',
       KEAP1_G333C: 'KEAP1 p.Gly333Cys [B]',
       KEAP1_R320Q: 'KEAP1 p.Arg320Gln [B]',
-      CDKN2A_P16:  'CDKN2A p16 Deletion [C]',
     };
     simTarget.innerHTML = '<option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C) [C - Reference]</option>';
     // Add Class A targets first, then Class B
     ['TP53_C275F','STK11_LKB1','STK11_F354L','STK11_D194N',
-     'KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','CDKN2A_P16'].forEach(id => {
+     'KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'].forEach(id => {
       const opt = document.createElement('option');
       opt.value = id; opt.textContent = LABELS[id] || id;
       simTarget.appendChild(opt);
@@ -2456,7 +2421,7 @@ function resetPlatform() {
   // ── Dashboard — NGS panel ─────────────────────────────────────────────
   el('ngs-panel-title') && (el('ngs-panel-title').textContent = 'Patient NGS Profile — No report loaded');
   if (el('ngs-tier1-alert')) { el('ngs-tier1-alert').innerHTML = ''; el('ngs-tier1-alert').style.display = 'none'; }
-  ['ngs-egfr','ngs-tmb','ngs-msi','ngs-keap1','ngs-cdkn2a'].forEach(id => { if (el(id)) el(id).innerHTML = '—'; });
+  ['ngs-egfr','ngs-tmb','ngs-msi','ngs-keap1'].forEach(id => { if (el(id)) el(id).innerHTML = '—'; });
   el('ngs-footer') && (el('ngs-footer').textContent = 'Upload an NGS report or load the demo to populate patient data.');
 
   // ── Dashboard — structure sources ─────────────────────────────────────
@@ -2470,7 +2435,7 @@ function resetPlatform() {
   el('bqp-card-title')      && (el('bqp-card-title').textContent      = 'All-Target Summary — No NGS loaded');
 
   // ── Reset per-mutation cells (status badges, progress bars, freq) ─────
-  ['TP53_C275F','TP53_Y220C','KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','STK11_LKB1','STK11_F354L','STK11_D194N','CDKN2A_P16'].forEach(id => {
+  ['TP53_C275F','TP53_Y220C','KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','STK11_LKB1','STK11_F354L','STK11_D194N'].forEach(id => {
     if (el(`mut-status-${id}`))  el(`mut-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
     if (el(`mut-freq-${id}`))  { el(`mut-freq-${id}`).textContent  = '—'; el(`mut-freq-${id}`).style.color = 'var(--gray)'; }
     if (el(`prow-bar-${id}`))  { el(`prow-bar-${id}`).style.width  = '0%'; }
@@ -2565,7 +2530,6 @@ const MUTATION_LABELS = {
   TP53_Y220C: 'TP53 p.Tyr220Cys · 2e/2orb POC',
   KEAP1_LOF:  'KEAP1 Loss-of-Function · 2e/2orb POC',
   STK11_LKB1: 'STK11/LKB1 Loss-of-Function · 2e/2orb POC',
-  CDKN2A_P16: 'CDKN2A p16/INK4a Deletion · 2e/2orb POC',
 };
 
 // stageIndex: 0=idle, 1=dispatching, 2=aggregating, 3=validating, 4=complete
@@ -2632,7 +2596,7 @@ const runHistory = [];   // all completed runs this session
 
 const MUT_COLORS = {
   TP53_Y220C: '#60a5fa', TP53_C275F: '#E8A020',
-  KEAP1_LOF: '#b47fd4', STK11_LKB1: '#34d399', CDKN2A_P16: '#a78bfa',
+  KEAP1_LOF: '#b47fd4', STK11_LKB1: '#34d399',
 };
 
 const MUT_META = {
@@ -2640,7 +2604,6 @@ const MUT_META = {
   TP53_C275F: { full_electrons: 44,  full_qubits: 88,  backend: 'IBM Heron r3' },
   KEAP1_LOF:  { full_electrons: 52,  full_qubits: 104, backend: 'IBM Heron r3' },
   STK11_LKB1: { full_electrons: 46,  full_qubits: 92,  backend: 'IBM Heron r3' },
-  CDKN2A_P16: { full_electrons: 28,  full_qubits: 56,  backend: 'IBM Heron r3' },
 };
 
 // ── Reconstruct runData shape from a Supabase simulation_runs row ────────────

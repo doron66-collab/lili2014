@@ -134,19 +134,6 @@ MUTATION_CONFIGS = {
         "hamiltonian_coeffs": [-0.22474280, 0.16893120, -0.22474280,
                                 0.15827641,  0.03775014,  0.03775014],
     },
-    "CDKN2A_P16": {
-        "name": "CDKN2A p16/INK4a Deletion",
-        "pdb": "2A5E",
-        "desc": "CDK4/6 binding interface - minimal active space POC",
-        "active_electrons": 2,
-        "active_orbitals": 2,
-        "full_electrons": 48,
-        "full_qubits": 96,
-        "bqp_class": "C",
-        "phase3b_backend": "IBM Heron r3",
-        "hamiltonian_coeffs": [-0.21274280, 0.16093120, -0.21274280,
-                                0.15427641,  0.03275014,  0.03275014],
-    },
 }
 
 # ── VQE engine ─────────────────────────────────────────────────────────────────
