@@ -599,10 +599,31 @@
     overflow-x: auto;
   }
 
+  .table-scroll-mirror {
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 12px;
+    margin-bottom: 4px;
+  }
+
+  .table-scroll-mirror-inner {
+    height: 1px;
+  }
+
   table {
     width: 100%;
+    min-width: 960px;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
+  }
+
+  td.row-num, th.row-num {
+    color: var(--muted);
+    font-size: 0.75rem;
+    width: 28px;
+    min-width: 28px;
+    text-align: center;
+    padding-right: 0.5rem;
   }
 
   th {
@@ -1455,10 +1476,12 @@
 
       <h4>Table 1 — Pipeline-Eligible Non-druggable <a href="#glos-NSCLC" class="glos-link">NSCLC</a> Mutations — BQP Necessity Classification</h4>
       <p><em>Fifteen mutations across nine genes, ordered by quantum necessity class and classified against three systematic criteria: <strong>(K1)</strong> absence of mutant crystal structure in RCSB PDB; <strong>(K2)</strong> active space above the classical tractability ceiling (~18 electrons); <strong>(K3)</strong> delocalized electronic perturbation that classical DFT cannot resolve at chemical accuracy. <strong style="color:#b8441f;">Class A — Quantum-necessary:</strong> all three criteria met; no classical computational pathway exists for the mutant. <strong style="color:#0b4f6c;">Class B — Quantum-advantaged:</strong> K2+K3 met; classical baseline exists but is insufficient at chemical accuracy. <strong style="color:#5c6168;">Class C — Quantum-optional:</strong> mutant crystal structure exists and classical methods have produced defensible baselines. The primary claims of this dissertation rest on Class A and Class B targets (~580,000 unique NSCLC patients/year); Class C mutations are listed for completeness.</em></p>
-      <div class="table-wrap">
+      <div class="table-scroll-mirror" id="t1-mirror"><div class="table-scroll-mirror-inner" id="t1-mirror-inner"></div></div>
+      <div class="table-wrap" id="t1-wrap">
       <table>
         <thead>
           <tr>
+            <th class="row-num">#</th>
             <th>BQP Class</th>
             <th>Gene</th>
             <th>Mutation</th>
@@ -1474,6 +1497,7 @@
         <tbody>
           <!-- ═══ CLASS A — QUANTUM-NECESSARY ═══ -->
           <tr style="background:rgba(184,68,31,0.04);">
+            <td class="row-num">1</td>
             <td><strong style="color:#b8441f;">A</strong></td>
             <td><strong><a href="#glos-TP53" class="glos-link">TP53</a></strong></td>
             <td>C275F ★</td>
@@ -1486,6 +1510,7 @@
             <td>COSMIC, IARC <a href="#glos-TP53" class="glos-link">TP53</a> DB, <a href="#glos-PDB" class="glos-link">PDB</a> 2OCJ</td>
           </tr>
           <tr style="background:rgba(184,68,31,0.04);">
+            <td class="row-num">2</td>
             <td><strong style="color:#b8441f;">A</strong></td>
             <td><strong><a href="#glos-STK11" class="glos-link">STK11</a></strong></td>
             <td>F354L</td>
@@ -1498,6 +1523,7 @@
             <td>TCGA, COSMIC; no mutant PDB entry</td>
           </tr>
           <tr style="background:rgba(184,68,31,0.04);">
+            <td class="row-num">3</td>
             <td><strong style="color:#b8441f;">A</strong></td>
             <td><strong><a href="#glos-STK11" class="glos-link">STK11</a></strong></td>
             <td>D194N</td>
@@ -1511,6 +1537,7 @@
           </tr>
           <!-- ═══ CLASS B — QUANTUM-ADVANTAGED ═══ -->
           <tr style="background:rgba(11,79,108,0.04);">
+            <td class="row-num">4</td>
             <td><strong style="color:#0b4f6c;">B</strong></td>
             <td><strong><a href="#glos-KEAP1" class="glos-link">KEAP1</a></strong></td>
             <td>G333C</td>
@@ -1523,6 +1550,7 @@
             <td>TCGA, COSMIC, PDB 2FLU (WT only)</td>
           </tr>
           <tr style="background:rgba(11,79,108,0.04);">
+            <td class="row-num">5</td>
             <td><strong style="color:#0b4f6c;">B</strong></td>
             <td><strong><a href="#glos-KEAP1" class="glos-link">KEAP1</a></strong></td>
             <td>R320Q</td>
@@ -1535,6 +1563,7 @@
             <td>TCGA, COSMIC; no mutant PDB entry</td>
           </tr>
           <tr style="background:rgba(11,79,108,0.04);">
+            <td class="row-num">6</td>
             <td><strong style="color:#0b4f6c;">B</strong></td>
             <td><strong>SMARCA4</strong></td>
             <td>LOF</td>
@@ -1547,6 +1576,7 @@
             <td>TCGA, COSMIC; bromodomain crystal exists, ATPase mutant does not</td>
           </tr>
           <tr style="background:rgba(11,79,108,0.04);">
+            <td class="row-num">7</td>
             <td><strong style="color:#0b4f6c;">B</strong></td>
             <td><strong>RBM10</strong></td>
             <td>LOF</td>
@@ -1559,6 +1589,7 @@
             <td>TCGA, COSMIC; no mutant PDB entry</td>
           </tr>
           <tr style="background:rgba(11,79,108,0.04);">
+            <td class="row-num">8</td>
             <td><strong style="color:#0b4f6c;">B</strong></td>
             <td><strong>ARID1A</strong></td>
             <td>LOF</td>
@@ -1572,6 +1603,7 @@
           </tr>
           <!-- ═══ CLASS C — QUANTUM-OPTIONAL ═══ -->
           <tr style="opacity:0.7;">
+            <td class="row-num">9</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong><a href="#glos-TP53" class="glos-link">TP53</a></strong></td>
             <td>R175H</td>
@@ -1584,6 +1616,7 @@
             <td>Joerger &amp; Fersht (2007), TCGA; PDB 6W51</td>
           </tr>
           <tr style="opacity:0.7;">
+            <td class="row-num">10</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong><a href="#glos-TP53" class="glos-link">TP53</a></strong></td>
             <td>G245S</td>
@@ -1596,6 +1629,7 @@
             <td>IARC <a href="#glos-TP53" class="glos-link">TP53</a> DB, COSMIC; PDB 7DHY</td>
           </tr>
           <tr style="opacity:0.7;">
+            <td class="row-num">11</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong><a href="#glos-TP53" class="glos-link">TP53</a></strong></td>
             <td>R249S</td>
@@ -1608,6 +1642,7 @@
             <td>COSMIC, IARC <a href="#glos-TP53" class="glos-link">TP53</a> DB; PDB 3D05–3D07</td>
           </tr>
           <tr style="opacity:0.7;">
+            <td class="row-num">12</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong><a href="#glos-TP53" class="glos-link">TP53</a></strong></td>
             <td>R282W</td>
@@ -1620,6 +1655,7 @@
             <td>Joerger &amp; Fersht (2007), TCGA; PDB 2J21</td>
           </tr>
           <tr style="opacity:0.7;">
+            <td class="row-num">13</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong><a href="#glos-CDKN2A" class="glos-link">CDKN2A</a></strong></td>
             <td>p16 LOF</td>
@@ -1632,6 +1668,7 @@
             <td>TCGA, PDB 1A5E; 12 mutants characterized by NMR</td>
           </tr>
           <tr style="opacity:0.7;">
+            <td class="row-num">14</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong>NF1</strong></td>
             <td>LOF</td>
@@ -1644,6 +1681,7 @@
             <td>TCGA, COSMIC; PDB 3P7Z (mutant crystal exists)</td>
           </tr>
           <tr style="opacity:0.7;">
+            <td class="row-num">15</td>
             <td><strong style="color:#5c6168;">C</strong></td>
             <td><strong>RB1</strong></td>
             <td>LOF</td>
@@ -1658,6 +1696,29 @@
         </tbody>
       </table>
       </div>
+      <script>
+        (function(){
+          var mirror = document.getElementById('t1-mirror');
+          var wrap   = document.getElementById('t1-wrap');
+          var inner  = document.getElementById('t1-mirror-inner');
+          function setInnerWidth(){
+            var tbl = wrap.querySelector('table');
+            if(tbl) inner.style.width = tbl.scrollWidth + 'px';
+          }
+          setInnerWidth();
+          var syncing = false;
+          mirror.addEventListener('scroll', function(){
+            if(syncing) return; syncing = true;
+            wrap.scrollLeft = mirror.scrollLeft;
+            syncing = false;
+          });
+          wrap.addEventListener('scroll', function(){
+            if(syncing) return; syncing = true;
+            mirror.scrollLeft = wrap.scrollLeft;
+            syncing = false;
+          });
+        })();
+      </script>
       <p><em>★ Primary demonstration case (anchor mutation). Class A and Class B mutations collectively affect an estimated <strong>~580,000 unique NSCLC patients annually</strong> — derived from systematic per-mutation frequency estimates applied to 2.12M new NSCLC diagnoses/year (GLOBOCAN 2022), with ~30% overlap correction for co-occurring mutations. Class C mutations are documented for completeness; the primary claims of this dissertation — BQP-relevance classification, orchestration architecture, and FDA Part 11 compliance framework — are validated against Class A and Class B targets where quantum simulation provides non-redundant computational value.</em></p>
 
       <h4>Table 2 — Annual Patient Burden by Mutation: Non-druggable <a href="#glos-NSCLC" class="glos-link">NSCLC</a> in the Quantum Feasibility Window</h4>
