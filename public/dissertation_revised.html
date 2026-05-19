@@ -42,7 +42,7 @@
       radial-gradient(ellipse at top left, rgba(11, 79, 108, 0.04), transparent 50%),
       radial-gradient(ellipse at bottom right, rgba(184, 68, 31, 0.03), transparent 50%);
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* Paper grain texture */
@@ -597,10 +597,12 @@
   .table-wrap {
     margin: 2rem 0;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   table {
     width: 100%;
+    min-width: 560px;
     border-collapse: collapse;
     font-size: 0.95rem;
   }
@@ -613,12 +615,12 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--muted);
-    padding: 1rem 1rem 1rem 0;
+    padding: 1rem 1.2rem 1rem 1rem;
     border-bottom: 2px solid var(--ink);
   }
 
   td {
-    padding: 1rem 1rem 1rem 0;
+    padding: 1rem 1.2rem 1rem 1rem;
     border-bottom: 1px solid var(--rule);
     vertical-align: top;
     color: var(--ink-soft);
