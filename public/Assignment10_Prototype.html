@@ -909,7 +909,7 @@
       </div>
     </div>
     <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px">
-      Phase 3A minimal active space POC (2e/2orb proxy) · Full Phase 3B target: ~44e / 88 qubits on IBM Heron r3 · All P1–P9 provenance elements captured and sealed
+      Phase 3A minimal active space POC (2e/2orb proxy) · Full Phase 3B target: <span id="s3-phase3b-target">~44e / 88 qubits</span> on IBM Heron r3 (sqDRIFT) · All P1–P9 provenance elements captured and sealed
     </div>
   </div>
 
@@ -1713,6 +1713,12 @@ function updateResultsCharts(data) {
   const r    = data.result;
   const mutName = rec.mutation_name || rec.mutation_id;
   const electrons = rec.p2_active_electrons || '2';
+  const mutId = rec.mutation_id || '';
+  const meta = MUT_META[mutId] || {};
+  const fullE = meta.full_electrons || '?';
+  const fullQ = meta.full_qubits   || '?';
+  const p3bTarget = document.getElementById('s3-phase3b-target');
+  if (p3bTarget) p3bTarget.textContent = `~${fullE}e / ${fullQ} qubits`;
 
   // 1. Bar chart — keep VQE bar at kcal/mol reference; live Hₐ goes to footnote only
   const barVal = document.getElementById('vqe-bar-val');
@@ -2569,6 +2575,7 @@ function resetPlatform() {
     if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
   el('s3-runid') && (el('s3-runid').textContent = 'P8 SHA-256 seal · Run a simulation to populate');
+  if (el('s3-phase3b-target')) el('s3-phase3b-target').textContent = '~44e / 88 qubits';
 
   // ── Compliance — P1-P9 schema table statuses ─────────────────────────
   ['p1','p2','p3','p4','p5','p6','p7','p8','p9'].forEach(p => {
