@@ -453,11 +453,11 @@
     <div class="card">
       <div class="card-title">Non-Druggable Target Registry — Active Queue</div>
       <!-- BQP filter legend — hidden until NGS loaded -->
-      <div id="bqp-filter-legend" style="display:none;margin-bottom:10px;padding:8px 10px;border-radius:6px;background:rgba(255,255,255,0.04);font-size:10px;gap:16px;align-items:center;flex-wrap:wrap">
-        <span style="color:var(--gray);font-weight:600;letter-spacing:0.05em">BQP FILTER:</span>
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8724a;margin-right:4px"></span><strong style="color:#e8724a">A — Quantum-necessary</strong> · no classical path exists</span>
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1d8fb0;margin-right:4px"></span><strong style="color:#1d8fb0">B — Quantum-advantaged</strong> · classical insufficient</span>
-        <span style="opacity:0.5"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5c6168;margin-right:4px"></span>C — Filtered out · classical methods sufficient</span>
+      <div id="bqp-filter-legend" style="display:none;margin-bottom:10px;padding:8px 10px;border-radius:6px;background:rgba(255,255,255,0.04);font-size:10px;">
+        <div style="color:var(--gray);font-weight:600;letter-spacing:0.05em;margin-bottom:6px">BQP FILTER:</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8724a;flex-shrink:0"></span><strong style="color:#e8724a;min-width:140px">A — Quantum-necessary</strong><span>· no classical path exists</span></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1d8fb0;flex-shrink:0"></span><strong style="color:#1d8fb0;min-width:140px">B — Quantum-advantaged</strong><span>· classical insufficient</span></div>
+        <div style="display:flex;align-items:center;gap:6px;opacity:0.5"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5c6168;flex-shrink:0"></span><span style="min-width:140px">C — Filtered out</span><span>· classical methods sufficient</span></div>
       </div>
       <table>
         <tr>
