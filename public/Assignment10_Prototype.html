@@ -1297,8 +1297,8 @@
 
       <div id="pq-card" style="padding:12px;border-radius:8px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.22)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-weight:700;font-size:13px;color:var(--gold)">PQ — Performance</div>
-          <span id="pq-badge" class="badge badge-gold">IN PROGRESS</span>
+          <div id="pq-title" style="font-weight:700;font-size:13px;color:var(--gray)">PQ — Performance</div>
+          <span id="pq-badge" class="badge badge-gray">NOT STARTED</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
           <!-- Y220C — always visible -->
@@ -2439,11 +2439,22 @@ function updatePQAfterRun(mutationId) {
   if (dot) { dot.textContent = '✓'; dot.style.color = 'var(--green)'; }
   pqCompleted.add(mutationId);
 
-  if (activeTargets.every(id => pqCompleted.has(id))) {
-    const badge = document.getElementById('pq-badge');
+  const badge = document.getElementById('pq-badge');
+  const title = document.getElementById('pq-title');
+  const card  = document.getElementById('pq-card');
+
+  // Mark IN PROGRESS on first run (only if not already passed)
+  if (badge && badge.textContent === 'NOT STARTED') {
+    badge.textContent = 'IN PROGRESS'; badge.className = 'badge badge-gold';
+    if (title) title.style.color = 'var(--gold)';
+    if (card)  { card.style.background = 'rgba(232,160,32,0.06)'; card.style.borderColor = 'rgba(232,160,32,0.22)'; }
+  }
+
+  // PASSED only when activeTargets is non-empty AND every target is completed
+  if (activeTargets.length > 0 && activeTargets.every(id => pqCompleted.has(id))) {
     if (badge) { badge.textContent = 'PASSED'; badge.className = 'badge badge-green'; }
-    const card = document.getElementById('pq-card');
-    if (card) { card.style.background = 'rgba(34,197,94,0.06)'; card.style.borderColor = 'rgba(34,197,94,0.22)'; }
+    if (title) title.style.color = 'var(--green)';
+    if (card)  { card.style.background = 'rgba(34,197,94,0.06)'; card.style.borderColor = 'rgba(34,197,94,0.22)'; }
     const footer = document.getElementById('pq-footer');
     if (footer) footer.textContent = `Completed: ${new Date().toLocaleDateString()} · Signed: D. Cohen · Doc: PQ-v1.0`;
   }
@@ -2536,8 +2547,9 @@ function resetPlatform() {
   });
 
   // ── Compliance — PQ card ──────────────────────────────────────────────
-  if (el('pq-badge')) { el('pq-badge').textContent = 'IN PROGRESS'; el('pq-badge').className = 'badge badge-gold'; }
-  if (el('pq-card'))  { el('pq-card').style.background = 'rgba(232,160,32,0.06)'; el('pq-card').style.borderColor = 'rgba(232,160,32,0.22)'; }
+  if (el('pq-badge')) { el('pq-badge').textContent = 'NOT STARTED'; el('pq-badge').className = 'badge badge-gray'; }
+  if (el('pq-title')) el('pq-title').style.color = 'var(--gray)';
+  if (el('pq-card'))  { el('pq-card').style.background = 'rgba(255,255,255,0.02)'; el('pq-card').style.borderColor = 'rgba(255,255,255,0.08)'; }
   el('pq-footer') && (el('pq-footer').textContent = 'Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3');
 
   // ── Orchestration — pipeline + job card ──────────────────────────────
