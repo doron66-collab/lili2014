@@ -509,6 +509,29 @@ routing rationale recorded in the P2 provenance field.
 \end{tabular}
 \end{table}
 
+\textbf{Distinction from quantum-enhanced classical workflows.}  The BQP-relevant
+classification operationalises a boundary that existing quantum drug-discovery literature
+does not always make explicit.  Vakili et al.\ applied a hybrid quantum--classical
+generative model---a quantum circuit Born machine (QCBM) on a 16-qubit IBM processor
+paired with an LSTM network---to KRAS inhibitor design, yielding experimentally validated
+hits and a 21.5\% improvement in candidate quality over the classical
+baseline~\cite{vakili2025kras}.  This is quantum-\emph{enhanced} drug discovery: KRAS
+has resolved crystal structures, a substantial library of known inhibitors, and classical
+algorithms already generate viable candidates.  Quantum computing refines the search;
+it does not replace the only available computational path.
+
+The mutations targeted by this dissertation occupy a categorically different regime.
+TP53~C275F, STK11~F354L, STK11~D194N, KEAP1~G333C, and KEAP1~R320Q have no
+binding pocket accessible by classical structure-based methods, no prior computational
+characterisation at chemical accuracy, and active-space sizes at which DFT introduces
+systematic errors of 2--4~kcal/mol---sufficient to invert the sign of a binding
+prediction.  Quantum simulation is therefore not an enhancement but a
+\emph{necessity}: it is the only computational path to a physically grounded
+$\Delta E$ estimate.  The three-condition escalation rule in Table~\ref{tab:escalation}
+encodes this distinction as a routing decision; the Vakili et al.\ KRAS workflow would
+not satisfy C1 (active-space ceiling not exceeded by classical methods) and would
+route to Layer~2 rather than the quantum kernel.
+
 %% ── §6 Provenance Schema and Lifecycle ────────────────────────────────────────
 \section{Part-11-Governed Provenance for Probabilistic Quantum Simulation}
 
@@ -901,7 +924,7 @@ for verifying final authorship metadata, institutional approvals, patient-data h
 and arXiv submission settings before upload.
 
 %% ── References ───────────────────────────────────────────────────────────────
-\begin{thebibliography}{17}
+\begin{thebibliography}{18}
 
 \bibitem{cohen2026proposal}
 Doron Cohen.
@@ -995,6 +1018,12 @@ NSCLC Quantum Viewer and QC--AI--HPC Prototype.
 Prototype website, 2026.
 \url{https://nsclc-quantum-viewer.netlify.app/}.
 Accessed May~11, 2026.
+
+\bibitem{vakili2025kras}
+Mohammad~Ghazi Vakili, Christoph Gorgulla, Jamie Snider, et~al.
+Quantum-computing-enhanced algorithm unveils potential KRAS inhibitors.
+\textit{Nature Biotechnology}, 43:1954--1959, 2025.
+\doi{10.1038/s41587-024-02526-3}.
 
 \bibitem{arxiv2026license}
 Licenses.
