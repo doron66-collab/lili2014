@@ -1866,6 +1866,16 @@ async function runLiveVQE() {
   document.getElementById('sim-result').style.display = 'none';
   errBox.style.display = 'none';
 
+  // Reset AI bars at the start of every new run
+  const _aiBar3a = document.getElementById('job-ai-bar-3a');
+  const _aiBar3b = document.getElementById('job-ai-bar-3b');
+  if (_aiBar3a) _aiBar3a.style.width = '0%';
+  if (_aiBar3b) _aiBar3b.style.width = '0%';
+  const _aiSubR = document.getElementById('job-ai-sub');
+  if (_aiSubR) _aiSubR.textContent = 'GNN Model · HPC Accelerator · Waiting for Quantum Kernel output';
+  const _aiStR = document.getElementById('job-ai-status');
+  if (_aiStR) { _aiStR.textContent = 'Waiting'; _aiStR.style.color = 'var(--gray)'; }
+
   // Animate pipeline stages while waiting for the backend
   setPipelineState(mutationId, 1);          // stage 4 active — dispatching
   updateJobCard(mutationId, 'running');
