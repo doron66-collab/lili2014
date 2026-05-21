@@ -1863,8 +1863,8 @@ async function runLiveVQE() {
   errBox.style.display = 'none';
 
   // Cancel any in-flight animations and pending delays, then reset bars
-  if (_vqeBarRaf)  { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf  = null; }
-  if (_aiBarRaf)   { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf   = null; }
+  if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
+  if (_aiBarRaf)  { _aiBarRaf.cancelled  = true; _aiBarRaf  = null; }
   if (_aiBarDelay) { clearTimeout(_aiBarDelay);        _aiBarDelay = null; }
   const _vqeBar = document.getElementById('job-vqe-bar');
   const _aiBar3a = document.getElementById('job-ai-bar-3a');
@@ -1896,7 +1896,7 @@ async function runLiveVQE() {
     }
     const data = await res.json();
     // Snap VQE bar to 100% first, then mark done — both appear in same frame
-    if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+    if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
     if (_vqeBar) _vqeBar.style.width = '100%';
     setPipelineState(mutationId, 4);
     updateJobCard(mutationId, 'done', data);
@@ -1916,7 +1916,7 @@ async function runLiveVQE() {
     status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated · record sealed & stored to Supabase`;
   } catch (e) {
     clearTimeout(t2); clearTimeout(t3);
-    if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+    if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
     setPipelineState(mutationId, 0);
     updateJobCard(mutationId, 'idle');
     errBox.textContent = `Backend error: ${e.message}. Is the Render service deployed? (cold start may take ~30s)`;
@@ -2762,21 +2762,23 @@ let _aiBarDelay = null;
 
 function animateBar(barEl, fromPct, toPct, durationMs, onDone) {
   if (!barEl) { if (onDone) onDone(); return null; }
+  const state = { cancelled: false };
   const start = performance.now();
   barEl.style.width = fromPct + '%';
   function tick(now) {
+    if (state.cancelled) return;
     const t = Math.min((now - start) / durationMs, 1);
     barEl.style.width = (fromPct + (toPct - fromPct) * t) + '%';
-    if (t < 1) return requestAnimationFrame(tick);
+    if (t < 1) { requestAnimationFrame(tick); return; }
     if (onDone) onDone();
-    return null;
   }
-  return requestAnimationFrame(tick);
+  requestAnimationFrame(tick);
+  return state;
 }
 
 function resetJobCards() {
-  if (_vqeBarRaf)  { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf  = null; }
-  if (_aiBarRaf)   { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf   = null; }
+  if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
+  if (_aiBarRaf)  { _aiBarRaf.cancelled  = true; _aiBarRaf  = null; }
   if (_aiBarDelay) { clearTimeout(_aiBarDelay);        _aiBarDelay = null; }
   updateJobCard('', 'idle');
   const bar3a = document.getElementById('job-ai-bar-3a');
