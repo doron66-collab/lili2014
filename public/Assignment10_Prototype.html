@@ -1030,8 +1030,8 @@
       <tr>
         <td><strong style="color:#b47fd4">KEAP1</strong></td>
         <td>C196Leufs* <span class="badge badge-violet">PPI</span></td>
-        <td>~52</td>
-        <td>~104</td>
+        <td>~155</td>
+        <td>~310</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-KEAP1_LOF" style="color:var(--gray)">—</td>
@@ -1040,8 +1040,8 @@
       <tr>
         <td><strong style="color:#d946ef">KEAP1</strong></td>
         <td>G333C <span class="badge badge-violet">PPI</span></td>
-        <td>~56</td>
-        <td>~112</td>
+        <td>~155</td>
+        <td>~310</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-KEAP1_G333C" style="color:var(--gray)">—</td>
@@ -1050,8 +1050,8 @@
       <tr>
         <td><strong style="color:#a855f7">KEAP1</strong></td>
         <td>R320Q <span class="badge badge-violet">PPI</span></td>
-        <td>~56</td>
-        <td>~112</td>
+        <td>~155</td>
+        <td>~310</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-KEAP1_R320Q" style="color:var(--gray)">—</td>
@@ -1060,8 +1060,8 @@
       <tr>
         <td><strong style="color:#34d399">STK11</strong></td>
         <td>LKB1 LOF <span class="badge badge-gray">SL</span></td>
-        <td>~46</td>
-        <td>~92</td>
+        <td>~152</td>
+        <td>~304</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP</span></td>
         <td id="bqp-de-STK11_LKB1" style="color:var(--gray)">—</td>
@@ -1070,8 +1070,8 @@
       <tr>
         <td><strong style="color:#4ade80">STK11</strong></td>
         <td>F354L <span class="badge badge-gray">Kinase LOF</span></td>
-        <td>~52</td>
-        <td>~104</td>
+        <td>~152</td>
+        <td>~304</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-gold">BQP ★</span></td>
         <td id="bqp-de-STK11_F354L" style="color:var(--gray)">—</td>
@@ -1080,8 +1080,8 @@
       <tr>
         <td><strong style="color:#22d3ee">STK11</strong></td>
         <td>D194N <span class="badge badge-gray">Kinase LOF</span></td>
-        <td>~52</td>
-        <td>~104</td>
+        <td>~152</td>
+        <td>~304</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-gold">BQP ★</span></td>
         <td id="bqp-de-STK11_D194N" style="color:var(--gray)">—</td>
@@ -1997,8 +1997,8 @@ const MI25_0349 = {
   biomarkers: { EGFR_ALK_KRAS_RET: 'Not detected', TMB_value: 7.6, TMB_tier: 'Low', MSI_value: 7.77, MSI_status: 'Stable' },
   variants: [
     { gene:'TP53', mutation:'p.Cys275Phe', hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I', badge_type:'Structural', simulation_id:'TP53_C275F', active_electrons:44, full_qubits:88 },
-    { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290, tier:'III', badge_type:'PPI', simulation_id:'KEAP1_LOF', active_electrons:52, full_qubits:104 },
-    { gene:'STK11', mutation:'Loss-of-function', tier:'II', badge_type:'SL', simulation_id:'STK11_LKB1', active_electrons:46, full_qubits:92 },
+    { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290, tier:'III', badge_type:'PPI', simulation_id:'KEAP1_LOF', active_electrons:155, full_qubits:310 },
+    { gene:'STK11', mutation:'Loss-of-function', tier:'II', badge_type:'SL', simulation_id:'STK11_LKB1', active_electrons:152, full_qubits:304 },
   ]
 };
 
@@ -2007,8 +2007,8 @@ function loadDemoNGS() { loadNGSReport(MI25_0349); }
 // ── Known gene → platform mapping ─────────────────────────────────────────
 const GENE_MAP = {
   TP53:   { badge_type:'Structural', color:'#E8A020', active_electrons:44, full_qubits:88  },
-  KEAP1:  { badge_type:'PPI',        color:'#b47fd4', active_electrons:52, full_qubits:104 },
-  STK11:  { badge_type:'SL',         color:'#60a5fa', active_electrons:46, full_qubits:92  },
+  KEAP1:  { badge_type:'PPI',        color:'#b47fd4', active_electrons:155, full_qubits:310 },
+  STK11:  { badge_type:'SL',         color:'#60a5fa', active_electrons:152, full_qubits:304 },
   KRAS:   { badge_type:'Structural', color:'#34d399', active_electrons:40, full_qubits:80  },
   BRAF:   { badge_type:'Structural', color:'#f87171', active_electrons:44, full_qubits:88  },
   EGFR:   { badge_type:'Structural', color:'#fbbf24', active_electrons:48, full_qubits:96  },
@@ -2707,12 +2707,12 @@ const MUT_COLORS = {
 const MUT_META = {
   TP53_Y220C: { full_electrons: 38,  full_qubits: 76,  backend: 'IBM Heron r3' },
   TP53_C275F: { full_electrons: 44,  full_qubits: 88,  backend: 'IBM Heron r3' },
-  KEAP1_LOF:   { full_electrons: 52,  full_qubits: 104, backend: 'IBM Heron r3' },
-  KEAP1_G333C: { full_electrons: 56,  full_qubits: 112, backend: 'IBM Heron r3' },
-  KEAP1_R320Q: { full_electrons: 56,  full_qubits: 112, backend: 'IBM Heron r3' },
-  STK11_LKB1:  { full_electrons: 46,  full_qubits: 92,  backend: 'IBM Heron r3' },
-  STK11_F354L: { full_electrons: 52,  full_qubits: 104, backend: 'IBM Heron r3' },
-  STK11_D194N: { full_electrons: 52,  full_qubits: 104, backend: 'IBM Heron r3' },
+  KEAP1_LOF:   { full_electrons: 155, full_qubits: 310, backend: 'fault-tolerant QPU (~2030+)' },
+  KEAP1_G333C: { full_electrons: 155, full_qubits: 310, backend: 'fault-tolerant QPU (~2030+)' },
+  KEAP1_R320Q: { full_electrons: 155, full_qubits: 310, backend: 'fault-tolerant QPU (~2030+)' },
+  STK11_LKB1:  { full_electrons: 152, full_qubits: 304, backend: 'fault-tolerant QPU (~2030+)' },
+  STK11_F354L: { full_electrons: 152, full_qubits: 304, backend: 'fault-tolerant QPU (~2030+)' },
+  STK11_D194N: { full_electrons: 152, full_qubits: 304, backend: 'fault-tolerant QPU (~2030+)' },
 };
 
 // ── Reconstruct runData shape from a Supabase simulation_runs row ────────────
