@@ -1741,7 +1741,7 @@ function updateResultsCharts(data) {
   if (aiSub) aiSub.textContent =
     `Quantum Kernel output received: ${r.energy_ha} Hₐ · ${mutName} · Awaiting Phase 3B for full prediction`;
   const aiBar = document.getElementById('job-ai-bar');
-  if (aiBar) aiBar.style.width = '30%';
+  if (aiBar) aiBar.style.width = '0%';
   const aiStatus = document.getElementById('job-ai-status');
   if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
 }
