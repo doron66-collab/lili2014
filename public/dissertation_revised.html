@@ -1024,6 +1024,22 @@
     font-weight: 400;
     margin-right: 2px;
   }
+  /* Glossary table: override global min-width so text wraps instead of clipping */
+  #appendix-a .table-wrap { overflow-x: visible; }
+  #appendix-a table {
+    min-width: unset;
+    width: 100%;
+    table-layout: fixed;
+  }
+  #appendix-a th:nth-child(1), #appendix-a td:nth-child(1) { width: 10%; }
+  #appendix-a th:nth-child(2), #appendix-a td:nth-child(2) { width: 20%; }
+  #appendix-a th:nth-child(3), #appendix-a td:nth-child(3) { width: 70%; }
+  #appendix-a td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    white-space: normal;
+  }
 
   .glos-link { color: inherit; text-decoration: none; border-bottom: 1px dotted #999; } .glos-link:hover { border-bottom-color: currentColor; }
 </style>
