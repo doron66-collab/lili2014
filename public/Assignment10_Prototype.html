@@ -1899,15 +1899,17 @@ async function runLiveVQE() {
     setPipelineState(mutationId, 4);
     updateJobCard(mutationId, 'done', data);
 
-    // Snap VQE bar to 100% instantly, then animate AI 3A bar over actual elapsed time
+    // Smoothly complete VQE bar to 100%, then — only after it lands — start AI bar
     if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
-    if (_vqeBar) _vqeBar.style.width = '100%';
-
-    const aiStatus = document.getElementById('job-ai-status');
-    if (aiStatus) { aiStatus.textContent = 'Running'; aiStatus.style.color = 'var(--gold)'; }
-    _aiBarRaf = animateBar(_aiBar3a, 0, 100, elapsedMs, () => {
-      _aiBarRaf = null;
-      if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
+    const curPct = parseFloat(_vqeBar ? _vqeBar.style.width : '0') || 0;
+    _vqeBarRaf = animateBar(_vqeBar, curPct, 100, 1000, () => {
+      _vqeBarRaf = null;
+      const aiStatus = document.getElementById('job-ai-status');
+      if (aiStatus) { aiStatus.textContent = 'Running'; aiStatus.style.color = 'var(--gold)'; }
+      _aiBarRaf = animateBar(_aiBar3a, 0, 100, elapsedMs, () => {
+        _aiBarRaf = null;
+        if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
+      });
     });
 
     updateAllTabs(data);
