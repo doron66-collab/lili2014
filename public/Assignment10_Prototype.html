@@ -2242,23 +2242,34 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // Generate pipeline rows dynamically from PIPELINE_TARGETS
+  // Generate pipeline rows dynamically from PIPELINE_TARGETS (3A + 3B pair per mutation)
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
   if (pipelineEl) {
     pipelineEl.innerHTML = PIPELINE_TARGETS.map((id, i) => {
-      const color = MUT_COLORS[id] || 'var(--teal)';
-      const meta  = MUT_META[id] || {};
+      const color  = MUT_COLORS[id] || 'var(--teal)';
+      const meta   = MUT_META[id] || {};
       const isLast = i === PIPELINE_TARGETS.length - 1;
-      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${isLast ? '' : 'border-bottom:1px solid var(--border)'}">
-        <div style="min-width:150px">
-          <div style="font-weight:700;font-size:12px;color:${color}">${meta.display_name || id}</div>
-          <div id="prow-desc-${id}" style="font-size:10px;color:var(--gray)">${pipelineDesc(id)}</div>
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="min-width:150px">
+            <div style="font-weight:700;font-size:12px;color:${color}">${meta.display_name || id}</div>
+            <div style="font-size:10px;color:var(--gray)">Phase 3A · VQE · PennyLane · 2q proxy</div>
+          </div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${id}" style="width:0%"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${id}">—</div>
+          <div style="min-width:95px" id="prow-badge-${id}"><span class="badge badge-gray">○ Pending</span></div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${id}">Not yet run</div>
         </div>
-        <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${id}" style="width:0%"></div></div></div>
-        <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${id}">—</div>
-        <div style="min-width:95px" id="prow-badge-${id}"><span class="badge badge-gray">○ Pending</span></div>
-        <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${id}">Not yet run</div>
-      </div>`;
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0 8px 18px;${isLast ? '' : 'border-bottom:1px solid var(--border)'}opacity:0.65">
+          <div style="min-width:150px">
+            <div style="font-weight:600;font-size:11px;color:${color}">└ Phase 3B · ${meta.display_name || id}</div>
+            <div style="font-size:10px;color:var(--gray)">${phase3bSubtitle(id)}</div>
+          </div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${id}" style="width:0%;background:var(--gold)"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${id}">—</div>
+          <div style="min-width:95px" id="prow-badge-3b-${id}">${phase3bBadge(id)}</div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${id}">Not yet run</div>
+        </div>`;
     }).join('');
     pipelineEl.style.display = '';
   }
@@ -2517,10 +2528,14 @@ function resetPlatform() {
   ['TP53_C275F','TP53_Y220C','KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','STK11_LKB1','STK11_F354L','STK11_D194N'].forEach(id => {
     if (el(`mut-status-${id}`))  el(`mut-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
     if (el(`mut-freq-${id}`))  { el(`mut-freq-${id}`).textContent  = '—'; el(`mut-freq-${id}`).style.color = 'var(--gray)'; }
-    if (el(`prow-bar-${id}`))  { el(`prow-bar-${id}`).style.width  = '0%'; }
-    if (el(`prow-pct-${id}`))  { el(`prow-pct-${id}`).textContent  = '—'; el(`prow-pct-${id}`).style.color = 'var(--gray)'; }
-    if (el(`prow-badge-${id}`))  el(`prow-badge-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
-    if (el(`prow-time-${id}`))   el(`prow-time-${id}`).textContent = 'Not yet run';
+    if (el(`prow-bar-${id}`))      { el(`prow-bar-${id}`).style.width      = '0%'; }
+    if (el(`prow-pct-${id}`))      { el(`prow-pct-${id}`).textContent      = '—'; el(`prow-pct-${id}`).style.color = 'var(--gray)'; }
+    if (el(`prow-badge-${id}`))      el(`prow-badge-${id}`).innerHTML      = '<span class="badge badge-gray">○ Pending</span>';
+    if (el(`prow-time-${id}`))       el(`prow-time-${id}`).textContent     = 'Not yet run';
+    if (el(`prow-bar-3b-${id}`))   { el(`prow-bar-3b-${id}`).style.width   = '0%'; }
+    if (el(`prow-pct-3b-${id}`))   { el(`prow-pct-3b-${id}`).textContent   = '—'; el(`prow-pct-3b-${id}`).style.color = 'var(--gray)'; }
+    if (el(`prow-badge-3b-${id}`))   el(`prow-badge-3b-${id}`).innerHTML  = phase3bBadge(id);
+    if (el(`prow-time-3b-${id}`))    el(`prow-time-3b-${id}`).textContent  = 'Not yet run';
     if (el(`bqp-status-${id}`))  el(`bqp-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
     if (el(`bqp-de-${id}`))      el(`bqp-de-${id}`).innerHTML      = '<span style="color:var(--gray)">—</span>';
     if (el(`pq-dot-${id}`))    { el(`pq-dot-${id}`).textContent    = '○'; el(`pq-dot-${id}`).style.color = 'var(--gray)'; }
@@ -2584,7 +2599,7 @@ function updateDashboardAfterRun(mutationId, data) {
   const statusEl = document.getElementById(`mut-status-${mutationId}`);
   if (statusEl) statusEl.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
 
-  // Pipeline row (bottom of Dashboard)
+  // Pipeline 3A row
   const bar   = document.getElementById(`prow-bar-${mutationId}`);
   const pct   = document.getElementById(`prow-pct-${mutationId}`);
   const badge = document.getElementById(`prow-badge-${mutationId}`);
@@ -2593,6 +2608,15 @@ function updateDashboardAfterRun(mutationId, data) {
   if (pct)   { pct.textContent = '100%'; pct.style.color = 'var(--green)'; }
   if (badge) badge.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
   if (time)  time.textContent = `${elapsed}s · ${energy} Hₐ`;
+
+  // Pipeline 3B row — update badge now that 3A is complete
+  const badge3b = document.getElementById(`prow-badge-3b-${mutationId}`);
+  if (badge3b) {
+    const era = (MUT_META[mutationId] || {}).hardware_era;
+    if (era === 'current')        badge3b.innerHTML = `<span class="badge badge-teal">⏳ Ready to Submit</span>`;
+    else if (era === 'near_term') badge3b.innerHTML = `<span class="badge badge-gold">⏳ Near-term ⚡</span>`;
+    // fault_tolerant stays as ○ ~2030+
+  }
 
   // BQP All-Target Summary table (Results tab)
   const bqpStatus = document.getElementById(`bqp-status-${mutationId}`);
@@ -2711,6 +2735,21 @@ function pipelineDesc(mutId) {
     'fault_tolerant': 'Phase 3B: fault-tolerant QPU (~2030+)',
   }[m.hardware_era] || 'Phase 3B: TBD';
   return `VQE · PennyLane · 2q Phase 3A · ${phase3b}${src}`;
+}
+
+function phase3bSubtitle(mutId) {
+  const m = MUT_META[mutId] || {};
+  const qLabel = m.hardware_era === 'near_term' ? '96q local · ' : `${m.full_qubits}q · `;
+  const src = m.source === 'research' ? ' · 📚 Research' : '';
+  return `sqDRIFT · ${qLabel}${m.backend}${src}`;
+}
+
+function phase3bBadge(mutId) {
+  const era = (MUT_META[mutId] || {}).hardware_era;
+  if (era === 'current')        return `<span class="badge badge-teal">○ Awaiting 3A</span>`;
+  if (era === 'near_term')      return `<span class="badge badge-gold">○ Near-term ⚡</span>`;
+  if (era === 'fault_tolerant') return `<span class="badge badge-gray">○ ~2030+</span>`;
+  return `<span class="badge badge-gray">○ TBD</span>`;
 }
 
 // ── Reconstruct runData shape from a Supabase simulation_runs row ────────────
