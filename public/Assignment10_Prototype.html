@@ -464,7 +464,8 @@
           <th>Gene</th>
           <th>Mutation</th>
           <th>Source</th>
-          <th>Active e⁻</th>
+          <th>Local e⁻ · Phase 3A</th>
+          <th>Full e⁻ · Phase 3B</th>
           <th>Status</th>
         </tr>
         <!-- Y220C — always visible anchor/reference -->
@@ -473,7 +474,8 @@
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Tyr220Cys <span class="badge badge-gold">Structural</span></td>
           <td style="font-size:10px;color:var(--gray)">Anchor</td>
-          <td>~38 <span style="color:var(--gray);font-size:10px">(pocket)</span></td>
+          <td>~19e <span style="color:var(--gray);font-size:10px">(pocket)</span></td>
+          <td>~38e <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
           <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <!-- NGS-driven rows — hidden until NGS loaded -->
@@ -484,7 +486,8 @@
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td>p.Cys275Phe <span class="badge badge-gold">Structural</span></td>
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
-          <td>~44 <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
+          <td>~24e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
+          <td>~44e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
           <td id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr id="mut-row-STK11_LKB1" data-bqp="A">
@@ -492,7 +495,8 @@
           <td style="font-weight:700;color:#60a5fa">STK11</td>
           <td>LKB1 Loss-of-function <span class="badge badge-gray">Kinase LOF</span></td>
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
-          <td>~52 <span style="color:var(--gray);font-size:10px">(kinase domain)</span></td>
+          <td>~76e <span style="color:var(--gray);font-size:10px">(kinase local)</span></td>
+          <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
           <td id="mut-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr id="mut-row-STK11_F354L" data-bqp="A">
@@ -500,7 +504,8 @@
           <td style="font-weight:700;color:#60a5fa">STK11</td>
           <td>p.Phe354Leu <span class="badge badge-gray">Kinase LOF</span></td>
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
-          <td>~52 <span style="color:var(--gray);font-size:10px">(kinase domain)</span></td>
+          <td><span style="color:var(--gray);font-size:10px">TBD — site not resolved in PDB</span></td>
+          <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
           <td id="mut-status-STK11_F354L"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr id="mut-row-STK11_D194N" data-bqp="A">
@@ -508,7 +513,8 @@
           <td style="font-weight:700;color:#60a5fa">STK11</td>
           <td>p.Asp194Asn <span class="badge badge-gray">Kinase LOF</span></td>
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
-          <td>~52 <span style="color:var(--gray);font-size:10px">(kinase domain)</span></td>
+          <td>~76e <span style="color:var(--gray);font-size:10px">(kinase local)</span></td>
+          <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
           <td id="mut-status-STK11_D194N"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <!-- CLASS B — QUANTUM-ADVANTAGED -->
@@ -517,7 +523,8 @@
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
           <td>p.Cys196Leufs* <span class="badge badge-violet">PPI</span></td>
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
-          <td>~56 <span style="color:var(--gray);font-size:10px">(NRF2 interface)</span></td>
+          <td>~104e <span style="color:var(--gray);font-size:10px">(Kelch local)</span></td>
+          <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
           <td id="mut-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr id="mut-row-KEAP1_G333C" data-bqp="B">
@@ -525,7 +532,8 @@
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
           <td>p.Gly333Cys <span class="badge badge-violet">PPI</span></td>
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
-          <td>~56 <span style="color:var(--gray);font-size:10px">(NRF2 interface)</span></td>
+          <td>~104e <span style="color:var(--gray);font-size:10px">(Kelch local)</span></td>
+          <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
           <td id="mut-status-KEAP1_G333C"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         <tr id="mut-row-KEAP1_R320Q" data-bqp="B">
@@ -533,7 +541,8 @@
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
           <td>p.Arg320Gln <span class="badge badge-violet">PPI</span></td>
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
-          <td>~56 <span style="color:var(--gray);font-size:10px">(NRF2 interface)</span></td>
+          <td><span style="color:var(--gray);font-size:10px">TBD — site not resolved in PDB</span></td>
+          <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
           <td id="mut-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></td>
         </tr>
         </tbody>
