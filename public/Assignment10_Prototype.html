@@ -1876,11 +1876,10 @@ async function runLiveVQE() {
   const _aiStR = document.getElementById('job-ai-status');
   if (_aiStR) { _aiStR.textContent = 'Waiting'; _aiStR.style.color = 'var(--gray)'; }
 
-  // Crawl VQE bar very slowly (toward 95% over 60s) — always cancelled before arrival
-  const _runStart = Date.now();
+  // Crawl VQE bar 0→100% over 10s — always cancelled and snapped on API return
   setPipelineState(mutationId, 1);
   updateJobCard(mutationId, 'running');
-  _vqeBarRaf = animateBar(_vqeBar, 0, 95, 60000);
+  _vqeBarRaf = animateBar(_vqeBar, 0, 100, 10000);
   const t2 = setTimeout(() => setPipelineState(mutationId, 2), 4000);
   const t3 = setTimeout(() => setPipelineState(mutationId, 3), 8000);
 
@@ -1895,22 +1894,21 @@ async function runLiveVQE() {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const data = await res.json();
-    const elapsedMs = data.result.elapsed_s * 1000;
     setPipelineState(mutationId, 4);
     updateJobCard(mutationId, 'done', data);
 
-    // Smoothly complete VQE bar to 100%, then — only after it lands — start AI bar
+    // Snap VQE to 100%, wait 1s, then animate AI bar over 4s
     if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
-    const curPct = parseFloat(_vqeBar ? _vqeBar.style.width : '0') || 0;
-    _vqeBarRaf = animateBar(_vqeBar, curPct, 100, 1000, () => {
-      _vqeBarRaf = null;
+    if (_vqeBar) _vqeBar.style.width = '100%';
+
+    setTimeout(() => {
       const aiStatus = document.getElementById('job-ai-status');
       if (aiStatus) { aiStatus.textContent = 'Running'; aiStatus.style.color = 'var(--gold)'; }
-      _aiBarRaf = animateBar(_aiBar3a, 0, 100, elapsedMs, () => {
+      _aiBarRaf = animateBar(_aiBar3a, 0, 100, 4000, () => {
         _aiBarRaf = null;
         if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
       });
-    });
+    }, 1000);
 
     updateAllTabs(data);
     status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated · record sealed & stored to Supabase`;
