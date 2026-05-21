@@ -2174,6 +2174,15 @@ function handleNGSUpload(e) {
 
 function loadNGSReport(ngs) {
   const id = ngs.report_id || 'Unknown';
+  // Reset AI bars to clean state on every NGS load
+  const _ai3a = document.getElementById('job-ai-bar-3a');
+  const _ai3b = document.getElementById('job-ai-bar-3b');
+  if (_ai3a) _ai3a.style.width = '0%';
+  if (_ai3b) _ai3b.style.width = '0%';
+  const _aiSub = document.getElementById('job-ai-sub');
+  if (_aiSub) _aiSub.textContent = 'GNN Model · HPC Accelerator · Waiting for Quantum Kernel output';
+  const _aiSt = document.getElementById('job-ai-status');
+  if (_aiSt) { _aiSt.textContent = 'Waiting'; _aiSt.style.color = 'var(--gray)'; }
   // Header
   const sub = document.getElementById('dash-subtitle');
   if (sub) sub.textContent = `NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report ${id}`;
