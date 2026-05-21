@@ -1862,9 +1862,10 @@ async function runLiveVQE() {
   document.getElementById('sim-result').style.display = 'none';
   errBox.style.display = 'none';
 
-  // Cancel any in-flight animations and reset bars
-  if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
-  if (_aiBarRaf)  { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf  = null; }
+  // Cancel any in-flight animations and pending delays, then reset bars
+  if (_vqeBarRaf)  { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf  = null; }
+  if (_aiBarRaf)   { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf   = null; }
+  if (_aiBarDelay) { clearTimeout(_aiBarDelay);        _aiBarDelay = null; }
   const _vqeBar = document.getElementById('job-vqe-bar');
   const _aiBar3a = document.getElementById('job-ai-bar-3a');
   const _aiBar3b = document.getElementById('job-ai-bar-3b');
@@ -1894,19 +1895,20 @@ async function runLiveVQE() {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const data = await res.json();
+    // Snap VQE bar to 100% first, then mark done — both appear in same frame
+    if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+    if (_vqeBar) _vqeBar.style.width = '100%';
     setPipelineState(mutationId, 4);
     updateJobCard(mutationId, 'done', data);
 
-    // Snap VQE to 100%, wait 1s, then animate AI bar over 4s
-    if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
-    if (_vqeBar) _vqeBar.style.width = '100%';
-
-    setTimeout(() => {
+    // 1s after kernel completes, start AI bar (4s fill)
+    _aiBarDelay = setTimeout(() => {
+      _aiBarDelay = null;
       const aiStatus = document.getElementById('job-ai-status');
       if (aiStatus) { aiStatus.textContent = 'Running'; aiStatus.style.color = 'var(--gold)'; }
       _aiBarRaf = animateBar(_aiBar3a, 0, 100, 4000, () => {
         _aiBarRaf = null;
-        if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
+        if (aiStatus) { aiStatus.textContent = 'Done ✓'; aiStatus.style.color = 'var(--green)'; }
       });
     }, 1000);
 
@@ -2754,8 +2756,9 @@ function updateJobCard(mutationId, state, data) {
 }
 
 // ── Animation helpers ─────────────────────────────────────────────────────
-let _vqeBarRaf = null;
-let _aiBarRaf  = null;
+let _vqeBarRaf  = null;
+let _aiBarRaf   = null;
+let _aiBarDelay = null;
 
 function animateBar(barEl, fromPct, toPct, durationMs, onDone) {
   if (!barEl) { if (onDone) onDone(); return null; }
@@ -2772,8 +2775,9 @@ function animateBar(barEl, fromPct, toPct, durationMs, onDone) {
 }
 
 function resetJobCards() {
-  if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
-  if (_aiBarRaf)  { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf  = null; }
+  if (_vqeBarRaf)  { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf  = null; }
+  if (_aiBarRaf)   { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf   = null; }
+  if (_aiBarDelay) { clearTimeout(_aiBarDelay);        _aiBarDelay = null; }
   updateJobCard('', 'idle');
   const bar3a = document.getElementById('job-ai-bar-3a');
   const bar3b = document.getElementById('job-ai-bar-3b');
