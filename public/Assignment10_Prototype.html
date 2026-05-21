@@ -1745,10 +1745,6 @@ function updateResultsCharts(data) {
   const aiSub = document.getElementById('job-ai-sub');
   if (aiSub) aiSub.textContent =
     `Quantum Kernel output received: ${r.energy_ha} Hₐ · ${mutName} · Awaiting Phase 3B for full prediction`;
-  const aiBar3a = document.getElementById('job-ai-bar-3a');
-  if (aiBar3a) aiBar3a.style.width = '100%';
-  const aiStatus = document.getElementById('job-ai-status');
-  if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
 }
 
 function updateAllTabs(data) {
@@ -1866,9 +1862,13 @@ async function runLiveVQE() {
   document.getElementById('sim-result').style.display = 'none';
   errBox.style.display = 'none';
 
-  // Reset AI bars at the start of every new run
+  // Cancel any in-flight animations and reset bars
+  if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+  if (_aiBarRaf)  { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf  = null; }
+  const _vqeBar = document.getElementById('job-vqe-bar');
   const _aiBar3a = document.getElementById('job-ai-bar-3a');
   const _aiBar3b = document.getElementById('job-ai-bar-3b');
+  if (_vqeBar)  _vqeBar.style.width  = '0%';
   if (_aiBar3a) _aiBar3a.style.width = '0%';
   if (_aiBar3b) _aiBar3b.style.width = '0%';
   const _aiSubR = document.getElementById('job-ai-sub');
@@ -1876,11 +1876,12 @@ async function runLiveVQE() {
   const _aiStR = document.getElementById('job-ai-status');
   if (_aiStR) { _aiStR.textContent = 'Waiting'; _aiStR.style.color = 'var(--gray)'; }
 
-  // Animate pipeline stages while waiting for the backend
-  setPipelineState(mutationId, 1);          // stage 4 active — dispatching
+  // Start VQE bar crawling 0 → 85% over 10s while API runs
+  setPipelineState(mutationId, 1);
   updateJobCard(mutationId, 'running');
-  const t2 = setTimeout(() => setPipelineState(mutationId, 2), 4000);  // stage 5
-  const t3 = setTimeout(() => setPipelineState(mutationId, 3), 8000);  // stage 6
+  _vqeBarRaf = animateBar(_vqeBar, 0, 85, 10000);
+  const t2 = setTimeout(() => setPipelineState(mutationId, 2), 4000);
+  const t3 = setTimeout(() => setPipelineState(mutationId, 3), 8000);
 
   try {
     const { data: { session } } = await supa.auth.getSession();
@@ -1893,13 +1894,28 @@ async function runLiveVQE() {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const data = await res.json();
-    setPipelineState(mutationId, 4);        // all 6 done
+    setPipelineState(mutationId, 4);
     updateJobCard(mutationId, 'done', data);
+
+    // Finish VQE bar to 100% in 0.5s, then animate AI 3A bar 0→100% over 4s
+    if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+    const curVqePct = parseFloat(_vqeBar ? _vqeBar.style.width : '85') || 85;
+    _vqeBarRaf = animateBar(_vqeBar, curVqePct, 100, 500, () => {
+      _vqeBarRaf = null;
+      const aiStatus = document.getElementById('job-ai-status');
+      if (aiStatus) { aiStatus.textContent = 'Running'; aiStatus.style.color = 'var(--gold)'; }
+      _aiBarRaf = animateBar(_aiBar3a, 0, 100, 4000, () => {
+        _aiBarRaf = null;
+        if (aiStatus) { aiStatus.textContent = 'Ready*'; aiStatus.style.color = 'var(--violet)'; }
+      });
+    });
+
     updateAllTabs(data);
     status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated · record sealed & stored to Supabase`;
   } catch (e) {
     clearTimeout(t2); clearTimeout(t3);
-    setPipelineState(mutationId, 0);        // reset on error
+    if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+    setPipelineState(mutationId, 0);
     updateJobCard(mutationId, 'idle');
     errBox.textContent = `Backend error: ${e.message}. Is the Render service deployed? (cold start may take ~30s)`;
     errBox.style.display = 'block';
@@ -2721,13 +2737,11 @@ function updateJobCard(mutationId, state, data) {
   if (state === 'running') {
     name.textContent   = label;
     sub.textContent    = 'Quantum Kernel · Algorithm: VQE → sqDRIFT (Phase 3B) · Qubits: 2 · Steps: 120';
-    bar.style.width    = '60%';
     status.textContent = 'Running';
     status.style.color = 'var(--gold)';
   } else if (state === 'done' && data) {
     name.textContent   = label;
     sub.textContent    = `Energy: ${data.result.energy_ha} Hₐ · ${data.result.elapsed_s}s · Gate count: ${data.result.gate_count} · Depth: ${data.result.depth}`;
-    bar.style.width    = '100%';
     status.textContent = 'Done ✓';
     status.style.color = 'var(--green)';
   } else {
@@ -2739,7 +2753,27 @@ function updateJobCard(mutationId, state, data) {
   }
 }
 
+// ── Animation helpers ─────────────────────────────────────────────────────
+let _vqeBarRaf = null;
+let _aiBarRaf  = null;
+
+function animateBar(barEl, fromPct, toPct, durationMs, onDone) {
+  if (!barEl) { if (onDone) onDone(); return null; }
+  const start = performance.now();
+  barEl.style.width = fromPct + '%';
+  function tick(now) {
+    const t = Math.min((now - start) / durationMs, 1);
+    barEl.style.width = (fromPct + (toPct - fromPct) * t) + '%';
+    if (t < 1) return requestAnimationFrame(tick);
+    if (onDone) onDone();
+    return null;
+  }
+  return requestAnimationFrame(tick);
+}
+
 function resetJobCards() {
+  if (_vqeBarRaf) { cancelAnimationFrame(_vqeBarRaf); _vqeBarRaf = null; }
+  if (_aiBarRaf)  { cancelAnimationFrame(_aiBarRaf);  _aiBarRaf  = null; }
   updateJobCard('', 'idle');
   const bar3a = document.getElementById('job-ai-bar-3a');
   const bar3b = document.getElementById('job-ai-bar-3b');
