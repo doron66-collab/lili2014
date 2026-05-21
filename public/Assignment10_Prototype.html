@@ -488,7 +488,7 @@
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
           <td>~24e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
           <td>~44e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
-          <td id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-TP53_C275F" style="margin-top:4px"></div></td>
         </tr>
         <tr id="mut-row-STK11_LKB1" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
@@ -497,7 +497,7 @@
           <td style="font-size:10px;color:#93c5fd">📚 Research</td>
           <td>~76e <span style="color:var(--gray);font-size:10px">(kinase local)</span></td>
           <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
-          <td id="mut-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-STK11_LKB1" style="margin-top:4px"></div></td>
         </tr>
         <tr id="mut-row-STK11_F354L" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
@@ -506,7 +506,7 @@
           <td style="font-size:10px;color:#93c5fd">📚 Research</td>
           <td>~48e <span style="color:var(--gray);font-size:10px">(AF · 96q · near-term⚡)</span></td>
           <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
-          <td id="mut-status-STK11_F354L"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-STK11_F354L"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-STK11_F354L" style="margin-top:4px"></div></td>
         </tr>
         <tr id="mut-row-STK11_D194N" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
@@ -515,7 +515,7 @@
           <td style="font-size:10px;color:#93c5fd">📚 Research</td>
           <td>~76e <span style="color:var(--gray);font-size:10px">(kinase local)</span></td>
           <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
-          <td id="mut-status-STK11_D194N"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-STK11_D194N"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-STK11_D194N" style="margin-top:4px"></div></td>
         </tr>
         <!-- CLASS B — QUANTUM-ADVANTAGED -->
         <tr id="mut-row-KEAP1_LOF" data-bqp="B">
@@ -525,7 +525,7 @@
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
           <td>~104e <span style="color:var(--gray);font-size:10px">(Kelch local)</span></td>
           <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
-          <td id="mut-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-KEAP1_LOF" style="margin-top:4px"></div></td>
         </tr>
         <tr id="mut-row-KEAP1_G333C" data-bqp="B">
           <td><span class="bqp-badge-b">B</span></td>
@@ -534,7 +534,7 @@
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
           <td>~104e <span style="color:var(--gray);font-size:10px">(Kelch local)</span></td>
           <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
-          <td id="mut-status-KEAP1_G333C"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-KEAP1_G333C"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-KEAP1_G333C" style="margin-top:4px"></div></td>
         </tr>
         <tr id="mut-row-KEAP1_R320Q" data-bqp="B">
           <td><span class="bqp-badge-b">B</span></td>
@@ -543,7 +543,7 @@
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
           <td>~80e <span style="color:var(--gray);font-size:10px">(AF model · IVR⚠)</span></td>
           <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
-          <td id="mut-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></td>
+          <td><div id="mut-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-KEAP1_R320Q" style="margin-top:4px"></div></td>
         </tr>
         </tbody>
       </table>
@@ -2220,6 +2220,12 @@ function loadNGSReport(ngs) {
     (SIBLING_MAP[v.simulation_id] || []).forEach(sibId => injectTierBadge(sibId, v.tier));
   });
 
+  // Initialize Phase 3B badges in registry STATUS column
+  PIPELINE_TARGETS.forEach(id => {
+    const el3b = document.getElementById(`mut-status-3b-${id}`);
+    if (el3b) el3b.innerHTML = phase3bBadge(id);
+  });
+
   // Biomarkers
   const bm = ngs.biomarkers || {};
   const egfr = document.getElementById('ngs-egfr');
@@ -2526,7 +2532,8 @@ function resetPlatform() {
 
   // ── Reset per-mutation cells (status badges, progress bars, freq) ─────
   ['TP53_C275F','TP53_Y220C','KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','STK11_LKB1','STK11_F354L','STK11_D194N'].forEach(id => {
-    if (el(`mut-status-${id}`))  el(`mut-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
+    if (el(`mut-status-${id}`))    el(`mut-status-${id}`).innerHTML    = '<span class="badge badge-gray">○ Pending</span>';
+    if (el(`mut-status-3b-${id}`)) el(`mut-status-3b-${id}`).innerHTML = '';
     if (el(`mut-freq-${id}`))  { el(`mut-freq-${id}`).textContent  = '—'; el(`mut-freq-${id}`).style.color = 'var(--gray)'; }
     if (el(`prow-bar-${id}`))      { el(`prow-bar-${id}`).style.width      = '0%'; }
     if (el(`prow-pct-${id}`))      { el(`prow-pct-${id}`).textContent      = '—'; el(`prow-pct-${id}`).style.color = 'var(--gray)'; }
@@ -2609,14 +2616,15 @@ function updateDashboardAfterRun(mutationId, data) {
   if (badge) badge.innerHTML = `<span class="badge badge-teal">✓ Phase 3A Done</span>`;
   if (time)  time.textContent = `${elapsed}s · ${energy} Hₐ`;
 
-  // Pipeline 3B row — update badge now that 3A is complete
-  const badge3b = document.getElementById(`prow-badge-3b-${mutationId}`);
-  if (badge3b) {
-    const era = (MUT_META[mutationId] || {}).hardware_era;
-    if (era === 'current')        badge3b.innerHTML = `<span class="badge badge-teal">⏳ Ready to Submit</span>`;
-    else if (era === 'near_term') badge3b.innerHTML = `<span class="badge badge-gold">⏳ Near-term ⚡</span>`;
-    // fault_tolerant stays as ○ ~2030+
-  }
+  // Pipeline 3B row + registry 3B badge — update now that 3A is complete
+  const era = (MUT_META[mutationId] || {}).hardware_era;
+  const badge3b     = document.getElementById(`prow-badge-3b-${mutationId}`);
+  const regBadge3b  = document.getElementById(`mut-status-3b-${mutationId}`);
+  const updated3b   = era === 'current'   ? `<span class="badge badge-teal">⏳ Ready to Submit</span>`
+                    : era === 'near_term' ? `<span class="badge badge-gold">⏳ Near-term ⚡</span>`
+                    : null; // fault_tolerant stays as ○ ~2030+
+  if (badge3b    && updated3b) badge3b.innerHTML    = updated3b;
+  if (regBadge3b && updated3b) regBadge3b.innerHTML = updated3b;
 
   // BQP All-Target Summary table (Results tab)
   const bqpStatus = document.getElementById(`bqp-status-${mutationId}`);
