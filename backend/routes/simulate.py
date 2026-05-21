@@ -29,7 +29,7 @@ def get_supabase():
 # ── Mutation configurations ────────────────────────────────────────────────────
 # Each entry defines the VQE active space for Phase 3A (simulator POC).
 # local_electrons/local_qubits: 5 Å binding-site shell (CASSCF proxy, Phase 3A tier).
-# full_electrons/full_qubits: complete binding-pocket active space (Phase 3B IBM Heron r3 target).
+# full_electrons/full_qubits: complete active-site environment (Phase 3B IBM Heron r3 target).
 # Hardware precedent: Merz et al. (Cleveland Clinic/RIKEN/IBM, May 2026, arXiv:2605.01138)
 # demonstrated 94-qubit quantum chemistry on IBM Heron r2 for 12,635-atom protein-ligand systems,
 # establishing that full-pocket targets up to ~96 qubits are within demonstrated hardware range.
