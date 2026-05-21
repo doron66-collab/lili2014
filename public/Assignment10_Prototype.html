@@ -559,6 +559,7 @@
         <tr><td>EGFR / ALK / KRAS / RET</td><td id="ngs-egfr" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
         <tr><td>TMB</td><td id="ngs-tmb" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
         <tr><td>MSI</td><td id="ngs-msi" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
+        <tr><td>TP53</td><td id="ngs-tp53" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
         <tr><td>KEAP1</td><td id="ngs-keap1" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
       </table>
       <div class="divider"></div>
@@ -2309,7 +2310,10 @@ function loadNGSReport(ngs) {
   if (tmb) tmb.innerHTML = `${bm.TMB_value} Mut/Mb <span class="badge badge-${bm.TMB_tier === 'High' ? 'teal' : 'red'}">${bm.TMB_tier || '—'}</span>`;
   const msi = document.getElementById('ngs-msi');
   if (msi) msi.textContent = `${bm.MSI_status || '—'} (${bm.MSI_value || '—'})`;
-  // Variant-level biomarkers (KEAP1, CDKN2A rows in NGS panel)
+  // Variant-level biomarkers (TP53, KEAP1, CDKN2A rows in NGS panel)
+  const tp53v = (ngs.variants || []).find(v => v.gene === 'TP53');
+  const tp53El = document.getElementById('ngs-tp53');
+  if (tp53El && tp53v) tp53El.innerHTML = `${tp53v.mutation}${tp53v.hgvs ? ' · ' + tp53v.hgvs : ''} <span class="badge badge-gold">Tier ${tp53v.tier}</span>`;
   const keap = (ngs.variants || []).find(v => v.gene === 'KEAP1');
   const keapEl = document.getElementById('ngs-keap1');
   if (keapEl && keap) keapEl.innerHTML = `${keap.mutation} <span class="badge badge-violet">Tier ${keap.tier}</span>`;
@@ -2549,7 +2553,7 @@ function resetPlatform() {
   // ── Dashboard — NGS panel ─────────────────────────────────────────────
   el('ngs-panel-title') && (el('ngs-panel-title').textContent = 'Patient NGS Profile — No report loaded');
   if (el('ngs-tier1-alert')) { el('ngs-tier1-alert').innerHTML = ''; el('ngs-tier1-alert').style.display = 'none'; }
-  ['ngs-egfr','ngs-tmb','ngs-msi','ngs-keap1'].forEach(id => { if (el(id)) el(id).innerHTML = '—'; });
+  ['ngs-egfr','ngs-tmb','ngs-msi','ngs-tp53','ngs-keap1'].forEach(id => { if (el(id)) el(id).innerHTML = '—'; });
   el('ngs-footer') && (el('ngs-footer').textContent = 'Upload an NGS report or load the demo to populate patient data.');
 
   // ── Dashboard — structure sources ─────────────────────────────────────
