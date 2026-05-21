@@ -43,7 +43,8 @@ def get_supabase():
 #                 2FLU (Kelch + Nrf2 ETGE peptide, 2.0 Å)     — hardware_era: fault_tolerant
 #   STK11/LKB1  → 2WTK (LKB1–STRADα–MO25α, 2.65 Å;          — hardware_era: fault_tolerant
 #                        D194A engineered mutant in structure)
-#   R320Q / F354L: mutation site not resolved in any available PDB structure (TBD).
+#   R320Q: AlphaFold Q14145 (IVR disordered region, low pLDDT) — 80e/160q local
+#   F354L: AlphaFold Q15831 (C-terminal disordered, pLDDT 45) — 48e/96q local
 #
 # Hardware precedent: Merz et al. (Cleveland Clinic/RIKEN/IBM, May 2026,
 # arXiv:2605.01138) demonstrated 94 qubits on IBM Heron r2 for a 12,635-atom
@@ -117,11 +118,11 @@ MUTATION_CONFIGS = {
     "KEAP1_R320Q": {
         "name": "KEAP1 p.Arg320Gln",
         "pdb": "2FLU",           # closest available; R320 in disordered IVR — not resolved
-        "desc": "IVR-Kelch boundary Arg320 — local active space TBD (no PDB coordinates); fault-tolerant QPU target",
+        "desc": "IVR-Kelch boundary Arg320 — local active space from AlphaFold Q14145 (IVR disordered region, low pLDDT); fault-tolerant QPU target",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": None,  # R320 in IVR (intrinsically disordered) — not resolved in any PDB structure
-        "local_qubits": None,
+        "local_electrons": 80,   # R320 5Å shell — AlphaFold Q14145 (IVR disordered region, pLDDT low)
+        "local_qubits": 160,
         "full_electrons": 155,   # shares full Nrf2-binding interface — PDB 2FLU coordinate-verified
         "full_qubits": 310,
         "bqp_class": "B",
@@ -149,11 +150,11 @@ MUTATION_CONFIGS = {
     "STK11_F354L": {
         "name": "STK11 p.Phe354Leu",
         "pdb": "2WTK",           # F354 beyond ordered region (chain C ends at 342) — not resolved
-        "desc": "LKB1 R-spine Phe354 — local active space TBD (no PDB coordinates); fault-tolerant QPU target",
+        "desc": "LKB1 R-spine Phe354 — local active space from AlphaFold Q15831 (C-terminal disordered region, pLDDT 45); fault-tolerant QPU target",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": None,  # F354 beyond ordered density in 2WTK (chain C ends at res. 342)
-        "local_qubits": None,
+        "local_electrons": 48,   # F354 5Å shell — AlphaFold Q15831 (C-terminal disordered region, pLDDT 45)
+        "local_qubits": 96,
         "full_electrons": 152,   # shares full ATP pocket — PDB 2WTK coordinate-verified
         "full_qubits": 304,
         "bqp_class": "A",
