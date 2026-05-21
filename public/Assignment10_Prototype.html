@@ -771,7 +771,7 @@
   <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
     <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="sim-target" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
+      <select id="sim-target" onchange="resetJobCards()" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
         <option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
@@ -2737,6 +2737,18 @@ function updateJobCard(mutationId, state, data) {
     status.textContent = 'Idle';
     status.style.color = 'var(--gray)';
   }
+}
+
+function resetJobCards() {
+  updateJobCard('', 'idle');
+  const bar3a = document.getElementById('job-ai-bar-3a');
+  const bar3b = document.getElementById('job-ai-bar-3b');
+  const aiSub = document.getElementById('job-ai-sub');
+  const aiSt  = document.getElementById('job-ai-status');
+  if (bar3a) bar3a.style.width = '0%';
+  if (bar3b) bar3b.style.width = '0%';
+  if (aiSub) aiSub.textContent = 'GNN Model · HPC Accelerator · Waiting for Quantum Kernel output';
+  if (aiSt)  { aiSt.textContent = 'Waiting'; aiSt.style.color = 'var(--gray)'; }
 }
 
 // ── Export full P1-P9 provenance report as PDF ────────────────────────────
