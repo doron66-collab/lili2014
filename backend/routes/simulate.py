@@ -150,7 +150,7 @@ MUTATION_CONFIGS = {
     "STK11_F354L": {
         "name": "STK11 p.Phe354Leu",
         "pdb": "2WTK",           # F354 beyond ordered region (chain C ends at 342) — not resolved
-        "desc": "LKB1 R-spine Phe354 — local active space from AlphaFold Q15831 (C-terminal disordered region, pLDDT 45); fault-tolerant QPU target",
+        "desc": "LKB1 R-spine Phe354 — local site ~96q is only 2q beyond demonstrated 94q ceiling (Merz 2026); near-term feasible on IBM Heron r3 (156q). AlphaFold Q15831, pLDDT 45.",
         "active_electrons": 2,
         "active_orbitals": 2,
         "local_electrons": 48,   # F354 5Å shell — AlphaFold Q15831 (C-terminal disordered region, pLDDT 45)
@@ -158,8 +158,8 @@ MUTATION_CONFIGS = {
         "full_electrons": 152,   # shares full ATP pocket — PDB 2WTK coordinate-verified
         "full_qubits": 304,
         "bqp_class": "A",
-        "hardware_era": "fault_tolerant",
-        "phase3b_backend": "fault-tolerant QPU (~2030+)",
+        "hardware_era": "near_term",
+        "phase3b_backend": "IBM Heron r3 (near-term — local ~96q, 2q beyond demonstrated ceiling)",
         "hamiltonian_coeffs": [-0.23274280, 0.17693120, -0.23274280,
                                 0.16627641,  0.04175014,  0.04175014],
     },

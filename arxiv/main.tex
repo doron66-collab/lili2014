@@ -286,8 +286,12 @@ Coordinate-level active-space analysis from PDB structures (2OCJ, 1U6D, 2FLU, 2W
 establishes a critical hardware-tier distinction.  TP53~C275F is the \emph{only} target
 whose full active site ($\sim$44 electrons, $\sim$88 qubits; PDB:~2OCJ) falls within the
 94-qubit ceiling independently demonstrated by Merz et al.~\cite{merz2026protein}.
-The six KEAP1 and STK11 targets require 152--310 qubits (Table~\ref{tab:tiers}) and are
-designated fault-tolerant QPU targets ($\sim$2030+).  Their inclusion in the platform
+STK11~F354L local site ($\sim$48 electrons, $\sim$96 qubits; AlphaFold Q15831) is a
+near-term exception: only 2 qubits beyond the demonstrated ceiling and within IBM Heron
+r3 hardware capacity (156 qubits), making local Phase~3B executable without
+fault-tolerant hardware.  The remaining five KEAP1 and STK11 targets require 152--310
+qubits (Table~\ref{tab:tiers}) and are designated fault-tolerant QPU targets
+($\sim$2030+).  Their inclusion in the platform
 validates the architecture's mutation-agnostic routing and governance pipeline across the
 full hardware-tier spectrum---demonstrating that the same provenance schema and compliance
 framework apply whether the backend is a 2-qubit PennyLane simulator today or a

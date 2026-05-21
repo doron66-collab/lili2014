@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.5.19)  21 MAY 2026 07:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.5.19)  21 MAY 2026 09:52
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -644,28 +644,28 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <6> on input line 279.
 [4] [5{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/en
 c/dvips/lm/lm-mathit.enc}] [6] [7]
-Overfull \hbox (2.80637pt too wide) in paragraph at lines 512--513
+Overfull \hbox (2.80637pt too wide) in paragraph at lines 516--517
  []|\T1/lmr/bx/n/10 (-20) Met?| 
  []
 
 
-Underfull \hbox (badness 7888) in paragraph at lines 514--514
+Underfull \hbox (badness 7888) in paragraph at lines 518--518
 []|\T1/lmr/bx/n/10 (+20) C1: Active-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 518--518
+Underfull \hbox (badness 10000) in paragraph at lines 522--522
 \T1/lmr/bx/n/10 (+20) mic for-mu-la-
  []
 
 [8] [9] [10] [11] [12]
-Overfull \hbox (4.91582pt too wide) in paragraph at lines 768--773
+Overfull \hbox (4.91582pt too wide) in paragraph at lines 772--777
 []\T1/lmr/bx/n/10.95 (-20) 100% P1--P9 prove-nance emis-sion for all recorded o
 ut-puts. \T1/lmr/m/n/10.95 (-20) De-rived from 21 CFR Part 11's
  []
 
 [13] [14] [15] [16]
-Underfull \hbox (badness 1436) in paragraph at lines 962--967
+Underfull \hbox (badness 1436) in paragraph at lines 966--971
 \T1/lmr/m/n/10.95 (+20) NSCLC Tumor-Suppressor Mu-ta-tions. Dis-ser-ta-tion pro
 -posal web-site, 2026. [][]$\T1/lmtt/m/n/10.95 https : / /
  []
@@ -681,7 +681,7 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 Here is how much of TeX's memory you used:
  15812 strings out of 476182
  249238 string characters out of 5795595
- 1936975 words of memory out of 5000000
+ 1938975 words of memory out of 5000000
  37238 multiletter control sequences out of 15000+600000
  641281 words of font info for 219 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
@@ -693,7 +693,7 @@ blic/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmri10.pfb></usr/share
 /texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm
 /lmsy7.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb></usr/share/texli
 ve/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (18 pages, 273485 bytes).
+Output written on main.pdf (18 pages, 273669 bytes).
 PDF statistics:
  374 PDF objects out of 1000 (max. 8388607)
  318 compressed objects within 4 object streams
