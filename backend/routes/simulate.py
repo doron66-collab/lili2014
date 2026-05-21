@@ -27,12 +27,28 @@ def get_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ── Mutation configurations ────────────────────────────────────────────────────
-# Each entry defines the VQE active space for Phase 3A (simulator POC).
-# local_electrons/local_qubits: 5 Å binding-site shell (CASSCF proxy, Phase 3A tier).
-# full_electrons/full_qubits: complete active-site environment (Phase 3B IBM Heron r3 target).
-# Hardware precedent: Merz et al. (Cleveland Clinic/RIKEN/IBM, May 2026, arXiv:2605.01138)
-# demonstrated 94-qubit quantum chemistry on IBM Heron r2 for 12,635-atom protein-ligand systems,
-# establishing that full-pocket targets up to ~96 qubits are within demonstrated hardware range.
+# Seven scientifically classified NSCLC targets (Y220C is a platform placeholder
+# for NGS demo only — excluded from scientific counts).
+#
+# active_electrons/active_orbitals: Phase 3A 2-qubit proxy (pipeline validation).
+# local_electrons/local_qubits: 5 Å binding-site shell from PDB coordinates (CASSCF).
+# full_electrons/full_qubits: complete active-site environment from PDB coordinates.
+# hardware_era: "current" = within 94-qubit demonstrated ceiling (Merz et al. 2026);
+#               "fault_tolerant" = requires fault-tolerant QPU (~2030+);
+#               "placeholder" = platform demo anchor, not a scientific target.
+#
+# PDB coordinate sources (coordinate-verified May 2026):
+#   TP53 C275F  → 2OCJ (TP53 DBD wild-type, 2.05 Å)          — hardware_era: current
+#   KEAP1       → 1U6D (Kelch apo, 1.85 Å) +
+#                 2FLU (Kelch + Nrf2 ETGE peptide, 2.0 Å)     — hardware_era: fault_tolerant
+#   STK11/LKB1  → 2WTK (LKB1–STRADα–MO25α, 2.65 Å;          — hardware_era: fault_tolerant
+#                        D194A engineered mutant in structure)
+#   R320Q / F354L: mutation site not resolved in any available PDB structure (TBD).
+#
+# Hardware precedent: Merz et al. (Cleveland Clinic/RIKEN/IBM, May 2026,
+# arXiv:2605.01138) demonstrated 94 qubits on IBM Heron r2 for a 12,635-atom
+# protein-ligand complex — establishing the current NISQ ceiling for chemistry.
+# C275F full active site (~88q) is the ONLY target within this ceiling.
 MUTATION_CONFIGS = {
     "TP53_C275F": {
         "name": "TP53 p.Cys275Phe",
@@ -40,11 +56,12 @@ MUTATION_CONFIGS = {
         "desc": "Phe275 π-system fragment - minimal active space POC",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 24,   # loop-sheet-helix (5 Å shell, CASSCF(24,24)) — PDB 2OCJ
+        "local_electrons": 24,   # loop-sheet-helix 5 Å shell — PDB 2OCJ
         "local_qubits": 48,
-        "full_electrons": 44,    # Zn²⁺ shell + DNA-guanine interface (CASSCF(44,44))
-        "full_qubits": 88,       # within demonstrated range: Merz et al. 2026 used 94 qubits
+        "full_electrons": 44,    # Zn²⁺ shell + DNA-guanine interface — PDB 2OCJ
+        "full_qubits": 88,       # ONLY target within 94-qubit demonstrated ceiling (Merz et al. 2026)
         "bqp_class": "A",
+        "hardware_era": "current",  # full active site runnable on today's IBM Heron
         "phase3b_backend": "IBM Heron r3",
         "hamiltonian_coeffs": [-0.24274280, 0.18093120, -0.24274280,
                                 0.17627641,  0.04475014,  0.04475014],
@@ -52,105 +69,112 @@ MUTATION_CONFIGS = {
     "TP53_Y220C": {
         "name": "TP53 p.Tyr220Cys",
         "pdb": "2VUK",
-        "desc": "Tyr220 binding pocket - minimal active space POC",
+        "desc": "NGS demo anchor only — not a scientific simulation target",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 24,   # Tyr220 cavity (5 Å shell, CASSCF(24,24)) — PDB 2VUK
+        "local_electrons": 24,
         "local_qubits": 48,
-        "full_electrons": 38,    # extended cavity + adjacent β-strand (CASSCF(38,38))
+        "full_electrons": 38,
         "full_qubits": 76,
         "bqp_class": "C",
+        "hardware_era": "placeholder",  # demo anchor for MI25-0349 NGS upload; excluded from scientific counts
         "phase3b_backend": "IBM Heron r3",
         "hamiltonian_coeffs": [-0.23274280, 0.17893120, -0.23274280,
                                 0.16827641,  0.04275014,  0.04275014],
     },
     "KEAP1_LOF": {
         "name": "KEAP1 Loss-of-Function",
-        "pdb": "5WFV",           # Kelch-Nrf2 ETGE complex, 1.50 Å resolution
-        "desc": "NRF2 binding interface - minimal active space POC",
+        "pdb": "2FLU",           # Kelch + Nrf2 ETGE peptide, 2.0 Å — coordinate-verified
+        "desc": "Nrf2-KEAP1 PPI interface — fault-tolerant QPU target; Phase 3A proxy only",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 24,   # ETGE-contact surface (S363,R380,R415; 5 Å shell)
-        "local_qubits": 48,
-        "full_electrons": 48,    # full Nrf2 interface: 6-blade β-propeller pocket (CASSCF(48,48))
-        "full_qubits": 96,
+        "local_electrons": 104,  # G333 5 Å shell — PDB 1U6D + 2FLU coordinate-verified
+        "local_qubits": 208,
+        "full_electrons": 155,   # full Nrf2-binding interface — PDB 2FLU coordinate-verified
+        "full_qubits": 310,      # fault-tolerant QPU required (~2030+)
         "bqp_class": "B",
-        "phase3b_backend": "IBM Heron r3",
+        "hardware_era": "fault_tolerant",
+        "phase3b_backend": "fault-tolerant QPU (~2030+)",
         "hamiltonian_coeffs": [-0.25274280, 0.19093120, -0.25274280,
                                 0.18627641,  0.05475014,  0.05475014],
     },
     "KEAP1_G333C": {
         "name": "KEAP1 p.Gly333Cys",
-        "pdb": "5WFV",           # Kelch-Nrf2 ETGE complex
-        "desc": "Kelch β-propeller Gly333 site - minimal active space POC",
+        "pdb": "1U6D",           # Kelch apo, 1.85 Å — coordinate-verified
+        "desc": "Kelch β-propeller Gly333 — fault-tolerant QPU target; Phase 3A proxy only",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 20,   # Gly333 blade-I/II junction (5 Å shell, Cys sulfur + flanking)
-        "local_qubits": 40,
-        "full_electrons": 46,    # full Nrf2-binding pocket including R320/R380 triad
-        "full_qubits": 92,
+        "local_electrons": 104,  # G333 5 Å shell — PDB 1U6D coordinate-verified (15 residues)
+        "local_qubits": 208,
+        "full_electrons": 155,   # full Nrf2-binding interface — PDB 2FLU coordinate-verified
+        "full_qubits": 310,
         "bqp_class": "B",
-        "phase3b_backend": "IBM Heron r3",
+        "hardware_era": "fault_tolerant",
+        "phase3b_backend": "fault-tolerant QPU (~2030+)",
         "hamiltonian_coeffs": [-0.25674280, 0.19493120, -0.25674280,
                                 0.19027641,  0.05675014,  0.05675014],
     },
     "KEAP1_R320Q": {
         "name": "KEAP1 p.Arg320Gln",
-        "pdb": "5WFV",           # Kelch-Nrf2 ETGE complex
-        "desc": "Kelch β-propeller Arg320 site - minimal active space POC",
+        "pdb": "2FLU",           # closest available; R320 in disordered IVR — not resolved
+        "desc": "IVR-Kelch boundary Arg320 — local active space TBD (no PDB coordinates); fault-tolerant QPU target",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 22,   # Arg320 salt-bridge environment (R320-E242 pair + scaffold)
-        "local_qubits": 44,
-        "full_electrons": 44,    # full Nrf2-contact sheet including BTB-IVR linker residues
-        "full_qubits": 88,
+        "local_electrons": None,  # R320 in IVR (intrinsically disordered) — not resolved in any PDB structure
+        "local_qubits": None,
+        "full_electrons": 155,   # shares full Nrf2-binding interface — PDB 2FLU coordinate-verified
+        "full_qubits": 310,
         "bqp_class": "B",
-        "phase3b_backend": "IBM Heron r3",
+        "hardware_era": "fault_tolerant",
+        "phase3b_backend": "fault-tolerant QPU (~2030+)",
         "hamiltonian_coeffs": [-0.24874280, 0.18693120, -0.24874280,
                                 0.18227641,  0.05275014,  0.05275014],
     },
     "STK11_LKB1": {
         "name": "STK11/LKB1 Loss-of-Function",
-        "pdb": "2WTK",           # LKB1-STRADα-MO25α heterotrimeric complex
-        "desc": "LKB1 kinase domain LOF - minimal active space POC",
+        "pdb": "2WTK",           # LKB1–STRADα–MO25α, chain C = LKB1, 2.65 Å — coordinate-verified
+        "desc": "LKB1 kinase domain LOF — fault-tolerant QPU target; Phase 3A proxy only",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 22,   # kinase activation loop (D194 catalytic triad, 5 Å shell)
-        "local_qubits": 44,
-        "full_electrons": 40,    # full ATP-binding pocket (Mg²⁺ + K78/E98/D194 + DFG motif)
-        "full_qubits": 80,
+        "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified (native D194; structure has D194A)
+        "local_qubits": 152,
+        "full_electrons": 152,   # full ATP pocket 8 Å shell — PDB 2WTK chain C coordinate-verified
+        "full_qubits": 304,
         "bqp_class": "A",
-        "phase3b_backend": "IBM Heron r3",
+        "hardware_era": "fault_tolerant",
+        "phase3b_backend": "fault-tolerant QPU (~2030+)",
         "hamiltonian_coeffs": [-0.22874280, 0.17293120, -0.22874280,
                                 0.16227641,  0.03975014,  0.03975014],
     },
     "STK11_F354L": {
         "name": "STK11 p.Phe354Leu",
-        "pdb": "2WTK",           # LKB1-STRADα-MO25α heterotrimeric complex
-        "desc": "LKB1 kinase Phe354 catalytic loop - minimal active space POC",
+        "pdb": "2WTK",           # F354 beyond ordered region (chain C ends at 342) — not resolved
+        "desc": "LKB1 R-spine Phe354 — local active space TBD (no PDB coordinates); fault-tolerant QPU target",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 20,   # Phe354 aromatic core (π-system + adjacent hydrophobics)
-        "local_qubits": 40,
-        "full_electrons": 40,    # C-lobe hydrophobic spine + αEF/αG interface (CASSCF(40,40))
-        "full_qubits": 80,
+        "local_electrons": None,  # F354 beyond ordered density in 2WTK (chain C ends at res. 342)
+        "local_qubits": None,
+        "full_electrons": 152,   # shares full ATP pocket — PDB 2WTK coordinate-verified
+        "full_qubits": 304,
         "bqp_class": "A",
-        "phase3b_backend": "IBM Heron r3",
+        "hardware_era": "fault_tolerant",
+        "phase3b_backend": "fault-tolerant QPU (~2030+)",
         "hamiltonian_coeffs": [-0.23274280, 0.17693120, -0.23274280,
                                 0.16627641,  0.04175014,  0.04175014],
     },
     "STK11_D194N": {
         "name": "STK11 p.Asp194Asn",
-        "pdb": "2WTK",           # LKB1-STRADα-MO25α heterotrimeric complex
-        "desc": "LKB1 kinase Asp194 activation loop - minimal active space POC",
+        "pdb": "2WTK",           # LKB1–STRADα–MO25α, chain C = LKB1, 2.65 Å — coordinate-verified
+        "desc": "LKB1 DFG-motif Asp194 — fault-tolerant QPU target; Phase 3A proxy only",
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 22,   # Asp194 catalytic base environment (K78-E98-D194 triad)
-        "local_qubits": 44,
-        "full_electrons": 42,    # activation loop + P-loop + Mg²⁺ coordination shell
-        "full_qubits": 84,
+        "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified (native D194; structure has D194A)
+        "local_qubits": 152,
+        "full_electrons": 152,   # full ATP pocket 8 Å shell — PDB 2WTK chain C coordinate-verified
+        "full_qubits": 304,
         "bqp_class": "A",
-        "phase3b_backend": "IBM Heron r3",
+        "hardware_era": "fault_tolerant",
+        "phase3b_backend": "fault-tolerant QPU (~2030+)",
         "hamiltonian_coeffs": [-0.22474280, 0.16893120, -0.22474280,
                                 0.15827641,  0.03775014,  0.03775014],
     },
@@ -371,8 +395,9 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
             "qubits_used": vqe["n_qubits"],
             "elapsed_s":   vqe["elapsed_s"],
             "phase":       "3A — PennyLane simulator",
-            "local_target": f"{config['local_electrons']}e / {config['local_qubits']} qubits (local site, Phase 3A tier)",
-            "full_target": f"{config['full_electrons']}e / {config['full_qubits']} qubits on {config['phase3b_backend']} (Phase 3B — within demonstrated hardware range per Merz et al. 2026)",
+            "local_target": f"{config['local_electrons']}e / {config['local_qubits']} qubits (local site, Phase 3A tier)" if config.get('local_electrons') else "local active space TBD — mutation site not resolved in available PDB structures",
+            "full_target": f"{config['full_electrons']}e / {config['full_qubits']} qubits — {config['phase3b_backend']}",
+            "hardware_era": config.get("hardware_era", "unknown"),
         },
         "provenance": {
             "p1_circuit_hash": record["p1_circuit_hash"],

@@ -246,11 +246,19 @@ provenance granularity.
 \textbf{Tier} & \textbf{Active e$^{-}$} & \textbf{Approx.\ qubits} & \textbf{Architectural role} \\
 \midrule
 Reference molecular benchmark & 32 & 100 &
-  External SqDRIFT/Heron precedent for frontier electronic-structure simulation \\
-C275F local binding site & $\sim$24 & $\sim$50--60 &
-  Proof-of-concept workflow, simulator validation, near-term quantum-kernel test \\
-C275F full binding site  & $\sim$44 & $\sim$88 &
-  Within demonstrated hardware range: Merz et al.~\cite{merz2026protein} used 94 qubits on IBM Heron~r2 for 12,635-atom protein-ligand systems (May 2026); Phase~3B execution pending IBM Quantum Network access \\
+  External SqDRIFT/Heron precedent (IBM \textit{Science}, March 2026) \\
+C275F local active site & $\sim$24 & $\sim$48 &
+  Phase 3A proof-of-concept; simulator validation; near-term quantum-kernel test \\
+C275F full active site  & $\sim$44 & $\sim$88 &
+  \textbf{Only target within today's hardware ceiling.} Merz et al.~\cite{merz2026protein} demonstrated 94 qubits on IBM Heron~r2 (May 2026, PDB:~2OCJ active-site verified); Phase~3B pending IBM Quantum Network access \\
+KEAP1 local site (G333C) & $\sim$104 & $\sim$208 &
+  Fault-tolerant QPU required ($\sim$2030+); PDB:~1U6D+2FLU coordinate-verified \\
+KEAP1 full Nrf2 interface & $\sim$155 & $\sim$310 &
+  Fault-tolerant QPU required; PDB:~2FLU coordinate-verified (19 interface residues) \\
+STK11/LKB1 local site (D194) & $\sim$76 & $\sim$152 &
+  Fault-tolerant QPU required; PDB:~2WTK coordinate-verified (D194A backbone position) \\
+STK11/LKB1 full ATP pocket & $\sim$152 & $\sim$304 &
+  Fault-tolerant QPU required; PDB:~2WTK coordinate-verified (8\,\AA{} shell) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -260,17 +268,32 @@ construction, fermion-to-qubit mapping, backend routing, error-mitigation metada
 support, stakeholder visualisation, and P1--P9 provenance emission.  The full tier tests
 whether the same architecture scales without changing its governance contract.
 
-The platform as implemented addresses eight NSCLC mutation targets: TP53~C275F, TP53~Y220C,
-KEAP1~LOF, KEAP1~G333C, KEAP1~R320Q, STK11~LKB1 (LOF), STK11~F354L, and STK11~D194N.
-All eight carry BQP-relevant active spaces (Class~A or Class~B under the escalation rule
-of Section~5); mutations whose active spaces remain tractable by classical
-density-functional methods (Class~C) are excluded from quantum routing at the
-BQP-classification stage.  C275F is used as the primary stress-test case because its
-active-space boundary is architecturally most demanding and its structural mutation
-class---producing delocalized electronic perturbations across the hydrophobic core of the
-DNA-binding domain---places it in the regime where classical density-functional methods
-fail at chemical accuracy and fermionic quantum simulation is the principal path to
-chemical-accuracy characterisation.
+The platform addresses seven scientifically classified NSCLC mutation targets selected
+on three criteria: (1)~clinical significance in NSCLC specifically, (2)~absence of an
+approved targeted therapy, and (3)~BQP-relevant active space exceeding classical
+tractability.  Hardware feasibility on current quantum computers was deliberately
+\emph{not} a selection criterion---the architecture must be mutation-agnostic and
+future-ready.  The seven targets are: TP53~C275F (Class~A), KEAP1~LOF, KEAP1~G333C,
+KEAP1~R320Q (all Class~B), STK11~LKB1~(LOF), STK11~F354L, and STK11~D194N (all
+Class~A).  STK11 and KEAP1 targets were selected for their clinical urgency in NSCLC:
+STK11/LKB1 loss-of-function occurs in $\sim$20\% of NSCLC adenocarcinomas and is the
+primary driver of immunotherapy (PD-1/PD-L1) resistance; KEAP1 mutations co-occur in
+$\sim$10--15\% of NSCLC cases and together define the ``double-negative''
+immunotherapy non-responder profile---one of the most urgent unsolved problems in
+thoracic oncology.
+
+Coordinate-level active-space analysis from PDB structures (2OCJ, 1U6D, 2FLU, 2WTK)
+establishes a critical hardware-tier distinction.  TP53~C275F is the \emph{only} target
+whose full active site ($\sim$44 electrons, $\sim$88 qubits; PDB:~2OCJ) falls within the
+94-qubit ceiling independently demonstrated by Merz et al.~\cite{merz2026protein}.
+The six KEAP1 and STK11 targets require 152--310 qubits (Table~\ref{tab:tiers}) and are
+designated fault-tolerant QPU targets ($\sim$2030+).  Their inclusion in the platform
+validates the architecture's mutation-agnostic routing and governance pipeline across the
+full hardware-tier spectrum---demonstrating that the same provenance schema and compliance
+framework apply whether the backend is a 2-qubit PennyLane simulator today or a
+fault-tolerant QPU tomorrow.  C275F is the primary stress-test case because it is the
+only target that is simultaneously quantum-necessary (Class~A---no classical path at
+chemical accuracy) and executable on today's IBM Heron hardware.
 
 \textbf{Translational chain and governance claim.}  The architecture produces
 quantum-accurate ground-state energy differentials ($\Delta E$) between wild-type and
