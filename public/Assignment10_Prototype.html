@@ -484,7 +484,7 @@
         <tr id="mut-row-TP53_C275F" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
           <td style="font-weight:700;color:#E8A020">TP53</td>
-          <td>p.Cys275Phe <span class="badge badge-gold">Structural</span> <span class="badge badge-gold">Tier I</span></td>
+          <td id="mut-type-TP53_C275F">p.Cys275Phe <span class="badge badge-gold">Structural</span></td>
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
           <td>~24e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
           <td>~44e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
@@ -493,7 +493,7 @@
         <tr id="mut-row-STK11_LKB1" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
           <td style="font-weight:700;color:#60a5fa">STK11</td>
-          <td>LKB1 Loss-of-function <span class="badge badge-gray">Kinase LOF</span></td>
+          <td id="mut-type-STK11_LKB1">LKB1 Loss-of-function <span class="badge badge-gray">Kinase LOF</span></td>
           <td style="font-size:10px;color:#93c5fd">📚 Research</td>
           <td>~76e <span style="color:var(--gray);font-size:10px">(kinase local)</span></td>
           <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
@@ -502,7 +502,7 @@
         <tr id="mut-row-STK11_F354L" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
           <td style="font-weight:700;color:#60a5fa">STK11</td>
-          <td>p.Phe354Leu <span class="badge badge-gray">Kinase LOF</span></td>
+          <td id="mut-type-STK11_F354L">p.Phe354Leu <span class="badge badge-gray">Kinase LOF</span></td>
           <td style="font-size:10px;color:#93c5fd">📚 Research</td>
           <td>~48e <span style="color:var(--gray);font-size:10px">(AF · 96q · near-term⚡)</span></td>
           <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
@@ -511,7 +511,7 @@
         <tr id="mut-row-STK11_D194N" data-bqp="A">
           <td><span class="bqp-badge-a">A</span></td>
           <td style="font-weight:700;color:#60a5fa">STK11</td>
-          <td>p.Asp194Asn <span class="badge badge-gray">Kinase LOF</span></td>
+          <td id="mut-type-STK11_D194N">p.Asp194Asn <span class="badge badge-gray">Kinase LOF</span></td>
           <td style="font-size:10px;color:#93c5fd">📚 Research</td>
           <td>~76e <span style="color:var(--gray);font-size:10px">(kinase local)</span></td>
           <td>~152e <span style="color:var(--gray);font-size:10px">(full domain)</span></td>
@@ -521,7 +521,7 @@
         <tr id="mut-row-KEAP1_LOF" data-bqp="B">
           <td><span class="bqp-badge-b">B</span></td>
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
-          <td>p.Cys196Leufs* <span class="badge badge-violet">PPI</span> <span class="badge badge-violet">Tier III</span></td>
+          <td id="mut-type-KEAP1_LOF">p.Cys196Leufs* <span class="badge badge-violet">PPI</span></td>
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
           <td>~104e <span style="color:var(--gray);font-size:10px">(Kelch local)</span></td>
           <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
@@ -530,7 +530,7 @@
         <tr id="mut-row-KEAP1_G333C" data-bqp="B">
           <td><span class="bqp-badge-b">B</span></td>
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
-          <td>p.Gly333Cys <span class="badge badge-violet">PPI</span></td>
+          <td id="mut-type-KEAP1_G333C">p.Gly333Cys <span class="badge badge-violet">PPI</span></td>
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
           <td>~104e <span style="color:var(--gray);font-size:10px">(Kelch local)</span></td>
           <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
@@ -539,7 +539,7 @@
         <tr id="mut-row-KEAP1_R320Q" data-bqp="B">
           <td><span class="bqp-badge-b">B</span></td>
           <td style="font-weight:700;color:#b47fd4">KEAP1</td>
-          <td>p.Arg320Gln <span class="badge badge-violet">PPI</span></td>
+          <td id="mut-type-KEAP1_R320Q">p.Arg320Gln <span class="badge badge-violet">PPI</span></td>
           <td style="font-size:10px;color:var(--gray)">Sibling</td>
           <td>~80e <span style="color:var(--gray);font-size:10px">(AF model · IVR⚠)</span></td>
           <td>~155e <span style="color:var(--gray);font-size:10px">(full interface)</span></td>
@@ -2280,6 +2280,27 @@ function loadNGSReport(ngs) {
       }
     }
   });
+  // Inject tier badges into registry table from NGS data (direct + siblings)
+  const TIER_BADGE_CLASS = { 'I': 'badge-gold', 'II': 'badge-teal', 'III': 'badge-violet' };
+  const SIBLING_MAP = {
+    'KEAP1_LOF':  ['KEAP1_G333C', 'KEAP1_R320Q'],
+    'STK11_LKB1': ['STK11_F354L', 'STK11_D194N'],
+  };
+  function injectTierBadge(simId, tier) {
+    const cell = document.getElementById(`mut-type-${simId}`);
+    if (!cell || !tier) return;
+    cell.querySelectorAll('.ngs-tier-badge').forEach(b => b.remove());
+    const span = document.createElement('span');
+    span.className = `badge ${TIER_BADGE_CLASS[tier] || 'badge-gray'} ngs-tier-badge`;
+    span.textContent = `Tier ${tier}`;
+    cell.appendChild(span);
+  }
+  (ngs.variants || []).forEach(v => {
+    if (!v.simulation_id || !v.tier) return;
+    injectTierBadge(v.simulation_id, v.tier);
+    (SIBLING_MAP[v.simulation_id] || []).forEach(sibId => injectTierBadge(sibId, v.tier));
+  });
+
   // Biomarkers
   const bm = ngs.biomarkers || {};
   const egfr = document.getElementById('ngs-egfr');
@@ -2540,6 +2561,9 @@ function resetPlatform() {
   });
   el('pipeline-card-title') && (el('pipeline-card-title').textContent = 'Live Research Pipeline — No NGS loaded');
   el('bqp-card-title')      && (el('bqp-card-title').textContent      = 'All-Target Summary — No NGS loaded');
+
+  // Clear dynamically-injected tier badges
+  document.querySelectorAll('.ngs-tier-badge').forEach(b => b.remove());
 
   // ── Reset per-mutation cells (status badges, progress bars, freq) ─────
   ['TP53_C275F','TP53_Y220C','KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','STK11_LKB1','STK11_F354L','STK11_D194N'].forEach(id => {
