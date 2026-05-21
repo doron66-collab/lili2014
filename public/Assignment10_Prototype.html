@@ -2638,21 +2638,15 @@ function updateDashboardAfterRun(mutationId, data) {
 }
 
 // ── Pipeline stage animator ────────────────────────────────────────────────
-const MUTATION_LABELS = {
-  TP53_C275F: 'TP53 p.Cys275Phe · 2e/2orb POC',
-  TP53_Y220C: 'TP53 p.Tyr220Cys · 2e/2orb POC',
-  KEAP1_LOF:   'KEAP1 Loss-of-Function · 2e/2orb POC',
-  KEAP1_G333C: 'KEAP1 p.Gly333Cys · 2e/2orb POC',
-  KEAP1_R320Q: 'KEAP1 p.Arg320Gln · 2e/2orb POC',
-  STK11_LKB1:  'STK11/LKB1 Loss-of-Function · 2e/2orb POC',
-  STK11_F354L: 'STK11 p.Phe354Leu · 2e/2orb POC',
-  STK11_D194N: 'STK11 p.Asp194Asn · 2e/2orb POC',
-};
+function mutationLabel(mutId) {
+  const name = (MUT_META[mutId] || {}).display_name || mutId;
+  return `Phase 3A · ${name} · 2q VQE Proxy`;
+}
 
 // stageIndex: 0=idle, 1=dispatching, 2=aggregating, 3=validating, 4=complete
 function setPipelineState(mutationId, stageIndex) {
   const mutEl = document.getElementById('pipe-mutation');
-  if (mutEl) mutEl.textContent = MUTATION_LABELS[mutationId] || mutationId;
+  if (mutEl) mutEl.textContent = mutationId ? mutationLabel(mutationId) : 'Select a mutation and run to begin';
 
   const configs = [
     // [dot1..6 classes], status line text
@@ -2685,7 +2679,7 @@ function updateJobCard(mutationId, state, data) {
   const bar    = document.getElementById('job-vqe-bar');
   const status = document.getElementById('job-vqe-status');
   if (!name) return;
-  const label = MUTATION_LABELS[mutationId] || mutationId;
+  const label = mutationId ? mutationLabel(mutationId) : 'Awaiting simulation run';
   if (state === 'running') {
     name.textContent   = `VQE (Phase 3A) — ${label}`;
     sub.textContent    = 'Backend: PennyLane default.qubit · Algorithm: VQE → sqDRIFT (Phase 3B) · Qubits: 2 · Steps: 120';
@@ -2699,7 +2693,7 @@ function updateJobCard(mutationId, state, data) {
     status.textContent = 'Done ✓';
     status.style.color = 'var(--green)';
   } else {
-    name.textContent   = 'VQE (Phase 3A) — Awaiting simulation run';
+    name.textContent   = 'Phase 3A · VQE — Awaiting simulation run';
     sub.textContent    = 'Backend: PennyLane default.qubit · Algorithm: VQE → sqDRIFT (Phase 3B) · Qubits: 2';
     bar.style.width    = '0%';
     status.textContent = 'Idle';
