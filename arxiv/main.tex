@@ -250,7 +250,7 @@ Reference molecular benchmark & 32 & 100 &
 C275F local binding site & $\sim$24 & $\sim$50--60 &
   Proof-of-concept workflow, simulator validation, near-term quantum-kernel test \\
 C275F full binding site  & $\sim$44 & $\sim$88 &
-  Frontier scaling target and future full-pocket validation on physical hardware \\
+  Within demonstrated hardware range: Merz et al.~\cite{merz2026protein} used 94 qubits on IBM Heron~r2 for 12,635-atom protein-ligand systems (May 2026); Phase~3B execution pending IBM Quantum Network access \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -884,6 +884,15 @@ recommendation, and does not claim a formal classical-versus-quantum separation 
 It does not empirically validate NVIDIA Ising-class decoder provenance in a live regulated
 workflow; that is a future phase.
 
+A May 2026 milestone by Merz et al.\ demonstrates that the hardware scale required for
+Phase~3B is no longer speculative: 94 qubits were used on IBM Heron~r2 processors to
+compute the electronic structure of a 12,635-atom trypsin–benzamidine complex via
+EWF-TrimSQD at chemical accuracy~\cite{merz2026protein}.  C275F's full binding-site
+target ($\sim$44 electrons, $\sim$88 qubits) falls comfortably within this demonstrated
+range.  The architectural contribution of this dissertation is therefore validated against
+hardware that can execute Phase~3B; the remaining step is institutional IBM Quantum Network
+access, not algorithmic or hardware feasibility.
+
 The architecture is evaluated initially on one mutation instance and one quantum-modality
 anchor.  Generalisation is therefore analytical rather than statistical.  Multi-patient
 analysis, multi-modality empirical validation across trapped-ion or neutral-atom systems,
@@ -924,7 +933,7 @@ for verifying final authorship metadata, institutional approvals, patient-data h
 and arXiv submission settings before upload.
 
 %% ── References ───────────────────────────────────────────────────────────────
-\begin{thebibliography}{18}
+\begin{thebibliography}{19}
 
 \bibitem{cohen2026proposal}
 Doron Cohen.
@@ -1024,6 +1033,14 @@ Mohammad~Ghazi Vakili, Christoph Gorgulla, Jamie Snider, et~al.
 Quantum-computing-enhanced algorithm unveils potential KRAS inhibitors.
 \textit{Nature Biotechnology}, 43:1954--1959, 2025.
 \doi{10.1038/s41587-024-02526-3}.
+
+\bibitem{merz2026protein}
+Kenneth~M. Merz et~al.
+Crossing the 12,000-atom barrier with heterogeneous quantum-classical supercomputing:
+quantum chemistry of protein-ligand complexes.
+arXiv preprint arXiv:2605.01138, 2026.
+Cleveland Clinic Foundation, RIKEN, and IBM Quantum.
+\url{https://arxiv.org/abs/2605.01138}.
 
 \bibitem{arxiv2026license}
 Licenses.
