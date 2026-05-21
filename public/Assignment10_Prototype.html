@@ -2006,9 +2006,9 @@ const MI25_0349 = {
   origin: 'Pulmonary', tumor_purity: '65%',
   biomarkers: { EGFR_ALK_KRAS_RET: 'Not detected', TMB_value: 7.6, TMB_tier: 'Low', MSI_value: 7.77, MSI_status: 'Stable' },
   variants: [
-    { gene:'TP53', mutation:'p.Cys275Phe', hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I', badge_type:'Structural', simulation_id:'TP53_C275F', active_electrons:44, full_qubits:88 },
-    { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290, tier:'III', badge_type:'PPI', simulation_id:'KEAP1_LOF', active_electrons:155, full_qubits:310 },
-    { gene:'STK11', mutation:'Loss-of-function', badge_type:'SL', simulation_id:'STK11_LKB1', active_electrons:152, full_qubits:304 },
+    { gene:'TP53',  mutation:'p.Cys275Phe',    hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I',   badge_type:'Structural', simulation_id:'TP53_C275F',  source:'ngs',      active_electrons:44,  full_qubits:88  },
+    { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290,                                   tier:'III', badge_type:'PPI',        simulation_id:'KEAP1_LOF',   source:'ngs',      active_electrons:155, full_qubits:310 },
+    { gene:'STK11', mutation:'Loss-of-function',                                                                       badge_type:'SL',         simulation_id:'STK11_LKB1',  source:'research', active_electrons:152, full_qubits:304 },
   ]
 };
 
@@ -2385,7 +2385,9 @@ async function lookupStructureSources(variants) {
   if (!card || !body) return;
   card.style.display = 'block';
 
-  // Deduplicate genes
+  // Deduplicate genes; build source map (ngs vs research)
+  const geneSource = {};
+  variants.forEach(v => { if (v.gene) geneSource[v.gene] = v.source || 'ngs'; });
   const genes = [...new Set(variants.map(v => v.gene))];
 
   body.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:4px 0">
@@ -2420,7 +2422,9 @@ async function lookupStructureSources(variants) {
         </tr>
         ${rows.map(r => `
         <tr>
-          <td style="font-weight:700;color:var(--teal)">${r.gene}</td>
+          <td style="font-weight:700;color:var(--teal)">
+            ${r.gene}${geneSource[r.gene] === 'research' ? '<span style="color:var(--gray);font-size:10px"> *</span>' : ''}
+          </td>
           <td style="font-family:monospace;font-size:11px">
             ${r.uniRow.found
               ? `<a href="https://www.uniprot.org/uniprotkb/${r.uniRow.uniprot_id}" target="_blank"
@@ -2457,6 +2461,7 @@ async function lookupStructureSources(variants) {
         ? `<div style="color:var(--gray);font-size:11px;margin-top:8px">Fetching ${genes.length - rows.length} more…</div>`
         : `<div style="color:var(--gray);font-size:10px;margin-top:8px">
             Sources: UniProt REST API · RCSB PDB REST API · AlphaFold DB EMBL-EBI · All queries cached 24h
+            · <span style="color:var(--gray)">* Research target (TCGA/COSMIC literature) — not detected in this NGS report</span>
            </div>`}
     `;
   }
