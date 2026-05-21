@@ -1358,7 +1358,7 @@
             <tr>
               <td><strong>CDKN2A</strong></td>
               <td><em>Cyclin-Dependent Kinase Inhibitor 2A</em></td>
-              <td>A tumor-suppressor gene whose loss is one of the four target mutations in the dissertation. Its hydrophobic core disruption requires an active space in the 14–18 electron range, sitting at the classical tractability threshold.</td>
+              <td>A tumor-suppressor gene encoding p16 and p14ARF. CDKN2A loss is classified Class C (quantum-optional) — mutant crystal structures exist and classical methods provide defensible baselines — and is not among the platform's seven scientifically classified simulation targets.</td>
             </tr>
             <tr>
               <td><strong>DSR</strong></td>
@@ -1388,7 +1388,7 @@
             <tr>
               <td><strong>NSCLC</strong></td>
               <td><em>Non-Small Cell Lung Cancer</em></td>
-              <td>The most common form of lung cancer (~85% of cases) and the leading cause of cancer mortality globally (~2.1 million new cases and ~1.53 million deaths annually; GLOBOCAN 2022). The clinical context of the dissertation: the four target mutations (TP53, KEAP1, CDKN2A, STK11) are common non-druggable drivers in NSCLC patients.</td>
+              <td>The most common form of lung cancer (~85% of cases) and the leading cause of cancer mortality globally (~2.1 million new cases and ~1.53 million deaths annually; GLOBOCAN 2022). The clinical context of the dissertation: the seven scientifically classified target mutations (TP53 C275F, KEAP1, STK11) are common non-druggable drivers in NSCLC patients.</td>
             </tr>
             <tr>
               <td><strong>P1–P9</strong></td>
@@ -2332,7 +2332,7 @@
           <div class="contribution-num">i</div>
           <div>
             <h3 id="sec-6-i"><a href="#glos-BQP" class="glos-link">BQP</a>-Relevant Classification Framework for Non-druggable Tumor Suppressor Targets</h3>
-            <p>The first published analysis establishing a systematic BQP-relevance classification framework for non-druggable NSCLC tumor-suppressor mutations - under the standard complexity-theoretic framing of quantum chemistry (Abrams &amp; Lloyd, 1999; Aspuru-Guzik et al., 2005). The framework classifies each mutation against three criteria: (K1) absence of mutant crystal structure in RCSB PDB; (K2) active space above the classical tractability ceiling (~18 electrons); (K3) delocalized electronic perturbation that classical DFT cannot resolve at chemical accuracy. This produces three operationally distinct classes. <strong>Class A - Quantum-necessary</strong> (TP53 C275F, STK11 F354L, STK11 D194N): all three criteria are met; no mutant crystal structure exists, no classical computational baseline exists, and the active space exceeds the classical ceiling. For these targets, the pipeline is not one option among several - it is the first computational characterization that has ever been possible. <strong>Class B - Quantum-advantaged</strong> (KEAP1 G333C, KEAP1 R320Q, KEAP1 LOF): criteria K2 and K3 are met; a classical baseline exists but is insufficient at chemical accuracy at the relevant active-space scale. Quantum simulation adds precision that classical methods cannot provide, enabling drug-screen candidate ranking that classical DFT cannot reliably perform. <strong>Class C - Quantum-optional</strong> (TP53 R175H, G245S, R249S, R282W, CDKN2A, NF1, RB1): mutant crystal structures exist and classical methods have produced defensible baselines; quantum adds marginal value and these mutations do not anchor the primary claims. The framework is dual-conditional: classical intractability <em>in practice</em> plus <a href="#glos-BQP" class="glos-link">BQP</a>-class quantum tractability <em>in principle</em>. It does <em>not</em> claim <a href="#glos-BQP" class="glos-link">BQP</a>-hardness or a formal classical-vs-quantum separation, both of which remain open in general; it claims a defensible operational regime under which quantum-derived molecular evidence is the appropriate target of an orchestration architecture. The framework is explicitly conditional on the current state of classical methods (<a href="#glos-DMRG" class="glos-link">DMRG</a>, neural quantum states, tensor networks) and revisable as those methods advance. <em>This is a theoretical IT contribution; it does not require hardware execution to be valid.</em></p>
+            <p>The first published analysis establishing a systematic BQP-relevance classification framework for non-druggable NSCLC tumor-suppressor mutations - under the standard complexity-theoretic framing of quantum chemistry (Abrams &amp; Lloyd, 1999; Aspuru-Guzik et al., 2005). The framework classifies each mutation against three criteria: (K1) absence of mutant crystal structure in RCSB PDB; (K2) active space above the classical tractability ceiling (~18 electrons); (K3) delocalized electronic perturbation that classical DFT cannot resolve at chemical accuracy. This produces three operationally distinct classes. <strong>Class A - Quantum-necessary</strong> (TP53 C275F, STK11 LKB1 LOF, STK11 F354L, STK11 D194N): all three criteria are met; no mutant crystal structure exists, no classical computational baseline exists, and the active space exceeds the classical ceiling. For these targets, the pipeline is not one option among several - it is the first computational characterization that has ever been possible. <strong>Class B - Quantum-advantaged</strong> (KEAP1 G333C, KEAP1 R320Q, KEAP1 LOF): criteria K2 and K3 are met; a classical baseline exists but is insufficient at chemical accuracy at the relevant active-space scale. Quantum simulation adds precision that classical methods cannot provide, enabling drug-screen candidate ranking that classical DFT cannot reliably perform. <strong>Class C - Quantum-optional</strong> (TP53 R175H, G245S, R249S, R282W, CDKN2A, NF1, RB1): mutant crystal structures exist and classical methods have produced defensible baselines; quantum adds marginal value and these mutations do not anchor the primary claims. The framework is dual-conditional: classical intractability <em>in practice</em> plus <a href="#glos-BQP" class="glos-link">BQP</a>-class quantum tractability <em>in principle</em>. It does <em>not</em> claim <a href="#glos-BQP" class="glos-link">BQP</a>-hardness or a formal classical-vs-quantum separation, both of which remain open in general; it claims a defensible operational regime under which quantum-derived molecular evidence is the appropriate target of an orchestration architecture. The framework is explicitly conditional on the current state of classical methods (<a href="#glos-DMRG" class="glos-link">DMRG</a>, neural quantum states, tensor networks) and revisable as those methods advance. <em>This is a theoretical IT contribution; it does not require hardware execution to be valid.</em></p>
             <p>The primary claims of this dissertation rest on Class A and Class B targets — seven scientifically classified mutations across four genes collectively affecting an estimated <strong>~580,000 unique NSCLC patients annually</strong> (derived from per-mutation frequency estimates applied to 2.12M new NSCLC diagnoses/year, GLOBOCAN 2022, with ~30% overlap correction). This figure is smaller than earlier estimates that included Class C mutations, but rests on systematic criteria rather than scope expansion and is defensible against expert review. The classification template defined here for TP53 C275F is directly applicable to all Class A and Class B targets; the orchestration architecture is mutation-agnostic at the workflow layer and handles any BQP-relevant fermionic target without re-derivation.</p>
           </div>
         </div>
@@ -2915,7 +2915,7 @@
             <tr id="glos-ATP">
               <td><strong>ATP</strong></td>
               <td><em>Adenosine Triphosphate</em></td>
-              <td>The principal energy-carrying molecule in cells; binds to kinase active sites. Relevant to STK11 - one of the four target mutations - whose kinase domain coordinates ATP and contributes to the active-space electron count requiring quantum-grade simulation.</td>
+              <td>The principal energy-carrying molecule in cells; binds to kinase active sites. Relevant to STK11 - three of the platform's seven target mutations - whose kinase domain coordinates ATP and contributes to the active-space electron count requiring quantum-grade simulation.</td>
             </tr>
             <tr id="glos-B3LYP">
               <td><strong>B3LYP</strong></td>
@@ -2950,7 +2950,7 @@
             <tr id="glos-CASSCF">
               <td><strong>CASSCF</strong></td>
               <td><em>Complete Active Space Self-Consistent Field</em></td>
-              <td>A multireference quantum chemistry method that treats a chosen subset of orbitals (the active space) with full configuration-interaction accuracy. Cited as one of the classical baselines: CASSCF becomes intractable beyond approximately 18 active electrons, which is exactly why the four target mutations (TP53, KEAP1, CDKN2A, STK11) at 14-28 electrons sit at or beyond the classical ceiling.</td>
+              <td>A multireference quantum chemistry method that treats a chosen subset of orbitals (the active space) with full configuration-interaction accuracy. Cited as one of the classical baselines: CASSCF becomes intractable beyond approximately 18 active electrons, which is exactly why the platform's seven target mutations (TP53 C275F, KEAP1, STK11) at 44–310 qubits sit well beyond the classical ceiling.</td>
             </tr>
             <tr id="glos-CCSD-T-">
               <td><strong>CCSD(T)</strong></td>
@@ -2960,7 +2960,7 @@
             <tr id="glos-CDKN2A">
               <td><strong>CDKN2A</strong></td>
               <td><em>Cyclin-Dependent Kinase Inhibitor 2A</em></td>
-              <td>A tumor-suppressor gene encoding p16 and p14ARF. CDKN2A loss is one of the four target mutations in the dissertation. Its hydrophobic core disruption requires an active space in the 14-18 electron range, straddling the classical tractability threshold and providing a less metallic counterpoint to TP53 in the dissertation's mutation portfolio.</td>
+              <td>A tumor-suppressor gene encoding p16 and p14ARF. CDKN2A loss is classified Class C (quantum-optional) — mutant crystal structures exist and classical methods provide defensible baselines — and is not among the platform's seven scientifically classified simulation targets (TP53 C275F, KEAP1 LOF/G333C/R320Q, STK11 LKB1/F354L/D194N).</td>
             </tr>
             <tr id="glos-CMC">
               <td><strong>CMC</strong></td>
@@ -3140,7 +3140,7 @@
             <tr id="glos-NSCLC">
               <td><strong>NSCLC</strong></td>
               <td><em>Non-Small Cell Lung Cancer</em></td>
-              <td>The most common form of lung cancer (~85% of cases) and the leading cause of cancer mortality globally (~2.1 million new cases and ~1.53 million deaths annually; GLOBOCAN 2022). The clinical context of the dissertation: the four target mutations (TP53, KEAP1, CDKN2A, STK11) are common non-druggable drivers in NSCLC patients.</td>
+              <td>The most common form of lung cancer (~85% of cases) and the leading cause of cancer mortality globally (~2.1 million new cases and ~1.53 million deaths annually; GLOBOCAN 2022). The clinical context of the dissertation: the seven scientifically classified target mutations (TP53 C275F, KEAP1, STK11) are common non-druggable drivers in NSCLC patients.</td>
             </tr>
             <tr id="glos-Nvidia">
               <td><strong>Nvidia</strong></td>
