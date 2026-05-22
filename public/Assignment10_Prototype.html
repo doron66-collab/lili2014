@@ -789,8 +789,8 @@
         <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Qubits / Gates / Depth</div><div id="r-circuit" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;border-top:1px solid var(--border);padding-top:10px">
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Run ID</div><div id="r-runid" style="color:var(--light);font-size:11px;font-family:monospace;word-break:break-all"></div></div>
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">P8 Cryptographic Seal (SHA-256)</div><div id="r-seal" style="color:var(--gold);font-size:11px;font-family:monospace;word-break:break-all"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Run ID <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-runid" style="color:var(--light);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('Run ID copied!'))"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">P8 Cryptographic Seal (SHA-256) <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-seal" style="color:var(--gold);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('P8 seal copied!'))"></div></div>
       </div>
       <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:10.5px;color:var(--gray)">
         Phase 3A: PennyLane default.qubit · PennyLane ansatz · 120 optimisation steps · P1–P9 record sealed & stored to Supabase
@@ -1892,15 +1892,21 @@ async function loadLiveResults() {
       el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">No runs yet — run a simulation above.</div>';
       return;
     }
-    const tableRows = rows.map(r => `
+    const tableRows = rows.map(r => {
+      const ciHalf = ((+r.p7_ci_upper) - (+r.p7_ci_lower)) / 2;
+      const ciText = ciHalf > 0 ? `± ${ciHalf.toExponential(2)} Hₐ` : `[${(+r.p7_ci_lower).toFixed(5)}, ${(+r.p7_ci_upper).toFixed(5)}]`;
+      const sealFull = r.p8_hash || '—';
+      const idFull   = r.id;
+      return `
       <tr>
-        <td style="font-family:monospace;font-size:10px;color:var(--gray)">${r.id.slice(0,8)}…</td>
+        <td style="font-family:monospace;font-size:10px;color:var(--gray);cursor:pointer;title='${idFull}'" onclick="navigator.clipboard.writeText('${idFull}').then(()=>alert('Run ID copied!'))">${r.id.slice(0,8)}… ⧉</td>
         <td style="font-weight:600">${r.mutation_name}</td>
         <td style="font-family:monospace;color:var(--teal)">${(+r.p7_energy_ha).toFixed(6)}</td>
-        <td style="font-family:monospace;font-size:10px;color:var(--light)">[${(+r.p7_ci_lower).toFixed(5)}, ${(+r.p7_ci_upper).toFixed(5)}]</td>
-        <td style="font-family:monospace;font-size:10px;color:var(--gold)">${r.p8_hash ? r.p8_hash.slice(0,16)+'…' : '—'}</td>
+        <td style="font-family:monospace;font-size:10px;color:var(--light)">${ciText}</td>
+        <td style="font-family:monospace;font-size:10px;color:var(--gold);cursor:pointer" onclick="navigator.clipboard.writeText('${sealFull}').then(()=>alert('P8 seal copied!'))" title="${sealFull}">${sealFull.slice(0,16)}… ⧉</td>
         <td style="font-size:10px;color:var(--gray)">${new Date(r.created_at).toLocaleString()}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
     el.innerHTML = `<table>
       <tr><th>Run ID</th><th>Mutation</th><th>Energy (Hₐ)</th><th>95% CI</th><th>P8 Seal</th><th>Timestamp</th></tr>
       ${tableRows}</table>`;
