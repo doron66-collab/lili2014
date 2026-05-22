@@ -1447,6 +1447,8 @@ async function showPlatform(user) {
     if (profile?.role === 'admin') showAdminTab();
   } catch { /* no profile = regular user */ }
 
+  // Restore runs from current session (persists across refreshes, cleared only by Reset)
+  loadSessionHistory();
 }
 
 // ── Admin tab ──────────────────────────────────────────────────────────────
@@ -2522,6 +2524,7 @@ function resetPlatform() {
   activeTargets = ['TP53_Y220C'];
   runHistory.length = 0;
   printQueue.length = 0;
+  sessionStorage.setItem('session_start', new Date().toISOString());
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';
 
@@ -2919,9 +2922,15 @@ function addRunToHistory(data) {
 // ── Load previous runs from Supabase on login ─────────────────────────────────
 async function loadSessionHistory() {
   try {
+    // Session start persists across refreshes; Reset updates it
+    if (!sessionStorage.getItem('session_start')) {
+      sessionStorage.setItem('session_start', new Date().toISOString());
+    }
+    const sessionStart = sessionStorage.getItem('session_start');
     const { data, error } = await supa
       .from('simulation_runs')
       .select('*')
+      .gte('created_at', sessionStart)
       .order('created_at', { ascending: false })
       .limit(10);
     if (error || !data?.length) return;
