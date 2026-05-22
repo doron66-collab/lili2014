@@ -33,6 +33,11 @@
   status = 200
 
 [[redirects]]
+  from = "/platform-architecture"
+  to   = "/unified_architecture.html"
+  status = 200
+
+[[redirects]]
   from = "/Assignment10_Prototype"
   to   = "/Assignment10_Prototype.html"
   status = 200
