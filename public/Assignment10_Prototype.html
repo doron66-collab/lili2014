@@ -10,45 +10,69 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --navy:   #0B1E3D;
-    --navy2:  #152d5a;
-    --teal:   #00A8D6;
-    --teal2:  #007aae;
-    --gold:   #E8A020;
-    --gold2:  #b07008;
-    --violet: #7a3d8f;
+    --navy:   #080e1a;
+    --navy2:  #0e1726;
+    --teal:   #06b6d4;
+    --teal2:  #0891b2;
+    --gold:   #f59e0b;
+    --gold2:  #b45309;
+    --violet: #a78bfa;
     --green:  #22c55e;
     --red:    #ef4444;
-    --gray:   #8899bb;
-    --light:  #e8edf8;
-    --white:  #ffffff;
-    --card:   rgba(255,255,255,0.06);
-    --border: rgba(255,255,255,0.12);
+    --gray:   #64748b;
+    --light:  #e2e8f0;
+    --white:  #f1f5f9;
+    --card:   rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.07);
+    --radius: 14px;
   }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--navy); color: var(--white); min-height: 100vh; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
 
   /* ── TOP NAV ── */
   .topbar {
-    background: rgba(11,30,61,0.97);
+    background: rgba(8,14,26,0.96);
     border-bottom: 1px solid var(--border);
-    padding: 0 24px;
+    padding: 0 28px;
     display: flex; align-items: center; justify-content: space-between;
-    height: 54px; position: sticky; top: 0; z-index: 100;
+    height: 52px; position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-icon { width: 32px; height: 32px; background: var(--teal); border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; font-size: 16px; }
-  .brand-name { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
-  .brand-sub  { font-size: 10px; color: var(--gray); }
-
-  .nav-tabs { display: flex; gap: 4px; }
-  .nav-tab {
-    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
-    cursor: pointer; border: none; background: transparent; color: var(--gray);
-    transition: all 0.18s; letter-spacing: 0.2px;
+  .brand-icon {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--teal), var(--teal2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
   }
-  .nav-tab:hover { background: var(--card); color: var(--white); }
-  .nav-tab.active { background: var(--teal2); color: var(--white); }
+  .brand-name { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; color: var(--white); }
+  .brand-sub  { font-size: 10px; color: var(--gray); letter-spacing: 0.1px; }
+
+  .nav-tabs {
+    display: flex; gap: 2px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .nav-tab {
+    padding: 5px 16px; border-radius: 8px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: none; background: transparent; color: var(--gray);
+    transition: all 0.18s; letter-spacing: 0.1px; white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--white); }
+  .nav-tab.active {
+    background: rgba(255,255,255,0.09);
+    color: var(--white);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
 
   .user-chip { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--gray); }
   .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--gold2);
@@ -59,17 +83,22 @@
   .screen.active { display: block; }
 
   /* ── SECTION HEADER ── */
-  .section-header { margin-bottom: 20px; }
-  .section-header h2 { font-size: 20px; font-weight: 700; }
-  .section-header p  { font-size: 12px; color: var(--gray); margin-top: 3px; }
+  .section-header { margin-bottom: 24px; }
+  .section-header h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .section-header p  { font-size: 12px; color: var(--gray); margin-top: 4px; line-height: 1.5; }
 
   /* ── CARDS ── */
   .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.15);
   }
-  .card-title { font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase;
-    letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card-title {
+    font-size: 11px; font-weight: 600; color: #475569;
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+  }
 
   /* ── GRID ── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -78,8 +107,8 @@
 
   /* ── STAT CHIPS ── */
   .stat { text-align: center; }
-  .stat-val { font-size: 26px; font-weight: 800; }
-  .stat-lbl { font-size: 10px; color: var(--gray); margin-top: 2px; }
+  .stat-val { font-size: 28px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; }
+  .stat-lbl { font-size: 10px; color: var(--gray); margin-top: 4px; line-height: 1.4; }
   .teal  { color: var(--teal); }
   .gold  { color: var(--gold); }
   .green { color: var(--green); }
@@ -122,11 +151,11 @@
 
   /* ── TABLE ── */
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { text-align: left; padding: 8px 10px; color: var(--gray); font-size: 10.5px;
-       text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
-  td { padding: 10px 10px; border-bottom: 1px solid var(--border); }
+  th { text-align: left; padding: 10px 12px; color: #475569; font-size: 10px;
+       text-transform: uppercase; letter-spacing: 0.7px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  td { padding: 12px 12px; border-bottom: 1px solid var(--border); }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,0.03); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
 
   /* ── PROGRESS BAR ── */
   .progress-wrap { background: rgba(255,255,255,0.08); border-radius: 4px; height: 8px; overflow: hidden; }
@@ -145,8 +174,8 @@
   .step-label { font-size: 10px; color: var(--gray); margin-top: 2px; }
 
   /* ── JOB CARDS ── */
-  .job-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    border-radius: 8px; border: 1px solid var(--border); background: var(--card); margin-bottom: 8px; }
+  .job-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); margin-bottom: 8px; }
   .job-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
     justify-content: center; font-size: 18px; flex-shrink: 0; }
   .job-info { flex: 1; }
@@ -368,17 +397,17 @@
   <div class="brand">
     <div class="brand-icon">⚛</div>
     <div>
-      <div class="brand-name">QC·AI·HPC Platform</div>
-      <div class="brand-sub">Non-Druggable NSCLC · IST 697 Prototype · CGU 2026</div>
+      <div class="brand-name">SOLANGE</div>
+      <div class="brand-sub">Scientific Oncology · Non-druggable Ground-state Energetics · CGU 2026</div>
     </div>
   </div>
 
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="show('s1')">📊 Dashboard</button>
-    <button class="nav-tab" onclick="show('s2')">⚙️ Orchestration</button>
-    <button class="nav-tab" onclick="show('s3')">📈 Results</button>
-    <button class="nav-tab" onclick="show('s4')">🔒 Compliance</button>
-    <button class="nav-tab" id="admin-nav-tab" onclick="show('s5')" style="display:none;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)">🛡 Admin</button>
+    <button class="nav-tab active" onclick="show('s1')">Dashboard</button>
+    <button class="nav-tab" onclick="show('s2')">Orchestration</button>
+    <button class="nav-tab" onclick="show('s3')">Results</button>
+    <button class="nav-tab" onclick="show('s4')">Compliance</button>
+    <button class="nav-tab" id="admin-nav-tab" onclick="show('s5')" style="display:none;color:#f87171;">Admin</button>
   </div>
 
   <div class="user-chip">
