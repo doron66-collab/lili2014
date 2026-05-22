@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build && cp public/Assignment10_Prototype.html dist/index.html"
+  command = "npm install && npm run build && cp dist/index.html dist/viewer.html && cp public/Assignment10_Prototype.html dist/index.html"
   publish = "dist"
 
 [[redirects]]
