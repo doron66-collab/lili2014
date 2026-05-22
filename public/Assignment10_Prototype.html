@@ -831,15 +831,33 @@
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-runtime">—</div>
-        <div class="stat-lbl" id="s3-runtime-lbl">VQE runtime · VQE ansatz</div>
+        <div class="stat-lbl" id="s3-runtime-lbl">VQE runtime · iterations</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-circuit">—</div>
-        <div class="stat-lbl">Qubits / gates / depth · VQE ansatz</div>
+        <div class="stat-lbl">Qubits / gates / depth</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:13px;color:var(--gray);word-break:break-all;font-family:monospace" id="s3-seal">—</div>
         <div class="stat-lbl" id="s3-runid">P8 SHA-256 seal · Run a simulation to populate</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div class="stat">
+        <div class="stat-val" style="font-size:13px;color:var(--gray);font-family:monospace" id="s3-ci">—</div>
+        <div class="stat-lbl">95% Confidence Interval (Hₐ)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" style="font-size:13px;color:var(--gray);font-family:monospace" id="s3-variance">—</div>
+        <div class="stat-lbl">Energy variance · convergence quality</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" style="font-size:15px;color:var(--gray)" id="s3-basis">—</div>
+        <div class="stat-lbl">Basis set</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" style="font-size:13px;color:var(--gray)" id="s3-ansatz">—</div>
+        <div class="stat-lbl">Ansatz · trial wavefunction circuit</div>
       </div>
     </div>
     <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px" id="s3-footer">
@@ -1723,6 +1741,15 @@ function updateAllTabs(data) {
     if (s3S) { s3S.textContent = rec.p8_hash.slice(0,20) + '…'; s3S.style.color = '#a78bfa'; }
     const s3Ri = document.getElementById('s3-runid');
     if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
+    // Row 2 — CI, variance, basis set, ansatz
+    const s3CI = document.getElementById('s3-ci');
+    if (s3CI) { s3CI.textContent = `[${r.ci_lower}, ${r.ci_upper}]`; s3CI.style.color = 'var(--teal)'; }
+    const s3Var = document.getElementById('s3-variance');
+    if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
+    const s3Bas = document.getElementById('s3-basis');
+    if (s3Bas) { s3Bas.textContent = rec.p2_basis_set || '—'; s3Bas.style.color = 'var(--light)'; }
+    const s3Ans = document.getElementById('s3-ansatz');
+    if (s3Ans) { s3Ans.textContent = rec.p1_ansatz || '—'; s3Ans.style.color = 'var(--gold)'; }
     const meta3b = MUT_META[rec.mutation_id] || {};
     const s3Ft = document.getElementById('s3-footer');
     if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${meta3b.full_electrons || '?'}e / ${meta3b.full_qubits || '?'} qubits on ${meta3b.backend || 'fault-tolerant QPU'}</span> · All P1–P9 provenance sealed`;
