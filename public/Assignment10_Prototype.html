@@ -865,30 +865,6 @@
     </div>
   </div>
 
-  <!-- VQE Convergence — full width -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title" id="convergence-title">VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span></div>
-    <div id="convergence-wrap" style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px;transition:background 0.4s">
-      <svg width="100%" height="100%" viewBox="0 0 300 110" preserveAspectRatio="none">
-        <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-        <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-        <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-        <polyline id="convergence-polyline"
-          points="0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92"
-          fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <line id="convergence-target-line" x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
-        <circle id="convergence-marker" cx="220" cy="91.5" r="4" fill="var(--gold)"/>
-        <text id="convergence-marker-label" x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
-        <text id="convergence-energy-label" x="4" y="20" fill="rgba(0,200,180,0.6)" font-size="8" font-family="monospace"></text>
-      </svg>
-    </div>
-    <div id="convergence-iter-labels" style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
-      <span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>
-    </div>
-    <div class="divider"></div>
-    <div class="footnote" id="convergence-footnote"><span style="color:var(--gray)">Run a simulation to see live convergence data</span></div>
-  </div>
-
   <!-- All-Target Summary Table -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title" id="bqp-card-title">All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status</div>
