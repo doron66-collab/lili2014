@@ -31,3 +31,4 @@
   from = "/"
   to   = "/Assignment10_Prototype.html"
   status = 200
+  force = true
