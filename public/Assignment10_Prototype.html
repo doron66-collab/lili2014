@@ -812,7 +812,7 @@
 <div class="screen" id="s3">
   <div class="section-header">
     <h2>Results & Benchmarking</h2>
-    <p>TP53 p.Cys275Phe · Active Space CASSCF(16,16) · QC vs DFT vs CCSD(T)</p>
+    <p id="s3-header-sub">VQE Ground-State Energy · Phase 3A Live Results</p>
   </div>
 
   <!-- Phase 3A Live Results -->
@@ -847,90 +847,28 @@
     </div>
   </div>
 
-  <div class="grid-3" style="margin-bottom:16px">
-    <div class="card stat">
-      <div class="stat-val red">−8.4 <span style="font-size:14px">kcal/mol</span></div>
-      <div class="stat-lbl">DFT binding energy estimate (B3LYP) · Error ±6 kcal/mol</div>
+  <!-- VQE Convergence — full width -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" id="convergence-title">VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span></div>
+    <div id="convergence-wrap" style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px;transition:background 0.4s">
+      <svg width="100%" height="100%" viewBox="0 0 300 110" preserveAspectRatio="none">
+        <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <polyline id="convergence-polyline"
+          points="0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92"
+          fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <line id="convergence-target-line" x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <circle id="convergence-marker" cx="220" cy="91.5" r="4" fill="var(--gold)"/>
+        <text id="convergence-marker-label" x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
+        <text id="convergence-energy-label" x="4" y="20" fill="rgba(0,200,180,0.6)" font-size="8" font-family="monospace"></text>
+      </svg>
     </div>
-    <div class="card stat">
-      <div class="stat-val teal">−11.7 <span style="font-size:14px">kcal/mol</span></div>
-      <div class="stat-lbl">VQE · Phase 3A · PennyLane simulator · Error ±1.4 kcal/mol</div>
+    <div id="convergence-iter-labels" style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
+      <span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>
     </div>
-    <div class="card stat">
-      <div class="stat-val green">−11.2 <span style="font-size:14px">kcal/mol</span></div>
-      <div class="stat-lbl">CCSD(T) reference (classical high accuracy)</div>
-    </div>
-  </div>
-
-  <div class="grid-2" style="margin-bottom:16px">
-    <!-- Energy Comparison Chart -->
-    <div class="card">
-      <div class="card-title" id="energy-chart-title">Binding Energy Comparison · TP53 C275F Active Space <span style="background:rgba(0,168,214,0.15);color:var(--teal);border:1px solid rgba(0,168,214,0.35);border-radius:4px;font-size:8px;padding:1px 6px;vertical-align:middle;margin-left:6px;font-weight:700;letter-spacing:0.5px">Phase 3A</span></div>
-      <!-- Y-axis truncated: −7.5 to −12.5 kcal/mol in 132px → 26.4px per kcal/mol → ±0.5 band = ±13px -->
-      <div style="position:relative;height:160px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 8px">
-        <!-- chemical accuracy band: CCSD(T) top at 34px, band 21–47px from top -->
-        <div style="position:absolute;top:21px;left:0;right:0;height:26px;background:rgba(0,200,180,0.1);z-index:1;pointer-events:none">
-          <div style="position:absolute;top:0;left:0;right:0;border-top:1.5px dashed rgba(0,200,180,0.9)"></div>
-          <div style="position:absolute;bottom:0;left:0;right:0;border-top:1.5px dashed rgba(0,200,180,0.9)"></div>
-          <span style="position:absolute;left:4px;top:-14px;font-size:8px;color:rgba(0,200,180,1);white-space:nowrap;font-weight:600">+0.5 kcal/mol</span>
-          <span style="position:absolute;left:4px;bottom:-14px;font-size:8px;color:rgba(0,200,180,1);white-space:nowrap;font-weight:600">−0.5 kcal/mol</span>
-          <span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:7.5px;color:rgba(0,200,180,0.7);white-space:nowrap;font-style:italic">chemical accuracy zone</span>
-        </div>
-        <!-- bars: heights use truncated Y-axis (base −7.5 kcal/mol, scale 26.4px/kcal/mol) -->
-        <div style="display:flex;align-items:flex-end;gap:18px;height:100%;padding-bottom:28px;position:relative;z-index:2">
-          <div class="bar-group">
-            <div class="bar" style="height:24px;width:44px;background:rgba(239,68,68,0.7)"></div>
-          </div>
-          <div class="bar-group" style="position:relative">
-            <div class="bar" id="vqe-bar-fill" style="height:111px;width:44px;background:rgba(0,168,214,0.85);outline:2px solid rgba(0,200,180,0.7);outline-offset:1px"></div>
-          </div>
-          <div class="bar-group">
-            <div class="bar" style="height:98px;width:44px;background:rgba(34,197,94,0.7)"></div>
-          </div>
-        </div>
-        <!-- value labels all at same height (above tallest bar) -->
-        <div style="display:flex;gap:18px;position:absolute;top:2px;left:8px;right:8px;z-index:3">
-          <div style="flex:1;text-align:center;font-size:11px;font-weight:700;color:#ef4444">−8.4</div>
-          <div style="flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--teal)" id="vqe-bar-val">−11.7</div><!-- sqDRIFT Phase 3B target -->
-          <div style="flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--green)">−11.2</div>
-        </div>
-        <!-- labels -->
-        <div style="display:flex;gap:18px;position:absolute;bottom:4px;left:8px;right:8px;z-index:2">
-          <div class="bar-label" style="flex:1">DFT<br>B3LYP</div>
-          <div class="bar-label" style="flex:1;color:var(--teal)">VQE · Phase 3A<br>→ sqDRIFT 3B ●</div>
-          <div class="bar-label" style="flex:1">CCSD(T)<br>Reference</div>
-        </div>
-        <!-- Y-axis baseline note -->
-        <div style="position:absolute;bottom:28px;left:10px;font-size:7px;color:rgba(255,255,255,0.2)">−7.5</div>
-      </div>
-      <div style="height:4px"></div>
-      <div class="divider"></div>
-      <div class="footnote" id="energy-chart-footnote">DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span></div>
-    </div>
-
-    <!-- VQE Convergence -->
-    <div class="card">
-      <div class="card-title" id="convergence-title">VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span></div>
-      <div id="convergence-wrap" style="position:relative;height:130px;margin-top:8px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px;transition:background 0.4s">
-        <svg width="100%" height="100%" viewBox="0 0 300 110" preserveAspectRatio="none">
-          <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <polyline id="convergence-polyline"
-            points="0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92"
-            fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <line id="convergence-target-line" x1="0" y1="92" x2="300" y2="92" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
-          <circle id="convergence-marker" cx="220" cy="91.5" r="4" fill="var(--gold)"/>
-          <text id="convergence-marker-label" x="225" y="86" fill="var(--gold)" font-size="9">Converged</text>
-          <text id="convergence-energy-label" x="4" y="20" fill="rgba(0,200,180,0.6)" font-size="8" font-family="monospace"></text>
-        </svg>
-      </div>
-      <div id="convergence-iter-labels" style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:4px;padding:0 4px">
-        <span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>
-      </div>
-      <div class="divider"></div>
-      <div class="footnote" id="convergence-footnote"><span style="color:var(--gray)">Run a simulation to see live convergence data</span></div>
-    </div>
+    <div class="divider"></div>
+    <div class="footnote" id="convergence-footnote"><span style="color:var(--gray)">Run a simulation to see live convergence data</span></div>
   </div>
 
   <!-- All-Target Summary Table -->
