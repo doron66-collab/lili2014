@@ -2872,16 +2872,30 @@ function renderEnergyChart() {
 
   lanes.innerHTML = Object.entries(groups).map(([mutation, { gene, runs: mRuns }]) => {
     const color = COLORS[gene] || '#94a3b8';
-    const dots  = mRuns.map(r => `
-      <div style="position:absolute;top:50%;left:${toX(r.energy)}%;width:10px;height:10px;border-radius:50%;
+    // Assign vertical offsets so overlapping dots (same x within 0.5%) spread vertically
+    const STEP = 12, EPS = 0.5;
+    const used = []; // {x, slots}
+    const offsets = mRuns.map(r => {
+      const x = parseFloat(toX(r.energy));
+      let bucket = used.find(b => Math.abs(b.x - x) < EPS);
+      if (!bucket) { bucket = { x, count: 0 }; used.push(bucket); }
+      const idx = bucket.count++;
+      // centre the stack: 0→0, 1→+STEP, 2→-STEP, 3→+2STEP …
+      const sign = idx % 2 === 0 ? 1 : -1;
+      return Math.floor((idx + 1) / 2) * STEP * sign * (idx === 0 ? 0 : 1);
+    });
+    const dots = mRuns.map((r, i) => {
+      const yOff = offsets[i];
+      return `<div style="position:absolute;top:calc(50% + ${yOff}px);left:${toX(r.energy)}%;width:10px;height:10px;border-radius:50%;
         background:${color};box-shadow:0 0 6px ${color};transform:translate(-50%,-50%);cursor:pointer;z-index:10;transition:transform 0.15s"
         title="${r.energy.toFixed(8)} Hₐ${r.ci_half ? ' · ± ' + r.ci_half.toExponential(2) + ' Hₐ' : ''}"
         onmouseenter="this.style.transform='translate(-50%,-50%) scale(1.7)'"
         onmouseleave="this.style.transform='translate(-50%,-50%) scale(1)'">
-      </div>`).join('');
-    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;height:32px">
+      </div>`;
+    }).join('');
+    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;height:48px">
       <div style="width:152px;font-size:11px;color:#94a3b8;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${mutation}">${mutation}</div>
-      <div style="flex:1;position:relative;height:32px">
+      <div style="flex:1;position:relative;height:48px">
         <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.06);transform:translateY(-50%)"></div>
         ${dots}
       </div>
