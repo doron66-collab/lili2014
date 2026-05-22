@@ -1447,8 +1447,6 @@ async function showPlatform(user) {
     if (profile?.role === 'admin') showAdminTab();
   } catch { /* no profile = regular user */ }
 
-  // Restore previous runs from Supabase
-  loadSessionHistory();
 }
 
 // ── Admin tab ──────────────────────────────────────────────────────────────
