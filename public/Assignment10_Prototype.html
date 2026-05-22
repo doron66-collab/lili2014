@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QC·AI·HPC Platform — Prototype · Doron Cohen · IST 697 · CGU</title>
+<title>SOLANGE — Scientific Oncology · Non-druggable Ground-state Energetics · CGU 2026</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -274,8 +274,8 @@
   <div class="login-box">
     <div class="login-logo">
       <div class="login-logo-icon">⚛</div>
-      <h1>QC·AI·HPC Platform</h1>
-      <p>IST 697 · Doron Cohen · CGU 2026</p>
+      <h1>SOLANGE</h1>
+      <p>Scientific Oncology · Non-druggable Ground-state Energetics · CGU 2026</p>
     </div>
     <div style="text-align:center; margin: -10px 0 22px; padding: 12px 14px; background: rgba(0,200,180,0.07); border: 1px solid rgba(0,200,180,0.2); border-radius: 10px;">
       <div style="font-size:13px; font-weight:700; color:#00c8b4; letter-spacing:0.3px; margin-bottom:5px;">Authorized Access Only</div>
@@ -1224,7 +1224,7 @@
 
     </div>
     <div style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.025);border-radius:6px;border:1px solid var(--border);font-size:11px;display:flex;gap:24px;flex-wrap:wrap;color:var(--gray)">
-      <span>Platform: <strong style="color:var(--light)">QC·AI·HPC v0.9.2-alpha</strong></span>
+      <span>Platform: <strong style="color:var(--light)">SOLANGE v0.9.2-alpha</strong></span>
       <span>Validation lead: <strong style="color:var(--light)">D. Cohen · doron.cohen@cgu.edu</strong></span>
       <span>Protocol: <strong style="color:var(--light)">VP-2026-001</strong></span>
       <span>Next review: <strong style="color:var(--light)">2026-05-01</strong></span>
@@ -3111,7 +3111,7 @@ function exportPDF() {
   const multi = runs.length > 1;
   doc.setFillColor(15, 31, 61); doc.rect(0, 0, W, 42, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(255, 255, 255);
-  doc.text('QC·AI·HPC Simulation Platform', M, 14);
+  doc.text('SOLANGE — Scientific Oncology Platform', M, 14);
   doc.setFontSize(11); doc.setTextColor(20, 200, 200);
   const subtitle = multi
     ? `Multi-Mutation Provenance Report · ${runs.length} Mutations · Phase 3A`
@@ -3259,7 +3259,7 @@ function exportPDF() {
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150);
-    doc.text(`QC·AI·HPC Platform · IST 697 · Doron Cohen · CGU 2026 · Phase 3A`, M, 292);
+    doc.text(`SOLANGE Platform · IST 697 · Doron Cohen · CGU 2026 · Phase 3A`, M, 292);
     doc.text(`Page ${i} of ${totalPages}`, W - M - 12, 292);
   }
 
