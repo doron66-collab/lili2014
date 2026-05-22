@@ -2573,7 +2573,7 @@ function resetPlatform() {
 
   // ── Results — Phase 3A live card ─────────────────────────────────────
   if (el('s3-mutation')) { el('s3-mutation').textContent = 'No run yet'; el('s3-mutation').style.color = 'var(--gray)'; }
-  ['s3-energy','s3-runtime','s3-circuit','s3-seal'].forEach(id => {
+  ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
     if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
   el('s3-runid') && (el('s3-runid').textContent = 'P8 SHA-256 seal · Run a simulation to populate');
