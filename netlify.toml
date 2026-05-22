@@ -18,7 +18,17 @@
   status = 200
 
 [[redirects]]
+  from = "/operational-stack"
+  to   = "/QC_AI_HPC_Architecture.html"
+  status = 200
+
+[[redirects]]
   from = "/P1_P9_Architecture_Diagram"
+  to   = "/P1_P9_Architecture_Diagram.html"
+  status = 200
+
+[[redirects]]
+  from = "/provenance-schema"
   to   = "/P1_P9_Architecture_Diagram.html"
   status = 200
 
