@@ -823,27 +823,27 @@
   </div>
 
   <div class="card" id="s3-live-card" style="margin-bottom:16px;border:1px solid rgba(0,168,214,0.4);background:rgba(0,168,214,0.05)">
-    <div class="card-title" style="color:var(--teal)">Phase 3A Live Results — PennyLane Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
+    <div class="card-title" style="color:var(--white)">Phase 3A Live Results — Quantum Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-energy">—</div>
-        <div class="stat-lbl">Ground-state energy · 2e/2orb active space</div>
+        <div class="stat-lbl" id="s3-energy-lbl">Ground-state energy · active space</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-runtime">—</div>
-        <div class="stat-lbl">VQE runtime · 120 iterations · PennyLane default.qubit</div>
+        <div class="stat-lbl" id="s3-runtime-lbl">VQE runtime · VQE ansatz</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-circuit">—</div>
-        <div class="stat-lbl">Qubits / gates / depth · PennyLane ansatz</div>
+        <div class="stat-lbl">Qubits / gates / depth · VQE ansatz</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:13px;color:var(--gray);word-break:break-all;font-family:monospace" id="s3-seal">—</div>
         <div class="stat-lbl" id="s3-runid">P8 SHA-256 seal · Run a simulation to populate</div>
       </div>
     </div>
-    <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px">
-      Phase 3A minimal active space POC (2e/2orb proxy) · Full Phase 3B target: <span id="s3-phase3b-target">~44e / 88 qubits</span> on IBM Heron r3 (sqDRIFT) · All P1–P9 provenance elements captured and sealed
+    <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px" id="s3-footer">
+      Phase 3A minimal active space POC · Full Phase 3B target: <span id="s3-phase3b-target">—</span> · All P1–P9 provenance elements captured and sealed
     </div>
   </div>
 
@@ -1770,17 +1770,24 @@ function updateAllTabs(data) {
   const s3card = document.getElementById('s3-live-card');
   if (s3card) {
     const s3Mut = document.getElementById('s3-mutation');
-    if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
+    if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = 'var(--gray)'; }
     const s3E = document.getElementById('s3-energy');
     if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
+    const s3El = document.getElementById('s3-energy-lbl');
+    if (s3El) s3El.textContent = `Ground-state energy · ${rec.p2_active_electrons || 2}e/${rec.p2_active_orbitals || 2}orb active space`;
     const s3R = document.getElementById('s3-runtime');
     if (s3R) { s3R.textContent = `${r.elapsed_s}s`; s3R.style.color = 'var(--green)'; }
+    const s3Rl = document.getElementById('s3-runtime-lbl');
+    if (s3Rl) s3Rl.textContent = `VQE runtime · ${rec.p5_opt_steps || '—'} iterations · VQE ansatz`;
     const s3C = document.getElementById('s3-circuit');
     if (s3C) { s3C.textContent = `${r.qubits_used}q / ${r.gate_count}g / d${r.depth}`; s3C.style.color = 'var(--gold)'; }
     const s3S = document.getElementById('s3-seal');
     if (s3S) { s3S.textContent = rec.p8_hash.slice(0,20) + '…'; s3S.style.color = '#a78bfa'; }
     const s3Ri = document.getElementById('s3-runid');
     if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
+    const meta3b = MUT_META[rec.mutation_id] || {};
+    const s3Ft = document.getElementById('s3-footer');
+    if (s3Ft) s3Ft.innerHTML = `Phase 3A minimal active space POC · ${rec.p2_active_electrons || 2}e/${rec.p2_active_orbitals || 2}orb proxy · Full Phase 3B target: <span id="s3-phase3b-target">~${meta3b.full_electrons || '?'}e / ${meta3b.full_qubits || '?'} qubits on ${meta3b.backend || 'fault-tolerant QPU'}</span> · All P1–P9 provenance elements captured and sealed`;
   }
 
   // ── Compliance tab — P1-P9 schema table statuses ─────────────────────
