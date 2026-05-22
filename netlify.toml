@@ -19,7 +19,7 @@
 
 [[redirects]]
   from = "/operational-stack"
-  to   = "/QC_AI_HPC_Architecture.html"
+  to   = "/unified_architecture.html"
   status = 200
 
 [[redirects]]
@@ -34,7 +34,7 @@
 
 [[redirects]]
   from = "/platform-architecture"
-  to   = "/unified_architecture.html"
+  to   = "/QC_AI_HPC_Architecture.html"
   status = 200
 
 [[redirects]]
