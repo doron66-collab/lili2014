@@ -1692,7 +1692,7 @@ function updateAllTabs(data) {
 
   // ── Orchestration tab result box (already shown inline) ──────────────
   document.getElementById('r-energy').textContent  = `${r.energy_ha} Hₐ`;
-  document.getElementById('r-ci').textContent      = `[${r.ci_lower}, ${r.ci_upper}]`;
+  document.getElementById('r-ci').textContent      = `± ${(r.ci_half ?? (r.ci_upper - r.ci_lower) / 2).toExponential(2)} Hₐ`;
   document.getElementById('r-circuit').textContent = `${r.qubits_used}q / ${r.gate_count} gates / d${r.depth}`;
   document.getElementById('r-runid').textContent   = data.run_id;
   document.getElementById('r-seal').textContent    = rec.p8_hash;
