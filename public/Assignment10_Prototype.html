@@ -2920,7 +2920,7 @@ function displayRunResults(data) {
   if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
   // Row 2
   const s3CI = document.getElementById('s3-ci');
-  if (s3CI) { s3CI.textContent = `[${r.ci_lower}, ${r.ci_upper}]`; s3CI.style.color = 'var(--teal)'; }
+  if (s3CI) { const hw = r.ci_half ?? (r.ci_upper - r.ci_lower) / 2; s3CI.textContent = `± ${hw.toExponential(2)} Hₐ`; s3CI.style.color = 'var(--teal)'; }
   const s3Var = document.getElementById('s3-variance');
   if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
   const s3Bas = document.getElementById('s3-basis');
