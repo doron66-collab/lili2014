@@ -2516,6 +2516,7 @@ function resetPlatform() {
   pqCompleted.clear();
   activeTargets = ['TP53_Y220C'];
   runHistory.length = 0;
+  printQueue.length = 0;
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';
 
@@ -2797,6 +2798,7 @@ function resetJobCards() {
 // ── Export full P1-P9 provenance report as PDF ────────────────────────────
 let lastRunData = null;  // set by updateAllTabs()
 const runHistory = [];   // all completed runs this session
+const printQueue = [];   // runs selected via right-click for PDF export
 
 const MUT_COLORS = {
   TP53_Y220C:  '#60a5fa', TP53_C275F:  '#E8A020',
@@ -2878,14 +2880,28 @@ function rebuildHistoryChips() {
   bar.style.display = 'block';
   chips.innerHTML = '';
   runHistory.forEach(d => {
-    const mid   = d.full_record?.mutation_id || '';
-    const color = MUT_COLORS[mid] || 'var(--teal)';
-    const label = d.full_record?.mutation_name || mid;
-    const chip  = document.createElement('button');
-    chip.textContent = `${label} · ${d.result.energy_ha} Hₐ`;
-    chip.style.cssText = `background:rgba(0,0,0,0.25);color:${color};border:1px solid ${color};
+    const mid      = d.full_record?.mutation_id || '';
+    const color    = MUT_COLORS[mid] || 'var(--teal)';
+    const label    = d.full_record?.mutation_name || mid;
+    const inQueue  = printQueue.includes(d);
+    const chip     = document.createElement('button');
+    chip.textContent = `${inQueue ? '✓ ' : ''}${label} · ${d.result.energy_ha} Hₐ`;
+    chip.style.cssText = `background:${inQueue ? 'rgba(34,197,94,0.15)' : 'rgba(0,0,0,0.25)'};
+      color:${color};border:${inQueue ? '2px solid var(--green)' : `1px solid ${color}`};
       padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap`;
     chip.onclick = () => displayRunResults(d);
+    chip.oncontextmenu = (e) => {
+      e.preventDefault();
+      const already = printQueue.includes(d);
+      const msg = already
+        ? `Remove "${label}" from print queue?`
+        : `Add "${label}" to print queue?`;
+      if (confirm(msg)) {
+        if (already) printQueue.splice(printQueue.indexOf(d), 1);
+        else printQueue.push(d);
+        rebuildHistoryChips();
+      }
+    };
     chips.appendChild(chip);
   });
 }
@@ -2950,8 +2966,14 @@ function displayRunResults(data) {
 }
 
 function exportPDF() {
-  const runs = runHistory.length ? runHistory : (lastRunData ? [lastRunData] : []);
-  if (!runs.length) {
+  let runs;
+  if (printQueue.length) {
+    runs = printQueue;
+  } else if (runHistory.length || lastRunData) {
+    const all = runHistory.length ? runHistory : [lastRunData];
+    if (!confirm(`No runs selected for print.\nExport all ${all.length} run(s)?`)) return;
+    runs = all;
+  } else {
     alert('Run a simulation first — no provenance record loaded yet.');
     return;
   }
