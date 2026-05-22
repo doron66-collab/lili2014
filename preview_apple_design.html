@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOLANGE — Design Preview</title>
+<style>
+  :root {
+    --bg:       #080e1a;
+    --surface:  #0e1726;
+    --surface2: #131f30;
+    --border:   rgba(255,255,255,0.06);
+    --teal:     #06b6d4;
+    --gold:     #f59e0b;
+    --violet:   #a78bfa;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --text:     #f1f5f9;
+    --sub:      #64748b;
+    --mid:      #94a3b8;
+    --radius:   16px;
+    --radius-sm:10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── App shell ── */
+  .app { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── Header ── */
+  .header {
+    padding: 32px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo { display: flex; align-items: baseline; gap: 12px; }
+  .logo-name {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo-name span { color: var(--teal); }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--sub);
+    letter-spacing: 0.3px;
+  }
+  .header-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--green);
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Tab switcher ── */
+  .tabs {
+    display: inline-flex;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--sub);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+  .tab:not(.active):hover { color: var(--mid); }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--sub);
+    margin-bottom: 16px;
+  }
+
+  /* ── Stat row ── */
+  .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .stat-card:hover { border-color: rgba(255,255,255,0.1); }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label { font-size: 11px; color: var(--sub); line-height: 1.4; }
+
+  /* ── Patient card ── */
+  .patient-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .patient-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(167,139,250,0.2));
+    border: 1px solid rgba(6,182,212,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: var(--teal);
+  }
+  .patient-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .patient-meta { font-size: 11px; color: var(--sub); }
+  .patient-status {
+    font-size: 11px; font-weight: 600;
+    color: var(--teal);
+    background: rgba(6,182,212,0.1);
+    border: 1px solid rgba(6,182,212,0.2);
+    padding: 6px 14px; border-radius: 20px;
+  }
+
+  /* ── Mutation table ── */
+  .mutation-table {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .mutation-table-header {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--sub);
+  }
+  .mutation-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .mutation-row:last-child { border-bottom: none; }
+  .mutation-row:hover { background: rgba(255,255,255,0.02); }
+  .mut-name { font-size: 13px; font-weight: 600; }
+  .mut-gene { font-size: 11px; color: var(--teal); margin-top: 2px; }
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 6px; letter-spacing: 0.3px;
+  }
+  .badge-gold  { background: rgba(245,158,11,0.12); color: var(--gold);   border: 1px solid rgba(245,158,11,0.25); }
+  .badge-teal  { background: rgba(6,182,212,0.12);  color: var(--teal);   border: 1px solid rgba(6,182,212,0.25); }
+  .badge-violet{ background: rgba(167,139,250,0.12);color: var(--violet); border: 1px solid rgba(167,139,250,0.25);}
+  .badge-green { background: rgba(34,197,94,0.12);  color: var(--green);  border: 1px solid rgba(34,197,94,0.25); }
+  .badge-gray  { background: rgba(148,163,184,0.1); color: var(--mid);    border: 1px solid rgba(148,163,184,0.15);}
+  .mut-energy { font-size: 13px; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--teal); }
+  .mut-status { font-size: 11px; color: var(--mid); }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* ── Screen toggle ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── Results tab ── */
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .result-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    border: 1px solid var(--border);
+  }
+  .result-card.accent-teal { border-color: rgba(6,182,212,0.25); background: rgba(6,182,212,0.04); }
+  .result-big {
+    font-size: 32px; font-weight: 700; letter-spacing: -1.5px;
+    color: var(--teal); font-family: 'SF Mono','Fira Code',monospace;
+    margin: 8px 0 4px;
+  }
+  .result-label { font-size: 11px; color: var(--sub); }
+  .result-title { font-size: 12px; font-weight: 600; color: var(--mid); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-size: 11px; color: var(--sub); }
+  .detail-val { font-size: 12px; font-weight: 500; font-family: 'SF Mono','Fira Code',monospace; }
+
+  /* ── Energy dot chart ── */
+  .chart-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: var(--sub); margin-bottom: 20px; }
+  .chart-lane { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; height: 44px; }
+  .lane-label { width: 140px; font-size: 11px; color: var(--mid); text-align: right; flex-shrink: 0; }
+  .lane-track { flex: 1; position: relative; height: 44px; }
+  .track-line { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.05); }
+  .dot { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%,-50%); cursor: pointer; transition: transform 0.2s; }
+  .dot:hover { transform: translate(-50%,-50%) scale(2); }
+  .chart-axis { display: flex; justify-content: space-between; padding-left: 156px; margin-top: 6px; }
+  .chart-axis span { font-size: 9px; color: var(--sub); font-family: monospace; }
+
+  /* ── Run history pills ── */
+  .run-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .run-pill {
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .run-pill.active, .run-pill:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+    background: rgba(6,182,212,0.08);
+  }
+  .run-pill .dot-ind { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background: var(--teal); vertical-align: middle; }
+
+  /* ── Action button ── */
+  .btn-primary {
+    background: var(--teal);
+    color: #000;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    padding: 12px 28px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--mid);
+    font-weight: 500;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+  /* ── Footnote ── */
+  .footnote { font-size: 10.5px; color: var(--sub); line-height: 1.5; margin-top: 12px; }
+
+  /* ── Pulse animation ── */
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-name">S<span>○</span>LANGE</div>
+      <div class="logo-sub">Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics</div>
+    </div>
+    <div class="header-badge">● Phase 3A Active</div>
+  </div>
+
+  <!-- Tab switcher -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('dashboard',this)">Dashboard</div>
+    <div class="tab" onclick="showTab('orchestration',this)">Orchestration</div>
+    <div class="tab" onclick="showTab('results',this)">Results</div>
+    <div class="tab" onclick="showTab('compliance',this)">Compliance</div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="screen active" id="tab-dashboard">
+    <div class="section-label">Clinical Context</div>
+
+    <div class="patient-card">
+      <div class="patient-avatar">L</div>
+      <div>
+        <div class="patient-name">NGS Report MI25-0349 · Stage IV NSCLC</div>
+        <div class="patient-meta">3 actionable mutations identified · TP53 · STK11 · KEAP1 · Loaded 22 May 2026</div>
+      </div>
+      <div class="patient-status">NGS Loaded</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--teal)">3</div>
+        <div class="stat-label">Active mutations<br>under simulation</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--text)">94</div>
+        <div class="stat-label">Max qubits<br>IBM Heron r3 · demonstrated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--gold)">88</div>
+        <div class="stat-label">Qubits required<br>C275F · Jordan-Wigner</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green)">P3A</div>
+        <div class="stat-label">Active phase<br>VQE proxy · PennyLane</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:8px">Mutation Targets</div>
+
+    <div class="mutation-table">
+      <div class="mutation-table-header">
+        <span>Mutation</span>
+        <span>Class</span>
+        <span>Active e⁻</span>
+        <span>Qubits</span>
+        <span>Status</span>
+      </div>
+      <div class="mutation-row">
+        <div>
+          <div class="mut-name">p.Cys275Phe</div>
+          <div class="mut-gene">TP53 · Chr17 · 12.66% VAF</div>
+        </div>
+        <div><span class="badge badge-gold">Structural</span></div>
+        <div style="font-size:13px">44e</div>
+        <div style="font-size:13px">88q</div>
+        <div><span class="badge badge-green">✓ Simulated</span></div>
+      </div>
+      <div class="mutation-row">
+        <div>
+          <div class="mut-name">p.Phe354Leu</div>
+          <div class="mut-gene">STK11 · Synthetic lethal</div>
+        </div>
+        <div><span class="badge badge-violet">SL target</span></div>
+        <div style="font-size:13px">152e</div>
+        <div style="font-size:13px">304q</div>
+        <div><span class="badge badge-gray">Phase 3B</span></div>
+      </div>
+      <div class="mutation-row">
+        <div>
+          <div class="mut-name">p.Cys196Leufs*</div>
+          <div class="mut-gene">KEAP1 · PPI interface</div>
+        </div>
+        <div><span class="badge badge-teal">PPI</span></div>
+        <div style="font-size:13px">155e</div>
+        <div style="font-size:13px">310q</div>
+        <div><span class="badge badge-gray">Phase 3B</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button class="btn-primary">Launch Simulation →</button>
+      <button class="btn-ghost">View 3D Structure</button>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div class="screen" id="tab-results">
+    <div class="section-label">Run History — This Session</div>
+
+    <div class="run-pills">
+      <div class="run-pill active"><span class="dot-ind"></span>TP53 C275F · 3:13 PM</div>
+      <div class="run-pill"><span class="dot-ind" style="background:var(--teal)"></span>TP53 C275F · 2:54 PM</div>
+      <div class="run-pill"><span class="dot-ind" style="background:var(--gold)"></span>STK11 F354L · 2:34 PM</div>
+      <div class="run-pill"><span class="dot-ind" style="background:var(--teal)"></span>TP53 Y220C · 2:34 PM</div>
+    </div>
+
+    <div class="results-grid">
+      <div class="result-card accent-teal">
+        <div class="result-title">Ground-state energy</div>
+        <div class="result-big">−0.852043</div>
+        <div class="result-label">Hartree · 2e / 2orb active space</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">Phase 3A — VQE Simulator</div>
+        <div style="margin-top:12px">
+          <div class="detail-row">
+            <span class="detail-key">Runtime</span>
+            <span class="detail-val" style="color:var(--green)">2.724s · 120 iter</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Circuit</span>
+            <span class="detail-val">2q / 5g / d3</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">95% CI</span>
+            <span class="detail-val" style="color:var(--teal)">± 4.85×10⁻¹¹ Hₐ</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Variance</span>
+            <span class="detail-val">7.225×10⁻²²</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Basis set</span>
+            <span class="detail-val">STO-3G proxy</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Ansatz</span>
+            <span class="detail-val" style="color:var(--gold)">Ry-CNOT-Ry HE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Energy dot chart -->
+    <div class="chart-card">
+      <div class="chart-title">Ground-State Energy by Mutation</div>
+      <div class="chart-sub">Each dot = one VQE run · hover for value · lower = stronger binding</div>
+
+      <div class="chart-lane">
+        <div class="lane-label">TP53 p.Cys275Phe</div>
+        <div class="lane-track">
+          <div class="track-line"></div>
+          <div class="dot" style="left:72%;background:#06b6d4;box-shadow:0 0 8px #06b6d466;top:50%"></div>
+          <div class="dot" style="left:72.1%;background:#06b6d4;box-shadow:0 0 8px #06b6d466;top:calc(50% - 13px)"></div>
+          <div class="dot" style="left:71.9%;background:#06b6d4;box-shadow:0 0 8px #06b6d466;top:calc(50% + 13px)"></div>
+        </div>
+      </div>
+      <div class="chart-lane">
+        <div class="lane-label">TP53 p.Tyr220Cys</div>
+        <div class="lane-track">
+          <div class="track-line"></div>
+          <div class="dot" style="left:55%;background:#06b6d4;box-shadow:0 0 8px #06b6d466;top:50%"></div>
+          <div class="dot" style="left:55.1%;background:#06b6d4;box-shadow:0 0 8px #06b6d466;top:calc(50% - 13px)"></div>
+        </div>
+      </div>
+      <div class="chart-lane">
+        <div class="lane-label">STK11 p.Phe354Leu</div>
+        <div class="lane-track">
+          <div class="track-line"></div>
+          <div class="dot" style="left:48%;background:#f59e0b;box-shadow:0 0 8px #f59e0b66;top:50%"></div>
+        </div>
+      </div>
+
+      <div class="chart-axis">
+        <span>−0.860 Hₐ</span>
+        <span>−0.830 Hₐ</span>
+        <span>−0.800 Hₐ</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button class="btn-primary">Export PDF Report</button>
+      <button class="btn-ghost">Reset Session</button>
+    </div>
+  </div>
+
+  <!-- ── ORCHESTRATION placeholder ── -->
+  <div class="screen" id="tab-orchestration">
+    <div class="section-label">Simulation Engine</div>
+    <div style="color:var(--sub);font-size:13px;padding:40px 0;text-align:center">Orchestration tab — coming in next design pass</div>
+  </div>
+
+  <!-- ── COMPLIANCE placeholder ── -->
+  <div class="screen" id="tab-compliance">
+    <div class="section-label">Compliance & Audit Trail</div>
+    <div style="color:var(--sub);font-size:13px;padding:40px 0;text-align:center">Compliance tab — coming in next design pass</div>
+  </div>
+
+</div>
+
+<script>
+function showTab(name, el) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
