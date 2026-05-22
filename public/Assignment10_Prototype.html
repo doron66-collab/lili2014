@@ -163,15 +163,19 @@
 
   /* ── STEP INDICATOR ── */
   .steps { display: flex; align-items: center; gap: 0; margin-bottom: 20px; }
-  .step { display: flex; align-items: center; gap: 8px; flex: 1; }
-  .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-  .step-dot.done    { background: var(--teal); color: var(--white); }
-  .step-dot.active  { background: var(--gold); color: var(--navy); }
-  .step-dot.pending { background: rgba(255,255,255,0.1); color: var(--gray); border: 1px solid var(--border); }
-  .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 4px; }
+  .step { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .step-dot.done    { background: var(--teal); color: #000; box-shadow: 0 0 10px rgba(6,182,212,0.4); }
+  .step-dot.active  { background: var(--gold); color: #000; box-shadow: 0 0 10px rgba(245,158,11,0.4); }
+  .step-dot.pending { background: rgba(255,255,255,0.06); color: var(--gray); border: 1px solid var(--border); }
+  .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 2px; transition: background 0.4s; }
   .step-line.done { background: var(--teal); }
-  .step-label { font-size: 10px; color: var(--gray); margin-top: 2px; }
+  .step-label { font-size: 9.5px; color: var(--gray); margin-top: 3px; letter-spacing: 0.1px; }
 
   /* ── JOB CARDS ── */
   .job-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
@@ -197,10 +201,13 @@
   .alert-green  { background: rgba(34,197,94,0.1);   border: 1px solid rgba(34,197,94,0.25); }
 
   /* ── AUDIT ROW ── */
-  .audit-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0;
-    border-bottom: 1px solid var(--border); font-size: 11.5px; }
-  .audit-time { color: var(--gray); font-size: 10.5px; min-width: 80px; }
-  .audit-dot  { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .audit-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 11.5px;
+  }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-time { color: var(--gray); font-size: 10px; min-width: 84px; font-family: monospace; padding-top: 1px; }
+  .audit-dot  { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
 
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 5px; }
@@ -708,6 +715,7 @@
 <div class="screen" id="s2">
   <div class="section-header">
     <h2>Orchestration Engine</h2>
+    <p>Quantum kernel · HPC dispatch · AI binding affinity pipeline</p>
   </div>
 
   <!-- Pipeline Steps -->
@@ -764,7 +772,10 @@
     <div class="card">
       <div class="card-title">Job Dispatcher — Active Jobs</div>
 
-      <div style="font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 8px;opacity:0.6">── Layer 1 · Quantum Kernel ──────────────────────────────</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
+        <span style="font-size:9px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">Layer 1 · Quantum Kernel</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
 
       <div class="job-card">
         <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
@@ -778,7 +789,10 @@
         <div class="job-status" id="job-vqe-status" style="color:var(--gray)">Idle</div>
       </div>
 
-      <div style="font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:1.5px;margin:12px 0 8px;opacity:0.6">── Layer 2 · HPC + AI ────────────────────────────────────</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px">
+        <span style="font-size:9px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">Layer 2 · HPC + AI</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
 
       <div class="job-card" style="opacity:0.7">
         <div class="job-icon" style="background:rgba(232,160,32,0.1)">⚙</div>
@@ -1092,7 +1106,7 @@
   </div>
 
   <div style="text-align:center;margin-top:20px">
-    <button onclick="show('s4')" style="background:var(--violet);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+    <button onclick="show('s4')" style="background:rgba(167,139,250,0.15);color:var(--violet);border:1px solid rgba(167,139,250,0.3);padding:10px 28px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.1px">
       View Compliance & Audit Trail →
     </button>
   </div>
@@ -1107,8 +1121,8 @@
     <p>FDA 21 CFR Part 11 · Reproducibility Engine · Provenance Metadata</p>
   </div>
 
-  <div class="alert" style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border)" id="comp-status-alert">
-    <span style="color:var(--gray)">○ No simulation run yet — load an NGS report and run a VQE/sqDRIFT simulation to generate a compliance record.</span>
+  <div id="comp-status-alert" style="margin-bottom:20px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--gray)">
+    No simulation run yet — load an NGS report and run a VQE/sqDRIFT simulation to generate a compliance record.
   </div>
 
   <div class="grid-2" style="margin-bottom:16px">
