@@ -217,6 +217,29 @@
   @media (max-width: 700px) {
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
     .nav-tab span.hide-sm { display: none; }
+
+    .topbar {
+      flex-wrap: wrap;
+      height: auto;
+      padding: 10px 16px 6px;
+      gap: 8px;
+    }
+    .brand-sub { display: none; }
+    .user-chip span, .user-chip button { display: none; }
+
+    .nav-tabs {
+      order: 3;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      justify-content: flex-start;
+      padding: 3px;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .nav-tab { padding: 5px 14px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+
+    .screen { padding: 16px; }
   }
 
   /* ── LOGIN OVERLAY ── */
