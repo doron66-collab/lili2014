@@ -388,8 +388,9 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
         "bqp_class": config["bqp_class"],
         "result": {
             "energy_ha":   round(vqe["energy_ha"], 8),
-            "ci_lower":    round(vqe["ci_lower"],   8),
-            "ci_upper":    round(vqe["ci_upper"],   8),
+            "ci_lower":    vqe["ci_lower"],
+            "ci_upper":    vqe["ci_upper"],
+            "ci_half":     (vqe["ci_upper"] - vqe["ci_lower"]) / 2,
             "confidence":  "95%",
             "gate_count":  vqe["gate_count"],
             "depth":       vqe["depth"],

@@ -1668,7 +1668,7 @@ function updateResultsCharts(data) {
   const bEn = document.getElementById('bench-vqe-energy');
   if (bEn) bEn.innerHTML = `<strong>${r.energy_ha} Hₐ</strong>`;
   const bErr = document.getElementById('bench-vqe-error');
-  if (bErr) bErr.innerHTML = `<span class="teal"><strong>CI ±${((r.ci_upper - r.ci_lower)/2).toFixed(4)} Hₐ ✓</strong></span>`;
+  if (bErr) bErr.innerHTML = `<span class="teal"><strong>CI ±${(r.ci_half ?? (r.ci_upper - r.ci_lower)/2).toExponential(2)} Hₐ ✓</strong></span>`;
   const bTime = document.getElementById('bench-vqe-time');
   if (bTime) bTime.textContent = `${r.elapsed_s}s`;
 
@@ -1719,7 +1719,7 @@ function updateAllTabs(data) {
     if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
     // Row 2 — CI, variance, basis set, ansatz
     const s3CI = document.getElementById('s3-ci');
-    if (s3CI) { s3CI.textContent = `± ${((r.ci_upper - r.ci_lower) / 2).toExponential(2)} Hₐ`; s3CI.style.color = 'var(--teal)'; }
+    if (s3CI) { const hw = r.ci_half ?? (r.ci_upper - r.ci_lower) / 2; s3CI.textContent = `± ${hw.toExponential(2)} Hₐ`; s3CI.style.color = 'var(--teal)'; }
     const s3Var = document.getElementById('s3-variance');
     if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
     const s3Bas = document.getElementById('s3-basis');
