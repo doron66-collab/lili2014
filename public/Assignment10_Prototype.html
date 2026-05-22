@@ -845,7 +845,7 @@
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <div class="stat">
         <div class="stat-val" style="font-size:13px;color:var(--gray);font-family:monospace" id="s3-ci">—</div>
-        <div class="stat-lbl">95% Confidence Interval (Hₐ)</div>
+        <div class="stat-lbl">95% CI half-width</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="font-size:13px;color:var(--gray);font-family:monospace" id="s3-variance">—</div>
@@ -1719,7 +1719,7 @@ function updateAllTabs(data) {
     if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
     // Row 2 — CI, variance, basis set, ansatz
     const s3CI = document.getElementById('s3-ci');
-    if (s3CI) { s3CI.textContent = `[${r.ci_lower}, ${r.ci_upper}]`; s3CI.style.color = 'var(--teal)'; }
+    if (s3CI) { s3CI.textContent = `± ${((r.ci_upper - r.ci_lower) / 2).toExponential(2)} Hₐ`; s3CI.style.color = 'var(--teal)'; }
     const s3Var = document.getElementById('s3-variance');
     if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
     const s3Bas = document.getElementById('s3-basis');
