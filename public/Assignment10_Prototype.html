@@ -843,7 +843,7 @@
       </div>
     </div>
     <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px" id="s3-footer">
-      Phase 3A minimal active space POC · Full Phase 3B target: <span id="s3-phase3b-target">—</span> · All P1–P9 provenance elements captured and sealed
+      Full Phase 3B target: <span id="s3-phase3b-target">—</span> · All P1–P9 provenance sealed
     </div>
   </div>
 
@@ -1787,7 +1787,7 @@ function updateAllTabs(data) {
     if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
     const meta3b = MUT_META[rec.mutation_id] || {};
     const s3Ft = document.getElementById('s3-footer');
-    if (s3Ft) s3Ft.innerHTML = `Phase 3A minimal active space POC · ${rec.p2_active_electrons || 2}e/${rec.p2_active_orbitals || 2}orb proxy · Full Phase 3B target: <span id="s3-phase3b-target">~${meta3b.full_electrons || '?'}e / ${meta3b.full_qubits || '?'} qubits on ${meta3b.backend || 'fault-tolerant QPU'}</span> · All P1–P9 provenance elements captured and sealed`;
+    if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${meta3b.full_electrons || '?'}e / ${meta3b.full_qubits || '?'} qubits on ${meta3b.backend || 'fault-tolerant QPU'}</span> · All P1–P9 provenance sealed`;
   }
 
   // ── Compliance tab — P1-P9 schema table statuses ─────────────────────
