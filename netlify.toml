@@ -26,3 +26,8 @@
   from = "/Assignment10_Prototype"
   to   = "/Assignment10_Prototype.html"
   status = 200
+
+[[redirects]]
+  from = "/"
+  to   = "/Assignment10_Prototype.html"
+  status = 200
