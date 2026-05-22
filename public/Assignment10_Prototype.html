@@ -593,6 +593,50 @@
     <div id="ngs-pipeline-rows" style="display:none"></div>
   </div>
 
+  <!-- Quantum Advantage Scaling Chart -->
+  <div class="card" style="margin-bottom:16px;margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Computational Cost Scaling vs. System Size</div>
+      <div style="display:flex;gap:16px;font-size:10px">
+        <span style="color:rgba(239,68,68,0.9)">━ CCSD(T) · O(N⁷)</span>
+        <span style="color:rgba(239,68,68,0.5)">╌ FCI · O(2ᴺ)</span>
+        <span style="color:rgba(0,168,214,0.9)">━ sqDRIFT · O(poly N)</span>
+      </div>
+    </div>
+    <svg width="100%" viewBox="0 0 500 130" preserveAspectRatio="xMidYMid meet" style="display:block">
+      <line x1="32" y1="10" x2="498" y2="10" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <line x1="32" y1="40" x2="498" y2="40" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <line x1="32" y1="70" x2="498" y2="70" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <line x1="32" y1="100" x2="498" y2="100" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <line x1="32" y1="8" x2="32" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+      <text x="30" y="14" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Cost ↑</text>
+      <line x1="32" y1="110" x2="498" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+      <text x="32"  y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">8e</text>
+      <text x="117" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">16e</text>
+      <text x="202" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">24e</text>
+      <text x="287" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">32e</text>
+      <text x="372" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">40e</text>
+      <text x="457" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">48e</text>
+      <polyline points="32,108 80,102 117,92 155,76 180,55 200,34 215,18"
+        fill="none" stroke="rgba(239,68,68,0.45)" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+      <polyline points="32,108 80,104 117,97 155,88 175,83"
+        fill="none" stroke="rgba(239,68,68,0.95)" stroke-width="2.5" stroke-linecap="round"/>
+      <polyline points="175,83 220,68 265,50 300,32 320,20"
+        fill="none" stroke="rgba(239,68,68,0.2)" stroke-width="2" stroke-dasharray="5,3" stroke-linecap="round"/>
+      <polyline points="32,108 117,102 202,96 287,91 372,86 457,82 498,80"
+        fill="none" stroke="rgba(0,168,214,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="175" y1="8" x2="175" y2="110" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="175" y="22" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">Classical</text>
+      <text x="175" y="31" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">wall ~18e</text>
+      <circle cx="175" cy="83" r="3.5" fill="rgba(239,68,68,0.9)"/>
+      <line x1="362" y1="8" x2="362" y2="110" stroke="rgba(255,221,34,0.5)" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="362" y="22" fill="rgba(255,221,34,0.9)" font-size="7" font-weight="700" text-anchor="middle">C275F</text>
+      <text x="362" y="31" fill="rgba(255,221,34,0.9)" font-size="7" font-weight="700" text-anchor="middle">44e · 88q</text>
+      <text x="415" y="77" fill="rgba(0,168,214,0.9)" font-size="7.5" font-weight="600">sqDRIFT</text>
+    </svg>
+    <div class="footnote" style="margin-top:4px">CCSD(T) breaks down past ~18e. sqDRIFT on quantum hardware scales polynomially — placing C275F (44e) firmly in the quantum-required zone. Core BQP necessity argument for this dissertation.</div>
+  </div>
+
   <div style="text-align:center;margin-top:20px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
     <button onclick="window.open('https://nsclc-quantum-viewer.netlify.app/','_blank')" style="background:linear-gradient(135deg,#1a3a6e,#0d2244);color:#44ddff;border:1.5px solid #44ddff;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.5px;box-shadow:0 0 12px rgba(68,221,255,0.25)">
       ⬡ View 3D Simulations
@@ -962,60 +1006,6 @@
       </tbody>
     </table>
     <div class="footnote" style="margin-top:8px">★ C275F is the primary doctoral target — structural mutant at the classical FCI boundary. JW = Jordan-Wigner encoding. Load an NGS report to add patient-specific targets.</div>
-  </div>
-
-  <!-- Quantum Advantage Scaling Chart -->
-  <div class="card" style="margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
-      <div class="card-title" style="margin-bottom:0">Computational Cost Scaling vs. System Size</div>
-      <div style="display:flex;gap:16px;font-size:10px">
-        <span style="color:rgba(239,68,68,0.9)">━ CCSD(T) · O(N⁷)</span>
-        <span style="color:rgba(239,68,68,0.5)">╌ FCI · O(2ᴺ)</span>
-        <span style="color:rgba(0,168,214,0.9)">━ sqDRIFT · O(poly N)</span>
-      </div>
-    </div>
-    <svg width="100%" viewBox="0 0 500 130" preserveAspectRatio="xMidYMid meet" style="display:block">
-      <!-- Grid lines -->
-      <line x1="32" y1="10" x2="498" y2="10" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="40" x2="498" y2="40" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="70" x2="498" y2="70" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="100" x2="498" y2="100" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <!-- Y axis -->
-      <line x1="32" y1="8" x2="32" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-      <text x="30" y="14" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Cost ↑</text>
-      <!-- X axis -->
-      <line x1="32" y1="110" x2="498" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-      <!-- X-axis tick labels -->
-      <text x="32"  y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">8e</text>
-      <text x="117" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">16e</text>
-      <text x="202" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">24e</text>
-      <text x="287" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">32e</text>
-      <text x="372" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">40e</text>
-      <text x="457" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">48e</text>
-      <!-- FCI O(2^N) dashed -->
-      <polyline points="32,108 80,102 117,92 155,76 180,55 200,34 215,18"
-        fill="none" stroke="rgba(239,68,68,0.45)" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-      <!-- CCSD(T) solid to wall, ghost after -->
-      <polyline points="32,108 80,104 117,97 155,88 175,83"
-        fill="none" stroke="rgba(239,68,68,0.95)" stroke-width="2.5" stroke-linecap="round"/>
-      <polyline points="175,83 220,68 265,50 300,32 320,20"
-        fill="none" stroke="rgba(239,68,68,0.2)" stroke-width="2" stroke-dasharray="5,3" stroke-linecap="round"/>
-      <!-- sqDRIFT / VQE polynomial -->
-      <polyline points="32,108 117,102 202,96 287,91 372,86 457,82 498,80"
-        fill="none" stroke="rgba(0,168,214,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-      <!-- Classical wall -->
-      <line x1="175" y1="8" x2="175" y2="110" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="3,3"/>
-      <text x="175" y="22" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">Classical</text>
-      <text x="175" y="31" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">wall ~18e</text>
-      <circle cx="175" cy="83" r="3.5" fill="rgba(239,68,68,0.9)"/>
-      <!-- C275F marker -->
-      <line x1="362" y1="8" x2="362" y2="110" stroke="rgba(255,221,34,0.5)" stroke-width="1.2" stroke-dasharray="4,3"/>
-      <text x="362" y="22" fill="rgba(255,221,34,0.9)" font-size="7" font-weight="700" text-anchor="middle">C275F</text>
-      <text x="362" y="31" fill="rgba(255,221,34,0.9)" font-size="7" font-weight="700" text-anchor="middle">44e · 88q</text>
-      <!-- sqDRIFT end label -->
-      <text x="415" y="77" fill="rgba(0,168,214,0.9)" font-size="7.5" font-weight="600">sqDRIFT</text>
-    </svg>
-    <div class="footnote" style="margin-top:4px">CCSD(T) breaks down past ~18e. sqDRIFT on quantum hardware scales polynomially — placing C275F (44e) firmly in the quantum-required zone. Core BQP necessity argument for this dissertation.</div>
   </div>
 
   <!-- Live Results from Supabase -->
