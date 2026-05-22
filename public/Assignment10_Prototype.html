@@ -2918,6 +2918,15 @@ function displayRunResults(data) {
   if (s3S) { s3S.textContent = rec.p8_hash.slice(0, 20) + '…'; s3S.style.color = '#a78bfa'; }
   const s3Ri = document.getElementById('s3-runid');
   if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
+  // Row 2
+  const s3CI = document.getElementById('s3-ci');
+  if (s3CI) { s3CI.textContent = `[${r.ci_lower}, ${r.ci_upper}]`; s3CI.style.color = 'var(--teal)'; }
+  const s3Var = document.getElementById('s3-variance');
+  if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
+  const s3Bas = document.getElementById('s3-basis');
+  if (s3Bas) { s3Bas.textContent = rec.p2_basis_set || '—'; s3Bas.style.color = 'var(--light)'; }
+  const s3Ans = document.getElementById('s3-ansatz');
+  if (s3Ans) { s3Ans.textContent = rec.p1_ansatz || '—'; s3Ans.style.color = 'var(--gold)'; }
 }
 
 function exportPDF() {
