@@ -8,23 +8,25 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:        #0d1117;
-    --surface:   #161b22;
-    --border:    #30363d;
-    --muted:     #8b949e;
-    --text:      #e6edf3;
+    --bg:      #0d1117;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --border:  #30363d;
 
-    --l1-clr:    #58a6ff;   /* quantum — blue   */
-    --l1-bg:     rgba(88,166,255,.08);
-    --l1-bd:     rgba(88,166,255,.30);
+    --l3-clr:  #e05a2b;
+    --l3-bg:   rgba(224,90,43,.10);
+    --l3-bd:   rgba(224,90,43,.45);
 
-    --l2-clr:    #76d9a0;   /* commodity — green */
-    --l2-bg:     rgba(118,217,160,.08);
-    --l2-bd:     rgba(118,217,160,.30);
+    --l2-clr:  #8b949e;
+    --l2-bg:   rgba(139,148,158,.07);
+    --l2-bd:   rgba(139,148,158,.30);
 
-    --l3-clr:    #f0b429;   /* platform — gold  */
-    --l3-bg:     rgba(240,180,41,.08);
-    --l3-bd:     rgba(240,180,41,.30);
+    --l1-clr:  #8b949e;
+    --l1-bg:   rgba(139,148,158,.07);
+    --l1-bd:   rgba(139,148,158,.25);
+
+    --ctx-bg:  rgba(139,148,158,.04);
+    --ctx-bd:  rgba(139,148,158,.20);
   }
 
   body {
@@ -39,250 +41,200 @@
     padding: 48px 24px;
   }
 
-  header { text-align: center; margin-bottom: 48px; }
-  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 6px; }
-  header p  { font-size: 13px; color: var(--muted); }
+  header { text-align: center; margin-bottom: 40px; }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 6px; }
+  header p  { font-size: 12px; color: var(--muted); }
 
   .diagram {
     width: 100%;
-    max-width: 720px;
+    max-width: 760px;
     display: flex;
     flex-direction: column;
     gap: 0;
   }
 
-  /* arrow between layers */
-  .arrow {
+  /* ── context boxes (dashed) ── */
+  .ctx {
+    border: 1px dashed var(--ctx-bd);
+    border-radius: 8px;
+    background: var(--ctx-bg);
+    padding: 16px 20px;
+  }
+  .ctx-label {
+    font-family: "JetBrains Mono", "Fira Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .ctx ul { list-style: none; padding: 0; }
+  .ctx ul li {
+    font-size: 12px;
+    color: #94a3b8;
+    padding: 2px 0;
+  }
+  .ctx ul li::before { content: "• "; color: var(--muted); }
+
+  /* ── connector ── */
+  .conn {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 36px;
-    color: var(--muted);
-    font-size: 18px;
+    height: 28px;
+    color: var(--border);
+    font-size: 16px;
     position: relative;
   }
-  .arrow::before {
+  .conn::before {
     content: '';
     position: absolute;
-    left: 50%;
-    top: 0; bottom: 0;
-    width: 2px;
+    left: 50%; top: 0; bottom: 0;
+    width: 1px;
     background: var(--border);
     transform: translateX(-50%);
   }
-  .arrow span {
+  .conn span {
     background: var(--bg);
     padding: 0 8px;
     z-index: 1;
     position: relative;
-  }
-
-  .layer {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .layer-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .layer-badge {
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .6px;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 20px;
-    white-space: nowrap;
-  }
-
-  .layer-title {
-    font-size: 15px;
-    font-weight: 700;
-  }
-
-  .layer-vendor {
-    margin-left: auto;
-    font-size: 12px;
     color: var(--muted);
-    font-weight: 500;
+    font-family: monospace;
   }
 
-  .layer-body {
-    padding: 20px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-  }
-
-  .chip {
-    background: var(--surface);
-    border: 1px solid var(--border);
+  /* ── solid layers ── */
+  .layer {
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 18px 20px 20px;
   }
-  .chip-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    color: var(--muted);
-    margin-bottom: 4px;
-  }
-  .chip-value {
-    font-size: 13px;
+  .layer-label {
+    font-family: "JetBrains Mono", "Fira Mono", monospace;
+    font-size: 10px;
     font-weight: 600;
-    color: var(--text);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
   }
-  .chip-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
+  .layer ul { list-style: none; padding: 0; }
+  .layer ul li {
+    font-size: 13px;
+    padding: 3px 0;
+    line-height: 1.5;
   }
+  .layer ul li::before { content: "• "; }
 
-  /* layer 1 — quantum */
-  .l1 { border-color: var(--l1-bd); background: var(--l1-bg); }
-  .l1 .layer-header { background: rgba(88,166,255,.06); border-color: var(--l1-bd); }
-  .l1 .layer-badge  { background: rgba(88,166,255,.15); color: var(--l1-clr); }
-  .l1 .layer-title  { color: var(--l1-clr); }
+  /* layer 3 — contribution — highlighted */
+  .l3 {
+    border: 1.5px solid var(--l3-bd);
+    background: var(--l3-bg);
+  }
+  .l3 .layer-label { color: var(--l3-clr); }
+  .l3 ul li        { color: #e2d9d4; }
+  .l3 ul li::before { color: var(--l3-clr); }
 
   /* layer 2 — commodity */
-  .l2 { border-color: var(--l2-bd); background: var(--l2-bg); }
-  .l2 .layer-header { background: rgba(118,217,160,.06); border-color: var(--l2-bd); }
-  .l2 .layer-badge  { background: rgba(118,217,160,.15); color: var(--l2-clr); }
-  .l2 .layer-title  { color: var(--l2-clr); }
+  .l2 {
+    border: 1px solid var(--l2-bd);
+    background: var(--l2-bg);
+  }
+  .l2 .layer-label { color: var(--l2-clr); }
+  .l2 ul li        { color: #c9d1d9; }
+  .l2 ul li::before { color: var(--muted); }
 
-  /* layer 3 — platform */
-  .l3 { border-color: var(--l3-bd); background: var(--l3-bg); }
-  .l3 .layer-header { background: rgba(240,180,41,.06); border-color: var(--l3-bd); }
-  .l3 .layer-badge  { background: rgba(240,180,41,.15); color: var(--l3-clr); }
-  .l3 .layer-title  { color: var(--l3-clr); }
+  /* layer 1 — quantum kernel */
+  .l1 {
+    border: 1px solid var(--l1-bd);
+    background: var(--l1-bg);
+  }
+  .l1 .layer-label { color: var(--l1-clr); }
+  .l1 ul li        { color: #c9d1d9; }
+  .l1 ul li::before { color: var(--muted); }
 
   footer {
-    margin-top: 56px;
-    font-size: 12px;
+    margin-top: 48px;
+    font-size: 11px;
     color: var(--muted);
     text-align: center;
-    line-height: 1.8;
+    line-height: 1.9;
   }
+  footer em { color: #58a6ff; font-style: normal; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>SOLANGE™ Three-Layer Architecture</h1>
-  <p>Hardware stack positioning — QC · AI · HPC · Doron Cohen · IST 697 · CGU 2026</p>
+  <h1>SOLANGE™ · Three-Layer QC·AI·HPC Architecture</h1>
+  <p>Doron Cohen · IST 697 · CGU 2026 · * dashed boxes are adjacent workflow context, not part of the QC stack</p>
 </header>
 
 <div class="diagram">
 
-  <!-- Layer 3 — SOLANGE Platform (top / user-facing) -->
+  <!-- NGS input context -->
+  <div class="ctx">
+    <div class="ctx-label">NGS Patient Input *  ·  workflow source</div>
+    <ul>
+      <li>Patient case MI25-0349 · TP53 C275F (non-druggable NSCLC tumor suppressor mutation)</li>
+      <li>Mutation-specific Hamiltonian assembly · ~24-electron local, ~44-electron full active space</li>
+    </ul>
+  </div>
+
+  <div class="conn"><span>↓ input</span></div>
+
+  <!-- Layer 3 — Contribution -->
   <div class="layer l3">
-    <div class="layer-header">
-      <span class="layer-badge">Layer 3</span>
-      <span class="layer-title">SOLANGE Orchestration Platform</span>
-      <span class="layer-vendor">Our contribution</span>
-    </div>
-    <div class="layer-body">
-      <div class="chip">
-        <div class="chip-label">Interface</div>
-        <div class="chip-value">4-Screen Platform</div>
-        <div class="chip-sub">NGS · Simulation · Provenance · Admin</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Governance</div>
-        <div class="chip-value">P1–P9 Provenance</div>
-        <div class="chip-sub">FDA 21 CFR Part 11 · SHA-256 seal</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Workflow</div>
-        <div class="chip-value">Hardware-agnostic</div>
-        <div class="chip-sub">Routes jobs to L1 or L2 backend</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Auth</div>
-        <div class="chip-value">JWT · RBAC</div>
-        <div class="chip-sub">Supabase · role-gated access</div>
-      </div>
-    </div>
+    <div class="layer-label">Layer 3 · Contribution (this dissertation)</div>
+    <ul>
+      <li>BQP-relevance classification framework for non-druggable NSCLC tumor-suppressor mutations (§06.i)</li>
+      <li>Translational orchestration architecture — oncology-mutation-aware · Part-11-governed · bifurcation-aware (§06.ii)</li>
+      <li>FDA 21 CFR Part 11 compliance framework with ML-decoder provenance, P1–P9 (§06.iii)</li>
+    </ul>
   </div>
 
-  <div class="arrow"><span>↕ API calls</span></div>
+  <div class="conn"><span>↕ API</span></div>
 
-  <!-- Layer 2 — Commodity HPC -->
+  <!-- Layer 2 — Commodity -->
   <div class="layer l2">
-    <div class="layer-header">
-      <span class="layer-badge">Layer 2</span>
-      <span class="layer-title">Commodity HPC</span>
-      <span class="layer-vendor">Nvidia · CUDA-Q · NVQLink</span>
-    </div>
-    <div class="layer-body">
-      <div class="chip">
-        <div class="chip-label">Hardware</div>
-        <div class="chip-value">Nvidia DGX / H100</div>
-        <div class="chip-sub">GPU-accelerated pre-screening</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Stack</div>
-        <div class="chip-value">CUDA-Q</div>
-        <div class="chip-sub">Cross-vendor quantum programming model</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">QEC decoder</div>
-        <div class="chip-value">Nvidia Ising</div>
-        <div class="chip-sub">3D CNN ML decoder · Apr 2026 · P9</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Interconnect</div>
-        <div class="chip-value">NVQLink</div>
-        <div class="chip-sub">GPU ↔ QPU high-bandwidth link</div>
-      </div>
-    </div>
+    <div class="layer-label">Layer 2 · Hybrid Integration Substrate (commodity)</div>
+    <ul>
+      <li>Hybrid orchestration — CUDA-Q + NVQLink (Nvidia stack)</li>
+      <li>Quantum reliability — Nvidia Ising: VLM calibration · 3D CNN decoder (Apr 2026)</li>
+      <li>Input preparation — DFT (PySCF) · DMRG baseline + non-active-space treatment</li>
+      <li>Output interpretation — DeepChem GNN clinical relevance scoring</li>
+    </ul>
   </div>
 
-  <div class="arrow"><span>↕ NVQLink</span></div>
+  <div class="conn"><span>↕ NVQLink</span></div>
 
   <!-- Layer 1 — Quantum Kernel -->
   <div class="layer l1">
-    <div class="layer-header">
-      <span class="layer-badge">Layer 1</span>
-      <span class="layer-title">Quantum Kernel</span>
-      <span class="layer-vendor">IBM Heron r3 · 156 qubits</span>
-    </div>
-    <div class="layer-body">
-      <div class="chip">
-        <div class="chip-label">Hardware</div>
-        <div class="chip-value">IBM Heron r3</div>
-        <div class="chip-sub">156 qubits · Phase 3B target</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Algorithm</div>
-        <div class="chip-value">sqDRIFT / VQE</div>
-        <div class="chip-sub">Sample-based quantum diagonalization</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Active space</div>
-        <div class="chip-value">~88 qubits</div>
-        <div class="chip-sub">TP53 C275F full site · Phase 3B</div>
-      </div>
-      <div class="chip">
-        <div class="chip-label">Phase 3A</div>
-        <div class="chip-value">Simulator</div>
-        <div class="chip-sub">PennyLane default.qubit · 4-qubit CAS(2e,2o)</div>
-      </div>
-    </div>
+    <div class="layer-label">Layer 1 · Quantum Kernel (scientific anchor)</div>
+    <ul>
+      <li>IBM Heron r3 — 156 qubits, heavy-hex lattice (ibm_pittsburgh, QV ≥ 2048)</li>
+      <li>SqDRIFT — sample-based quantum diagonalization (Trotterized, stochastic drift)</li>
+      <li>Empirical anchors: 100q C₁₃Cl₂ (Science, Mar 2026) · Trp-cage protein (Cleveland Clinic + IBM, Mar 2026)</li>
+    </ul>
+  </div>
+
+  <div class="conn"><span>↓ output</span></div>
+
+  <!-- DSR Phase 4 context -->
+  <div class="ctx">
+    <div class="ctx-label">DSR Phase 4 Evaluation *  ·  workflow output</div>
+    <ul>
+      <li>Triangulated DSR — technical harness · comparative benchmark · expert panel (n=4–6) · case walkthroughs</li>
+      <li>Acceptance thresholds: audit-trail integrity 100% · end-to-end execution ≥95% · Hevner Likert mean ≥5.0</li>
+    </ul>
   </div>
 
 </div>
 
 <footer>
-  SOLANGE™ · IST 697 Doctoral Dissertation · Doron Cohen · CGU 2026<br>
-  Layer 3 is the IS contribution — hardware-agnostic orchestration over Layers 1 &amp; 2
+  <em>Layer 3 is the IS contribution</em> — hardware-agnostic orchestration over Layers 1 &amp; 2<br>
+  Layer 2 is forward-compatible with both IBM-native and Nvidia-substrate execution paths (§1.4.1, §06.ii)<br>
+  SOLANGE™ · IST 697 Doctoral Dissertation · Doron Cohen · CGU 2026
 </footer>
 
 </body>
