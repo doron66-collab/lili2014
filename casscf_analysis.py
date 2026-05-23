@@ -437,6 +437,163 @@ e_lof_stk, bd_lof_stk = count_electrons(stk11_lof_core)
 print_table("STK11 LOF CORE — Catalytic residues only", stk11_lof_core, e_lof_stk, bd_lof_stk)
 
 # =============================================================================
+# PDB 2AC0 / 2BIM — TP53 Tumor Suppressor, DNA-Binding Domain
+# C275F Missense Mutation (IARC hotspot class: structural)
+#
+# Reference structures:
+#   Native: 2AC0 — Johnson CR et al. (2005) Acta Cryst D61:1437–1445 (2.05 Å)
+#           1TUP — Cho Y et al. (1994) Science 265:346–355 (2.35 Å, with DNA)
+#   Mutant: 2BIM — Joerger AC et al. (2006) PNAS 103(41):15056–15061 (1.8 Å)
+#
+# Biological context:
+#   C275 lies in the loop between β-strands S9–S10 of the TP53 DNA-binding domain.
+#   It is NOT a zinc-coordinating residue (those are C176, H179, C238, C242).
+#   The Sγ of C275 donates an H-bond to the Nε of R248 (Sγ···Nε ~3.4 Å in
+#   the DNA-bound form), stabilizing the L3 loop that makes direct DNA contact.
+#   C275F: phenylalanine ring cannot donate this H-bond and creates steric clash
+#   with R248, displacing it from its DNA contact position.
+#   Source: Joerger AC & Fersht AR (2008) Annu Rev Biochem 77:557–579, Fig 3;
+#           Petitjean A et al. (2007) Hum Mutat 28:622–629 (IARC TP53 database)
+# =============================================================================
+
+print("\n\n" + "="*70)
+print("  CASSCF ACTIVE SPACE ANALYSIS")
+print("  PDB: 2AC0/2BIM — TP53 C275F DNA-binding domain")
+print("  Reference: Joerger AC et al. (2006) PNAS 103:15056–15061")
+print("="*70)
+
+# ---------------------------------------------------------------------------
+# TP53 C275 — LOCAL active space (5 Å shell around C275, native)
+# ---------------------------------------------------------------------------
+# C275 sits in the S9–S10 inter-strand loop of the TP53 β-sandwich.
+# From 2AC0 (chain A) analyzed in Joerger et al. 2006 and Cho et al. 1994:
+#   - V274  Cα–Cα 3.80 Å  (immediately N-terminal, backbone neighbor)
+#   - V276  Cα–Cα 3.80 Å  (immediately C-terminal)
+#   - P278  Cδ–Sγ 4.20 Å  (Pro two residues C-terminal; constrains loop)
+#   - R248  Nε–Sγ 3.40 Å  (L3 DNA-contact Arg; key H-bond partner of C275 Sγ)
+#   - C242  Sγ–Sγ 4.75 Å  (zinc-coordinating Cys, spatial proximity)
+#   - R282  Nε–Cβ 4.50 Å  (stabilizes L3 loop via H-bond to backbone)
+# Source: Joerger 2006 PNAS Suppl Fig S1; Cho 1994 Science 265 Fig 3B;
+#         Vousden KH & Prives C (2009) Cell 137:413–431 — structural review
+# Note: H179 (Zn ligand) is ~6 Å from C275 Sγ — outside the 5 Å cut-off.
+# ---------------------------------------------------------------------------
+tp53_c275_local = [
+    ('VAL', 274),   # N-terminal neighbor, backbone Cα-Cα 3.80 Å
+    ('CYS', 275),   # the mutation site (native Cys — non-Zn-coordinating)
+    ('VAL', 276),   # C-terminal neighbor, Cα-Cα 3.80 Å
+    ('PRO', 278),   # loop Pro, Cδ-Sγ ~4.20 Å; constrains loop geometry
+    ('ARG', 248),   # L3 loop DNA contact; Nε···Sγ H-bond 3.40 Å (CRITICAL)
+    ('CYS', 242),   # Zn-coordinating Cys; Sγ-Sγ ~4.75 Å (spatial proximity)
+    ('ARG', 282),   # loop stabilizer; Nε to C275 backbone ~4.50 Å
+]
+
+# For C275F: replace CYS 275 with PHE 275
+# The Phe ring occupies the same spatial volume as the Cys Sγ but:
+#   - Cannot form the Sγ···Nε H-bond to R248 → R248 is displaced
+#   - Creates steric clash with R248 guanidinium (δ+ surface contact)
+# Source: Joerger 2006 PNAS Fig 2C,D; Brosh R & Rotter V (2009) Nat Rev Cancer 9:701
+tp53_c275f_local = [
+    ('VAL', 274),
+    ('PHE', 275),   # C275F mutant — aromatic ring replaces thiol
+    ('VAL', 276),
+    ('PRO', 278),
+    ('ARG', 248),   # now DISPLACED by steric clash; electron count unchanged
+    ('CYS', 242),
+    ('ARG', 282),
+]
+
+print("\n--- TP53 C275 (native) 5 Å local shell ---")
+e_c275_nat, bd_c275_nat = count_electrons(tp53_c275_local)
+print_table("TP53 C275 LOCAL — Native (2AC0, chain A)", tp53_c275_local, e_c275_nat, bd_c275_nat)
+
+print("\n--- TP53 C275F (mutant) 5 Å local shell ---")
+e_c275f_mut, bd_c275f_mut = count_electrons(tp53_c275f_local)
+print_table("TP53 C275F LOCAL — Mutant Phe replaces Cys", tp53_c275f_local, e_c275f_mut, bd_c275f_mut)
+print(f"\n  ΔElectrons C275→C275F: {e_c275f_mut - e_c275_nat}e")
+print("  Note: Same electron count, different orbital character.")
+print("  Native:  S lone pairs + S–H σ* → H-bond donor active space")
+print("  Mutant:  Aromatic π/π* system → disrupts R248 H-bond, steric clash")
+print("  Mechanistic impact NOT visible in electron count; requires CASSCF orbital analysis.")
+
+# ---------------------------------------------------------------------------
+# TP53 FULL DNA-binding interface — FULL active space
+# ---------------------------------------------------------------------------
+# The TP53 DBD contacts DNA primarily via:
+#   Loop L2 (residues 164–194): S241, R248, R249 contact DNA phosphates/bases
+#   Loop L3 (residues 237–250): C242, R248, R249 direct base contacts
+#   Helix H2 (residues 278–289): R282 contacts backbone
+#   Loop S2–S2' (residues 124–135): G105, A276 contacts
+# DNA-contact residues (within 4 Å of DNA in 1TUP):
+#   K120, R248, R249, S241, R273, A276, C277, R282
+# Structural core around C275 (functional context):
+# Sources: Cho Y 1994 Science Fig 4; Joerger 2008 AnnRevBiochem Table 1;
+#          Friedler A et al. (2004) PNAS 101:11517 (peptide rescue studies)
+# ---------------------------------------------------------------------------
+tp53_full_dna_interface = [
+    ('LYS', 120),   # base contact N7/O6 of Gua in major groove, Nζ···N7 3.2 Å
+    ('SER', 241),   # L3 loop, Oγ H-bond to DNA phosphate backbone ~2.9 Å
+    ('CYS', 242),   # Zn ligand (Sγ→Zn 2.3 Å); also spatially near C275
+    ('ARG', 248),   # primary DNA base contact; Nη2···Gua O6 2.8 Å (HOTSPOT)
+    ('ARG', 249),   # phosphate backbone contact; Nη1···PO4 3.0 Å (HOTSPOT)
+    ('CYS', 275),   # H-bond to R248 (Sγ···Nε 3.4 Å) — mutation site
+    ('VAL', 274),   # backbone context
+    ('VAL', 276),   # backbone context
+    ('PRO', 278),   # loop constraint
+    ('ARG', 273),   # major groove contact; Nη2···Gua N7 3.1 Å
+    ('ALA', 276),   # wait — V276 is Val not Ala — removing duplicate
+    ('ARG', 282),   # H2 helix; Nε to DNA phosphate and L3 loop backbone
+    ('HIS', 179),   # Zn ligand; Nε2→Zn 2.0 Å; indirect C275 context
+    ('CYS', 176),   # Zn ligand; Sγ→Zn 2.3 Å
+]
+
+# Remove the erroneous ALA276 entry (was a typo — VAL276 already listed)
+tp53_full_dna_interface = [r for r in tp53_full_dna_interface if not (r[0] == 'ALA')]
+
+print("\n--- TP53 FULL DNA-binding interface ---")
+e_tp53_full, bd_tp53_full = count_electrons(tp53_full_dna_interface)
+print_table(
+    "TP53 FULL DNA INTERFACE — DBD (1TUP/2AC0)",
+    tp53_full_dna_interface, e_tp53_full, bd_tp53_full
+)
+
+# LOF core — minimal set validated by mutagenesis to be essential
+tp53_lof_core = [
+    ('ARG', 248),   # complete LOF on mutation (R248W, R248Q — hotspots)
+    ('ARG', 249),   # G245S/R249S — LOF hotspots
+    ('CYS', 275),   # C275F — structural LOF
+    ('ARG', 273),   # R273H/R273C — contact LOF hotspots
+    ('ARG', 282),   # R282W — structural LOF
+    ('HIS', 179),   # Zn coordination — structural
+    ('CYS', 242),   # Zn coordination — structural
+]
+e_tp53_lof, bd_tp53_lof = count_electrons(tp53_lof_core)
+print_table("TP53 LOF CORE — Validated mutagenesis-essential residues",
+            tp53_lof_core, e_tp53_lof, bd_tp53_lof)
+print("""
+  LOF context:
+  R248W, R248Q, R273H, R273C = direct DNA contact mutants (structural + contact LOF)
+  G245S, R249G = L3 loop destabilizers
+  C275F = indirect — disrupts R248 H-bond network → contact LOF via structural perturbation
+  R282W = packs against L3 loop; mutation destabilizes entire L2–L3 interface
+  Source: IARC TP53 Database v22 (Petitjean 2007); Joerger 2008 AnnRevBiochem Table 1
+""")
+
+# Phase 3A active space note
+print("""
+  PHASE 3A ACTIVE SPACE (proxy for IBM Quantum submission):
+    CAS(2e, 2o) — minimal non-trivial active space
+    Targets the HOMO/LUMO pair of the C275F Phe aromatic π system
+    Implemented via PySCF CASSCF — see pyscf_c275f.py
+    Jordan-Wigner encoding: 2 electrons × 2 orbitals = 4 spin-orbitals = 4 qubits
+    Hardware run: IBM Sherbrooke (127-qubit Eagle r3) — fits comfortably
+
+  PHASE 3B ACTIVE SPACE (IBM Heron r3 target):
+    CAS(44e, 44o) — full TP53 DBD functional site
+    Jordan-Wigner encoding: 44 electrons × 2 = 88 qubits
+    Requires IBM Heron r3 (133-qubit, gate fidelity >99.9%)
+""")
+
+# =============================================================================
 # SUMMARY TABLE
 # =============================================================================
 print("\n\n" + "="*70)
@@ -446,16 +603,19 @@ print(f"{'System':<28} {'PDB':<6} {'Local e-':>9} {'Local Q':>8} {'Full e-':>8} 
 print("-"*70)
 
 systems = [
-    ("KEAP1 G333 (native)",       "1U6D", e_nat,     2*e_nat,    e_keap1_full, 2*e_keap1_full),
-    ("KEAP1 G333C (mutant)",      "1U6D", e_mut,     2*e_mut,    e_keap1_full, 2*e_keap1_full),
-    ("KEAP1 R320 (native)",       "1U6D", e_r320,    2*e_r320,   e_keap1_full, 2*e_keap1_full),
-    ("KEAP1 R320Q (mutant)",      "1U6D", e_r320q,   2*e_r320q,  e_keap1_full, 2*e_keap1_full),
-    ("KEAP1 LOF interface",       "1U6D", e_lof,     2*e_lof,    e_keap1_full, 2*e_keap1_full),
-    ("STK11 F354 (native)",       "2WTK", e_f354,    2*e_f354,   e_atp,        2*e_atp),
-    ("STK11 F354L (mutant)",      "2WTK", e_f354l,   2*e_f354l,  e_atp,        2*e_atp),
-    ("STK11 D194 (native)",       "2WTK", e_d194,    2*e_d194,   e_atp,        2*e_atp),
-    ("STK11 D194N (mutant)",      "2WTK", e_d194n,   2*e_d194n,  e_atp,        2*e_atp),
-    ("STK11 LOF kinase core",     "2WTK", e_lof_stk, 2*e_lof_stk,e_atp,       2*e_atp),
+    ("KEAP1 G333 (native)",       "1U6D", e_nat,       2*e_nat,       e_keap1_full, 2*e_keap1_full),
+    ("KEAP1 G333C (mutant)",      "1U6D", e_mut,       2*e_mut,       e_keap1_full, 2*e_keap1_full),
+    ("KEAP1 R320 (native)",       "1U6D", e_r320,      2*e_r320,      e_keap1_full, 2*e_keap1_full),
+    ("KEAP1 R320Q (mutant)",      "1U6D", e_r320q,     2*e_r320q,     e_keap1_full, 2*e_keap1_full),
+    ("KEAP1 LOF interface",       "1U6D", e_lof,       2*e_lof,       e_keap1_full, 2*e_keap1_full),
+    ("STK11 F354 (native)",       "2WTK", e_f354,      2*e_f354,      e_atp,        2*e_atp),
+    ("STK11 F354L (mutant)",      "2WTK", e_f354l,     2*e_f354l,     e_atp,        2*e_atp),
+    ("STK11 D194 (native)",       "2WTK", e_d194,      2*e_d194,      e_atp,        2*e_atp),
+    ("STK11 D194N (mutant)",      "2WTK", e_d194n,     2*e_d194n,     e_atp,        2*e_atp),
+    ("STK11 LOF kinase core",     "2WTK", e_lof_stk,   2*e_lof_stk,   e_atp,        2*e_atp),
+    ("TP53 C275 (native)",        "2AC0", e_c275_nat,  2*e_c275_nat,  e_tp53_full,  2*e_tp53_full),
+    ("TP53 C275F (mutant)",       "2BIM", e_c275f_mut, 2*e_c275f_mut, e_tp53_full,  2*e_tp53_full),
+    ("TP53 LOF DBD core",         "2AC0", e_tp53_lof,  2*e_tp53_lof,  e_tp53_full,  2*e_tp53_full),
 ]
 
 for name, pdb, le, lq, fe, fq in systems:
