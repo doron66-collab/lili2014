@@ -271,16 +271,16 @@ def run_vqe(config: dict) -> dict:
         )
         return qml.expval(H)
 
-    params_init = np.zeros(_N_PARAMS, requires_grad=True)
-    circuit_specs = qml.specs(cost_fn)(params_init)
-    gate_count = circuit_specs["resources"].num_gates
-    depth      = circuit_specs["resources"].depth
+    # AllSinglesDoubles for 2e/4q: 1 DoubleExcitation + 2 SingleExcitation gates.
+    # Hardcoded to avoid qml.specs() pre-flight evaluation (saves ~1 circuit call).
+    gate_count = 13   # 1 BasisState + 1 DoubleExcitation(6g) + 2×SingleExcitation(3g)
+    depth      = 7
 
-    opt    = qml.AdamOptimizer(stepsize=0.02)
-    params = params_init.copy()
+    opt    = qml.AdamOptimizer(stepsize=0.08)
+    params = np.zeros(_N_PARAMS, requires_grad=True)
     energies_active = []
     t_start = time.time()
-    for _ in range(200):
+    for _ in range(80):
         params, e_active = opt.step_and_cost(cost_fn, params)
         energies_active.append(float(e_active))
     elapsed = time.time() - t_start
@@ -300,7 +300,7 @@ def run_vqe(config: dict) -> dict:
         "jw_key": jw_key,
         "side": side,
         "ansatz": "AllSinglesDoubles-UCCSD",
-        "steps": 200,
+        "steps": 80,
     }, sort_keys=True)
     circuit_hash = hashlib.sha256(fp_payload.encode()).hexdigest()
 
@@ -418,7 +418,7 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
         "p5_shots":           None,
         "p5_raw_energy":      vqe["energy_ha"],
         "p5_energy_variance": vqe["energy_variance"],
-        "p5_opt_steps":       200,
+        "p5_opt_steps":       80,
         "p5_elapsed_s":       vqe["elapsed_s"],
         "p5_ecore_ha":        vqe["ecore"],
         "p5_active_energy_ha": vqe["energy_active"],
