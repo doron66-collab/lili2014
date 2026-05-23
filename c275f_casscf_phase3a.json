@@ -1,0 +1,25 @@
+{
+  "model": "toluene (Phe275 sidechain proxy)",
+  "basis": "STO-3G",
+  "active_space": "CAS(2e,2o)",
+  "jw_qubits": 4,
+  "e_rhf_Ha": -266.47420350984964,
+  "e_casscf_Ha": -266.4907503178864,
+  "correlation_Ha": -0.01654680803676456,
+  "ecore_Ha": -265.5800230962897,
+  "h1e": [
+    [
+      -0.6230726401502417,
+      0.0020127569911545518
+    ],
+    [
+      0.002012756991154524,
+      -0.33279719312608824
+    ]
+  ],
+  "h2e_J_aa": 0.35338964870979034,
+  "h2e_J_ab": 0.354524926373665,
+  "h2e_K_ab": 0.1043868298593664,
+  "converged": true,
+  "pauli_note": "Decompose h1e + h2e into Pauli operators via Jordan-Wigner transform using openfermion or qiskit-nature for VQE circuit construction."
+}
