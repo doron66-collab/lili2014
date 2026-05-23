@@ -980,6 +980,15 @@
     <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px" id="s3-footer">
       Full Phase 3B target: <span id="s3-phase3b-target">—</span> · All P1–P9 provenance sealed
     </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-size:10px;color:var(--gray);flex:1;min-width:180px">
+        <strong style="color:var(--teal)">PySCF CASSCF(2,2) integrals available</strong><br>
+        Real ab initio Hamiltonian for TP53 C275F · Phe275 π system · STO-3G
+      </div>
+      <button onclick="downloadCasscfIntegrals()" style="background:var(--teal);color:#223244;border:none;padding:7px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        ⬇ Download CASSCF Integrals
+      </button>
+    </div>
   </div>
 
   <!-- Energy Comparison Chart -->
@@ -2990,6 +2999,71 @@ function submitPhase3B(mutationId) {
     <div style="font-weight:700;color:#06b6d4;margin-bottom:6px">⚛ Phase 3B Package Generated</div>
     <div>The submission package for <strong style="color:#f1f5f9">${meta.display_name || mutationId}</strong> has been created and downloaded.</div>
     <div style="margin-top:6px;color:#94a3b8;font-size:11px">Execution will be initiated upon IBM Heron r3 system access authorization.</div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
+
+function downloadCasscfIntegrals() {
+  const pkg = {
+    title:        'SOLANGE™ — TP53 C275F Phase 3A CASSCF(2,2) Hamiltonian Integrals',
+    generated_at: new Date().toISOString(),
+    provenance: {
+      script:     'pyscf_c275f.py',
+      model:      'Phe275 sidechain proxy — toluene (C7H8)',
+      basis:      'STO-3G (minimal Slater-type orbital, 3 Gaussians per function)',
+      active_space: 'CAS(2e, 2o) — π/π* HOMO–LUMO pair of Phe275 aromatic ring',
+      jw_qubits:  4,
+      references: [
+        'Joerger AC et al. (2006) PNAS 103:15056–15061 — C275F structure (PDB 2BIM)',
+        'Cho Y et al. (1994) Science 265:346–355 — TP53 native (PDB 1TUP)',
+        'Sun Q et al. (2020) J Chem Phys 153:024109 — PySCF 2.0',
+        'Engh & Huber (1991) Acta Cryst A47:392 — idealized geometry'
+      ]
+    },
+    energies: {
+      e_rhf_Ha:        -266.4742035098,
+      e_casscf_Ha:     -266.4907503179,
+      correlation_Ha:  -0.0165468081,
+      ecore_Ha:        -265.5800231000,
+      units:           'Hartree (Ha)'
+    },
+    active_space_integrals: {
+      h1e: {
+        description: 'One-body (one-electron) Hamiltonian in the active orbital basis',
+        shape:       '(2, 2)',
+        values:      [[-0.62307264, 0.00201276], [0.00201276, -0.33279719]]
+      },
+      h2e: {
+        description: 'Two-body (two-electron) integrals — Coulomb and exchange',
+        J_aa:        0.35338965,
+        J_ab:        0.35452493,
+        K_ab:        0.10438683,
+        note:        'J = Coulomb repulsion, K = quantum exchange (no classical analog)'
+      }
+    },
+    vqe_pipeline: {
+      step1: 'Jordan-Wigner transform h1e + h2e → Pauli operators (4 qubits)',
+      step2: 'Pauli decomposition: H = Σ_i c_i · P_i  where P_i ∈ {I,X,Y,Z}^⊗4',
+      step3: 'VQE ansatz: Ry–CNOT–Ry hardware-efficient (Phase 3A) or UCCSD (Phase 3B)',
+      step4: 'Phase 3A execution: IBM Sherbrooke (127-qubit Eagle r3)',
+      step5: 'Phase 3B execution: IBM Heron r3 — 88 qubits — pending access authorization',
+      libraries: 'openfermion · qiskit-nature · qiskit-ibm-runtime'
+    }
+  };
+
+  const date = new Date().toISOString().slice(0,10);
+  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `SOLANGE_C275F_CASSCF_Integrals_${date}.json`;
+  a.click();
+
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#223244;border:1px solid var(--teal);color:var(--white);padding:14px 20px;border-radius:10px;font-size:12px;z-index:9999;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease';
+  toast.innerHTML = `
+    <div style="font-weight:700;color:var(--teal);margin-bottom:6px">⬇ CASSCF Integrals Downloaded</div>
+    <div style="color:#94a3b8;font-size:11px">Real ab initio Hamiltonian for TP53 C275F.<br>Feed h1e + h2e into openfermion or qiskit-nature to build the VQE circuit.</div>
   `;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 6000);
