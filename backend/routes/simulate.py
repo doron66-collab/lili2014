@@ -324,6 +324,15 @@ async def get_results(limit: int = 20):
 
 @router.get("/{mutation_id}")
 async def run_simulation(mutation_id: str, authorization: str | None = Header(None)):
+    try:
+        return await _run_simulation_inner(mutation_id, authorization)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+async def _run_simulation_inner(mutation_id: str, authorization: str | None):
     config = MUTATION_CONFIGS.get(mutation_id)
     if not config:
         raise HTTPException(status_code=404,
@@ -409,7 +418,10 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
     # ── Persist to Supabase ────────────────────────────────────────────────────
     sb = get_supabase()
     if sb:
-        sb.table("simulation_runs").insert({**record, "user_id": user_id}).execute()
+        try:
+            sb.table("simulation_runs").insert({**record, "user_id": user_id}).execute()
+        except Exception:
+            pass  # DB write failure must never block the simulation response
 
     return {
         "run_id":    run_id,
