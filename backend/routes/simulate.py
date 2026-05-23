@@ -30,7 +30,7 @@ def get_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ── Load real JW Hamiltonians from PySCF CASSCF(2,2) ──────────────────────────
-_JW_PATH = Path(__file__).parent.parent.parent / "jw_hamiltonians.json"
+_JW_PATH = Path(__file__).parent.parent / "jw_hamiltonians.json"
 with open(_JW_PATH) as _f:
     _JW_DATA = json.load(_f)
 
