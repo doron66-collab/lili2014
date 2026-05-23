@@ -1,5 +1,6 @@
 """
 VQE simulation engine — Phase 3A PennyLane simulator backend.
+Real 4-qubit Jordan-Wigner Hamiltonians from PySCF CASSCF(2,2).
 Each run produces a complete P1–P9 provenance record stored in Supabase.
 """
 import base64
@@ -9,8 +10,10 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pennylane as qml
+from pennylane import qchem
 import pennylane.numpy as np
 from fastapi import APIRouter, Header, HTTPException
 from supabase import create_client
@@ -26,16 +29,31 @@ def get_supabase():
         return None
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ── Load real JW Hamiltonians from PySCF CASSCF(2,2) ──────────────────────────
+_JW_PATH = Path(__file__).parent.parent.parent / "jw_hamiltonians.json"
+with open(_JW_PATH) as _f:
+    _JW_DATA = json.load(_f)
+
+# ── CASSCF(2,2) active-space constants (2 electrons, 4 spin-orbitals) ─────────
+_ELECTRONS = 2
+_QUBITS    = 4
+_HF_STATE  = qchem.hf_state(_ELECTRONS, _QUBITS)        # [1, 1, 0, 0]
+_SINGLES, _DOUBLES = qchem.excitations(_ELECTRONS, _QUBITS)
+_N_PARAMS  = len(_SINGLES) + len(_DOUBLES)               # 5 params for 2e/4q
+
 # ── Mutation configurations ────────────────────────────────────────────────────
 # Seven scientifically classified NSCLC targets (Y220C is a platform placeholder
 # for NGS demo only — excluded from scientific counts).
 #
-# active_electrons/active_orbitals: Phase 3A 2-qubit proxy (pipeline validation).
-# local_electrons/local_qubits: 5 Å binding-site shell from PDB coordinates (CASSCF).
-# full_electrons/full_qubits: complete active-site environment from PDB coordinates.
+# jw_source: (jw_key, side) → key in jw_hamiltonians.json; side = "mutant"/"native".
+#   Named point mutations use the mutant compound (the changed residue).
+#   General LOF entries use the key catalytic residue compound (native side).
+#
+# active_electrons/active_orbitals: Phase 3A CAS(2e,2o) real PySCF values.
+# local_electrons/local_qubits: 5 Å binding-site shell from PDB coordinates.
+# full_electrons/full_qubits: complete active-site environment from PDB.
 # hardware_era: "current" = within 94-qubit demonstrated ceiling (Merz et al. 2026);
-#               "fault_tolerant" = requires fault-tolerant QPU (~2030+);
-#               "placeholder" = platform demo anchor, not a scientific target.
+#               "fault_tolerant" = requires fault-tolerant QPU (~2030+).
 #
 # PDB coordinate sources (coordinate-verified May 2026):
 #   TP53 C275F  → 2OCJ (TP53 DBD wild-type, 2.05 Å)          — hardware_era: current
@@ -54,7 +72,8 @@ MUTATION_CONFIGS = {
     "TP53_C275F": {
         "name": "TP53 p.Cys275Phe",
         "pdb": "2OCJ",
-        "desc": "Phe275 π-system fragment - minimal active space POC",
+        "desc": "Phe275 π-system fragment - CAS(2e,2o) toluene proxy, STO-3G",
+        "jw_source": ("TP53_C275F", "mutant"),   # toluene (Phe275 sidechain)
         "active_electrons": 2,
         "active_orbitals": 2,
         "local_electrons": 24,   # loop-sheet-helix 5 Å shell — PDB 2OCJ
@@ -62,15 +81,14 @@ MUTATION_CONFIGS = {
         "full_electrons": 44,    # Zn²⁺ shell + DNA-guanine interface — PDB 2OCJ
         "full_qubits": 88,       # ONLY target within 94-qubit demonstrated ceiling (Merz et al. 2026)
         "bqp_class": "A",
-        "hardware_era": "current",  # full active site runnable on today's IBM Heron
+        "hardware_era": "current",
         "phase3b_backend": "IBM Heron r3",
-        "hamiltonian_coeffs": [-0.24274280, 0.18093120, -0.24274280,
-                                0.17627641,  0.04475014,  0.04475014],
     },
     "TP53_Y220C": {
         "name": "TP53 p.Tyr220Cys",
         "pdb": "2VUK",
-        "desc": "NGS demo anchor only — not a scientific simulation target",
+        "desc": "NGS demo anchor — CAS(2e,2o) methanethiol proxy (Cys220 sidechain), STO-3G",
+        "jw_source": ("TP53_Y220C", "mutant"),   # methanethiol (Cys220 sidechain)
         "active_electrons": 2,
         "active_orbitals": 2,
         "local_electrons": 24,
@@ -78,31 +96,29 @@ MUTATION_CONFIGS = {
         "full_electrons": 38,
         "full_qubits": 76,
         "bqp_class": "C",
-        "hardware_era": "placeholder",  # demo anchor for MI25-0349 NGS upload; excluded from scientific counts
+        "hardware_era": "placeholder",
         "phase3b_backend": "IBM Heron r3",
-        "hamiltonian_coeffs": [-0.23274280, 0.17893120, -0.23274280,
-                                0.16827641,  0.04275014,  0.04275014],
     },
     "KEAP1_LOF": {
         "name": "KEAP1 Loss-of-Function",
-        "pdb": "2FLU",           # Kelch + Nrf2 ETGE peptide, 2.0 Å — coordinate-verified
-        "desc": "Nrf2-KEAP1 PPI interface — fault-tolerant QPU target; Phase 3A proxy only",
+        "pdb": "2FLU",
+        "desc": "Nrf2-KEAP1 PPI interface — CAS(2e,2o) methanethiol proxy (Cys333 sidechain), STO-3G",
+        "jw_source": ("KEAP1_G333C", "mutant"),  # methanethiol (Cys333, representative LOF)
         "active_electrons": 2,
         "active_orbitals": 2,
         "local_electrons": 104,  # G333 5 Å shell — PDB 1U6D + 2FLU coordinate-verified
         "local_qubits": 208,
         "full_electrons": 155,   # full Nrf2-binding interface — PDB 2FLU coordinate-verified
-        "full_qubits": 310,      # fault-tolerant QPU required (~2030+)
+        "full_qubits": 310,
         "bqp_class": "B",
         "hardware_era": "fault_tolerant",
         "phase3b_backend": "fault-tolerant QPU (~2030+)",
-        "hamiltonian_coeffs": [-0.25274280, 0.19093120, -0.25274280,
-                                0.18627641,  0.05475014,  0.05475014],
     },
     "KEAP1_G333C": {
         "name": "KEAP1 p.Gly333Cys",
-        "pdb": "1U6D",           # Kelch apo, 1.85 Å — coordinate-verified
-        "desc": "Kelch β-propeller Gly333 — fault-tolerant QPU target; Phase 3A proxy only",
+        "pdb": "1U6D",
+        "desc": "Kelch β-propeller Gly333 — CAS(2e,2o) methanethiol proxy (Cys333 sidechain), STO-3G",
+        "jw_source": ("KEAP1_G333C", "mutant"),  # methanethiol (Cys333 sidechain)
         "active_electrons": 2,
         "active_orbitals": 2,
         "local_electrons": 104,  # G333 5 Å shell — PDB 1U6D coordinate-verified (15 residues)
@@ -112,13 +128,12 @@ MUTATION_CONFIGS = {
         "bqp_class": "B",
         "hardware_era": "fault_tolerant",
         "phase3b_backend": "fault-tolerant QPU (~2030+)",
-        "hamiltonian_coeffs": [-0.25674280, 0.19493120, -0.25674280,
-                                0.19027641,  0.05675014,  0.05675014],
     },
     "KEAP1_R320Q": {
         "name": "KEAP1 p.Arg320Gln",
-        "pdb": "2FLU",           # closest available; R320 in disordered IVR — not resolved
-        "desc": "IVR-Kelch boundary Arg320 — local active space from AlphaFold Q14145 (IVR disordered region, low pLDDT); fault-tolerant QPU target",
+        "pdb": "2FLU",
+        "desc": "IVR-Kelch boundary Arg320 — CAS(2e,2o) acetamide proxy (Gln320 sidechain), STO-3G",
+        "jw_source": ("KEAP1_R320Q", "mutant"),  # acetamide (Gln320 sidechain)
         "active_electrons": 2,
         "active_orbitals": 2,
         "local_electrons": 80,   # R320 5Å shell — AlphaFold Q14145 (IVR disordered region, pLDDT low)
@@ -128,132 +143,159 @@ MUTATION_CONFIGS = {
         "bqp_class": "B",
         "hardware_era": "fault_tolerant",
         "phase3b_backend": "fault-tolerant QPU (~2030+)",
-        "hamiltonian_coeffs": [-0.24874280, 0.18693120, -0.24874280,
-                                0.18227641,  0.05275014,  0.05275014],
     },
     "STK11_LKB1": {
         "name": "STK11/LKB1 Loss-of-Function",
-        "pdb": "2WTK",           # LKB1–STRADα–MO25α, chain C = LKB1, 2.65 Å — coordinate-verified
-        "desc": "LKB1 kinase domain LOF — fault-tolerant QPU target; Phase 3A proxy only",
+        "pdb": "2WTK",
+        "desc": "LKB1 kinase domain LOF — CAS(2e,2o) acetic acid proxy (Asp194 DFG motif), STO-3G",
+        "jw_source": ("STK11_D194N", "native"),  # acetic_acid (Asp194, DFG-motif catalytic residue)
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified (native D194; structure has D194A)
+        "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified
         "local_qubits": 152,
         "full_electrons": 152,   # full ATP pocket 8 Å shell — PDB 2WTK chain C coordinate-verified
         "full_qubits": 304,
         "bqp_class": "A",
         "hardware_era": "fault_tolerant",
         "phase3b_backend": "fault-tolerant QPU (~2030+)",
-        "hamiltonian_coeffs": [-0.22874280, 0.17293120, -0.22874280,
-                                0.16227641,  0.03975014,  0.03975014],
     },
     "STK11_F354L": {
         "name": "STK11 p.Phe354Leu",
-        "pdb": "2WTK",           # F354 beyond ordered region (chain C ends at 342) — not resolved
-        "desc": "LKB1 R-spine Phe354 — local site ~96q is only 2q beyond demonstrated 94q ceiling (Merz 2026); near-term feasible on IBM Heron r3 (156q). AlphaFold Q15831, pLDDT 45.",
+        "pdb": "2WTK",
+        "desc": "LKB1 R-spine Phe354 — CAS(2e,2o) isobutane proxy (Leu354 sidechain), STO-3G",
+        "jw_source": ("STK11_F354L", "mutant"),  # isobutane (Leu354 sidechain)
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 48,   # F354 5Å shell — AlphaFold Q15831 (C-terminal disordered region, pLDDT 45)
+        "local_electrons": 48,   # F354 5Å shell — AlphaFold Q15831 (C-terminal disordered, pLDDT 45)
         "local_qubits": 96,
         "full_electrons": 152,   # shares full ATP pocket — PDB 2WTK coordinate-verified
         "full_qubits": 304,
         "bqp_class": "A",
         "hardware_era": "near_term",
         "phase3b_backend": "IBM Heron r3 (near-term — local ~96q, 2q beyond demonstrated ceiling)",
-        "hamiltonian_coeffs": [-0.23274280, 0.17693120, -0.23274280,
-                                0.16627641,  0.04175014,  0.04175014],
     },
     "STK11_D194N": {
         "name": "STK11 p.Asp194Asn",
-        "pdb": "2WTK",           # LKB1–STRADα–MO25α, chain C = LKB1, 2.65 Å — coordinate-verified
-        "desc": "LKB1 DFG-motif Asp194 — fault-tolerant QPU target; Phase 3A proxy only",
+        "pdb": "2WTK",
+        "desc": "LKB1 DFG-motif Asp194 — CAS(2e,2o) acetamide proxy (Asn194 sidechain), STO-3G",
+        "jw_source": ("STK11_D194N", "mutant"),  # acetamide (Asn194 sidechain)
         "active_electrons": 2,
         "active_orbitals": 2,
-        "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified (native D194; structure has D194A)
+        "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified
         "local_qubits": 152,
         "full_electrons": 152,   # full ATP pocket 8 Å shell — PDB 2WTK chain C coordinate-verified
         "full_qubits": 304,
         "bqp_class": "A",
         "hardware_era": "fault_tolerant",
         "phase3b_backend": "fault-tolerant QPU (~2030+)",
-        "hamiltonian_coeffs": [-0.22474280, 0.16893120, -0.22474280,
-                                0.15827641,  0.03775014,  0.03775014],
     },
 }
 
 # ── VQE engine ─────────────────────────────────────────────────────────────────
 
-def build_hamiltonian(coeffs: list) -> qml.Hamiltonian:
-    """Build a 2-qubit molecular Hamiltonian from Jordan-Wigner coefficients."""
-    obs = [
-        qml.Identity(wires=0),
-        qml.PauliZ(wires=0),
-        qml.PauliZ(wires=1),
-        qml.PauliZ(wires=0) @ qml.PauliZ(wires=1),
-        qml.PauliY(wires=0) @ qml.PauliY(wires=1),
-        qml.PauliX(wires=0) @ qml.PauliX(wires=1),
-    ]
+def _parse_pauli_term(pauli_str: str):
+    """Parse 'Y0 Z1 Y2' style openfermion string into a PennyLane observable."""
+    s = pauli_str.strip()
+    if s == "I":
+        return qml.Identity(wires=0)
+    ops = []
+    for token in s.split():
+        gate, wire = token[0], int(token[1:])
+        if gate == 'X':
+            ops.append(qml.PauliX(wires=wire))
+        elif gate == 'Y':
+            ops.append(qml.PauliY(wires=wire))
+        else:
+            ops.append(qml.PauliZ(wires=wire))
+    result = ops[0]
+    for op in ops[1:]:
+        result = result @ op
+    return result
+
+
+def build_hamiltonian(terms: list) -> qml.Hamiltonian:
+    """Build a 4-qubit molecular Hamiltonian from 27 JW Pauli terms."""
+    coeffs = [t["coeff"] for t in terms]
+    obs    = [_parse_pauli_term(t["pauli"]) for t in terms]
     return qml.Hamiltonian(np.array(coeffs), obs)
 
 
 def run_vqe(config: dict) -> dict:
-    """Run VQE on PennyLane default.qubit simulator. Returns energy + circuit metadata."""
-    H = build_hamiltonian(config["hamiltonian_coeffs"])
-    n_qubits = 2
-    dev = qml.device("default.qubit", wires=n_qubits)
+    """
+    Run 4-qubit VQE on PennyLane default.qubit simulator.
+
+    Ansatz: AllSinglesDoubles (UCCSD-type) with HF initial state |1100⟩.
+    Active space: CAS(2e, 2o) from PySCF CASSCF(2,2) via openfermion JW transform.
+    Total energy returned = ecore + VQE active-space energy.
+    """
+    jw_key, side = config["jw_source"]
+    jw_entry = _JW_DATA[jw_key][side]
+    H = build_hamiltonian(jw_entry["terms"])
+    ecore = jw_entry["ecore"]
+    e_casscf = jw_entry["e_casscf"]
+    compound = jw_entry["compound"]
+
+    dev = qml.device("default.qubit", wires=_QUBITS)
 
     @qml.qnode(dev)
     def cost_fn(params):
-        # Hardware-efficient ansatz (Ry + CNOT + Ry)
-        qml.RY(params[0], wires=0)
-        qml.RY(params[1], wires=1)
-        qml.CNOT(wires=[0, 1])
-        qml.RY(params[2], wires=0)
-        qml.RY(params[3], wires=1)
+        qml.AllSinglesDoubles(
+            params,
+            wires=range(_QUBITS),
+            hf_state=_HF_STATE,
+            singles=_SINGLES,
+            doubles=_DOUBLES,
+        )
         return qml.expval(H)
 
-    # Extract circuit metadata before optimisation
-    params_init = np.array([0.1, 0.2, 0.3, 0.1], requires_grad=True)
+    params_init = np.zeros(_N_PARAMS, requires_grad=True)
     circuit_specs = qml.specs(cost_fn)(params_init)
     gate_count = circuit_specs["resources"].num_gates
-    depth     = circuit_specs["resources"].depth
+    depth      = circuit_specs["resources"].depth
 
-    # VQE optimisation — gradient descent, 120 steps
-    opt    = qml.GradientDescentOptimizer(stepsize=0.4)
+    opt    = qml.AdamOptimizer(stepsize=0.02)
     params = params_init.copy()
-    energies = []
+    energies_active = []
     t_start = time.time()
-    for _ in range(120):
-        params, energy = opt.step_and_cost(cost_fn, params)
-        energies.append(float(energy))
+    for _ in range(200):
+        params, e_active = opt.step_and_cost(cost_fn, params)
+        energies_active.append(float(e_active))
     elapsed = time.time() - t_start
 
-    final_energy = energies[-1]
-    variance     = float(np.var(energies[-20:]))   # variance over last 20 steps
-    ci_half      = 1.96 * float(np.std(energies[-20:])) / (20 ** 0.5)
+    final_active = energies_active[-1]
+    final_total  = ecore + final_active
+    energies_total = [ecore + e for e in energies_active]
 
-    # Circuit fingerprint (SHA-256 of gate count + depth + qubit count + coeffs)
+    variance  = float(np.var(energies_total[-20:]))
+    ci_half   = 1.96 * float(np.std(energies_total[-20:])) / (20 ** 0.5)
+
     fp_payload = json.dumps({
         "gate_count": gate_count,
         "depth": depth,
-        "qubits": n_qubits,
-        "coeffs": config["hamiltonian_coeffs"],
-        "ansatz": "Ry-CNOT-Ry",
-        "steps": 120,
+        "qubits": _QUBITS,
+        "compound": compound,
+        "jw_key": jw_key,
+        "side": side,
+        "ansatz": "AllSinglesDoubles-UCCSD",
+        "steps": 200,
     }, sort_keys=True)
     circuit_hash = hashlib.sha256(fp_payload.encode()).hexdigest()
 
     return {
-        "energy_ha":      final_energy,
-        "ci_lower":       final_energy - ci_half,
-        "ci_upper":       final_energy + ci_half,
-        "energy_variance":variance,
-        "gate_count":     gate_count,
-        "depth":          depth,
-        "n_qubits":       n_qubits,
-        "circuit_hash":   circuit_hash,
-        "elapsed_s":      round(elapsed, 3),
-        "convergence":    energies,
+        "energy_ha":       final_total,
+        "energy_active":   final_active,
+        "ecore":           ecore,
+        "e_casscf":        e_casscf,
+        "compound":        compound,
+        "ci_lower":        final_total - ci_half,
+        "ci_upper":        final_total + ci_half,
+        "energy_variance": variance,
+        "gate_count":      gate_count,
+        "depth":           depth,
+        "n_qubits":        _QUBITS,
+        "circuit_hash":    circuit_hash,
+        "elapsed_s":       round(elapsed, 3),
+        "convergence":     energies_total,
     }
 
 
@@ -275,7 +317,7 @@ def _extract_user_id(authorization: str | None) -> str | None:
     try:
         token = authorization[7:]
         payload_b64 = token.split(".")[1]
-        payload_b64 += "=" * (-len(payload_b64) % 4)  # pad
+        payload_b64 += "=" * (-len(payload_b64) % 4)
         payload = json.loads(base64.urlsafe_b64decode(payload_b64))
         return payload.get("sub")
     except Exception:
@@ -305,42 +347,42 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
                                    f"Valid: {list(MUTATION_CONFIGS.keys())}")
     user_id = _extract_user_id(authorization)
 
-    now = datetime.now(timezone.utc).isoformat()
+    now    = datetime.now(timezone.utc).isoformat()
     run_id = str(uuid.uuid4())
-
 
     # ── Run VQE ────────────────────────────────────────────────────────────────
     vqe = run_vqe(config)
 
     # ── Assemble P1–P9 provenance record ───────────────────────────────────────
     record = {
-        "id":          run_id,
-        "created_at":  now,
-        "mutation_id": mutation_id,
+        "id":            run_id,
+        "created_at":    now,
+        "mutation_id":   mutation_id,
         "mutation_name": config["name"],
-        "pdb_id":      config["pdb"],
-        "phase":       "3A — PennyLane simulator",
+        "pdb_id":        config["pdb"],
+        "phase":         "3A — PennyLane simulator",
 
         # P1 — Circuit fingerprint
         "p1_circuit_hash": vqe["circuit_hash"],
         "p1_gate_count":   vqe["gate_count"],
         "p1_depth":        vqe["depth"],
         "p1_qubit_count":  vqe["n_qubits"],
-        "p1_ansatz":       "Ry-CNOT-Ry hardware-efficient",
+        "p1_ansatz":       "AllSinglesDoubles UCCSD (2e/4q, HF initial state |1100⟩)",
 
         # P2 — Compilation lineage
         "p2_compiler":         "PennyLane",
         "p2_compiler_version": qml.__version__,
-        "p2_encoding":         "Jordan-Wigner (manual 2e/2orb)",
-        "p2_basis_set":        "STO-3G proxy",
+        "p2_encoding":         "Jordan-Wigner (PySCF CAS(2e,2o) → openfermion → 27 Pauli terms)",
+        "p2_basis_set":        "STO-3G (PySCF CASSCF(2,2))",
         "p2_active_electrons": config["active_electrons"],
         "p2_active_orbitals":  config["active_orbitals"],
+        "p2_model_compound":   vqe["compound"],
 
         # P3 — Device & calibration
-        "p3_backend":          "default.qubit",
-        "p3_backend_version":  qml.__version__,
+        "p3_backend":           "default.qubit",
+        "p3_backend_version":   qml.__version__,
         "p3_calibration_epoch": now,
-        "p3_simulator":        True,
+        "p3_simulator":         True,
 
         # P4 — Error budget (simulator: zero hardware noise)
         "p4_gate_error_rate":    0.0,
@@ -353,19 +395,22 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
         "p5_shots":           None,
         "p5_raw_energy":      vqe["energy_ha"],
         "p5_energy_variance": vqe["energy_variance"],
-        "p5_opt_steps":       120,
+        "p5_opt_steps":       200,
         "p5_elapsed_s":       vqe["elapsed_s"],
+        "p5_ecore_ha":        vqe["ecore"],
+        "p5_active_energy_ha": vqe["energy_active"],
+        "p5_casscf_ref_ha":   vqe["e_casscf"],
 
         # P6 — Error mitigation (none for noiseless simulator)
-        "p6_method":  "none — noiseless simulator",
-        "p6_note":    "Phase 3B: ZNE + Pauli Twirling on IBM Heron r3",
+        "p6_method": "none — noiseless simulator",
+        "p6_note":   "Phase 3B: ZNE + Pauli Twirling on IBM Heron r3",
 
         # P7 — Statistical estimator & CI
-        "p7_energy_ha":   vqe["energy_ha"],
-        "p7_ci_lower":    vqe["ci_lower"],
-        "p7_ci_upper":    vqe["ci_upper"],
-        "p7_confidence":  0.95,
-        "p7_method":      "Bootstrap CI over last 20 optimisation steps",
+        "p7_energy_ha":  vqe["energy_ha"],
+        "p7_ci_lower":   vqe["ci_lower"],
+        "p7_ci_upper":   vqe["ci_upper"],
+        "p7_confidence": 0.95,
+        "p7_method":     "Bootstrap CI over last 20 optimisation steps",
 
         # P9 — ML decoder (not applicable for noiseless simulator)
         "p9_applicable": False,
@@ -383,23 +428,35 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
         sb.table("simulation_runs").insert({**record, "user_id": user_id}).execute()
 
     return {
-        "run_id":   run_id,
-        "mutation": config["name"],
+        "run_id":    run_id,
+        "mutation":  config["name"],
         "bqp_class": config["bqp_class"],
         "result": {
-            "energy_ha":   round(vqe["energy_ha"], 8),
-            "ci_lower":    vqe["ci_lower"],
-            "ci_upper":    vqe["ci_upper"],
-            "ci_half":     (vqe["ci_upper"] - vqe["ci_lower"]) / 2,
-            "confidence":  "95%",
-            "gate_count":  vqe["gate_count"],
-            "depth":       vqe["depth"],
-            "qubits_used": vqe["n_qubits"],
-            "elapsed_s":   vqe["elapsed_s"],
-            "phase":       "3A — PennyLane simulator",
-            "local_target": f"{config['local_electrons']}e / {config['local_qubits']} qubits (local site, Phase 3A tier)" if config.get('local_electrons') else "local active space TBD — mutation site not resolved in available PDB structures",
-            "full_target": f"{config['full_electrons']}e / {config['full_qubits']} qubits — {config['phase3b_backend']}",
-            "hardware_era": config.get("hardware_era", "unknown"),
+            "energy_ha":        round(vqe["energy_ha"], 8),
+            "energy_active_ha": round(vqe["energy_active"], 8),
+            "ecore_ha":         round(vqe["ecore"], 8),
+            "casscf_ref_ha":    round(vqe["e_casscf"], 8),
+            "ci_lower":         vqe["ci_lower"],
+            "ci_upper":         vqe["ci_upper"],
+            "ci_half":          (vqe["ci_upper"] - vqe["ci_lower"]) / 2,
+            "confidence":       "95%",
+            "gate_count":       vqe["gate_count"],
+            "depth":            vqe["depth"],
+            "qubits_used":      vqe["n_qubits"],
+            "elapsed_s":        vqe["elapsed_s"],
+            "phase":            "3A — PennyLane simulator",
+            "model_compound":   vqe["compound"],
+            "local_target":     (
+                f"{config['local_electrons']}e / {config['local_qubits']} qubits "
+                f"(local site, Phase 3A tier)"
+                if config.get("local_electrons")
+                else "local active space TBD — mutation site not resolved in available PDB structures"
+            ),
+            "full_target":      (
+                f"{config['full_electrons']}e / {config['full_qubits']} qubits "
+                f"— {config['phase3b_backend']}"
+            ),
+            "hardware_era":     config.get("hardware_era", "unknown"),
         },
         "provenance": {
             "p1_circuit_hash": record["p1_circuit_hash"],
