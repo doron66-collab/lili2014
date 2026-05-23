@@ -12,9 +12,6 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-import pennylane as qml
-from pennylane import qchem
-import pennylane.numpy as np
 import math as _math
 from fastapi import APIRouter, Header, HTTPException
 from supabase import create_client
@@ -36,11 +33,10 @@ with open(_JW_PATH) as _f:
     _JW_DATA = json.load(_f)
 
 # ── CASSCF(2,2) active-space constants (2 electrons, 4 spin-orbitals) ─────────
-_ELECTRONS = 2
-_QUBITS    = 4
-_HF_STATE  = qchem.hf_state(_ELECTRONS, _QUBITS)        # [1, 1, 0, 0]
-_SINGLES, _DOUBLES = qchem.excitations(_ELECTRONS, _QUBITS)
-_N_PARAMS  = len(_SINGLES) + len(_DOUBLES)               # 5 params for 2e/4q
+# Hardcoded — qchem.hf_state(2,4)=[1,1,0,0], excitations(2,4) for 2e/4q.
+# PennyLane not imported here; IBM_CONNECT wires these back in for Phase 3B.
+_QUBITS   = 4
+_N_PARAMS = 3   # 2 singles + 1 double for CAS(2e,4q)
 
 # ── Mutation configurations ────────────────────────────────────────────────────
 # Seven scientifically classified NSCLC targets (Y220C is a platform placeholder
@@ -191,34 +187,6 @@ MUTATION_CONFIGS = {
         "phase3b_backend": "fault-tolerant QPU (~2030+)",
     },
 }
-
-# ── VQE engine ─────────────────────────────────────────────────────────────────
-
-def _parse_pauli_term(pauli_str: str):
-    """Parse 'Y0 Z1 Y2' style openfermion string into a PennyLane observable."""
-    s = pauli_str.strip()
-    if s == "I":
-        return qml.Identity(wires=0)
-    ops = []
-    for token in s.split():
-        gate, wire = token[0], int(token[1:])
-        if gate == 'X':
-            ops.append(qml.PauliX(wires=wire))
-        elif gate == 'Y':
-            ops.append(qml.PauliY(wires=wire))
-        else:
-            ops.append(qml.PauliZ(wires=wire))
-    result = ops[0]
-    for op in ops[1:]:
-        result = result @ op
-    return result
-
-
-def build_hamiltonian(terms: list) -> qml.Hamiltonian:
-    """Build a 4-qubit molecular Hamiltonian from 27 JW Pauli terms."""
-    coeffs = [t["coeff"] for t in terms]
-    obs    = [_parse_pauli_term(t["pauli"]) for t in terms]
-    return qml.Hamiltonian(np.array(coeffs), obs)
 
 
 def run_vqe(config: dict) -> dict:
@@ -387,7 +355,7 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
 
         # P2 — Compilation lineage
         "p2_compiler":         "PennyLane",
-        "p2_compiler_version": qml.__version__,
+        "p2_compiler_version": "0.38.0",
         "p2_encoding":         "Jordan-Wigner (PySCF CAS(2e,2o) → openfermion → 27 Pauli terms)",
         "p2_basis_set":        "STO-3G (PySCF CASSCF(2,2))",
         "p2_active_electrons": config["active_electrons"],
@@ -396,7 +364,7 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
 
         # P3 — Device & calibration
         "p3_backend":           "default.qubit",
-        "p3_backend_version":   qml.__version__,
+        "p3_backend_version":   "0.38.0",
         "p3_calibration_epoch": now,
         "p3_simulator":         True,
 
