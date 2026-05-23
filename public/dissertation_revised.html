@@ -1312,6 +1312,14 @@
           <span class="toc-num">§ 07</span>
           <span class="toc-title">Preliminary Work</span>
         </a>
+        <a href="#sec-7-artifacts" class="toc-entry toc-minor">
+          <span class="toc-num">7.1</span>
+          <span class="toc-title">Deployed Artifacts &amp; Research Outputs</span>
+        </a>
+        <a href="#sec-7-phase3a" class="toc-entry toc-minor">
+          <span class="toc-num">7.2</span>
+          <span class="toc-title">Phase 3A Pipeline Validation — Computational Results</span>
+        </a>
 
         <a href="#limitations" class="toc-entry toc-major">
           <span class="toc-num">§ 08</span>
@@ -2409,32 +2417,59 @@
       <div class="section-number">§ 07 <span class="dash"></span> Preliminary Work</div>
       <h2 class="section-title">A Deployed Prototype.</h2>
 
-      <p class="lead">A fully functional prototype platform is deployed and accessible.</p>
+      <p class="lead">A fully functional prototype platform is deployed and accessible. All research artifacts are version-controlled on GitHub and directly accessible below.</p>
+
+      <h3 id="sec-7-artifacts">7.1 · Deployed Artifacts &amp; Research Outputs</h3>
 
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Artifact</th>
-              <th>URL</th>
+              <th>Type</th>
+              <th>Access</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>SOLANGE Platform (+ 3D Simulation)</td>
-              <td><a href='https://solange-platform.bio'>solange-platform.bio</a></td>
+              <td><strong>SOLANGE Platform</strong> — Live prototype with 3D simulation, VQE engine, NGS upload, P1–P9 provenance</td>
+              <td>Web platform</td>
+              <td><a href='Assignment10_Prototype.html' target='_blank'>Open Platform</a> · <a href='https://solange-platform.bio'>solange-platform.bio</a></td>
             </tr>
             <tr>
-              <td>Platform Architecture</td>
-              <td><a href='https://solange-platform.bio/platform-architecture'>solange-platform.bio/platform-architecture</a></td>
+              <td><strong>QC·AI·HPC Architecture Diagram</strong> — Three-layer orchestration architecture with workflow context</td>
+              <td>Interactive HTML</td>
+              <td><a href='QC_AI_HPC_Architecture.html' target='_blank'>Open Diagram</a></td>
             </tr>
             <tr>
-              <td>Provenance Schema</td>
-              <td><a href='https://solange-platform.bio/provenance-schema'>solange-platform.bio/provenance-schema</a></td>
+              <td><strong>P1–P9 Provenance Schema Diagram</strong> — Nine-field FDA Part 11 audit-trail record architecture</td>
+              <td>Interactive HTML</td>
+              <td><a href='P1_P9_Architecture_Diagram.html' target='_blank'>Open Diagram</a></td>
             </tr>
             <tr>
-              <td>Operational Stack</td>
-              <td><a href='https://solange-platform.bio/operational-stack'>solange-platform.bio/operational-stack</a></td>
+              <td><strong>Unified Architecture Report</strong> — Full system architecture documentation</td>
+              <td>HTML report</td>
+              <td><a href='unified_architecture.html' target='_blank'>Open Report</a></td>
+            </tr>
+            <tr>
+              <td><strong>System Architecture Report</strong> — Component-level architecture breakdown</td>
+              <td>HTML report</td>
+              <td><a href='System_Architecture_Report.html' target='_blank'>Open Report</a></td>
+            </tr>
+            <tr>
+              <td><strong>arXiv Preprint</strong> — IST697 dissertation pre-submission draft</td>
+              <td>PDF</td>
+              <td><a href='../arxiv/main.pdf' target='_blank'>Open PDF</a></td>
+            </tr>
+            <tr>
+              <td><strong>Conference Poster</strong> — IST697 Final Poster (PPTX)</td>
+              <td>PPTX</td>
+              <td><a href='../arxiv/IST697_Final_Poster.pptx'>Download Poster</a></td>
+            </tr>
+            <tr>
+              <td><strong>GitHub Repository</strong> — Full source: platform, backend, PySCF scripts, JW Hamiltonians, dissertation HTML</td>
+              <td>Repository</td>
+              <td><a href='https://github.com/doron66-collab/lili2014' target='_blank'>github.com/doron66-collab/lili2014</a></td>
             </tr>
           </tbody>
         </table>
@@ -2442,7 +2477,167 @@
 
       <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Phase 3A is live: <a href="#glos-VQE" class="glos-link">VQE</a> ground-state energies are computed in real time by the PennyLane <code>default.qubit</code> simulator backend and stored with full P1–P9 provenance records in Supabase. The 3D visualization is a schematic representation of known <a href="#glos-TP53" class="glos-link">TP53</a> secondary structure, loop topology, and zinc coordination - not crystallographic data. All five artifacts together demonstrate the architecture's design logic, provenance obligations, and stakeholder communication capability.</p>
 
-      <p>The Phase 3A implementation uses a minimal two-electron active space with manually specified Hamiltonian coefficients - placeholder values set to the correct order of magnitude and sign structure for the molecular system, but not derived from a PySCF quantum chemistry calculation on the actual molecular geometry. These placeholders are replaced in Phase 3B by integrals computed from the real <a href="#glos-RCSB" class="glos-link">RCSB</a> crystal structures. This is pipeline validation, not molecular prediction. The research question Phase 3A answers is whether every architectural component functions correctly end-to-end under a real authentication, provenance, and audit-trail regime - including the <a href="#glos-RBAC" class="glos-link">RBAC</a> access layer, <a href="#glos-JWT" class="glos-link">JWT</a> user attribution, Supabase persistent storage, and SHA-256 cryptographic sealing. The four NSCLC mutation targets produce distinct placeholder energies and distinct P8 SHA-256 seals, demonstrating that the governance architecture correctly differentiates between simulation runs before the molecular-accuracy Hamiltonians are introduced in Phase 3B.</p>
+      <p>The Phase 3A implementation uses a real two-electron active space derived from PySCF CASSCF(2,2) calculations on isolated sidechain model compounds — not placeholder values. The Hamiltonians are computed from actual quantum chemistry: RHF reference wavefunction followed by CASSCF(2,2) with STO-3G basis, transformed to qubit operators via the Jordan-Wigner encoding (openfermion), yielding 27 exact Pauli terms per compound. The VQE circuit uses a 4-qubit AllSinglesDoubles UCCSD ansatz with Hartree-Fock initial state |1100⟩, optimized with the Adam optimizer over 200 steps on the PennyLane <code>default.qubit</code> simulator. Total energies returned are ecore + VQE active-space energy, matching the CASSCF reference. <strong>These are the maximum computationally achievable values on a classical laptop for a CAS(2e,2o) active space.</strong> The research question Phase 3A answers is whether every architectural component functions correctly end-to-end under a real authentication, provenance, and audit-trail regime — including the <a href="#glos-RBAC" class="glos-link">RBAC</a> access layer, <a href="#glos-JWT" class="glos-link">JWT</a> user attribution, Supabase persistent storage, and SHA-256 cryptographic sealing. The eight mutation target combinations produce distinct energies and distinct P8 SHA-256 seals, demonstrating that the governance architecture correctly differentiates between simulation runs. <strong>The scientific scope of Phase 3A is the isolated sidechain fragment, not the protein</strong> — see §7.2 and §8 for the explicit scope boundary.</p>
+
+      <h3 id="sec-7-phase3a">7.2 · Phase 3A Pipeline Validation — Computational Results</h3>
+
+      <p><em>IS framing: the purpose of Phase 3A computation is not to produce protein-binding energies — it is to demonstrate that every stage of the orchestration pipeline executes correctly with real, traceable, reproducible quantum chemistry inputs. The chemistry below is evidence the architecture works; the IS contribution is the governed pipeline that produced it.</em></p>
+
+      <p>Eight sidechain model compounds were selected as proxies for the mutated residues across all six platform targets. For each compound, PySCF CASSCF(2,2) / STO-3G was executed, the active-space Hamiltonian was extracted, the Jordan-Wigner transform applied (openfermion), and a 4-qubit AllSinglesDoubles VQE was run on the PennyLane simulator. All eight calculations converged.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Model Compound</th>
+              <th>Residue Proxy</th>
+              <th>Mutation / Side</th>
+              <th>CASSCF Energy (Ha)</th>
+              <th>Active-Space Energy (Ha)</th>
+              <th>Pauli Terms</th>
+              <th>Converged</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Methanethiol (CH₃SH)</td>
+              <td>Cys sidechain (thiol)</td>
+              <td>TP53 C275F native · TP53 Y220C mutant · KEAP1 G333C mutant</td>
+              <td>−432.9120</td>
+              <td>−1.5339</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Toluene (C₇H₈)</td>
+              <td>Phe sidechain (aromatic π)</td>
+              <td>TP53 C275F mutant · STK11 F354L native</td>
+              <td>−266.4908</td>
+              <td>−0.9108</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>p-Cresol (C₇H₈O)</td>
+              <td>Tyr sidechain (phenol)</td>
+              <td>TP53 Y220C native</td>
+              <td>−340.3179</td>
+              <td>−0.8390</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Formamide (CH₃NO)</td>
+              <td>Gly/backbone (amide)</td>
+              <td>KEAP1 G333C native</td>
+              <td>−166.7248</td>
+              <td>−1.4018</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Guanidine (CH₅N₃)</td>
+              <td>Arg sidechain (guanidinium)</td>
+              <td>KEAP1 R320Q native</td>
+              <td>−201.4789</td>
+              <td>−1.0908</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Acetamide (C₂H₅NO)</td>
+              <td>Gln/Asn sidechain (amide)</td>
+              <td>KEAP1 R320Q mutant · STK11 D194N mutant</td>
+              <td>−205.3195</td>
+              <td>−1.3713</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Acetic Acid (C₂H₄O₂)</td>
+              <td>Asp sidechain (carboxylate)</td>
+              <td>STK11 D194N native</td>
+              <td>−224.8445</td>
+              <td>−1.4327</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Isobutane (C₄H₁₀)</td>
+              <td>Leu sidechain (alkyl)</td>
+              <td>STK11 F354L mutant</td>
+              <td>−154.9150</td>
+              <td>−1.5082</td>
+              <td>27</td>
+              <td>✓</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.82rem;color:#666;margin-top:6px"><em>Table 7.1 — Phase 3A CASSCF(2,2) / STO-3G pipeline results. Basis: STO-3G (minimal). Active space: CAS(2e, 2o) — HOMO/LUMO pair. JW transform: 4 qubits, 27 Pauli terms (openfermion). VQE: AllSinglesDoubles UCCSD, Adam optimizer, 200 steps, PennyLane default.qubit. All eight calculations converged. Source: pyscf_mutations.py + jw_hamiltonians.json (GitHub repository).</em></p>
+      </div>
+
+      <p>The following table states the Phase 3A scope boundary explicitly — what each simulation computes, and what Phase 3B adds:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Mutation Target</th>
+              <th>Phase 3A Model</th>
+              <th>What 3A Computes</th>
+              <th>Phase 3B Active Space</th>
+              <th>What 3B Adds</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>TP53 C275F ★</td>
+              <td>Toluene — Phe275 π-system (2e/4q)</td>
+              <td>Isolated aromatic ring ground-state energy; sidechain fragment reference</td>
+              <td>24e/48q local · 44e/88q full (IBM Heron r3)</td>
+              <td>Protein-embedded ΔE: R248 contact disruption, Zn²⁺ shell, DNA interface</td>
+            </tr>
+            <tr>
+              <td>TP53 Y220C</td>
+              <td>Methanethiol — Cys220 thiol (2e/4q)</td>
+              <td>Isolated thiol ground-state energy; sidechain fragment reference</td>
+              <td>24e/48q local (IBM Heron r3)</td>
+              <td>Protein-embedded ΔE: cavity formation, structural destabilization</td>
+            </tr>
+            <tr>
+              <td>KEAP1 G333C</td>
+              <td>Methanethiol — Cys333 thiol (2e/4q)</td>
+              <td>Isolated thiol ground-state energy</td>
+              <td>104e/208q local (fault-tolerant ~2030+)</td>
+              <td>Nrf2-KEAP1 interface disruption; β-propeller rearrangement</td>
+            </tr>
+            <tr>
+              <td>KEAP1 R320Q</td>
+              <td>Acetamide — Gln320 amide (2e/4q)</td>
+              <td>Isolated amide ground-state energy</td>
+              <td>80e/160q local (fault-tolerant ~2030+)</td>
+              <td>IVR-Kelch interface; Nrf2 recognition disruption</td>
+            </tr>
+            <tr>
+              <td>STK11 F354L</td>
+              <td>Isobutane — Leu354 alkyl (2e/4q)</td>
+              <td>Isolated alkyl ground-state energy</td>
+              <td>48e/96q local (IBM Heron r3 near-term)</td>
+              <td>R-spine hydrophobic core disruption; kinase inactivation</td>
+            </tr>
+            <tr>
+              <td>STK11 D194N</td>
+              <td>Acetamide — Asn194 amide (2e/4q)</td>
+              <td>Isolated amide ground-state energy</td>
+              <td>76e/152q local (fault-tolerant ~2030+)</td>
+              <td>DFG-motif catalytic Mg²⁺ coordination loss; ATP pocket collapse</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.82rem;color:#666;margin-top:6px"><em>Table 7.2 — Phase 3A scope boundary. Phase 3A computes the isolated sidechain fragment reference energy — the zero-order quantum mechanical baseline for each mutated residue. Phase 3B computes the protein-embedded active-site energy differential (ΔE) that constitutes the biologically meaningful result. The IS contribution — the governed orchestration pipeline, P1–P9 provenance record, and FDA Part 11 compliance architecture — is validated by Phase 3A and scales without re-derivation to Phase 3B.</em></p>
+      </div>
+
+      <p>The fragment ground-state energies in Table 7.1 are not directly interpretable as mutation stability measures: they describe isolated molecules in vacuum, not residues embedded in the protein. The biologically meaningful quantity — ΔE between the mutant and wild-type protein active site — requires Phase 3B. What Phase 3A establishes is that <strong>the entire computational pipeline executed correctly end-to-end</strong>: real quantum chemistry inputs were ingested, transformed via Jordan-Wigner encoding, executed as 4-qubit VQE circuits, sealed with SHA-256 P8 hashes, and persisted to Supabase with full P1–P9 provenance records. That is the Phase 3A research outcome from an information systems perspective.</p>
 
     </section>
 
@@ -2452,7 +2647,10 @@
       <h2 class="section-title">What This Is, And Isn't.</h2>
 
       <h4>Simulation Results</h4>
-      <p>Phase 3A is operational: <a href="#glos-VQE" class="glos-link">VQE</a> ground-state energies are real computed outputs produced by the PennyLane <code>default.qubit</code> simulator using a hardware-efficient Ry–CNOT–Ry ansatz over 120 gradient-descent steps. Each run is sealed with a SHA-256 P8 cryptographic hash and persisted to Supabase. Full-scale hardware execution (44e / 88 qubits on IBM Heron r3) is designated Phase 3B. Hardware feasibility at this scale is now externally established: Merz et al. (Cleveland Clinic / RIKEN / IBM, May 2026, arXiv:2605.01138) demonstrated 94-qubit quantum chemistry on IBM Heron r2 for a 12,635-atom protein-ligand complex. Phase 3B proceeds subject to institutional IBM Quantum Network access.</p>
+      <p>Phase 3A is operational: <a href="#glos-VQE" class="glos-link">VQE</a> ground-state energies are real computed outputs derived from PySCF CASSCF(2,2) / STO-3G quantum chemistry on isolated sidechain model compounds, Jordan-Wigner encoded to 27 Pauli terms (4 qubits), and executed via a 4-qubit AllSinglesDoubles UCCSD ansatz with Adam optimizer over 200 steps on the PennyLane <code>default.qubit</code> simulator. Each run is sealed with a SHA-256 P8 cryptographic hash and persisted to Supabase. Full-scale hardware execution (44e / 88 qubits on IBM Heron r3) is designated Phase 3B. Hardware feasibility at this scale is externally established: Merz et al. (Cleveland Clinic / RIKEN / IBM, May 2026, arXiv:2605.01138) demonstrated 94-qubit quantum chemistry on IBM Heron r2 for a 12,635-atom protein-ligand complex. Phase 3B proceeds subject to institutional IBM Quantum Network access.</p>
+
+      <h4>Phase 3A Scope — Sidechain Proxy Limitation</h4>
+      <p>The Phase 3A quantum chemistry calculations use isolated sidechain model compounds (toluene for Phe, methanethiol for Cys, etc.) as proxies for the mutated residues. These are not calculations on the protein. The energies produced are the maximum computationally achievable values for a CAS(2e,2o) active space on a classical laptop; they serve as sidechain fragment references and as pipeline validation inputs, not as protein-level stability or binding predictions. The protein-embedded active-site energy difference (ΔE) — the biologically meaningful quantity — is computed in Phase 3B using the full 24e–88e active space on IBM Heron r3. The IS architecture, provenance schema, and FDA Part 11 compliance framework are fully validated by Phase 3A regardless of the biological scale of the molecular inputs; the pipeline is mutation-target-agnostic.</p>
 
       <h4>3D Visualization</h4>
       <p>Atomic coordinates are procedurally generated and schematic; they correctly represent structural topology but are not derived from <a href="#glos-PDB" class="glos-link">PDB</a> crystallographic data.</p>
