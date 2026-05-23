@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SOLANGE™ Three-Layer Architecture · Doron Cohen · CGU 2026</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --border:    #30363d;
+    --muted:     #8b949e;
+    --text:      #e6edf3;
+
+    --l1-clr:    #58a6ff;   /* quantum — blue   */
+    --l1-bg:     rgba(88,166,255,.08);
+    --l1-bd:     rgba(88,166,255,.30);
+
+    --l2-clr:    #76d9a0;   /* commodity — green */
+    --l2-bg:     rgba(118,217,160,.08);
+    --l2-bd:     rgba(118,217,160,.30);
+
+    --l3-clr:    #f0b429;   /* platform — gold  */
+    --l3-bg:     rgba(240,180,41,.08);
+    --l3-bd:     rgba(240,180,41,.30);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+  }
+
+  header { text-align: center; margin-bottom: 48px; }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 6px; }
+  header p  { font-size: 13px; color: var(--muted); }
+
+  .diagram {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* arrow between layers */
+  .arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 36px;
+    color: var(--muted);
+    font-size: 18px;
+    position: relative;
+  }
+  .arrow::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+    transform: translateX(-50%);
+  }
+  .arrow span {
+    background: var(--bg);
+    padding: 0 8px;
+    z-index: 1;
+    position: relative;
+  }
+
+  .layer {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .layer-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .layer-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .layer-vendor {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .layer-body {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .chip-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .chip-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .chip-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* layer 1 — quantum */
+  .l1 { border-color: var(--l1-bd); background: var(--l1-bg); }
+  .l1 .layer-header { background: rgba(88,166,255,.06); border-color: var(--l1-bd); }
+  .l1 .layer-badge  { background: rgba(88,166,255,.15); color: var(--l1-clr); }
+  .l1 .layer-title  { color: var(--l1-clr); }
+
+  /* layer 2 — commodity */
+  .l2 { border-color: var(--l2-bd); background: var(--l2-bg); }
+  .l2 .layer-header { background: rgba(118,217,160,.06); border-color: var(--l2-bd); }
+  .l2 .layer-badge  { background: rgba(118,217,160,.15); color: var(--l2-clr); }
+  .l2 .layer-title  { color: var(--l2-clr); }
+
+  /* layer 3 — platform */
+  .l3 { border-color: var(--l3-bd); background: var(--l3-bg); }
+  .l3 .layer-header { background: rgba(240,180,41,.06); border-color: var(--l3-bd); }
+  .l3 .layer-badge  { background: rgba(240,180,41,.15); color: var(--l3-clr); }
+  .l3 .layer-title  { color: var(--l3-clr); }
+
+  footer {
+    margin-top: 56px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SOLANGE™ Three-Layer Architecture</h1>
+  <p>Hardware stack positioning — QC · AI · HPC · Doron Cohen · IST 697 · CGU 2026</p>
+</header>
+
+<div class="diagram">
+
+  <!-- Layer 3 — SOLANGE Platform (top / user-facing) -->
+  <div class="layer l3">
+    <div class="layer-header">
+      <span class="layer-badge">Layer 3</span>
+      <span class="layer-title">SOLANGE Orchestration Platform</span>
+      <span class="layer-vendor">Our contribution</span>
+    </div>
+    <div class="layer-body">
+      <div class="chip">
+        <div class="chip-label">Interface</div>
+        <div class="chip-value">4-Screen Platform</div>
+        <div class="chip-sub">NGS · Simulation · Provenance · Admin</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Governance</div>
+        <div class="chip-value">P1–P9 Provenance</div>
+        <div class="chip-sub">FDA 21 CFR Part 11 · SHA-256 seal</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Workflow</div>
+        <div class="chip-value">Hardware-agnostic</div>
+        <div class="chip-sub">Routes jobs to L1 or L2 backend</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Auth</div>
+        <div class="chip-value">JWT · RBAC</div>
+        <div class="chip-sub">Supabase · role-gated access</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><span>↕ API calls</span></div>
+
+  <!-- Layer 2 — Commodity HPC -->
+  <div class="layer l2">
+    <div class="layer-header">
+      <span class="layer-badge">Layer 2</span>
+      <span class="layer-title">Commodity HPC</span>
+      <span class="layer-vendor">Nvidia · CUDA-Q · NVQLink</span>
+    </div>
+    <div class="layer-body">
+      <div class="chip">
+        <div class="chip-label">Hardware</div>
+        <div class="chip-value">Nvidia DGX / H100</div>
+        <div class="chip-sub">GPU-accelerated pre-screening</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Stack</div>
+        <div class="chip-value">CUDA-Q</div>
+        <div class="chip-sub">Cross-vendor quantum programming model</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">QEC decoder</div>
+        <div class="chip-value">Nvidia Ising</div>
+        <div class="chip-sub">3D CNN ML decoder · Apr 2026 · P9</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Interconnect</div>
+        <div class="chip-value">NVQLink</div>
+        <div class="chip-sub">GPU ↔ QPU high-bandwidth link</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><span>↕ NVQLink</span></div>
+
+  <!-- Layer 1 — Quantum Kernel -->
+  <div class="layer l1">
+    <div class="layer-header">
+      <span class="layer-badge">Layer 1</span>
+      <span class="layer-title">Quantum Kernel</span>
+      <span class="layer-vendor">IBM Heron r3 · 156 qubits</span>
+    </div>
+    <div class="layer-body">
+      <div class="chip">
+        <div class="chip-label">Hardware</div>
+        <div class="chip-value">IBM Heron r3</div>
+        <div class="chip-sub">156 qubits · Phase 3B target</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Algorithm</div>
+        <div class="chip-value">sqDRIFT / VQE</div>
+        <div class="chip-sub">Sample-based quantum diagonalization</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Active space</div>
+        <div class="chip-value">~88 qubits</div>
+        <div class="chip-sub">TP53 C275F full site · Phase 3B</div>
+      </div>
+      <div class="chip">
+        <div class="chip-label">Phase 3A</div>
+        <div class="chip-value">Simulator</div>
+        <div class="chip-sub">PennyLane default.qubit · 4-qubit CAS(2e,2o)</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  SOLANGE™ · IST 697 Doctoral Dissertation · Doron Cohen · CGU 2026<br>
+  Layer 3 is the IS contribution — hardware-agnostic orchestration over Layers 1 &amp; 2
+</footer>
+
+</body>
+</html>
