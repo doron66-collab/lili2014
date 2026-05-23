@@ -1,0 +1,484 @@
+{
+  "title": "SOLANGE \u2014 PySCF CASSCF(2,2) for all NSCLC mutations",
+  "generated_at": "2026-05-23T10:09:38.801473Z",
+  "basis": "STO-3G",
+  "method": "RHF \u2192 CASSCF(2,2)",
+  "active_space": "CAS(2e, 2o) \u2014 HOMO/LUMO pair",
+  "jw_qubits": 4,
+  "mutations": {
+    "TP53_Y220C": {
+      "mutation_id": "TP53_Y220C",
+      "label": "TP53 Y220C (p.Tyr220Cys)",
+      "gene": "TP53",
+      "pdb_native": "2OCJ",
+      "pdb_mutant": "2VUK",
+      "ref": "Joerger AC et al. (2006) PNAS 103:15056",
+      "native": {
+        "residue": "Tyr220",
+        "compound": "p_cresol",
+        "note": "Phenol \u03c0/\u03c0* HOMO\u2013LUMO",
+        "casscf": {
+          "molecule": "p_cresol",
+          "label": "Phenol \u03c0/\u03c0* HOMO\u2013LUMO",
+          "formula": "C  0.0000  0.0000  0.0000\nC  0.0000  0.0000  1.5120\nC  1.2090  0.0000  2.2100\nC  1.2090  0.0000  3.6020\nC  0.0000  0.0000  4.3000\nC  -1.2090  0.0000  3.6020\nC  -1.2090  0.0000  2.2100\nH  1.0260  0.0000  -0.3630\nH  -0.5130  0.8890  -0.3630\nH  -0.5130  -0.8890  -0.3630\nH  2.1560  0.0000  1.6720\nH  2.1560  0.0000  4.1400\nH  -2.1560  0.0000  4.1400\nH  -2.1560  0.0000  1.6720\nO  0.0000  0.0000  5.6640\nH  0.9080  0.0000  5.9850",
+          "n_atoms": 16,
+          "n_electrons": 58,
+          "n_basis": 48,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -340.31243424948826,
+          "e_casscf_Ha": -340.31785800825884,
+          "correlation_Ha": -0.00542375877057566,
+          "ecore_Ha": -339.478813782851,
+          "h1e": [
+            [
+              -0.5835277648779105,
+              -0.0015644611771631657
+            ],
+            [
+              -0.0015644611771631865,
+              -0.26902476482705784
+            ]
+          ],
+          "h2e_J_aa": 0.3336622504535487,
+          "h2e_J_ab": 0.2980501580422167,
+          "h2e_K_ab": 0.06098905055602659
+        }
+      },
+      "mutant": {
+        "residue": "Cys220",
+        "compound": "methanethiol",
+        "note": "S lone pair / S\u2013H \u03c3*",
+        "casscf": {
+          "molecule": "methanethiol",
+          "label": "S lone pair / S\u2013H \u03c3*",
+          "formula": "C  0.0000  0.0000  0.0000\nS  0.0000  0.0000  1.8190\nH  1.3300  0.0000  1.9710\nH  1.0260  0.0000  -0.3630\nH  -0.5130  0.8890  -0.3630\nH  -0.5130  -0.8890  -0.3630",
+          "n_atoms": 6,
+          "n_electrons": 26,
+          "n_basis": 18,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -432.8931113173068,
+          "e_casscf_Ha": -432.91199529426757,
+          "correlation_Ha": -0.01888397696075117,
+          "ecore_Ha": -431.37803140426445,
+          "h1e": [
+            [
+              -1.0332871530625378,
+              -0.06019895194853342
+            ],
+            [
+              -0.06019895194853339,
+              -0.4212523905712151
+            ]
+          ],
+          "h2e_J_aa": 0.5516280748813658,
+          "h2e_J_ab": 0.5401252335744541,
+          "h2e_K_ab": 0.15391699687009658
+        }
+      },
+      "delta_E_casscf_Ha": -92.59413728600873
+    },
+    "TP53_C275F": {
+      "mutation_id": "TP53_C275F",
+      "label": "TP53 C275F (p.Cys275Phe)",
+      "gene": "TP53",
+      "pdb_native": "2AC0",
+      "pdb_mutant": "2BIM",
+      "ref": "Joerger AC et al. (2006) PNAS 103:15056",
+      "native": {
+        "residue": "Cys275",
+        "compound": "methanethiol",
+        "note": "S lone pair / S\u2013H \u03c3*",
+        "casscf": {
+          "molecule": "methanethiol",
+          "label": "S lone pair / S\u2013H \u03c3*",
+          "formula": "C  0.0000  0.0000  0.0000\nS  0.0000  0.0000  1.8190\nH  1.3300  0.0000  1.9710\nH  1.0260  0.0000  -0.3630\nH  -0.5130  0.8890  -0.3630\nH  -0.5130  -0.8890  -0.3630",
+          "n_atoms": 6,
+          "n_electrons": 26,
+          "n_basis": 18,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -432.8931113173068,
+          "e_casscf_Ha": -432.91199529426757,
+          "correlation_Ha": -0.01888397696075117,
+          "ecore_Ha": -431.37803140426445,
+          "h1e": [
+            [
+              -1.0332871530625378,
+              -0.06019895194853342
+            ],
+            [
+              -0.06019895194853339,
+              -0.4212523905712151
+            ]
+          ],
+          "h2e_J_aa": 0.5516280748813658,
+          "h2e_J_ab": 0.5401252335744541,
+          "h2e_K_ab": 0.15391699687009658
+        }
+      },
+      "mutant": {
+        "residue": "Phe275",
+        "compound": "toluene",
+        "note": "Phe \u03c0/\u03c0* HOMO\u2013LUMO",
+        "casscf": {
+          "molecule": "toluene",
+          "label": "Phe \u03c0/\u03c0* HOMO\u2013LUMO",
+          "formula": "C  0.0000  0.0000  0.0000\nC  0.0000  0.0000  1.5120\nC  1.2090  0.0000  2.2100\nC  1.2090  0.0000  3.6020\nC  0.0000  0.0000  4.3000\nC  -1.2090  0.0000  3.6020\nC  -1.2090  0.0000  2.2100\nH  1.0260  0.0000  -0.3630\nH  -0.5130  0.8890  -0.3630\nH  -0.5130  -0.8890  -0.3630\nH  2.1560  0.0000  1.6720\nH  2.1560  0.0000  4.1400\nH  0.0000  0.0000  5.3830\nH  -2.1560  0.0000  4.1400\nH  -2.1560  0.0000  1.6720",
+          "n_atoms": 15,
+          "n_electrons": 50,
+          "n_basis": 43,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -266.4742065436836,
+          "e_casscf_Ha": -266.4907517482569,
+          "correlation_Ha": -0.016545204573333194,
+          "ecore_Ha": -265.57999810366925,
+          "h1e": [
+            [
+              -0.6230851691001695,
+              -0.0020599037004403464
+            ],
+            [
+              -0.0020599037004404297,
+              -0.332797529570117
+            ]
+          ],
+          "h2e_J_aa": 0.3533862791698438,
+          "h2e_J_ab": 0.3545238859320716,
+          "h2e_K_ab": 0.10438280750227101
+        }
+      },
+      "delta_E_casscf_Ha": 166.42124354601066
+    },
+    "KEAP1_G333C": {
+      "mutation_id": "KEAP1_G333C",
+      "label": "KEAP1 G333C (p.Gly333Cys)",
+      "gene": "KEAP1",
+      "pdb_native": "1U6D",
+      "pdb_mutant": null,
+      "ref": "Lo SC et al. (2006) EMBO J 25:3605",
+      "native": {
+        "residue": "Gly333",
+        "compound": "formamide",
+        "note": "Backbone C=O \u03c0/\u03c0* (no sidechain)",
+        "casscf": {
+          "molecule": "formamide",
+          "label": "Backbone C=O \u03c0/\u03c0* (no sidechain)",
+          "formula": "C  0.0000  0.0000  0.0000\nO  0.0000  1.1930  0.0000\nN  1.1210  -0.7560  0.0000\nH  -0.9250  -0.6000  0.0000\nH  2.0140  -0.3000  0.0000\nH  1.0340  -1.7540  0.0000",
+          "n_atoms": 6,
+          "n_electrons": 24,
+          "n_basis": 18,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -166.68275554305535,
+          "e_casscf_Ha": -166.72475191539476,
+          "correlation_Ha": -0.04199637233941189,
+          "ecore_Ha": -165.32299812868257,
+          "h1e": [
+            [
+              -0.9780849750619276,
+              -0.1068887408731587
+            ],
+            [
+              -0.10688874087315864,
+              -0.561076792740693
+            ]
+          ],
+          "h2e_J_aa": 0.5973413760543638,
+          "h2e_J_ab": 0.5456471953840193,
+          "h2e_K_ab": 0.18405025032301622
+        }
+      },
+      "mutant": {
+        "residue": "Cys333",
+        "compound": "methanethiol",
+        "note": "S lone pair / S\u2013H \u03c3*",
+        "casscf": {
+          "molecule": "methanethiol",
+          "label": "S lone pair / S\u2013H \u03c3*",
+          "formula": "C  0.0000  0.0000  0.0000\nS  0.0000  0.0000  1.8190\nH  1.3300  0.0000  1.9710\nH  1.0260  0.0000  -0.3630\nH  -0.5130  0.8890  -0.3630\nH  -0.5130  -0.8890  -0.3630",
+          "n_atoms": 6,
+          "n_electrons": 26,
+          "n_basis": 18,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -432.8931113173068,
+          "e_casscf_Ha": -432.91199529426757,
+          "correlation_Ha": -0.01888397696075117,
+          "ecore_Ha": -431.37803140426445,
+          "h1e": [
+            [
+              -1.0332871530625378,
+              -0.06019895194853342
+            ],
+            [
+              -0.06019895194853339,
+              -0.4212523905712151
+            ]
+          ],
+          "h2e_J_aa": 0.5516280748813658,
+          "h2e_J_ab": 0.5401252335744541,
+          "h2e_K_ab": 0.15391699687009658
+        }
+      },
+      "delta_E_casscf_Ha": -266.18724337887284
+    },
+    "KEAP1_R320Q": {
+      "mutation_id": "KEAP1_R320Q",
+      "label": "KEAP1 R320Q (p.Arg320Gln)",
+      "gene": "KEAP1",
+      "pdb_native": "1U6D",
+      "pdb_mutant": null,
+      "ref": "Tong KI et al. (2006) Biochemistry 45:6845",
+      "native": {
+        "residue": "Arg320",
+        "compound": "guanidine",
+        "note": "Guanidinium \u03c0 system",
+        "casscf": {
+          "molecule": "guanidine",
+          "label": "Guanidinium \u03c0 system",
+          "formula": "C  0.0000  0.0000  0.0000\nN  1.3520  0.0000  0.0000\nN  -0.6760  1.1710  0.0000\nN  -0.6760  -1.1710  0.0000\nH  1.8570  0.8750  0.0000\nH  -0.2000  2.0500  0.0000\nH  -1.6600  1.1100  0.0000\nH  -0.2000  -2.0500  0.0000\nH  -1.6600  -1.1100  0.0000",
+          "n_atoms": 9,
+          "n_electrons": 32,
+          "n_basis": 25,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -201.44196127521838,
+          "e_casscf_Ha": -201.47889760635994,
+          "correlation_Ha": -0.03693633114156114,
+          "ecore_Ha": -200.3881090072103,
+          "h1e": [
+            [
+              -0.8061243968922169,
+              0.08596071829201313
+            ],
+            [
+              0.08596071829201321,
+              -0.43754015860231354
+            ]
+          ],
+          "h2e_J_aa": 0.5617195187678765,
+          "h2e_J_ab": 0.4768259691168193,
+          "h2e_K_ab": 0.15347864217549842
+        }
+      },
+      "mutant": {
+        "residue": "Gln320",
+        "compound": "acetamide",
+        "note": "Amide C=O \u03c0/\u03c0*",
+        "casscf": {
+          "molecule": "acetamide",
+          "label": "Amide C=O \u03c0/\u03c0*",
+          "formula": "C  0.0000  0.0000  0.0000\nC  1.5220  0.0000  0.0000\nO  2.1510  1.0460  0.0000\nN  2.1050  -1.2500  0.0000\nH  3.1000  -1.3550  0.0000\nH  1.5460  -2.0790  0.0000\nH  -0.3900  1.0260  0.0000\nH  -0.3900  -0.5130  0.8890\nH  -0.3900  -0.5130  -0.8890",
+          "n_atoms": 9,
+          "n_electrons": 32,
+          "n_basis": 25,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -205.27550953785686,
+          "e_casscf_Ha": -205.3195025343908,
+          "correlation_Ha": -0.043992996533944506,
+          "ecore_Ha": -203.9482329138639,
+          "h1e": [
+            [
+              -0.9622093567769581,
+              -0.10696392497850982
+            ],
+            [
+              -0.10696392497850987,
+              -0.5555969665064884
+            ]
+          ],
+          "h2e_J_aa": 0.5984702152473024,
+          "h2e_J_ab": 0.5402822331067357,
+          "h2e_K_ab": 0.18442229144789052
+        }
+      },
+      "delta_E_casscf_Ha": -3.8406049280308707
+    },
+    "STK11_F354L": {
+      "mutation_id": "STK11_F354L",
+      "label": "STK11 F354L (p.Phe354Leu)",
+      "gene": "STK11",
+      "pdb_native": "2WTK",
+      "pdb_mutant": null,
+      "ref": "Zeqiraj E et al. (2009) Science 326:1707",
+      "native": {
+        "residue": "Phe354",
+        "compound": "toluene",
+        "note": "Phe \u03c0/\u03c0* HOMO\u2013LUMO (R-spine RS4)",
+        "casscf": {
+          "molecule": "toluene",
+          "label": "Phe \u03c0/\u03c0* HOMO\u2013LUMO (R-spine RS4)",
+          "formula": "C  0.0000  0.0000  0.0000\nC  0.0000  0.0000  1.5120\nC  1.2090  0.0000  2.2100\nC  1.2090  0.0000  3.6020\nC  0.0000  0.0000  4.3000\nC  -1.2090  0.0000  3.6020\nC  -1.2090  0.0000  2.2100\nH  1.0260  0.0000  -0.3630\nH  -0.5130  0.8890  -0.3630\nH  -0.5130  -0.8890  -0.3630\nH  2.1560  0.0000  1.6720\nH  2.1560  0.0000  4.1400\nH  0.0000  0.0000  5.3830\nH  -2.1560  0.0000  4.1400\nH  -2.1560  0.0000  1.6720",
+          "n_atoms": 15,
+          "n_electrons": 50,
+          "n_basis": 43,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -266.4742065436836,
+          "e_casscf_Ha": -266.4907517482569,
+          "correlation_Ha": -0.016545204573333194,
+          "ecore_Ha": -265.57999810366925,
+          "h1e": [
+            [
+              -0.6230851691001695,
+              -0.0020599037004403464
+            ],
+            [
+              -0.0020599037004404297,
+              -0.332797529570117
+            ]
+          ],
+          "h2e_J_aa": 0.3533862791698438,
+          "h2e_J_ab": 0.3545238859320716,
+          "h2e_K_ab": 0.10438280750227101
+        }
+      },
+      "mutant": {
+        "residue": "Leu354",
+        "compound": "isobutane",
+        "note": "C\u2013H \u03c3/\u03c3* (aliphatic \u2014 no \u03c0)",
+        "casscf": {
+          "molecule": "isobutane",
+          "label": "C\u2013H \u03c3/\u03c3* (aliphatic \u2014 no \u03c0)",
+          "formula": "C  0.0000  0.0000  0.0000\nC  0.0000  0.0000  1.5220\nC  1.4360  0.0000  -0.5070\nC  -0.7180  1.2430  -0.5070\nH  0.0000  0.0000  -1.0900\nH  1.0280  0.0000  1.8850\nH  -0.5140  0.8900  1.8850\nH  -0.5140  -0.8900  1.8850\nH  2.1210  0.0000  0.3420\nH  1.6070  0.8910  -1.1130\nH  1.6070  -0.8910  -1.1130\nH  -1.0500  1.8190  0.2850\nH  0.3080  0.9160  -0.8700\nH  -1.7450  1.5260  -0.8700",
+          "n_atoms": 14,
+          "n_electrons": 34,
+          "n_basis": 30,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -154.89040165435247,
+          "e_casscf_Ha": -154.91503052885375,
+          "correlation_Ha": -0.024628874501274822,
+          "ecore_Ha": -153.40683075548094,
+          "h1e": [
+            [
+              -1.0456113769313902,
+              -0.012653221221410993
+            ],
+            [
+              -0.012653221221411062,
+              -0.5117972860450472
+            ]
+          ],
+          "h2e_J_aa": 0.6080788391621441,
+          "h2e_J_ab": 0.5804955499912985,
+          "h2e_K_ab": 0.1636120210887566
+        }
+      },
+      "delta_E_casscf_Ha": 111.57572121940316
+    },
+    "STK11_D194N": {
+      "mutation_id": "STK11_D194N",
+      "label": "STK11 D194N (p.Asp194Asn)",
+      "gene": "STK11",
+      "pdb_native": "2WTK",
+      "pdb_mutant": null,
+      "ref": "Zeqiraj E et al. (2009) Science 326:1707",
+      "native": {
+        "residue": "Asp194",
+        "compound": "acetic_acid",
+        "note": "Carboxylate C=O \u03c0/\u03c0* (DFG Asp)",
+        "casscf": {
+          "molecule": "acetic_acid",
+          "label": "Carboxylate C=O \u03c0/\u03c0* (DFG Asp)",
+          "formula": "C  0.0000  0.0000  0.0000\nC  1.5200  0.0000  0.0000\nO  2.1270  1.0510  0.0000\nO  2.1390  -1.2150  0.0000\nH  1.4400  -1.8900  0.0000\nH  -0.3900  1.0260  0.0000\nH  -0.3900  -0.5130  0.8890\nH  -0.3900  -0.5130  -0.8890",
+          "n_atoms": 8,
+          "n_electrons": 32,
+          "n_basis": 24,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -224.79841230226754,
+          "e_casscf_Ha": -224.84451024185293,
+          "correlation_Ha": -0.04609793958539399,
+          "ecore_Ha": -223.41177081277596,
+          "h1e": [
+            [
+              -0.9888335760279281,
+              -0.09849190253202778
+            ],
+            [
+              -0.09849190253202764,
+              -0.5940490412044641
+            ]
+          ],
+          "h2e_J_aa": 0.5919559693225028,
+          "h2e_J_ab": 0.5489298766372804,
+          "h2e_K_ab": 0.18905100262943758
+        }
+      },
+      "mutant": {
+        "residue": "Asn194",
+        "compound": "acetamide",
+        "note": "Amide C=O \u03c0/\u03c0*",
+        "casscf": {
+          "molecule": "acetamide",
+          "label": "Amide C=O \u03c0/\u03c0*",
+          "formula": "C  0.0000  0.0000  0.0000\nC  1.5220  0.0000  0.0000\nO  2.1510  1.0460  0.0000\nN  2.1050  -1.2500  0.0000\nH  3.1000  -1.3550  0.0000\nH  1.5460  -2.0790  0.0000\nH  -0.3900  1.0260  0.0000\nH  -0.3900  -0.5130  0.8890\nH  -0.3900  -0.5130  -0.8890",
+          "n_atoms": 9,
+          "n_electrons": 32,
+          "n_basis": 25,
+          "basis": "STO-3G",
+          "active_space": "CAS(2e, 2o)",
+          "jw_qubits": 4,
+          "rhf_converged": true,
+          "casscf_converged": true,
+          "e_rhf_Ha": -205.27550953785686,
+          "e_casscf_Ha": -205.3195025343908,
+          "correlation_Ha": -0.043992996533944506,
+          "ecore_Ha": -203.9482329138639,
+          "h1e": [
+            [
+              -0.9622093567769581,
+              -0.10696392497850982
+            ],
+            [
+              -0.10696392497850987,
+              -0.5555969665064884
+            ]
+          ],
+          "h2e_J_aa": 0.5984702152473024,
+          "h2e_J_ab": 0.5402822331067357,
+          "h2e_K_ab": 0.18442229144789052
+        }
+      },
+      "delta_E_casscf_Ha": 19.525007707462123
+    }
+  }
+}
