@@ -1769,6 +1769,11 @@ function updateResultsCharts(data) {
 }
 
 function updateAllTabs(data) {
+  // stash the extra jw fields returned by the API so downloadCasscfIntegrals() can use them
+  if (data.result) {
+    data._e_rhf    = data.result._e_rhf    || null;
+    data._jw_terms = data.result._jw_terms || [];
+  }
   lastRunData = data;
   addRunToHistory(data);
   const r   = data.result;
@@ -3005,65 +3010,68 @@ function submitPhase3B(mutationId) {
 }
 
 function downloadCasscfIntegrals() {
+  if (!lastRunData) {
+    alert('Run a simulation first — the download contains the actual results for the selected mutation.');
+    return;
+  }
+  const r   = lastRunData.result;
+  const rec = lastRunData.full_record;
+  const vqe = lastRunData._vqe || {};
+
+  const mutId    = rec.mutation_id   || '';
+  const mutName  = rec.mutation_name || mutId;
+  const compound = r.model_compound  || rec.p2_model_compound || 'unknown';
+  const eRhf     = lastRunData._e_rhf   || null;
+  const jwTerms  = lastRunData._jw_terms || [];
+
   const pkg = {
-    title:        'SOLANGE™ — TP53 C275F Phase 3A CASSCF(2,2) Hamiltonian Integrals',
+    title:        `SOLANGE™ — ${mutName} Phase 3A CASSCF(2,2) Hamiltonian`,
     generated_at: new Date().toISOString(),
+    mutation_id:  mutId,
+    run_id:       lastRunData.run_id,
     provenance: {
-      script:     'pyscf_mutations.py',
-      model:      'Phe275 sidechain proxy — toluene (C7H8)',
-      basis:      'STO-3G (minimal Slater-type orbital, 3 Gaussians per function)',
-      active_space: 'CAS(2e, 2o) — π/π* HOMO–LUMO pair of Phe275 aromatic ring',
-      jw_qubits:  4,
-      references: [
-        'Joerger AC et al. (2006) PNAS 103:15056–15061 — C275F structure (PDB 2BIM)',
-        'Cho Y et al. (1994) Science 265:346–355 — TP53 native (PDB 1TUP)',
-        'Sun Q et al. (2020) J Chem Phys 153:024109 — PySCF 2.0',
-        'Engh & Huber (1991) Acta Cryst A47:392 — idealized geometry'
-      ]
+      script:       'pyscf_mutations.py',
+      model:        `${compound} (sidechain proxy)`,
+      basis:        rec.p2_basis_set || 'STO-3G',
+      active_space: 'CAS(2e, 2o) — HOMO/LUMO pair',
+      encoding:     rec.p2_encoding  || 'Jordan-Wigner (openfermion)',
+      jw_qubits:    r.qubits_used    || 4,
+      p8_seal:      rec.p8_hash
     },
     energies: {
-      e_rhf_Ha:        -266.4742035098,
-      e_casscf_Ha:     -266.4907503179,
-      correlation_Ha:  -0.0165468081,
-      ecore_Ha:        -265.5800231000,
-      units:           'Hartree (Ha)'
+      e_rhf_Ha:       eRhf,
+      e_casscf_Ha:    r.casscf_ref_ha,
+      e_active_Ha:    r.energy_active_ha,
+      ecore_Ha:       r.ecore_ha,
+      e_total_Ha:     r.energy_ha,
+      correlation_Ha: eRhf !== null ? +(r.casscf_ref_ha - eRhf).toFixed(10) : null,
+      units:          'Hartree (Ha)'
     },
-    active_space_integrals: {
-      h1e: {
-        description: 'One-body (one-electron) Hamiltonian in the active orbital basis',
-        shape:       '(2, 2)',
-        values:      [[-0.62307264, 0.00201276], [0.00201276, -0.33279719]]
-      },
-      h2e: {
-        description: 'Two-body (two-electron) integrals — Coulomb and exchange',
-        J_aa:        0.35338965,
-        J_ab:        0.35452493,
-        K_ab:        0.10438683,
-        note:        'J = Coulomb repulsion, K = quantum exchange (no classical analog)'
-      }
+    jw_hamiltonian: {
+      description: 'Jordan-Wigner Pauli decomposition — H = Σ_i c_i · P_i, P_i ∈ {I,X,Y,Z}^⊗4',
+      n_terms:     jwTerms.length,
+      terms:       jwTerms
     },
-    vqe_pipeline: {
-      step1: 'Jordan-Wigner transform h1e + h2e → Pauli operators (4 qubits)',
-      step2: 'Pauli decomposition: H = Σ_i c_i · P_i  where P_i ∈ {I,X,Y,Z}^⊗4',
-      step3: 'VQE ansatz: Ry–CNOT–Ry hardware-efficient (Phase 3A) or UCCSD (Phase 3B)',
-      step4: 'Phase 3A execution: IBM Sherbrooke (127-qubit Eagle r3)',
-      step5: 'Phase 3B execution: IBM Heron r3 — 88 qubits — pending access authorization',
-      libraries: 'openfermion · qiskit-nature · qiskit-ibm-runtime'
-    }
+    references: [
+      'Sun Q et al. (2020) J Chem Phys 153:024109 — PySCF 2.0',
+      'Jordan P & Wigner E (1928) Z Phys 47:631 — Jordan-Wigner transform',
+      'McClean JR et al. (2020) Quantum Sci Technol 5:034014 — OpenFermion'
+    ]
   };
 
-  const date = new Date().toISOString().slice(0,10);
+  const date    = new Date().toISOString().slice(0,10);
+  const safeMut = mutId.replace(/[^a-zA-Z0-9_]/g, '_');
   const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `SOLANGE_C275F_CASSCF_Integrals_${date}.json`;
+  a.download = `SOLANGE_${safeMut}_CASSCF_${date}.json`;
   a.click();
 
   const toast = document.createElement('div');
   toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#223244;border:1px solid var(--teal);color:var(--white);padding:14px 20px;border-radius:10px;font-size:12px;z-index:9999;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease';
   toast.innerHTML = `
-    <div style="font-weight:700;color:var(--teal);margin-bottom:6px">⬇ CASSCF Integrals Downloaded</div>
-    <div style="color:#94a3b8;font-size:11px">Real ab initio Hamiltonian for TP53 C275F.<br>Feed h1e + h2e into openfermion or qiskit-nature to build the VQE circuit.</div>
+    <div style="font-weight:700;color:var(--teal);margin-bottom:6px">⬇ CASSCF Hamiltonian Downloaded</div>
+    <div style="color:#94a3b8;font-size:11px">Real PySCF CASSCF(2,2) data for ${mutName}.<br>${jwTerms.length} Pauli terms · feed into openfermion or qiskit-nature.</div>
   `;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 6000);

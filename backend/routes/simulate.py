@@ -280,6 +280,10 @@ def run_vqe(config: dict) -> dict:
         "circuit_hash":    circuit_hash,
         "elapsed_s":       round(elapsed, 3),
         "convergence":     energies_total,
+        "e_rhf":           ecore + e_hf_active,
+        "jw_terms":        jw_entry.get("terms", []),
+        "jw_key":          jw_key,
+        "side":            side,
     }
 
 
@@ -453,6 +457,8 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
                 f"— {config['phase3b_backend']}"
             ),
             "hardware_era":     config.get("hardware_era", "unknown"),
+            "_e_rhf":           round(vqe["e_rhf"], 10),
+            "_jw_terms":        vqe["jw_terms"],
         },
         "provenance": {
             "p1_circuit_hash": record["p1_circuit_hash"],
