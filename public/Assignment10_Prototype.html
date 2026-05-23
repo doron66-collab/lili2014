@@ -10,8 +10,8 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --navy:   #080e1a;
-    --navy2:  #0e1726;
+    --navy:   #141c2b;
+    --navy2:  #1a2438;
     --teal:   #06b6d4;
     --teal2:  #0891b2;
     --gold:   #f59e0b;
@@ -3149,7 +3149,7 @@ function exportPDF() {
   const multi = runs.length > 1;
   doc.setFillColor(15, 31, 61); doc.rect(0, 0, W, 42, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(255, 255, 255);
-  doc.text('SOLANGE — Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics', M, 14);
+  doc.text('SOLANGE™', M, 14);
   doc.setFontSize(11); doc.setTextColor(20, 200, 200);
   const subtitle = multi
     ? `Multi-Mutation Provenance Report · ${runs.length} Mutations · Phase 3A`
