@@ -227,6 +227,29 @@ def run_vqe(config: dict) -> dict:
     Ansatz: AllSinglesDoubles (UCCSD-type) with HF initial state |1100⟩.
     Active space: CAS(2e, 2o) from PySCF CASSCF(2,2) via openfermion JW transform.
     Total energy returned = ecore + VQE active-space energy.
+
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  IBM_CONNECT — Phase 3B hardware entry point                    ║
+    ║                                                                  ║
+    ║  When IBM Heron r3 access is granted, replace this function      ║
+    ║  with a Qiskit Runtime execution path:                           ║
+    ║                                                                  ║
+    ║  from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2║
+    ║  service = QiskitRuntimeService(channel="ibm_quantum",           ║
+    ║                token=os.environ["IBM_QUANTUM_TOKEN"])            ║
+    ║  backend = service.backend("ibm_heron_r3")                       ║
+    ║                                                                  ║
+    ║  Inputs ready:                                                    ║
+    ║    jw_hamiltonians.json  — 27 Pauli terms per mutation (4-qubit) ║
+    ║    _HF_STATE / _SINGLES / _DOUBLES — ansatz wiring (this file)  ║
+    ║    MUTATION_CONFIGS[id]["full_qubits"] — Phase 3B active space   ║
+    ║                                                                  ║
+    ║  Phase 3B requires:                                              ║
+    ║    • New Hamiltonian: 24e/48q or 44e/88q (not this 4-qubit one) ║
+    ║    • Error mitigation: ZNE + Pauli Twirling (qiskit_ibm_runtime) ║
+    ║    • Transpile to Heron r3 native gate set (ECR, Rz, SX)        ║
+    ║    • CalibrationData from backend.properties()                   ║
+    ╚══════════════════════════════════════════════════════════════════╝
     """
     jw_key, side = config["jw_source"]
     jw_entry = _JW_DATA[jw_key][side]
