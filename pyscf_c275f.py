@@ -157,10 +157,14 @@ def run_casscf_phase3a(verbose=3):
     print(f"")
     print(f"  Core energy (frozen electrons): {ecore:+.8f} Ha")
     print(f"")
-    print(f"  Active-space 2e integrals (h2e), shape: {h2e.shape}")
-    print(f"  h2e[0,0,0,0] = {h2e[0,0,0,0]:+.8f} Ha  (Coulomb integral J_aa)")
-    print(f"  h2e[0,0,1,1] = {h2e[0,0,1,1]:+.8f} Ha  (Coulomb integral J_ab)")
-    print(f"  h2e[0,1,1,0] = {h2e[0,1,1,0]:+.8f} Ha  (Exchange integral K_ab)")
+    # h2e from get_h2eff() is stored compressed (n_pair × n_pair).
+    # Restore to full 4D tensor for readable indexing.
+    from pyscf import ao2mo
+    h2e_full = ao2mo.restore(1, h2e, mc.ncas)   # shape (ncas,ncas,ncas,ncas)
+    print(f"  Active-space 2e integrals (h2e), shape: {h2e_full.shape} (full 4D)")
+    print(f"  h2e[0,0,0,0] = {h2e_full[0,0,0,0]:+.8f} Ha  (Coulomb integral J_aa)")
+    print(f"  h2e[0,0,1,1] = {h2e_full[0,0,1,1]:+.8f} Ha  (Coulomb integral J_ab)")
+    print(f"  h2e[0,1,1,0] = {h2e_full[0,1,1,0]:+.8f} Ha  (Exchange integral K_ab)")
     print(f"{'='*60}")
 
     result = {
@@ -173,9 +177,9 @@ def run_casscf_phase3a(verbose=3):
         'correlation_Ha':     correlation_energy,
         'ecore_Ha':           float(ecore),
         'h1e':                h1e.tolist(),
-        'h2e_J_aa':           float(h2e[0, 0, 0, 0]),
-        'h2e_J_ab':           float(h2e[0, 0, 1, 1]),
-        'h2e_K_ab':           float(h2e[0, 1, 1, 0]),
+        'h2e_J_aa':           float(h2e_full[0, 0, 0, 0]),
+        'h2e_J_ab':           float(h2e_full[0, 0, 1, 1]),
+        'h2e_K_ab':           float(h2e_full[0, 1, 1, 0]),
         'converged':          bool(mc.converged),
         'pauli_note': (
             'Decompose h1e + h2e into Pauli operators via Jordan-Wigner transform '
