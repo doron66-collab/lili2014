@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build"
+  command = "npm install && npm run build && cp dist/index.html dist/3d.html && cp public/Assignment10_Prototype.html dist/index.html"
   publish = "dist"
 
 [[redirects]]
@@ -18,8 +18,23 @@
   status = 200
 
 [[redirects]]
+  from = "/operational-stack"
+  to   = "/unified_architecture.html"
+  status = 200
+
+[[redirects]]
   from = "/P1_P9_Architecture_Diagram"
   to   = "/P1_P9_Architecture_Diagram.html"
+  status = 200
+
+[[redirects]]
+  from = "/provenance-schema"
+  to   = "/P1_P9_Architecture_Diagram.html"
+  status = 200
+
+[[redirects]]
+  from = "/platform-architecture"
+  to   = "/QC_AI_HPC_Architecture.html"
   status = 200
 
 [[redirects]]
@@ -31,3 +46,4 @@
   from = "/"
   to   = "/Assignment10_Prototype.html"
   status = 200
+  force = true
