@@ -7,21 +7,21 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg:       #0d1117;
-    --surface:  #161b22;
-    --border:   #21262d;
-    --muted:    #8b949e;
-    --text:     #e6edf3;
+    --bg:       #f6f8fa;
+    --surface:  #ffffff;
+    --border:   #d0d7de;
+    --muted:    #57606a;
+    --text:     #24292f;
 
-    --c1: #3d8b6e;  --c1b: rgba(61,139,110,.12);  --c1d: rgba(61,139,110,.30);
-    --c2: #1565c0;  --c2b: rgba(21,101,192,.12);  --c2d: rgba(21,101,192,.30);
-    --c3: #0d7ea8;  --c3b: rgba(13,126,168,.12);  --c3d: rgba(13,126,168,.30);
-    --c4: #6d3d8a;  --c4b: rgba(109,61,138,.12);  --c4d: rgba(109,61,138,.30);
-    --c5: #b07008;  --c5b: rgba(176,112,8,.12);   --c5d: rgba(176,112,8,.30);
-    --c6: #1a7a4a;  --c6b: rgba(26,122,74,.12);   --c6d: rgba(26,122,74,.30);
+    --c1: #1a7f4e;  --c1b: rgba(26,127,78,.07);   --c1d: rgba(26,127,78,.28);
+    --c2: #0969da;  --c2b: rgba(9,105,218,.07);   --c2d: rgba(9,105,218,.28);
+    --c3: #0969aa;  --c3b: rgba(9,105,170,.07);   --c3d: rgba(9,105,170,.28);
+    --c4: #8250df;  --c4b: rgba(130,80,223,.07);  --c4d: rgba(130,80,223,.28);
+    --c5: #9a6700;  --c5b: rgba(154,103,0,.07);   --c5d: rgba(154,103,0,.28);
+    --c6: #1a7f4e;  --c6b: rgba(26,127,78,.07);   --c6d: rgba(26,127,78,.28);
 
-    --p9-bg: rgba(176,112,8,.10); --p9-bd: rgba(176,112,8,.35); --p9-clr: #d4950a;
-    --p8-bg: rgba(26,122,74,.12); --p8-bd: rgba(26,122,74,.40); --p8-clr: #22a862;
+    --p9-bg: rgba(154,103,0,.07);  --p9-bd: rgba(154,103,0,.30); --p9-clr: #7d5300;
+    --p8-bg: rgba(26,127,78,.07);  --p8-bd: rgba(26,127,78,.30); --p8-clr: #1a7f4e;
   }
   body {
     background: var(--bg);
@@ -95,21 +95,21 @@
   .lbody   { padding: 12px 16px 14px; }
   .chips   { display: flex; flex-wrap: wrap; gap: 7px; }
   .chip {
-    background: rgba(255,255,255,.04);
+    background: #ffffff;
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 7px 10px;
     flex: 1 1 160px;
   }
-  .chip.hi { border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.06); }
+  .chip.hi { border-color: rgba(0,0,0,.15); background: rgba(255,255,255,.9); }
   .chip-t  { font-size: 11.5px; font-weight: 600; margin-bottom: 2px; }
   .chip-s  { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
   .novel   {
     display: inline-block;
     font-size: 9px; font-weight: 700;
     padding: 1px 5px; border-radius: 3px;
-    background: rgba(255,220,100,.15);
-    color: #f0d060;
+    background: rgba(154,103,0,.12);
+    color: #7d5300;
     margin-left: 5px; vertical-align: middle;
   }
 
@@ -139,7 +139,7 @@
     font-size: 11px; font-weight: 600;
     border: 1px solid var(--c6d);
     background: var(--c6b);
-    color: #68d9a0;
+    color: var(--c6);
     text-align: center;
   }
   .opill small { display: block; font-size: 9.5px; color: var(--muted); font-weight: 400; margin-top: 2px; }
@@ -147,33 +147,33 @@
   /* layer colours */
   .l1 { border: 1px solid var(--c1d); background: var(--c1b); }
   .l1 .lh { background: rgba(61,139,110,.08); border-bottom: 1px solid var(--c1d); }
-  .l1 .lnum { background: var(--c1d); color: #68d9a0; }
-  .l1 .ltitle { color: #68d9a0; }
+  .l1 .lnum { background: var(--c1d); color: #ffffff; }
+  .l1 .ltitle { color: var(--c1); }
 
   .l2 { border: 1px solid var(--c2d); background: var(--c2b); }
-  .l2 .lh { background: rgba(21,101,192,.08); border-bottom: 1px solid var(--c2d); }
-  .l2 .lnum { background: var(--c2d); color: #7ab4f5; }
-  .l2 .ltitle { color: #7ab4f5; }
+  .l2 .lh { background: rgba(9,105,218,.06); border-bottom: 1px solid var(--c2d); }
+  .l2 .lnum { background: var(--c2d); color: #ffffff; }
+  .l2 .ltitle { color: var(--c2); }
 
   .l3 { border: 1px solid var(--c3d); background: var(--c3b); }
-  .l3 .lh { background: rgba(13,126,168,.08); border-bottom: 1px solid var(--c3d); }
-  .l3 .lnum { background: var(--c3d); color: #6dd5f0; }
-  .l3 .ltitle { color: #6dd5f0; }
+  .l3 .lh { background: rgba(9,105,170,.06); border-bottom: 1px solid var(--c3d); }
+  .l3 .lnum { background: var(--c3d); color: #ffffff; }
+  .l3 .ltitle { color: var(--c3); }
 
   .l4 { border: 1px solid var(--c4d); background: var(--c4b); }
-  .l4 .lh { background: rgba(109,61,138,.08); border-bottom: 1px solid var(--c4d); }
-  .l4 .lnum { background: var(--c4d); color: #c0a0e0; }
-  .l4 .ltitle { color: #c0a0e0; }
+  .l4 .lh { background: rgba(130,80,223,.06); border-bottom: 1px solid var(--c4d); }
+  .l4 .lnum { background: var(--c4d); color: #ffffff; }
+  .l4 .ltitle { color: var(--c4); }
 
   .l5 { border: 1px solid var(--c5d); background: var(--c5b); }
-  .l5 .lh { background: rgba(176,112,8,.08); border-bottom: 1px solid var(--c5d); }
-  .l5 .lnum { background: var(--c5d); color: #f0c040; }
-  .l5 .ltitle { color: #f0c040; }
+  .l5 .lh { background: rgba(154,103,0,.06); border-bottom: 1px solid var(--c5d); }
+  .l5 .lnum { background: var(--c5d); color: #ffffff; }
+  .l5 .ltitle { color: var(--c5); }
 
   .l6 { border: 1px solid var(--c6d); background: var(--c6b); }
-  .l6 .lh { background: rgba(26,122,74,.08); border-bottom: 1px solid var(--c6d); }
-  .l6 .lnum { background: var(--c6d); color: #68d9a0; }
-  .l6 .ltitle { color: #68d9a0; }
+  .l6 .lh { background: rgba(26,127,78,.06); border-bottom: 1px solid var(--c6d); }
+  .l6 .lnum { background: var(--c6d); color: #ffffff; }
+  .l6 .ltitle { color: var(--c6); }
 
   /* ── provenance column (right) ── */
   .prov {
@@ -245,7 +245,7 @@
   .seal-id  { font-size: 13px; font-weight: 700; color: var(--p8-clr); margin-bottom: 4px; }
   .seal-sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
   .hash-chain { font-size: 10.5px; color: var(--muted); margin-bottom: 10px; }
-  .hash-chain span { color: #7ab4f5; }
+  .hash-chain span { color: var(--c2); }
   .seal-pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .seal-pill {
     font-size: 10px; font-weight: 600;
@@ -260,7 +260,7 @@
     font-size: 11px; color: var(--muted);
     text-align: center; line-height: 1.9;
   }
-  footer em { color: #58a6ff; font-style: normal; }
+  footer em { color: var(--c2); font-style: normal; }
 
   @media (max-width: 680px) {
     .col-headers, .row, .conn, .seal-wrap { grid-template-columns: 1fr; }
