@@ -1413,6 +1413,7 @@ async function doLogin() {
           hideWakeup();
           btn.disabled = false;
           btn.textContent = 'Sign In';
+          notifyLogin(rd.user?.email);
           showPlatform(rd.user);
         } else if (!re.message.includes('fetch') && !re.message.includes('network') && !re.message.includes('Load failed')) {
           // Real auth error (wrong password) — stop retrying
@@ -1440,7 +1441,16 @@ async function doLogin() {
     return;
   }
   hideWakeup();
+  notifyLogin(data.user?.email);
   showPlatform(data.user);
+}
+
+function notifyLogin(email) {
+  fetch(`${API}/notify/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email || 'unknown' })
+  }).catch(() => {});
 }
 
 async function doLogout() {
