@@ -3,6 +3,7 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.header import Header
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
@@ -20,7 +21,7 @@ def _send_gmail(subject: str, body: str) -> None:
         logger.warning("GMAIL_APP_PASSWORD not set — login notification skipped")
         return
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
+    msg["Subject"] = Header(subject, "utf-8")
     msg["From"]    = NOTIFY_FROM
     msg["To"]      = NOTIFY_TO
     msg.attach(MIMEText(body, "plain", "utf-8"))
@@ -37,7 +38,7 @@ async def notify_login(request: Request):
         ip          = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
         ts          = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
-        subject = f"SOLANGE login - {user_email}"
+        subject = f"SOLANGE login — {user_email}"
         text    = (
             f"SOLANGE platform login\n\n"
             f"User:  {user_email}\n"
