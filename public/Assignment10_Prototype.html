@@ -1895,7 +1895,7 @@ function updateAllTabs(data) {
     <div class="audit-row">
       <div class="audit-time">+${r.elapsed_s}s</div>
       <div class="audit-dot" style="background:var(--green)"></div>
-      <div style="word-break:break-word"><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: <span style="font-family:monospace;font-size:10px">${rec.p8_hash ? rec.p8_hash.slice(0,16) + '…' : '—'}</span> · All provenance elements locked · FDA 21 CFR §11.10(e) audit trail-aligned</div>
+      <div style="word-break:break-word"><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: <span style="font-family:monospace;font-size:10px">${rec.p8_hash ? rec.p8_hash.slice(0,16) + '…' : '—'}</span>${rec.p8_hash ? ` <span id="p8-copy-btn" onclick="navigator.clipboard.writeText('${rec.p8_hash}').then(()=>{const t=document.getElementById('p8-copy-btn');t.textContent='✓ copied';setTimeout(()=>t.textContent='copy',1500)})" style="cursor:pointer;font-size:10px;background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid rgba(6,182,212,0.3);border-radius:4px;padding:1px 6px;margin-left:2px">copy</span>` : ''} · All provenance elements locked · FDA 21 CFR §11.10(e) audit trail-aligned</div>
     </div>`;
 
 
