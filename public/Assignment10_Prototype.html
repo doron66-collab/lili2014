@@ -1989,7 +1989,9 @@ async function runLiveVQE() {
 }
 
 // ── Load live results from Supabase ───────────────────────────────────────
+let _liveResultsCache = [];
 async function loadLiveResults() {
+  _liveResultsCache = [];
   const el = document.getElementById('live-results-table');
   if (!el) return;
   el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">Fetching from Supabase…</div>';
@@ -2006,7 +2008,7 @@ async function loadLiveResults() {
       const ciText = ciHalf > 0 ? `± ${ciHalf.toExponential(2)} Hₐ` : `[${(+r.p7_ci_lower).toFixed(5)}, ${(+r.p7_ci_upper).toFixed(5)}]`;
       const sealFull = r.p8_hash || '—';
       const idFull   = r.id;
-      const fullRecord = `Run ID: ${r.id}\nMutation: ${r.mutation_name}\nEnergy: ${(+r.p7_energy_ha).toFixed(6)} Ha\n95% CI: ${ciText}\nP8 Seal: ${sealFull}\nTimestamp: ${new Date(r.created_at).toLocaleString()}`;
+      const idx = _liveResultsCache.push(`Run ID: ${r.id}\nMutation: ${r.mutation_name}\nEnergy: ${(+r.p7_energy_ha).toFixed(6)} Ha\n95% CI: ${ciText}\nP8 Seal: ${sealFull}\nTimestamp: ${new Date(r.created_at).toLocaleString()}`) - 1;
       return `
       <tr>
         <td style="font-family:monospace;font-size:10px;color:var(--gray)">${r.id.slice(0,8)}…</td>
@@ -2015,7 +2017,7 @@ async function loadLiveResults() {
         <td style="font-family:monospace;font-size:10px;color:var(--light)">${ciText}</td>
         <td style="font-family:monospace;font-size:10px;color:var(--gold)" title="${sealFull}">${sealFull.slice(0,16)}…</td>
         <td style="font-size:10px;color:var(--gray)">${new Date(r.created_at).toLocaleString()}</td>
-        <td><span onclick="navigator.clipboard.writeText(${JSON.stringify(fullRecord)}).then(e=>this.textContent='✓').catch(()=>{}); setTimeout(()=>this.textContent='⧉',1500)" style="cursor:pointer;font-size:11px;color:var(--teal);padding:2px 6px;border:1px solid rgba(6,182,212,0.3);border-radius:4px;background:rgba(6,182,212,0.1)">⧉</span></td>
+        <td><span onclick="navigator.clipboard.writeText(_liveResultsCache[${idx}]).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='⧉',1500)})" style="cursor:pointer;font-size:11px;color:var(--teal);padding:2px 6px;border:1px solid rgba(6,182,212,0.3);border-radius:4px;background:rgba(6,182,212,0.1)">⧉</span></td>
       </tr>`;
     }).join('');
     el.innerHTML = `<table>
