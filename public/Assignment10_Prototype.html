@@ -1136,7 +1136,7 @@
     <p style="color:var(--white)">FDA 21 CFR Part 11 · Reproducibility Engine · Provenance Metadata</p>
   </div>
 
-  <div id="comp-status-alert" style="margin-bottom:20px;padding:14px 18px;background:rgba(0,200,180,0.1);border:1px solid rgba(0,200,180,0.3);border-radius:var(--radius);font-size:12px;color:#223244">
+  <div id="comp-status-alert" style="margin-bottom:20px;padding:14px 18px;background:rgba(0,200,180,0.12);border:1px solid rgba(0,200,180,0.5);border-radius:var(--radius);font-size:12px;color:var(--white)">
     No simulation run yet — load an NGS report and run a VQE/sqDRIFT simulation to generate a compliance record.
   </div>
 
@@ -1862,7 +1862,7 @@ function updateAllTabs(data) {
   if (compAlert) {
     compAlert.className = 'alert alert-green';
     compAlert.style.cssText = 'margin-bottom:16px';
-    compAlert.innerHTML = `<strong style="color:#1a7a5e">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 audit-trail requirements satisfied · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
+    compAlert.innerHTML = `<strong style="color:var(--green)">✓ Compliance Status: PASSED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 audit-trail requirements satisfied · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
   }
 
   // ── Compliance tab — audit trail ─────────────────────────────────────
