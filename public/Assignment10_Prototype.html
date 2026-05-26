@@ -325,7 +325,7 @@
     <div class="login-error" id="login-error"></div>
     <div class="login-footer">
       NSCLC Tumor-Suppressor Quantum Simulation · Phase 3A Live<br>
-      FDA 21 CFR Part 11 compliant · Encrypted · Audit-logged
+      FDA 21 CFR §11.10(e) audit trail-aligned · Encrypted · Audit-logged
     </div>
   </div>
 </div>
@@ -1877,7 +1877,7 @@ function updateAllTabs(data) {
     <div class="audit-row">
       <div class="audit-time">+${r.elapsed_s}s</div>
       <div class="audit-dot" style="background:var(--green)"></div>
-      <div><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: ${rec.p8_hash} · All provenance elements locked · FDA 21 CFR Part 11 compliant</div>
+      <div><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: ${rec.p8_hash} · All provenance elements locked · FDA 21 CFR §11.10(e) audit trail-aligned</div>
     </div>`;
 
 
@@ -2901,7 +2901,7 @@ function submitPhase3B(mutationId) {
       ansatz: lastRun.ansatz || null,
       basis_set: lastRun.basis_set || null,
       p8_sha256_seal: lastRun.p8_hash || null,
-      provenance: 'P1–P9 fully sealed · FDA 21 CFR Part 11 compliant',
+      provenance: 'P1–P9 fully sealed · FDA 21 CFR §11.10(e) audit trail-aligned',
     },
     phase3b_requirements: {
       algorithm: 'sqDRIFT + VQE',
@@ -3508,7 +3508,7 @@ function exportPDF() {
     doc.setTextColor(148, 163, 184);
     doc.text(`Algorithm: ${rec.p8_algorithm}   Sealed: ${rec.p8_sealed_at}`, M + 4, y + 22);
     doc.setTextColor(34, 197, 94);
-    doc.text('✓ Integrity verified — P1→P2→P3→P4→P5→P6→P7+P9→P8 · FDA 21 CFR Part 11 compliant', M + 4, y + 29);
+    doc.text('✓ Integrity verified — P1→P2→P3→P4→P5→P6→P7+P9→P8 · FDA 21 CFR §11.10(e) audit trail-aligned', M + 4, y + 29);
     nl(44);
   });
 
