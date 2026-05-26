@@ -34,7 +34,7 @@ export default function IntroScreen({ onEnter }: Props) {
       </div>
 
       <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>
-        SOLANGE
+        SOLANGE™
       </div>
       <div style={{ fontSize: 13, color: 'rgba(150,200,255,0.85)', letterSpacing: 2, marginBottom: 6 }}>
         3D QUANTUM SIMULATION PLATFORM
