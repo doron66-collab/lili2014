@@ -1996,13 +1996,9 @@ async function loadLiveResults() {
   try {
     const res  = await fetch(`${API_BASE}/api/simulate/results`);
     const data = await res.json();
-    const sessionStart = sessionStorage.getItem('session_start');
-    const allRows = data.data || [];
-    const rows = sessionStart
-      ? allRows.filter(r => new Date(r.created_at) >= new Date(sessionStart))
-      : allRows;
+    const rows = data.data || [];
     if (rows.length === 0) {
-      el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">No runs this session — run a simulation above.</div>';
+      el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">No runs yet — run a simulation above.</div>';
       return;
     }
     const tableRows = rows.map(r => {
