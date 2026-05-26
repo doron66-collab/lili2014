@@ -1582,6 +1582,8 @@ function toggleUserMenu() {
   document.getElementById('pw-msg').style.display = 'none';
   document.getElementById('new-password').value = '';
   document.getElementById('confirm-password').value = '';
+  if (document.getElementById('menu-email').textContent === 'guest@solange.bio')
+    document.getElementById('pw-change-section').style.display = 'none';
 }
 
 // Close menu when clicking outside
