@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SOLANGE™ Platform Architecture</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0d1117;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --border:  #30363d;
+
+    --l3-clr:  #e05a2b;
+    --l3-bg:   rgba(224,90,43,.10);
+    --l3-bd:   rgba(224,90,43,.45);
+
+    --l2-clr:  #8b949e;
+    --l2-bg:   rgba(139,148,158,.07);
+    --l2-bd:   rgba(139,148,158,.30);
+
+    --l1-clr:  #8b949e;
+    --l1-bg:   rgba(139,148,158,.07);
+    --l1-bd:   rgba(139,148,158,.25);
+
+    --ctx-bg:  rgba(139,148,158,.04);
+    --ctx-bd:  rgba(255,255,255,.65);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+  }
+
+  header { text-align: center; margin-bottom: 40px; }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 6px; }
+  header p  { font-size: 12px; color: var(--muted); }
+
+  .diagram {
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── context boxes (dashed) ── */
+  .ctx {
+    border: 2px dashed var(--ctx-bd);
+    border-radius: 8px;
+    background: var(--ctx-bg);
+    padding: 16px 20px;
+  }
+  .ctx-label {
+    font-family: "JetBrains Mono", "Fira Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .ctx ul { list-style: none; padding: 0; }
+  .ctx ul li {
+    font-size: 12px;
+    color: #94a3b8;
+    padding: 2px 0;
+  }
+  .ctx ul li::before { content: "• "; color: var(--muted); }
+
+  /* ── connector ── */
+  .conn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 28px;
+    color: var(--border);
+    font-size: 16px;
+    position: relative;
+  }
+  .conn::before {
+    content: '';
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--border);
+    transform: translateX(-50%);
+  }
+  .conn span {
+    background: var(--bg);
+    padding: 0 8px;
+    z-index: 1;
+    position: relative;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: monospace;
+  }
+
+  /* ── solid layers ── */
+  .layer {
+    border-radius: 8px;
+    padding: 18px 20px 20px;
+  }
+  .layer-label {
+    font-family: "JetBrains Mono", "Fira Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .layer ul { list-style: none; padding: 0; }
+  .layer ul li {
+    font-size: 13px;
+    padding: 3px 0;
+    line-height: 1.5;
+  }
+  .layer ul li::before { content: "• "; }
+
+  /* layer 3 — contribution — highlighted */
+  .l3 {
+    border: 1.5px solid var(--l3-bd);
+    background: var(--l3-bg);
+  }
+  .l3 .layer-label { color: var(--l3-clr); }
+  .l3 ul li        { color: #e2d9d4; }
+  .l3 ul li::before { color: var(--l3-clr); }
+
+  /* layer 2 — commodity */
+  .l2 {
+    border: 1px solid var(--l2-bd);
+    background: var(--l2-bg);
+  }
+  .l2 .layer-label { color: var(--l2-clr); }
+  .l2 ul li        { color: #c9d1d9; }
+  .l2 ul li::before { color: var(--muted); }
+
+  /* layer 1 — quantum kernel */
+  .l1 {
+    border: 1px solid var(--l1-bd);
+    background: var(--l1-bg);
+  }
+  .l1 .layer-label { color: var(--l1-clr); }
+  .l1 ul li        { color: #c9d1d9; }
+  .l1 ul li::before { color: var(--muted); }
+
+  footer {
+    margin-top: 48px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.9;
+  }
+  footer em { color: #58a6ff; font-style: normal; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SOLANGE™ · Platform Architecture</h1>
+  <p>* dashed boxes are adjacent workflow context, not part of the QC stack</p>
+</header>
+
+<div class="diagram">
+
+  <!-- NGS input context -->
+  <div class="ctx">
+    <div class="ctx-label">NGS Patient Input *  ·  workflow source</div>
+    <ul>
+      <li>Patient case MI25-0349 · TP53 C275F (non-druggable NSCLC tumor suppressor mutation)</li>
+      <li>Mutation-specific Hamiltonian assembly · ~24-electron local, ~44-electron full active space</li>
+    </ul>
+  </div>
+
+  <div class="conn"><span>↓ input</span></div>
+
+  <!-- Layer 3 — Contribution -->
+  <div class="layer l3">
+    <div class="layer-label">Layer 3 · Contribution (this dissertation)</div>
+    <ul>
+      <li>BQP-relevance classification framework for non-druggable NSCLC tumor-suppressor mutations (§06.i)</li>
+      <li>Translational orchestration architecture — oncology-mutation-aware · Part-11-governed · bifurcation-aware (§06.ii)</li>
+      <li>FDA 21 CFR Part 11 compliance framework with ML-decoder provenance, P1–P9 (§06.iii)</li>
+    </ul>
+  </div>
+
+  <div class="conn"><span>↕ API</span></div>
+
+  <!-- Layer 2 — Commodity -->
+  <div class="layer l2">
+    <div class="layer-label">Layer 2 · Hybrid Integration Substrate (commodity)</div>
+    <ul>
+      <li>Hybrid orchestration — CUDA-Q + NVQLink (Nvidia stack)</li>
+      <li>Quantum reliability — Nvidia Ising: VLM calibration · 3D CNN decoder (Apr 2026)</li>
+      <li>Input preparation — DFT (PySCF) · DMRG baseline + non-active-space treatment</li>
+      <li>Output interpretation — DeepChem GNN clinical relevance scoring</li>
+    </ul>
+  </div>
+
+  <div class="conn"><span>↕ NVQLink</span></div>
+
+  <!-- Layer 1 — Quantum Kernel -->
+  <div class="layer l1">
+    <div class="layer-label">Layer 1 · Quantum Kernel (scientific anchor)</div>
+    <ul>
+      <li>IBM Heron r3 — 156 qubits, heavy-hex lattice (ibm_pittsburgh, QV ≥ 2048)</li>
+      <li>SqDRIFT — sample-based quantum diagonalization (Trotterized, stochastic drift)</li>
+      <li>Empirical anchors: 100q C₁₃Cl₂ (Science, Mar 2026) · Trp-cage protein (Cleveland Clinic + IBM, Mar 2026)</li>
+    </ul>
+  </div>
+
+  <div class="conn"><span>↓ output</span></div>
+
+  <!-- DSR Phase 4 context -->
+  <div class="ctx">
+    <div class="ctx-label">DSR Phase 4 Evaluation *  ·  workflow output</div>
+    <ul>
+      <li>Triangulated DSR — technical harness · comparative benchmark · expert panel (n=4–6) · case walkthroughs</li>
+      <li>Acceptance thresholds: audit-trail integrity 100% · end-to-end execution ≥95% · Hevner Likert mean ≥5.0</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <em>Layer 3 is the IS contribution</em> — hardware-agnostic orchestration over Layers 1 &amp; 2<br>
+  Layer 2 is forward-compatible with both IBM-native and Nvidia-substrate execution paths (§1.4.1, §06.ii)<br>
+  SOLANGE™
+</footer>
+
+</body>
+</html>

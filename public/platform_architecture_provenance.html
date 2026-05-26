@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SOLANGE™ Operational Stack &amp; Provenance</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --border:   #21262d;
+    --muted:    #8b949e;
+    --text:     #e6edf3;
+
+    --c1: #3d8b6e;  --c1b: rgba(61,139,110,.12);  --c1d: rgba(61,139,110,.30);
+    --c2: #1565c0;  --c2b: rgba(21,101,192,.12);  --c2d: rgba(21,101,192,.30);
+    --c3: #0d7ea8;  --c3b: rgba(13,126,168,.12);  --c3d: rgba(13,126,168,.30);
+    --c4: #6d3d8a;  --c4b: rgba(109,61,138,.12);  --c4d: rgba(109,61,138,.30);
+    --c5: #b07008;  --c5b: rgba(176,112,8,.12);   --c5d: rgba(176,112,8,.30);
+    --c6: #1a7a4a;  --c6b: rgba(26,122,74,.12);   --c6d: rgba(26,122,74,.30);
+
+    --p9-bg: rgba(176,112,8,.10); --p9-bd: rgba(176,112,8,.35); --p9-clr: #d4950a;
+    --p8-bg: rgba(26,122,74,.12); --p8-bd: rgba(26,122,74,.40); --p8-clr: #22a862;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    padding: 48px 20px 64px;
+    min-height: 100vh;
+  }
+  header { text-align: center; margin-bottom: 10px; }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 5px; }
+  header p  { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .subtitle {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin-bottom: 36px;
+  }
+
+  /* ── column headers ── */
+  .col-headers {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 12px;
+    max-width: 980px;
+    margin: 0 auto 8px;
+    padding: 0 4px;
+  }
+  .col-h {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  /* ── row layout ── */
+  .diagram { max-width: 980px; margin: 0 auto; }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 0;
+  }
+
+  /* ── layer card (left) ── */
+  .layer {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .lh {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+  }
+  .lnum {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ltitle  { font-size: 13px; font-weight: 700; }
+  .lsub    { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .lbody   { padding: 12px 16px 14px; }
+  .chips   { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    flex: 1 1 160px;
+  }
+  .chip.hi { border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.06); }
+  .chip-t  { font-size: 11.5px; font-weight: 600; margin-bottom: 2px; }
+  .chip-s  { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+  .novel   {
+    display: inline-block;
+    font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px;
+    background: rgba(255,220,100,.15);
+    color: #f0d060;
+    margin-left: 5px; vertical-align: middle;
+  }
+
+  /* compute trio */
+  .trio { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cb {
+    flex: 1 1 160px;
+    border-radius: 7px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  .cb-t { font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+  .cb-r { font-size: 10.5px; color: var(--muted); padding: 2px 0; line-height: 1.4; }
+  .cb-hpc { background: rgba(61,139,110,.07); border-color: rgba(61,139,110,.20); }
+  .cb-hpc .cb-t { color: var(--c1); }
+  .cb-qc  { background: rgba(13,126,168,.07); border-color: rgba(13,126,168,.20); }
+  .cb-qc  .cb-t { color: var(--c3); }
+  .cb-ai  { background: rgba(176,112,8,.07); border-color: rgba(176,112,8,.20); }
+  .cb-ai  .cb-t { color: var(--c5); }
+
+  /* output pills */
+  .opills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opill {
+    flex: 1 1 120px;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px; font-weight: 600;
+    border: 1px solid var(--c6d);
+    background: var(--c6b);
+    color: #68d9a0;
+    text-align: center;
+  }
+  .opill small { display: block; font-size: 9.5px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+  /* layer colours */
+  .l1 { border: 1px solid var(--c1d); background: var(--c1b); }
+  .l1 .lh { background: rgba(61,139,110,.08); border-bottom: 1px solid var(--c1d); }
+  .l1 .lnum { background: var(--c1d); color: #68d9a0; }
+  .l1 .ltitle { color: #68d9a0; }
+
+  .l2 { border: 1px solid var(--c2d); background: var(--c2b); }
+  .l2 .lh { background: rgba(21,101,192,.08); border-bottom: 1px solid var(--c2d); }
+  .l2 .lnum { background: var(--c2d); color: #7ab4f5; }
+  .l2 .ltitle { color: #7ab4f5; }
+
+  .l3 { border: 1px solid var(--c3d); background: var(--c3b); }
+  .l3 .lh { background: rgba(13,126,168,.08); border-bottom: 1px solid var(--c3d); }
+  .l3 .lnum { background: var(--c3d); color: #6dd5f0; }
+  .l3 .ltitle { color: #6dd5f0; }
+
+  .l4 { border: 1px solid var(--c4d); background: var(--c4b); }
+  .l4 .lh { background: rgba(109,61,138,.08); border-bottom: 1px solid var(--c4d); }
+  .l4 .lnum { background: var(--c4d); color: #c0a0e0; }
+  .l4 .ltitle { color: #c0a0e0; }
+
+  .l5 { border: 1px solid var(--c5d); background: var(--c5b); }
+  .l5 .lh { background: rgba(176,112,8,.08); border-bottom: 1px solid var(--c5d); }
+  .l5 .lnum { background: var(--c5d); color: #f0c040; }
+  .l5 .ltitle { color: #f0c040; }
+
+  .l6 { border: 1px solid var(--c6d); background: var(--c6b); }
+  .l6 .lh { background: rgba(26,122,74,.08); border-bottom: 1px solid var(--c6d); }
+  .l6 .lnum { background: var(--c6d); color: #68d9a0; }
+  .l6 .ltitle { color: #68d9a0; }
+
+  /* ── provenance column (right) ── */
+  .prov {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
+    align-self: center;
+  }
+  .ppill {
+    border-radius: 6px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .ppill .pid  { font-size: 12px; font-weight: 700; margin-bottom: 1px; }
+  .ppill .plbl { font-size: 10.5px; color: var(--muted); }
+  .ppill.p9    { border-color: var(--p9-bd); background: var(--p9-bg); }
+  .ppill.p9 .pid  { color: var(--p9-clr); }
+  .ppill.p8    { border-color: var(--p8-bd); background: var(--p8-bg); }
+  .ppill.p8 .pid  { color: var(--p8-clr); }
+  .pnone { font-size: 10.5px; color: var(--muted); font-style: italic; padding: 6px 2px; }
+  .p9tag {
+    font-size: 8.5px; color: var(--p9-clr);
+    background: var(--p9-bg); border: 1px solid var(--p9-bd);
+    border-radius: 3px; padding: 1px 5px;
+    display: inline-block; margin-top: 3px;
+  }
+
+  /* ── connector ── */
+  .conn {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 12px;
+    height: 28px;
+    align-items: center;
+  }
+  .conn-line {
+    display: flex; justify-content: center; align-items: center;
+    height: 100%; position: relative;
+  }
+  .conn-line::before {
+    content:''; position:absolute;
+    left:50%; top:0; bottom:0; width:1px;
+    background: var(--border);
+    transform:translateX(-50%);
+  }
+  .conn-lbl {
+    font-size: 9.5px; color: var(--muted);
+    position: relative; z-index: 1;
+    background: var(--bg);
+    padding: 0 8px;
+  }
+
+  /* ── P8 seal ── */
+  .seal-wrap {
+    max-width: 980px; margin: 24px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 12px;
+    align-items: start;
+  }
+  .seal-card {
+    border: 1.5px solid var(--p8-bd);
+    background: var(--p8-bg);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .seal-id  { font-size: 13px; font-weight: 700; color: var(--p8-clr); margin-bottom: 4px; }
+  .seal-sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .hash-chain { font-size: 10.5px; color: var(--muted); margin-bottom: 10px; }
+  .hash-chain span { color: #7ab4f5; }
+  .seal-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seal-pill {
+    font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--p8-bd);
+    color: var(--p8-clr);
+    background: rgba(26,122,74,.08);
+  }
+
+  footer {
+    max-width: 980px; margin: 40px auto 0;
+    font-size: 11px; color: var(--muted);
+    text-align: center; line-height: 1.9;
+  }
+  footer em { color: #58a6ff; font-style: normal; }
+
+  @media (max-width: 680px) {
+    .col-headers, .row, .conn, .seal-wrap { grid-template-columns: 1fr; }
+    .prov, .seal-card { display: none; }
+  }
+
+  /* ── ownership callout ── */
+  .own-callout {
+    max-width: 980px;
+    margin: 0 auto 28px;
+    background: rgba(224,90,43,.07);
+    border: 1px solid rgba(224,90,43,.28);
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 12px;
+    color: #c9d1d9;
+    line-height: 1.65;
+  }
+  .own-callout strong { color: #e05a2b; }
+
+  /* ── ownership map ── */
+  .own-section {
+    max-width: 980px;
+    margin: 48px auto 0;
+  }
+  .own-section-title {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .own-writer {
+    background: rgba(224,90,43,.10);
+    border: 1.5px solid rgba(224,90,43,.40);
+    border-radius: 10px;
+    padding: 18px 24px;
+    text-align: center;
+    margin-bottom: 0;
+  }
+  .own-writer-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: rgba(224,90,43,.85);
+    margin-bottom: 4px;
+  }
+  .own-writer-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e2d9d4;
+    margin-bottom: 6px;
+  }
+  .own-writer-sub {
+    font-size: 11px;
+    color: #c9d1d9;
+    margin-bottom: 10px;
+  }
+  .own-p8-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--p8-bg);
+    border: 1px solid var(--p8-bd);
+    color: var(--p8-clr);
+    border-radius: 6px;
+    padding: 4px 12px;
+  }
+  .own-arrows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    max-width: 600px;
+    margin: 0 auto;
+    height: 52px;
+    position: relative;
+  }
+  .own-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 0;
+    position: relative;
+    gap: 0;
+  }
+  .own-arrow::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 16px;
+    width: 1.5px;
+    background: rgba(224,90,43,.35);
+  }
+  .own-arrow-cap {
+    font-size: 9.5px;
+    color: rgba(224,90,43,.75);
+    font-weight: 600;
+    letter-spacing: .04em;
+    background: var(--bg);
+    padding: 0 6px;
+    margin-bottom: 4px;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .own-arrow-chevron {
+    font-size: 14px;
+    color: rgba(224,90,43,.55);
+    line-height: 1;
+  }
+  .own-lower {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .own-box {
+    border-radius: 9px;
+    padding: 14px 16px;
+  }
+  .own-box.qk {
+    background: rgba(13,126,168,.10);
+    border: 1px solid rgba(13,126,168,.30);
+  }
+  .own-box.hs {
+    background: rgba(139,148,158,.08);
+    border: 1px solid rgba(139,148,158,.25);
+  }
+  .own-box-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .own-box.qk .own-box-label { color: #6dd5f0; }
+  .own-box.hs .own-box-label { color: var(--muted); }
+  .own-box-name {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .own-box.qk .own-box-name { color: #6dd5f0; }
+  .own-box.hs .own-box-name { color: #c9d1d9; }
+  .own-box-tech {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .own-ppills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .own-ppill {
+    font-size: 10.5px;
+    font-weight: 700;
+    border-radius: 5px;
+    padding: 3px 9px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: #c9d1d9;
+  }
+  .own-ppill-lbl {
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--muted);
+    display: block;
+    line-height: 1.3;
+  }
+  .own-callout-note {
+    max-width: 980px;
+    margin: 12px auto 0;
+    font-size: 10.5px;
+    color: var(--muted);
+    text-align: center;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SOLANGE™ Operational Stack &amp; Provenance</h1>
+  <p>6-layer pipeline · FDA 21 CFR Part 11 P1–P9 obligations per layer</p>
+  <div class="subtitle">Merges: Operational Stack + Provenance Schema</div>
+</header>
+
+<div class="own-callout">
+  <strong>Provenance ownership:</strong> all P-elements are <strong>written by Layer 3 (SOLANGE)</strong> — the orchestration engine wraps each lower layer and records what it observes. The pipeline layer shown in the right column indicates what each P-element <em>describes</em>, not who writes it. P8 is the cryptographic seal that Layer 3 applies to the complete record.
+</div>
+
+<div class="col-headers">
+  <div class="col-h">Pipeline Layer — what happens</div>
+  <div class="col-h">Provenance emitted — P1–P9</div>
+</div>
+
+<div class="diagram">
+
+  <!-- ── LAYER 1 ── -->
+  <div class="row">
+    <div class="layer l1">
+      <div class="lh">
+        <div class="lnum">1</div>
+        <div class="ltitle">Clinical Problem Definition</div>
+        <div class="lsub">TCGA · COSMIC · ClinVar · RCSB PDB</div>
+      </div>
+      <div class="lbody">
+        <div class="chips">
+          <div class="chip"><div class="chip-t">NSCLC Mutation Database</div><div class="chip-s">TCGA · COSMIC · ClinVar · cBioPortal</div></div>
+          <div class="chip"><div class="chip-t">Protein Structure Repository</div><div class="chip-s">PDB · AlphaFold2 · RCSB</div></div>
+          <div class="chip hi"><div class="chip-t">Non-Druggable Target Selector <span class="novel">★</span></div><div class="chip-s">TP53 · STK11 · KEAP1 · CDKN2A · NF1 — the ~60% with no approved therapy</div></div>
+          <div class="chip"><div class="chip-t">Clinical Context Engine</div><div class="chip-s">Mutation frequency · co-mutation patterns · survival correlation</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="prov">
+      <div class="pnone">No direct P-element — triggers P1 generation at Layer 3</div>
+    </div>
+  </div>
+
+  <div class="conn">
+    <div class="conn-line"><span class="conn-lbl">Target protein + mutation profile → Problem formulation</span></div>
+    <div></div>
+  </div>
+
+  <!-- ── LAYER 2 ── -->
+  <div class="row">
+    <div class="layer l2">
+      <div class="lh">
+        <div class="lnum">2</div>
+        <div class="ltitle">Data Pre-processing &amp; Encoding</div>
+        <div class="lsub">Qiskit · CASSCF · Jordan–Wigner</div>
+      </div>
+      <div class="lbody">
+        <div class="chips">
+          <div class="chip"><div class="chip-t">Protein Preparation</div><div class="chip-s">Protonation · solvation · force field assignment</div></div>
+          <div class="chip hi"><div class="chip-t">Mutation-Aware Active Space <span class="novel">Novel</span></div><div class="chip-s">CASSCF — TP53 C275F · KEAP1 · STK11 · 24e local / 44e full active spaces per mutation</div></div>
+          <div class="chip"><div class="chip-t">Qubit Encoder</div><div class="chip-s">Jordan–Wigner / Bravyi–Kitaev fermion-to-qubit mapping</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="prov">
+      <div class="ppill"><div class="pid" style="color:#7ab4f5">P2</div><div class="plbl">Compilation lineage</div></div>
+    </div>
+  </div>
+
+  <div class="conn">
+    <div class="conn-line"><span class="conn-lbl">Encoded Hamiltonian → Orchestration engine</span></div>
+    <div></div>
+  </div>
+
+  <!-- ── LAYER 3 ── -->
+  <div class="row">
+    <div class="layer l3">
+      <div class="lh">
+        <div class="lnum">3</div>
+        <div class="ltitle">Orchestration Engine</div>
+        <div class="lsub">★ Core IT Contribution</div>
+      </div>
+      <div class="lbody">
+        <div class="chips">
+          <div class="chip"><div class="chip-t">Workflow Scheduler</div><div class="chip-s">Decomposes problem into HPC / QC / AI sub-tasks · routes jobs · monitors SLA</div></div>
+          <div class="chip hi"><div class="chip-t">Translational Orchestrator <span class="novel">IT Core</span></div><div class="chip-s">Routes across IBM Heron (Qiskit) and Nvidia substrate (CUDA-Q · NVQLink) — bifurcation-aware, workflow-portable</div></div>
+          <div class="chip"><div class="chip-t">Task Decomposition Engine</div><div class="chip-s">Breaks molecular simulation into parallelizable quantum circuit batches</div></div>
+          <div class="chip"><div class="chip-t">Result Aggregator</div><div class="chip-s">Assembles full binding affinity estimate · triggers AI re-scoring</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="prov">
+      <div class="ppill"><div class="pid" style="color:#6dd5f0">P1</div><div class="plbl">Circuit fingerprint</div></div>
+      <div class="ppill"><div class="pid" style="color:#6dd5f0">P3</div><div class="plbl">Device &amp; calibration</div></div>
+      <div class="ppill"><div class="pid" style="color:#6dd5f0">P4</div><div class="plbl">Error budget snapshot</div></div>
+      <div class="ppill"><div class="pid" style="color:#6dd5f0">P5</div><div class="plbl">Raw outcome distribution</div></div>
+    </div>
+  </div>
+
+  <div class="conn">
+    <div class="conn-line"><span class="conn-lbl">Dispatched compute jobs → Heterogeneous compute layer</span></div>
+    <div></div>
+  </div>
+
+  <!-- ── LAYER 4 ── -->
+  <div class="row">
+    <div class="layer l4">
+      <div class="lh">
+        <div class="lnum">4</div>
+        <div class="ltitle">Heterogeneous Compute</div>
+        <div class="lsub">HPC · Quantum · AI</div>
+      </div>
+      <div class="lbody">
+        <div class="trio">
+          <div class="cb cb-hpc">
+            <div class="cb-t">⚙ HPC Node</div>
+            <div class="cb-r">MD Simulation (GROMACS / OpenMM)</div>
+            <div class="cb-r">DFT Baseline (ORCA / Gaussian)</div>
+            <div class="cb-r">CCSD(T) Reference (high-accuracy)</div>
+          </div>
+          <div class="cb cb-qc">
+            <div class="cb-t">⚛ Quantum Computer</div>
+            <div class="cb-r">VQE + sqDRIFT — ground-state energy</div>
+            <div class="cb-r">Error mitigation: ZNE · Pauli Twirling</div>
+            <div class="cb-r">Phase 3A: PennyLane simulator · Phase 3B: IBM Heron r3</div>
+          </div>
+          <div class="cb cb-ai">
+            <div class="cb-t">🤖 AI Engine</div>
+            <div class="cb-r">Binding affinity ML (DeepChem / GNN)</div>
+            <div class="cb-r">Nvidia Ising 3D CNN QEC decoder (Apr 2026)</div>
+            <div class="cb-r">Generative design · cryptic pocket predictor</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="prov">
+      <div class="ppill"><div class="pid" style="color:#c0a0e0">P6</div><div class="plbl">Error-mitigation lineage</div></div>
+      <div class="ppill p9"><div class="pid">P9*</div><div class="plbl">ML-decoder lineage</div><div class="p9tag">conditional · Nvidia Ising</div></div>
+    </div>
+  </div>
+
+  <div class="conn">
+    <div class="conn-line"><span class="conn-lbl">Raw results → Validation &amp; compliance layer</span></div>
+    <div></div>
+  </div>
+
+  <!-- ── LAYER 5 ── -->
+  <div class="row">
+    <div class="layer l5">
+      <div class="lh">
+        <div class="lnum">5</div>
+        <div class="ltitle">Validation &amp; Compliance</div>
+        <div class="lsub">★ Regulatory Contribution</div>
+      </div>
+      <div class="lbody">
+        <div class="chips">
+          <div class="chip hi"><div class="chip-t">FDA 21 CFR Part 11 Module <span class="novel">Novel</span></div><div class="chip-s">P1–P9 provenance record · audit trails · electronic signatures · statistical-equivalence validation</div></div>
+          <div class="chip hi"><div class="chip-t">BQP-Relevance Benchmarking <span class="novel">Novel</span></div><div class="chip-s">QC vs DFT vs CCSD(T) — non-druggable oncology mutations at the empirically quantum-advantaged boundary</div></div>
+          <div class="chip"><div class="chip-t">Reproducibility Engine</div><div class="chip-s">Circuit fingerprint · calibration epoch · per-gate error budget · raw outcome distribution</div></div>
+          <div class="chip"><div class="chip-t">Statistical Validation</div><div class="chip-s">VQE convergence · energy variance · bootstrap CI · cross-validation</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="prov">
+      <div class="ppill"><div class="pid" style="color:#f0c040">P7</div><div class="plbl">Statistical estimator / CI</div></div>
+    </div>
+  </div>
+
+  <div class="conn">
+    <div class="conn-line"><span class="conn-lbl">Validated results → Governance &amp; outputs</span></div>
+    <div></div>
+  </div>
+
+  <!-- ── LAYER 6 ── -->
+  <div class="row">
+    <div class="layer l6">
+      <div class="lh">
+        <div class="lnum">6</div>
+        <div class="ltitle">Governance &amp; Research Outputs</div>
+        <div class="lsub">FDA 21 CFR Part 11 · P8 seal</div>
+      </div>
+      <div class="lbody">
+        <div class="opills">
+          <div class="opill">Binding Energy Rankings<small>TP53 · STK11 · KEAP1 candidates</small></div>
+          <div class="opill">Benchmarking Report<small>QC vs DFT vs CCSD accuracy</small></div>
+          <div class="opill">Compliance Documentation<small>FDA 21 CFR Part 11 framework</small></div>
+          <div class="opill">Reproducible Methodology<small>Open · translational · citable</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="prov">
+      <div class="ppill p8"><div class="pid">P8</div><div class="plbl">Cryptographic seal · signs P1–P7 + P9</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── P8 seal summary ── -->
+<div class="seal-wrap">
+  <div class="seal-card">
+    <div class="seal-id">P8 — Cryptographic Seal (SHA-256)</div>
+    <div class="seal-sub">Tamper-evident record binding all provenance elements · FDA 21 CFR §11.10(e) audit trail-aligned</div>
+    <div class="hash-chain">
+      hash chain: <span>P1</span> → <span>P2</span> → <span>P3</span> → <span>P4</span> →
+      <span>P5</span> → <span>P6</span> → <span>P7</span> + <span>P9</span> → <span>P8</span>
+    </div>
+    <div class="seal-pills">
+      <div class="seal-pill">Governed · Auditable</div>
+      <div class="seal-pill">§11.10(e) audit trail-aligned</div>
+      <div class="seal-pill">95% CI</div>
+      <div class="seal-pill">Cross-vendor reproducible</div>
+    </div>
+  </div>
+  <div></div>
+</div>
+
+<div class="own-section">
+  <div class="own-section-title">Provenance ownership model — who writes what</div>
+
+  <!-- SOLANGE writer box -->
+  <div class="own-writer">
+    <div class="own-writer-label">Provenance Writer · Layer 3</div>
+    <div class="own-writer-name">SOLANGE™ — Orchestration Engine</div>
+    <div class="own-writer-sub">Wraps Layers 1 &amp; 2 · captures their outputs · governs the full record · enforces FDA 21 CFR Part 11</div>
+    <div class="own-p8-badge">P8 · Cryptographic seal — signs the complete chain</div>
+  </div>
+
+  <!-- arrows -->
+  <div class="own-arrows">
+    <div class="own-arrow">
+      <div class="own-arrow-cap">captures P1 P3 P4 P5</div>
+      <div class="own-arrow-chevron">↓</div>
+    </div>
+    <div class="own-arrow">
+      <div class="own-arrow-cap">captures P2 P6 P7 P9*</div>
+      <div class="own-arrow-chevron">↓</div>
+    </div>
+  </div>
+
+  <!-- lower two boxes -->
+  <div class="own-lower">
+    <div class="own-box qk">
+      <div class="own-box-label">Layer 1 · Quantum Kernel</div>
+      <div class="own-box-name">IBM Heron r3 + SqDRIFT</div>
+      <div class="own-box-tech">Executes circuits · has no compliance machinery of its own</div>
+      <div class="own-ppills">
+        <div class="own-ppill">P1<span class="own-ppill-lbl">Circuit fingerprint</span></div>
+        <div class="own-ppill">P3<span class="own-ppill-lbl">Device &amp; calibration</span></div>
+        <div class="own-ppill">P4<span class="own-ppill-lbl">Error budget snapshot</span></div>
+        <div class="own-ppill">P5<span class="own-ppill-lbl">Raw outcome dist.</span></div>
+      </div>
+    </div>
+    <div class="own-box hs">
+      <div class="own-box-label">Layer 2 · Hybrid Substrate</div>
+      <div class="own-box-name">CUDA-Q · NVQLink · DFT · DeepChem</div>
+      <div class="own-box-tech">Compiles, pre/post-processes · commodity infrastructure</div>
+      <div class="own-ppills">
+        <div class="own-ppill">P2<span class="own-ppill-lbl">Compilation lineage</span></div>
+        <div class="own-ppill">P6<span class="own-ppill-lbl">Error-mitigation lineage</span></div>
+        <div class="own-ppill">P7<span class="own-ppill-lbl">Statistical estimator / CI</span></div>
+        <div class="own-ppill" style="border-color:var(--p9-bd);background:var(--p9-bg);color:var(--p9-clr)">P9*<span class="own-ppill-lbl" style="color:var(--p9-clr);opacity:.7">ML-decoder lineage</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="own-callout-note">* P9 is conditional — emitted only when Nvidia Ising 3D CNN QEC decoder is active (Phase 3B hardware execution)</div>
+</div>
+
+<footer>
+  <em>★ Novel IS contributions</em> — Layers 3 and 5 are the dissertation's primary IT artifacts<br>
+  * P9 is conditional — emitted only when Nvidia Ising 3D CNN QEC decoder is active (Phase 3B)<br>
+  SOLANGE™ Operational Stack &amp; Provenance · IST 697 · Doron Cohen · CGU 2026
+</footer>
+
+</body>
+</html>

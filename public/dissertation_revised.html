@@ -2421,61 +2421,13 @@
 
       <h3 id="sec-7-artifacts">7.1 · Deployed Artifacts &amp; Research Outputs</h3>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Artifact</th>
-              <th>Type</th>
-              <th>Access</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>SOLANGE Platform</strong> — Live prototype with 3D simulation, VQE engine, NGS upload, P1–P9 provenance</td>
-              <td>Web platform</td>
-              <td><a href='Assignment10_Prototype.html' target='_blank'>Open Platform</a> · <a href='https://solange-platform.bio'>solange-platform.bio</a></td>
-            </tr>
-            <tr>
-              <td><strong>QC·AI·HPC Architecture Diagram</strong> — Three-layer orchestration architecture with workflow context</td>
-              <td>Interactive HTML</td>
-              <td><a href='QC_AI_HPC_Architecture.html' target='_blank'>Open Diagram</a></td>
-            </tr>
-            <tr>
-              <td><strong>P1–P9 Provenance Schema Diagram</strong> — Nine-field FDA Part 11 audit-trail record architecture</td>
-              <td>Interactive HTML</td>
-              <td><a href='P1_P9_Architecture_Diagram.html' target='_blank'>Open Diagram</a></td>
-            </tr>
-            <tr>
-              <td><strong>Unified Architecture Report</strong> — Full system architecture documentation</td>
-              <td>HTML report</td>
-              <td><a href='unified_architecture.html' target='_blank'>Open Report</a></td>
-            </tr>
-            <tr>
-              <td><strong>System Architecture Report</strong> — Component-level architecture breakdown</td>
-              <td>HTML report</td>
-              <td><a href='System_Architecture_Report.html' target='_blank'>Open Report</a></td>
-            </tr>
-            <tr>
-              <td><strong>arXiv Preprint</strong> — IST697 dissertation pre-submission draft</td>
-              <td>PDF</td>
-              <td><a href='../arxiv/main.pdf' target='_blank'>Open PDF</a></td>
-            </tr>
-            <tr>
-              <td><strong>Conference Poster</strong> — IST697 Final Poster (PPTX)</td>
-              <td>PPTX</td>
-              <td><a href='../arxiv/IST697_Final_Poster.pptx'>Download Poster</a></td>
-            </tr>
-            <tr>
-              <td><strong>GitHub Repository</strong> — Full source: platform, backend, PySCF scripts, JW Hamiltonians, dissertation HTML</td>
-              <td>Repository</td>
-              <td><a href='https://github.com/doron66-collab/lili2014' target='_blank'>github.com/doron66-collab/lili2014</a></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ul style="list-style:none;padding:0;margin:0 0 1.5em 0;line-height:2.2">
+        <li><a href='https://solange-platform.bio' target='_blank'>SOLANGE Platform - Live prototype + 3D simulation</a></li>
+        <li><a href='three_layer_architecture.html' target='_blank'>SOLANGE Platform Architecture</a></li>
+<li><a href='platform_architecture_provenance.html' target='_blank'>SOLANGE Operational Stack</a></li>
+      </ul>
 
-      <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Phase 3A is live: <a href="#glos-VQE" class="glos-link">VQE</a> ground-state energies are computed in real time by the PennyLane <code>default.qubit</code> simulator backend and stored with full P1–P9 provenance records in Supabase. The 3D visualization is a schematic representation of known <a href="#glos-TP53" class="glos-link">TP53</a> secondary structure, loop topology, and zinc coordination - not crystallographic data. All five artifacts together demonstrate the architecture's design logic, provenance obligations, and stakeholder communication capability.</p>
+      <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Phase 3A is live: <a href="#glos-VQE" class="glos-link">VQE</a> ground-state energies are computed in real time by the PennyLane <code>default.qubit</code> simulator backend and stored with full P1–P9 provenance records in Supabase. The 3D visualization is a schematic representation of known <a href="#glos-TP53" class="glos-link">TP53</a> secondary structure, loop topology, and zinc coordination - not crystallographic data. All four artifacts together demonstrate the architecture's design logic, provenance obligations, and stakeholder communication capability.</p>
 
       <p>The Phase 3A implementation uses a real two-electron active space derived from PySCF CASSCF(2,2) calculations on isolated sidechain model compounds — not placeholder values. The Hamiltonians are computed from actual quantum chemistry: RHF reference wavefunction followed by CASSCF(2,2) with STO-3G basis, transformed to qubit operators via the Jordan-Wigner encoding (openfermion), yielding 27 exact Pauli terms per compound. The VQE circuit uses a 4-qubit AllSinglesDoubles UCCSD ansatz with Hartree-Fock initial state |1100⟩, optimized with the Adam optimizer over 200 steps on the PennyLane <code>default.qubit</code> simulator. Total energies returned are ecore + VQE active-space energy, matching the CASSCF reference. <strong>These are the maximum computationally achievable values on a classical laptop for a CAS(2e,2o) active space.</strong> The research question Phase 3A answers is whether every architectural component functions correctly end-to-end under a real authentication, provenance, and audit-trail regime — including the <a href="#glos-RBAC" class="glos-link">RBAC</a> access layer, <a href="#glos-JWT" class="glos-link">JWT</a> user attribution, Supabase persistent storage, and SHA-256 cryptographic sealing. The eight mutation target combinations produce distinct energies and distinct P8 SHA-256 seals, demonstrating that the governance architecture correctly differentiates between simulation runs. <strong>The scientific scope of Phase 3A is the isolated sidechain fragment, not the protein</strong> — see §7.2 and §8 for the explicit scope boundary.</p>
 
@@ -2657,6 +2609,9 @@
 
       <h4>Hardware Scale</h4>
       <p>Full 44-electron active-site simulation on IBM Heron r3 is designated Phase 3B — and is no longer a speculative future target. In May 2026, Merz et al. (Cleveland Clinic / RIKEN / IBM, arXiv:2605.01138) demonstrated that 94-qubit quantum chemistry on IBM Heron r2 hardware achieves chemical accuracy (0.10 mHa vs. DMRG) for a 12,635-atom protein-ligand complex using EWF-TrimSQD. C275F's ~88-qubit full active-site requirement falls within this demonstrated range; the architecture this dissertation defines is designed to govern exactly this class of computation. Full active-site execution on physical IBM Heron r3 remains pending institutional IBM Quantum Network access, but is now confirmed feasible by external hardware precedent. <strong>The architecture is hardware-agnostic at the workflow level and vendor-specific at the compilation and error-mitigation layer</strong> - IBM Heron r3 is one supported backend among several, with documented translation overhead at the lower layers.</p>
+
+      <h4>Three-Level Execution Model</h4>
+      <p>The platform operates across three distinct execution levels, each with different infrastructure prerequisites. <strong>Level 1 — current deployed prototype:</strong> runs on commodity cloud infrastructure (Render free tier); uses CAS(2,2) / 4-qubit inputs derived from PySCF CASSCF on isolated sidechain fragments. This is the maximum active-space size achievable on a laptop or free-tier server. It fully validates the governance architecture, P1–P9 provenance pipeline, and FDA Part 11 compliance framework. <strong>Level 2 — full Phase 3A:</strong> the 24-electron local active-space simulation (~48 qubits under Jordan-Wigner encoding) cannot run on a laptop — a statevector simulation at this scale requires tens of terabytes of RAM. It requires an HPC-based quantum simulator: a university HPC cluster, an NSF ACCESS allocation, or IBM's cloud simulator service. The execution prerequisite is <em>HPC access</em>, not quantum hardware. <strong>Level 3 — Phase 3B:</strong> the 44-electron full active-site simulation (~88 qubits) requires physical IBM Heron r3 hardware. The execution prerequisite is <em>IBM Quantum Network institutional access</em>. The IS contribution is fully demonstrated at Level 1 and scales without re-derivation through Levels 2 and 3.</p>
 
       <h4>Regulatory Scope</h4>
       <p>The compliance framework addresses data governance and audit trail requirements. It does not constitute an <a href="#glos-FDA" class="glos-link">FDA</a> submission or clinical trial regulation.</p>
