@@ -1895,7 +1895,7 @@ function updateAllTabs(data) {
     <div class="audit-row">
       <div class="audit-time">+${r.elapsed_s}s</div>
       <div class="audit-dot" style="background:var(--green)"></div>
-      <div><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: ${rec.p8_hash} · All provenance elements locked · FDA 21 CFR §11.10(e) audit trail-aligned</div>
+      <div style="word-break:break-word"><strong>P8 cryptographic seal applied</strong> — Algorithm: ${rec.p8_algorithm} · Seal: <span style="font-family:monospace;font-size:10px">${rec.p8_hash ? rec.p8_hash.slice(0,16) + '…' : '—'}</span> · All provenance elements locked · FDA 21 CFR §11.10(e) audit trail-aligned</div>
     </div>`;
 
 
