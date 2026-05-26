@@ -405,7 +405,7 @@
 
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="closeNGSReview()" style="background:rgba(255,255,255,0.05);color:var(--gray);border:1px solid rgba(255,255,255,0.1);padding:9px 20px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Cancel</button>
-      <button onclick="confirmNGSReview()" style="background:var(--teal);color:#0a1628;border:none;padding:9px 24px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✓ Load Report</button>
+      <button onclick="confirmNGSReview()" style="background:var(--teal);color:var(--white);border:none;padding:9px 24px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✓ Load Report</button>
     </div>
   </div>
 </div>
@@ -483,7 +483,7 @@
       <p id="dash-subtitle" style="color:var(--white)">NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:#223244;border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Report (MI25-0349)</button>
+      <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--white);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Report (MI25-0349)</button>
       <button onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
       <input type="file" id="ngs-upload-input" accept=".json,.pdf" style="display:none" onchange="handleNGSUpload(event)">
       <button onclick="resetPlatform()" style="background:#dc2626;color:#ffffff;border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↺ Reset Platform</button>
@@ -919,7 +919,7 @@
   </div>
 
   <div style="text-align:center;margin-top:20px">
-    <button onclick="show('s3')" style="background:var(--gold);color:#223244;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+    <button onclick="show('s3')" style="background:var(--gold);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
       View Simulation Results →
     </button>
   </div>
@@ -1290,7 +1290,7 @@
     <button onclick="window.open('platform_architecture_provenance.html','_blank')" style="background:linear-gradient(135deg,#153358,#0B1E3D);color:#00c8ff;border:1.5px solid rgba(0,168,214,0.55);padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.4px;box-shadow:0 0 14px rgba(0,168,214,0.18)">
       ⬡ SOLANGE Operational Stack
     </button>
-    <button onclick="exportPDF()" style="background:var(--green);color:#223244;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+    <button onclick="exportPDF()" style="background:var(--green);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
       Export Full Report (PDF)
     </button>
   </div>
@@ -1303,7 +1303,7 @@
       <div style="font-size:18px;font-weight:700;color:#dc2626">🛡 Admin Console</div>
       <div style="font-size:11px;color:var(--white);margin-top:3px">Platform access log · Simulation runs · User management</div>
     </div>
-    <button onclick="show('s1')" style="background:rgba(255,255,255,0.05);color:#223244;border:1px solid var(--border);padding:7px 16px;border-radius:6px;font-size:11px;cursor:pointer">← Back</button>
+    <button onclick="show('s1')" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);padding:7px 16px;border-radius:6px;font-size:11px;cursor:pointer">← Back</button>
   </div>
 
   <!-- Stats row -->
