@@ -2711,8 +2711,8 @@ function resetPlatform() {
   // ── Compliance — status banner ────────────────────────────────────────
   if (el('comp-status-alert')) {
     el('comp-status-alert').className = 'alert';
-    el('comp-status-alert').style.cssText = 'margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border)';
-    el('comp-status-alert').innerHTML = '<span style="color:var(--gray)">○ No simulation run yet — load an NGS report and run a VQE/sqDRIFT simulation to generate a compliance record.</span>';
+    el('comp-status-alert').style.cssText = 'margin-bottom:16px;background:rgba(0,200,180,0.08);border:1px solid rgba(0,200,180,0.4);color:var(--white)';
+    el('comp-status-alert').innerHTML = '<span style="color:var(--white)">○ No simulation run yet — load an NGS report and run a VQE/sqDRIFT simulation to generate a compliance record.</span>';
   }
 
   // ── Compliance — audit trail ──────────────────────────────────────────
