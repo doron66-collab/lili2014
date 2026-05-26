@@ -34,10 +34,10 @@ export default function IntroScreen({ onEnter }: Props) {
       </div>
 
       <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>
-        QC·AI·HPC
+        SOLANGE
       </div>
       <div style={{ fontSize: 13, color: 'rgba(150,200,255,0.85)', letterSpacing: 2, marginBottom: 6 }}>
-        QUANTUM SIMULATION PLATFORM
+        3D QUANTUM SIMULATION PLATFORM
       </div>
       <div style={{ fontSize: 10, color: 'rgba(100,150,200,0.6)', letterSpacing: 1.5, marginBottom: 48 }}>
         Non-Druggable NSCLC Mutation Targets · TP53 · KEAP1 · STK11 · CDKN2A
