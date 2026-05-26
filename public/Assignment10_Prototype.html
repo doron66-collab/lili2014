@@ -456,7 +456,7 @@
   <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase">Account Settings</div>
   <div style="font-size:12px;color:var(--white);margin-bottom:14px" id="menu-email"></div>
 
-  <div id="pw-change-section">
+  <div id="pw-change-section" style="display:none">
   <div style="font-size:11px;font-weight:600;color:var(--gray);margin-bottom:6px">Change Password</div>
   <input type="password" id="new-password" placeholder="New password (min 6 chars)"
     style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
@@ -1470,9 +1470,9 @@ async function showPlatform(user) {
   document.getElementById('user-label').textContent  = email;
   document.getElementById('menu-email').textContent  = email;
 
-  // Hide password change for guest account
-  if (email === 'guest@solange.bio')
-    document.getElementById('pw-change-section').style.display = 'none';
+  // Show password change only for non-guest accounts
+  if (email !== 'guest@solange.bio')
+    document.getElementById('pw-change-section').style.display = 'block';
 
   // Detect admin role and show admin tab if applicable
   try {
@@ -1582,8 +1582,6 @@ function toggleUserMenu() {
   document.getElementById('pw-msg').style.display = 'none';
   document.getElementById('new-password').value = '';
   document.getElementById('confirm-password').value = '';
-  if (document.getElementById('menu-email').textContent === 'guest@solange.bio')
-    document.getElementById('pw-change-section').style.display = 'none';
 }
 
 // Close menu when clicking outside
@@ -1597,6 +1595,8 @@ document.addEventListener('click', e => {
 });
 
 async function changePassword() {
+  if (document.getElementById('menu-email').textContent === 'guest@solange.bio') return;
+
   const np  = document.getElementById('new-password').value;
   const cp  = document.getElementById('confirm-password').value;
   const msg = document.getElementById('pw-msg');
