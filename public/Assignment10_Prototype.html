@@ -1042,7 +1042,7 @@
       <circle id="convergence-end-dot" cx="0" cy="0" r="4" fill="var(--teal)" opacity="0" />
       <!-- Ground state reference line -->
       <line id="convergence-ref-line" x1="52" x2="510" y1="0" y2="0" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3" opacity="0"/>
-      <text id="convergence-ref-label" x="514" y="0" fill="rgba(34,197,94,0.7)" font-size="7" text-anchor="start" opacity="0">E₀</text>
+      <text id="convergence-ref-label" x="500" y="0" fill="rgba(34,197,94,0.7)" font-size="7" text-anchor="end" opacity="0">E₀</text>
       <!-- Placeholder text -->
       <text id="convergence-placeholder" x="281" y="62" fill="rgba(100,150,200,0.3)" font-size="11" text-anchor="middle">Run simulation to plot live VQE convergence</text>
     </svg>
@@ -1780,7 +1780,7 @@ function updateResultsCharts(data) {
     const refLine = document.getElementById('convergence-ref-line');
     const refLabel = document.getElementById('convergence-ref-label');
     if (refLine) { refLine.setAttribute('y1', refY); refLine.setAttribute('y2', refY); refLine.setAttribute('opacity', '1'); }
-    if (refLabel) { refLabel.setAttribute('y', +refY - 3); refLabel.setAttribute('opacity', '1'); refLabel.textContent = `E₀ = ${r.energy_ha} Hₐ`; }
+    if (refLabel) { refLabel.setAttribute('y', +refY - 3); refLabel.setAttribute('x', '500'); refLabel.setAttribute('opacity', '1'); refLabel.textContent = `E₀ = ${r.energy_ha} Hₐ`; }
 
     // Y axis labels
     const fmt = v => v.toFixed(4);
