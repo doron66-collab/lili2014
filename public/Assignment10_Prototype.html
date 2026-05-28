@@ -1010,6 +1010,45 @@
     <div class="footnote" style="margin-top:10px">Energies in Hartree (Hₐ). More negative = lower ground state = tighter binding. Current session only — Reset clears chart.</div>
   </div>
 
+  <!-- VQE Convergence Chart -->
+  <div class="card" style="margin-bottom:16px" id="convergence-card">
+    <div style="display:flex;align-items:baseline;margin-bottom:4px">
+      <div class="card-title" style="margin-bottom:0;color:var(--white)" id="convergence-title">VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span></div>
+      <div style="margin-left:auto;font-size:10px;color:var(--teal)" id="convergence-badge"></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--gray);margin-bottom:12px" id="convergence-subtitle">Run a simulation to see the live convergence curve from PennyLane</div>
+    <svg id="convergence-svg" viewBox="0 0 520 130" style="width:100%;height:auto;display:block">
+      <!-- Y axis -->
+      <line x1="52" y1="8" x2="52" y2="108" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <!-- X axis -->
+      <line x1="52" y1="108" x2="510" y2="108" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <!-- Grid lines -->
+      <line x1="52" y1="33" x2="510" y2="33" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="52" y1="58" x2="510" y2="58" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="52" y1="83" x2="510" y2="83" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+      <!-- Y axis labels -->
+      <text id="conv-ylabel-top" x="48" y="12" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="end">—</text>
+      <text id="conv-ylabel-mid" x="48" y="62" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="end">—</text>
+      <text id="conv-ylabel-bot" x="48" y="112" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="end">—</text>
+      <!-- X axis labels -->
+      <text x="52"  y="122" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="middle">Iter 0</text>
+      <text x="183" y="122" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="middle" id="conv-xlabel-1">Iter 20</text>
+      <text x="314" y="122" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="middle" id="conv-xlabel-2">Iter 40</text>
+      <text x="445" y="122" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="middle" id="conv-xlabel-3">Iter 60</text>
+      <text x="510" y="122" fill="rgba(100,150,200,0.6)" font-size="7" text-anchor="middle" id="conv-xlabel-4">Iter 80</text>
+      <!-- Convergence line — drawn by JS -->
+      <polyline id="convergence-polyline" points="" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Final energy dot -->
+      <circle id="convergence-end-dot" cx="0" cy="0" r="4" fill="var(--teal)" opacity="0" />
+      <!-- Ground state reference line -->
+      <line id="convergence-ref-line" x1="52" x2="510" y1="0" y2="0" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3" opacity="0"/>
+      <text id="convergence-ref-label" x="514" y="0" fill="rgba(34,197,94,0.7)" font-size="7" text-anchor="start" opacity="0">E₀</text>
+      <!-- Placeholder text -->
+      <text id="convergence-placeholder" x="281" y="62" fill="rgba(100,150,200,0.3)" font-size="11" text-anchor="middle">Run simulation to plot live VQE convergence</text>
+    </svg>
+    <div class="footnote" style="margin-top:8px" id="convergence-footnote">Energy in Hartree (Hₐ) · X axis: Adam optimizer iterations · Y axis: total ground-state energy · Convergence = energy plateau</div>
+  </div>
+
   <!-- All-Target Summary Table -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title" id="bqp-card-title" style="color:var(--white)">All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status</div>
@@ -1700,71 +1739,76 @@ function updateResultsCharts(data) {
     `DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold · ` +
     `<span class="teal">* Live VQE: ${r.energy_ha} Hₐ (${electrons}e/2orb Phase 3A minimal active space)</span>`;
 
-  // 2. Convergence chart — mutation-specific synthetic curve + draw animation
-  const steps = rec.p5_opt_steps || 120;
-  const convIter = Math.round(steps * 0.72);
-  const nPts = 22;
-  const yTop = 8, yBot = 94;
-  // Per-mutation convergence profile: [rate, noiseAmp, convFrac]
-  const profiles = {
-    TP53_Y220C: [4.5, 6, 0.60],   // moderate, noisy early phase
-    TP53_C275F: [3.5, 8, 0.68],   // slower, noisier
-    KEAP1_LOF:  [2.8, 4, 0.78],   // slow smooth convergence
-    KEAP1_G333C:[3.2, 4, 0.72],   // Gly→Cys sulfur lone pairs, similar to LOF
-    KEAP1_R320Q:[3.5, 5, 0.70],   // Arg→Gln hypomorphic, partial LOF
-    STK11_LKB1: [5.5, 5, 0.55],   // fast drop, early plateau
-    STK11_F354L:[4.8, 6, 0.58],   // Phe→Leu loses pi-system, moderate
-    STK11_D194N:[4.2, 5, 0.62],   // Asp→Asn electrostatic shift
-  };
-  const [rate, noiseAmp, convFrac] = profiles[mutId] || [4.0, 5, 0.65];
-  const seed = Math.abs(r.energy_ha * 1e6) % 1000;
-  const pts = [];
-  for (let i = 0; i < nPts; i++) {
-    const t = i / (nPts - 1);
-    const x = Math.round(t * 300);
-    const decay = 1 - Math.exp(-rate * t);
-    const inNoisyZone = t < convFrac;
-    const noiseFactor = inNoisyZone ? (1 - t / convFrac) : 0;
-    const noise = inNoisyZone
-      ? (((seed * (i + 3) * 6271 + i * 1301) % 1000) / 1000 - 0.5) * noiseAmp * noiseFactor
-      : 0;
-    const y = +(yTop + (yBot - yTop) * decay + noise).toFixed(1);
-    pts.push(`${x},${Math.min(yBot, Math.max(yTop, y))}`);
+  // 2. Convergence chart — real PennyLane data
+  const convData = r.convergence || [];
+  if (convData.length > 0) {
+    const xLeft = 52, xRight = 510, yTop = 10, yBot = 105;
+    const eMin = Math.min(...convData);
+    const eMax = Math.max(...convData);
+    const eRange = eMax - eMin || 1e-6;
+    const pad = eRange * 0.08;
+
+    // Map energy values to SVG coordinates
+    const toX = i => xLeft + (i / (convData.length - 1)) * (xRight - xLeft);
+    const toY = e => yBot - ((e - (eMin - pad)) / (eRange + 2 * pad)) * (yBot - yTop);
+
+    const pts = convData.map((e, i) => `${toX(i).toFixed(1)},${toY(e).toFixed(1)}`).join(' ');
+
+    const poly = document.getElementById('convergence-polyline');
+    if (poly) {
+      poly.setAttribute('points', pts);
+      poly.style.transition = 'none';
+      const len = 800;
+      poly.style.strokeDasharray = len;
+      poly.style.strokeDashoffset = len;
+      requestAnimationFrame(() => {
+        poly.style.transition = 'stroke-dashoffset 2s ease-out';
+        poly.style.strokeDashoffset = '0';
+      });
+    }
+
+    // Final energy dot
+    const dot = document.getElementById('convergence-end-dot');
+    if (dot) {
+      dot.setAttribute('cx', toX(convData.length - 1).toFixed(1));
+      dot.setAttribute('cy', toY(convData[convData.length - 1]).toFixed(1));
+      dot.setAttribute('opacity', '1');
+    }
+
+    // Reference line at final (ground state) energy
+    const refY = toY(eMin).toFixed(1);
+    const refLine = document.getElementById('convergence-ref-line');
+    const refLabel = document.getElementById('convergence-ref-label');
+    if (refLine) { refLine.setAttribute('y1', refY); refLine.setAttribute('y2', refY); refLine.setAttribute('opacity', '1'); }
+    if (refLabel) { refLabel.setAttribute('y', +refY - 3); refLabel.setAttribute('opacity', '1'); refLabel.textContent = `E₀ = ${r.energy_ha} Hₐ`; }
+
+    // Y axis labels
+    const fmt = v => v.toFixed(4);
+    const yt = document.getElementById('conv-ylabel-top');
+    const ym = document.getElementById('conv-ylabel-mid');
+    const yb = document.getElementById('conv-ylabel-bot');
+    if (yt) yt.textContent = fmt(eMax + pad);
+    if (ym) ym.textContent = fmt((eMax + eMin) / 2);
+    if (yb) yb.textContent = fmt(eMin - pad);
+
+    // Hide placeholder
+    const ph = document.getElementById('convergence-placeholder');
+    if (ph) ph.setAttribute('opacity', '0');
+
+    // Title, subtitle, footnote
+    const ct = document.getElementById('convergence-title');
+    if (ct) ct.innerHTML = `VQE Energy Convergence — <span style="color:var(--teal)">${mutName}</span>`;
+    const cs = document.getElementById('convergence-subtitle');
+    if (cs) cs.textContent = `${convData.length} Adam optimizer iterations · PennyLane default.qubit · AllSinglesDoubles UCCSD ansatz · ${r.qubits_used} qubits`;
+    const cb = document.getElementById('convergence-badge');
+    if (cb) cb.innerHTML = `<span style="color:var(--green)">✓ Live</span>`;
+    const cf = document.getElementById('convergence-footnote');
+    if (cf) cf.innerHTML =
+      `<span style="color:var(--teal)">Real PennyLane convergence curve</span> · ` +
+      `Final: <strong>${r.energy_ha} Hₐ</strong> · ` +
+      `ΔE (first→last): ${Math.abs(convData[0] - convData[convData.length-1]).toExponential(2)} Hₐ · ` +
+      `Runtime: ${r.elapsed_s}s`;
   }
-  const poly = document.getElementById('convergence-polyline');
-  if (poly) {
-    poly.setAttribute('points', pts.join(' '));
-    // Animate the line drawing itself by cycling stroke-dashoffset
-    poly.style.transition = 'none';
-    const len = 600;
-    poly.style.strokeDasharray = len;
-    poly.style.strokeDashoffset = len;
-    requestAnimationFrame(() => {
-      poly.style.transition = 'stroke-dashoffset 1.4s ease-out';
-      poly.style.strokeDashoffset = '0';
-    });
-  }
-  // Energy label top-left of SVG
-  const eLabel = document.getElementById('convergence-energy-label');
-  if (eLabel) eLabel.textContent = `E₀ = ${r.energy_ha} Hₐ`;
-  // Move convergence marker to ~72% of x-axis
-  const mx = Math.round(convIter / steps * 300);
-  const marker = document.getElementById('convergence-marker');
-  const markerLabel = document.getElementById('convergence-marker-label');
-  if (marker) { marker.setAttribute('cx', mx); marker.setAttribute('cy', yBot); }
-  if (markerLabel) { markerLabel.setAttribute('x', Math.min(mx + 5, 250)); markerLabel.setAttribute('y', yBot - 6); }
-  // Iteration axis labels
-  const iterLabels = document.getElementById('convergence-iter-labels');
-  if (iterLabels) iterLabels.innerHTML =
-    `<span>Iter 0</span><span>Iter ${Math.round(steps*0.33)}</span><span>Iter ~${convIter} ✓</span><span>Iter ${steps}</span>`;
-  // Convergence title + footnote
-  const convTitle = document.getElementById('convergence-title');
-  if (convTitle) convTitle.textContent = `VQE Energy Convergence — ${mutName} · ${steps} Optimization Steps`;
-  const convFn = document.getElementById('convergence-footnote');
-  if (convFn) convFn.innerHTML =
-    `<span class="teal">Simulated convergence curve</span> · Converged at iteration ~${convIter} · ` +
-    `ΔE threshold 0.001 Hₐ · ${rec.p1_ansatz} ansatz · ${r.qubits_used} qubits · ` +
-    `Final energy: ${r.energy_ha} Hₐ`;
 
   // 3. Benchmark table — update VQE row with live values
   const bEl = document.getElementById('bench-vqe-electrons');
@@ -2597,21 +2641,23 @@ function resetPlatform() {
   const ecf = document.getElementById('energy-chart-footnote');
   if (ecf) ecf.innerHTML = 'DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span>';
   const cpoly = document.getElementById('convergence-polyline');
-  if (cpoly) cpoly.setAttribute('points','0,10 20,18 40,30 60,48 80,62 100,72 120,80 140,85 160,88 180,90 200,91 220,91.5 240,92 260,92 280,92 300,92');
-  const cm = document.getElementById('convergence-marker');
-  if (cm) { cm.setAttribute('cx','220'); cm.setAttribute('cy','91.5'); }
-  const cml = document.getElementById('convergence-marker-label');
-  if (cml) { cml.setAttribute('x','225'); cml.setAttribute('y','86'); }
-  const cil = document.getElementById('convergence-iter-labels');
-  if (cil) cil.innerHTML = '<span>Iteration 0</span><span>Iteration 50</span><span>Iteration ~220</span><span>Iter 300</span>';
+  if (cpoly) { cpoly.setAttribute('points', ''); cpoly.style.strokeDasharray = ''; cpoly.style.strokeDashoffset = ''; }
+  const cdot = document.getElementById('convergence-end-dot');
+  if (cdot) cdot.setAttribute('opacity', '0');
+  const crl = document.getElementById('convergence-ref-line');
+  if (crl) crl.setAttribute('opacity', '0');
+  const crlab = document.getElementById('convergence-ref-label');
+  if (crlab) crlab.setAttribute('opacity', '0');
+  const cph = document.getElementById('convergence-placeholder');
+  if (cph) cph.setAttribute('opacity', '1');
   const ct = document.getElementById('convergence-title');
   if (ct) ct.innerHTML = 'VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span>';
-  const vbv2 = document.getElementById('vqe-bar-val');
-  if (vbv2) vbv2.textContent = '−11.7';
+  const cs = document.getElementById('convergence-subtitle');
+  if (cs) cs.textContent = 'Run a simulation to see the live convergence curve from PennyLane';
+  const cbadge = document.getElementById('convergence-badge');
+  if (cbadge) cbadge.innerHTML = '';
   const cf = document.getElementById('convergence-footnote');
-  if (cf) cf.innerHTML = 'Convergence at iteration 220 · ΔE &lt; 0.001 Ha threshold · UCCSD ansatz · 32 qubits IBM Heron';
-  const cel = document.getElementById('convergence-energy-label');
-  if (cel) cel.textContent = '';
+  if (cf) cf.innerHTML = 'Energy in Hartree (Hₐ) · X axis: Adam optimizer iterations · Y axis: total ground-state energy · Convergence = energy plateau';
   const cf2 = document.getElementById('convergence-footnote');
   if (cf2) cf2.innerHTML = '<span style="color:var(--gray)">Run a simulation to see live convergence data</span>';
   const bEl = document.getElementById('bench-vqe-electrons');
