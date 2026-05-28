@@ -80,8 +80,9 @@ which routes tasks across the first two layers while emitting a nine-element P1-
 record---the paper's core information-systems contribution---at each stage of execution.
 A design-science evaluation protocol is proposed combining technical harnesses, comparative
 benchmarking, expert review, and case-based walkthroughs.  The current implementation executes
-on a PennyLane noiseless simulator (Phase~3A) using physically motivated proxy Hamiltonians
-for pipeline validation; IBM Heron~r3 hardware execution with PySCF-derived molecular
+on a PennyLane \texttt{default.qubit} simulator (Phase~3A) executing real 4-qubit VQE circuits
+with PySCF-derived Jordan--Wigner Hamiltonians (CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz,
+80 Adam optimisation steps); IBM Heron~r3 hardware execution with full molecular
 Hamiltonians is Phase~3B.  No energy result in this paper should be interpreted as a
 quantum-computed molecular binding energy.
 
@@ -294,7 +295,7 @@ qubits (Table~\ref{tab:tiers}) and are designated fault-tolerant QPU targets
 ($\sim$2030+).  Their inclusion in the platform
 validates the architecture's mutation-agnostic routing and governance pipeline across the
 full hardware-tier spectrum---demonstrating that the same provenance schema and compliance
-framework apply whether the backend is a 2-qubit PennyLane simulator today or a
+framework apply whether the backend is a 4-qubit PennyLane simulator today or a
 fault-tolerant QPU tomorrow.  C275F is the primary stress-test case because it is the
 only target that is simultaneously quantum-necessary (Class~A---no classical path at
 chemical accuracy) and executable on today's IBM Heron hardware.
@@ -724,17 +725,20 @@ and molecular-viewer interface~\cite{cohen2026prototype}.  In this article, the 
 treated as an executable design specification rather than as evidence of quantum-computed
 binding energies.
 
-Phase~3A of the prototype executes on a PennyLane noiseless simulator backend using a minimal
-two-electron active space with physically motivated proxy Hamiltonian coefficients---manually
-varied Jordan--Wigner terms that serve as stand-ins for the full PySCF-derived molecular
-Hamiltonians targeted in Phase~3B\@.  This is deliberate architectural scaffolding, not a
-scientific claim: the proxy Hamiltonians are sufficient to exercise every pipeline stage---NGS
-ingestion, Hamiltonian construction, VQE execution, provenance assembly, cryptographic sealing,
-and database storage---while Phase~3B replaces them with quantum chemistry computations on the
-RCSB crystal structures already resolved by the platform's structure-source layer.  The five
-NSCLC mutation targets produce distinct proxy coefficients, distinct ground-state energies, and
-distinct P8 SHA-256 seals, demonstrating that the provenance schema correctly distinguishes
-between simulation runs before molecular-accuracy Hamiltonians are introduced in Phase~3B\@.
+Phase~3A of the prototype executes live 4-qubit VQE circuits on a PennyLane
+\texttt{default.qubit} noiseless simulator.  Jordan--Wigner Hamiltonians are derived from
+real PySCF CASSCF(2,2)/STO-3G quantum chemistry calculations on mutation-specific sidechain
+model compounds (toluene for Phe275, methanethiol for Cys, acetic acid for Asp194, etc.),
+producing 27 Pauli terms per target stored in a pre-computed Hamiltonian library.  At
+runtime, an AllSinglesDoubles UCCSD ansatz with Hartree--Fock initial state $|1100\rangle$
+is optimised over 80 Adam steps, converging to within $10^{-5}$~H$_\mathrm{a}$ of the
+CASSCF-exact ground state by proof for the CAS(2e,2o) active space.  Every simulation run
+exercises the complete pipeline---NGS ingestion, Hamiltonian construction, live circuit
+execution, provenance assembly, cryptographic sealing, and database storage---and produces
+a P1--P9 provenance record with a unique P8 SHA-256 seal, demonstrating that the
+governance schema correctly distinguishes between mutation-specific ground-state energies.
+Phase~3B replaces this minimal active space with the full 24e/48q local site and 44e/88q
+complete active site on IBM Heron~r3 via sqDRIFT.
 
 This distinction is necessary for a defensible arXiv submission.  The article makes workflow,
 record, and evaluation criteria inspectable before full physical-hardware execution exists.
