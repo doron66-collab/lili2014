@@ -1043,6 +1043,8 @@
       <!-- Ground state reference line -->
       <line id="convergence-ref-line" x1="52" x2="510" y1="0" y2="0" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3" opacity="0"/>
       <text id="convergence-ref-label" x="500" y="0" fill="rgba(34,197,94,0.7)" font-size="7" text-anchor="end" opacity="0">E₀</text>
+      <!-- HF start label -->
+      <text id="convergence-hf-label" x="56" y="20" fill="rgba(239,68,68,0.6)" font-size="7" text-anchor="start" opacity="0">HF ref</text>
       <!-- Placeholder text -->
       <text id="convergence-placeholder" x="281" y="62" fill="rgba(100,150,200,0.3)" font-size="11" text-anchor="middle">Run simulation to plot live VQE convergence</text>
     </svg>
@@ -1744,9 +1746,10 @@ function updateResultsCharts(data) {
   if (convData.length > 0) {
     const xLeft = 52, xRight = 510, yTop = 10, yBot = 105;
     const eMin = Math.min(...convData);
-    const eMax = Math.max(...convData);
+    // Anchor Y-axis top at HF reference energy for dramatic visual descent
+    const eMax = r._e_rhf && r._e_rhf > eMin ? r._e_rhf : Math.max(...convData);
     const eRange = eMax - eMin || 1e-6;
-    const pad = eRange * 0.08;
+    const pad = eRange * 0.05;
 
     // Map energy values to SVG coordinates
     const toX = i => xLeft + (i / (convData.length - 1)) * (xRight - xLeft);
@@ -1787,13 +1790,15 @@ function updateResultsCharts(data) {
     const yt = document.getElementById('conv-ylabel-top');
     const ym = document.getElementById('conv-ylabel-mid');
     const yb = document.getElementById('conv-ylabel-bot');
-    if (yt) yt.textContent = fmt(eMax + pad);
+    if (yt) { yt.textContent = fmt(eMax); yt.setAttribute('fill', 'rgba(239,68,68,0.7)'); }
     if (ym) ym.textContent = fmt((eMax + eMin) / 2);
-    if (yb) yb.textContent = fmt(eMin - pad);
+    if (yb) { yb.textContent = fmt(eMin); yb.setAttribute('fill', 'rgba(34,197,94,0.8)'); }
 
-    // Hide placeholder
+    // Hide placeholder, show HF label
     const ph = document.getElementById('convergence-placeholder');
     if (ph) ph.setAttribute('opacity', '0');
+    const hfLabel = document.getElementById('convergence-hf-label');
+    if (hfLabel) { hfLabel.setAttribute('y', toY(eMax).toFixed(1)); hfLabel.setAttribute('opacity', '1'); }
 
     // Title, subtitle, footnote
     const ct = document.getElementById('convergence-title');
@@ -2650,6 +2655,8 @@ function resetPlatform() {
   if (crlab) crlab.setAttribute('opacity', '0');
   const cph = document.getElementById('convergence-placeholder');
   if (cph) cph.setAttribute('opacity', '1');
+  const chfl = document.getElementById('convergence-hf-label');
+  if (chfl) chfl.setAttribute('opacity', '0');
   const ct = document.getElementById('convergence-title');
   if (ct) ct.innerHTML = 'VQE Energy Convergence — <span style="color:var(--gray)">awaiting simulation</span>';
   const cs = document.getElementById('convergence-subtitle');
