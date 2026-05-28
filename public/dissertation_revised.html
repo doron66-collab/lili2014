@@ -2836,8 +2836,8 @@
             </tr>
             <tr>
               <td>3A</td>
-              <td>Architecture validation run on PennyLane simulator - local site (~24e)</td>
-              <td><span class="arrow">▶</span> Next</td>
+              <td>Architecture validation on PennyLane simulator — minimal: 4-qubit CAS(2e,2o) <span class="check">✓</span> live; intermediate: local site (~24e/48q) on HPC <span class="arrow">▶</span> pending</td>
+              <td><span class="check">✓</span> Partial</td>
               <td>May–Aug 2026</td>
             </tr>
             <tr>
@@ -3340,7 +3340,7 @@
             <tr id="glos-PennyLane">
               <td><strong>PennyLane</strong></td>
               <td><em>PennyLane (Xanadu's quantum-machine-learning framework)</em></td>
-              <td>The simulator backend used in Phase 3A (May–Aug 2026). PennyLane runs the full pipeline at ~48 qubits without requiring IBM Quantum Network access, enabling architecture validation before Phase 3B hardware execution.</td>
+              <td>The simulator backend for Phase 3A. Currently live at 4 qubits (CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps) on Render cloud. The same PennyLane pipeline scales to ~48 qubits (24e local site) on HPC, enabling architecture validation without IBM Quantum Network access before Phase 3B hardware execution.</td>
             </tr>
             <tr id="glos-PHI">
               <td><strong>PHI</strong></td>
