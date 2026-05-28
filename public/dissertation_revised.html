@@ -2211,10 +2211,10 @@
         <div class="phase">
           <div class="phase-num">03<span style="font-size:0.5em;font-style:italic;color:var(--accent);letter-spacing:0;">a</span></div>
           <div class="phase-body">
-            <h4>Architecture Validation Run · Local Binding Site (~24e)</h4>
-            <p><em>The objective of Phase 3A is to demonstrate that the orchestration layer executes end-to-end, not to produce a publishable binding-energy result.</em> Execute the full pipeline on PennyLane quantum simulator targeting the local binding site of C275F - F275 aromatic π-system, C277, A276 - and verify that every workflow stage (active-space selection, qubit encoding, Hamiltonian simulation, error mitigation, AI rescoring, P1–P9 audit emission) operates as specified. Benchmark the resulting <a href="#glos-VQE" class="glos-link">VQE</a> output against <a href="#glos-DFT" class="glos-link">DFT</a> and published <a href="#glos-CCSD-T-" class="glos-link">CCSD(T)</a> reference values to confirm the architecture transmits a scientifically reasonable signal; the chemistry-side outputs are <em>evidence the architecture works</em>, not the contribution itself. Directly enabled by the <a href="#glos-SqDRIFT" class="glos-link">SqDRIFT</a> benchmark (IBM <em>Science</em>, March 2026: 32 electrons on 100 qubits).</p>
+            <h4>Architecture Validation Run · Minimal Active Space (4-qubit, live) → Local Binding Site (~24e, pending HPC)</h4>
+            <p><em>The objective of Phase 3A is to demonstrate that the orchestration layer executes end-to-end, not to produce a publishable binding-energy result.</em> <strong>Minimal (live):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Every workflow stage (active-space selection, qubit encoding, Hamiltonian simulation, P1–P9 audit emission, SHA-256 P8 seal, Supabase persistence) is verified end-to-end. <strong>Intermediate (pending HPC):</strong> scale to the full local binding site of C275F (~24e/48q) on an NSF ACCESS or equivalent HPC simulator; same pipeline, expanded active space. Benchmark VQE output against DFT and published <a href="#glos-CCSD-T-" class="glos-link">CCSD(T)</a> reference values to confirm the architecture transmits a scientifically reasonable signal at biologically relevant scale. Directly enabled by the <a href="#glos-SqDRIFT" class="glos-link">SqDRIFT</a> benchmark (IBM <em>Science</em>, March 2026: 32 electrons on 100 qubits).</p>
           </div>
-          <div class="phase-status next">▶ Next</div>
+          <div class="phase-status complete">✓ Partial — minimal live</div>
         </div>
 
         <div class="phase">
