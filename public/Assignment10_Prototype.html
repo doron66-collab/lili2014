@@ -1746,10 +1746,12 @@ function updateResultsCharts(data) {
   if (convData.length > 0) {
     const xLeft = 52, xRight = 510, yTop = 10, yBot = 105;
     const eMin = Math.min(...convData);
-    // Anchor Y-axis top at HF reference energy for dramatic visual descent
-    const eMax = r._e_rhf && r._e_rhf > eMin ? r._e_rhf : Math.max(...convData);
+    // Anchor Y-axis top at actual max (includes optimizer overshoot spikes)
+    const eActualMax = Math.max(...convData);
+    const eHF = r._e_rhf && r._e_rhf > eMin ? r._e_rhf : eActualMax;
+    const eMax = Math.max(eActualMax, eHF);
     const eRange = eMax - eMin || 1e-6;
-    const pad = eRange * 0.05;
+    const pad = eRange * 0.18;
 
     // Map energy values to SVG coordinates
     const toX = i => xLeft + (i / (convData.length - 1)) * (xRight - xLeft);
