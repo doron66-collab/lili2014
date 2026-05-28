@@ -14,7 +14,10 @@ from pathlib import Path
 
 import pennylane as qml
 from pennylane import numpy as pnp
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Header, HTTPException
+from fastapi.responses import StreamingResponse
 from supabase import create_client
 
 router = APIRouter()
@@ -338,6 +341,60 @@ def _extract_user_id(authorization: str | None) -> str | None:
         return payload.get("sub")
     except Exception:
         return None
+
+
+@router.get("/{mutation_id}/stream")
+async def stream_simulation(mutation_id: str, authorization: str | None = Header(None)):
+    """SSE endpoint — streams each VQE energy value as it is computed."""
+    config = MUTATION_CONFIGS.get(mutation_id)
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Unknown mutation: {mutation_id}")
+
+    jw_key, side = config["jw_source"]
+    jw_entry     = _JW_DATA[jw_key][side]
+    ecore        = jw_entry["ecore"]
+    hamiltonian  = _build_hamiltonian(jw_entry["terms"])
+
+    async def generate():
+        loop   = asyncio.get_event_loop()
+        queue  = asyncio.Queue()
+
+        def vqe_worker():
+            dev = qml.device("default.qubit", wires=_QUBITS)
+
+            @qml.qnode(dev)
+            def circuit(params):
+                qml.AllSinglesDoubles(
+                    weights=params, wires=range(_QUBITS),
+                    hf_state=pnp.array(_HF_STATE),
+                    singles=_SINGLES, doubles=_DOUBLES,
+                )
+                return qml.expval(hamiltonian)
+
+            params = pnp.zeros(_N_PARAMS, requires_grad=True)
+            opt    = qml.AdamOptimizer(stepsize=0.4)
+
+            for i in range(80):
+                params, e = opt.step_and_cost(circuit, params)
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"step": i, "energy": round(ecore + float(e), 8)}), loop
+                )
+            asyncio.run_coroutine_threadsafe(queue.put({"done": True}), loop)
+
+        executor = ThreadPoolExecutor(max_workers=1)
+        loop.run_in_executor(executor, vqe_worker)
+
+        while True:
+            item = await queue.get()
+            yield f"data: {json.dumps(item)}\n\n"
+            if item.get("done"):
+                break
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/results")

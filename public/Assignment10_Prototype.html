@@ -1999,6 +1999,48 @@ async function runLiveVQE() {
     const { data: { session } } = await supa.auth.getSession();
     const headers = session?.access_token
       ? { Authorization: `Bearer ${session.access_token}` } : {};
+
+    // ── SSE streaming convergence chart ──────────────────────────────────────
+    const streamUrl = `${API_BASE}/api/simulate/${mutationId}/stream`;
+    const streamRes = await fetch(streamUrl, { headers });
+    const reader    = streamRes.body.getReader();
+    const decoder   = new TextDecoder();
+    let   streamBuf = '';
+    const streamPts = [];
+    const svgXLeft = 52, svgXRight = 510, svgYTop = 10, svgYBot = 105;
+    let   streamEMax = null, streamEMin = null;
+    const streamPoly = document.getElementById('convergence-polyline');
+    const streamPh   = document.getElementById('convergence-placeholder');
+    if (streamPh) streamPh.setAttribute('opacity', '0');
+    if (streamPoly) { streamPoly.setAttribute('points', ''); streamPoly.style.strokeDasharray = ''; streamPoly.style.strokeDashoffset = ''; }
+    const convBadge = document.getElementById('convergence-badge');
+    if (convBadge) convBadge.innerHTML = '<span style="color:var(--teal)">⟳ Computing…</span>';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      streamBuf += decoder.decode(value, { stream: true });
+      const lines = streamBuf.split('\n');
+      streamBuf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const msg = JSON.parse(line.slice(5).trim());
+        if (msg.done) break;
+        const e = msg.energy;
+        streamPts.push(e);
+        if (streamEMax === null || e > streamEMax) streamEMax = e;
+        if (streamEMin === null || e < streamEMin) streamEMin = e;
+        const eRange = (streamEMax - streamEMin) || 1e-6;
+        const pad    = eRange * 0.18;
+        const toX = i => svgXLeft + (i / 79) * (svgXRight - svgXLeft);
+        const toY = v => svgYBot - ((v - (streamEMin - pad)) / (eRange + 2 * pad)) * (svgYBot - svgYTop);
+        const pts = streamPts.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+        if (streamPoly) streamPoly.setAttribute('points', pts);
+      }
+    }
+    if (convBadge) convBadge.innerHTML = '<span style="color:var(--green)">✓ Live</span>';
+
+    // ── Full result fetch ─────────────────────────────────────────────────────
     const res = await fetch(`${API_BASE}/api/simulate/${mutationId}`, { headers });
     clearTimeout(t2); clearTimeout(t3);
     if (!res.ok) {
