@@ -2908,7 +2908,7 @@ function updateJobCard(mutationId, state, data) {
   const label = mutationId ? mutationLabel(mutationId) : 'Awaiting simulation run';
   if (state === 'running') {
     name.textContent   = label;
-    sub.textContent    = 'Quantum Kernel · Algorithm: UCCSD VQE (4-qubit JW) · PySCF CAS(2e,2o) / STO-3G · Steps: 200';
+    sub.textContent    = 'Quantum Kernel · Algorithm: UCCSD VQE (4-qubit JW) · PySCF CAS(2e,2o) / STO-3G · Steps: 80';
     status.textContent = 'Running';
     status.style.color = 'var(--gold)';
   } else if (state === 'done' && data) {
