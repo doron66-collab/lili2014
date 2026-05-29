@@ -740,6 +740,47 @@ governance schema correctly distinguishes between mutation-specific ground-state
 Phase~3B replaces this minimal active space with the full 24e/48q local site and 44e/88q
 complete active site on IBM Heron~r3 via sqDRIFT.
 
+\subsection*{The Transitional Window: Situating SqDRIFT and Heron~r3 Within IBM's Fault-Tolerant Roadmap}
+
+The selection of IBM Heron~r3 as the quantum hardware substrate and SqDRIFT as the
+molecular simulation algorithm reflects a deliberate positioning within a well-defined and
+time-bounded technological window.  IBM's publicly disclosed roadmap---supported by a
+\$10+~billion capital commitment and a \$1~billion CHIPS Act award---establishes a clear
+architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward
+fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction.
+The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces
+modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and Starling
+(2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing
+100 million quantum gates.
+
+This roadmap does not diminish the contribution of the present work---it contextualizes and
+justifies it.  Heron~r3, as the current-generation superconducting processor, and SqDRIFT,
+as the leading NISQ-era Trotter-based simulation protocol with formally bounded error
+scaling, represent the state of the art during precisely the window in which clinically
+relevant quantum molecular simulation first becomes computationally tractable.  IBM's own
+March 2026 \textit{Science} publication demonstrated SqDRIFT on 100 qubits simulating
+32~electrons in C\textsubscript{13}Cl\textsubscript{2}---a benchmark that for the first
+time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach
+of available hardware.
+
+The significance of this window extends beyond the chemistry.  The transition to
+fault-tolerant quantum computing will not resolve---and in fact will intensify---the
+information systems challenges that constitute the primary contribution of this
+dissertation.  As IBM scales toward Starling (2029) and the Blue~Jay quantum-centric
+supercomputer (2,000 logical qubits, 2033), targeting drug discovery as an explicit
+commercial vertical, the regulatory reconstruction problem becomes more acute, not less.
+Probabilistic, learned quantum outputs will be generated at greater scale and complexity,
+yet no established framework exists for governing their audit trails, ensuring
+reproducibility, or satisfying FDA 21~CFR Part~11 requirements in a clinical submission
+context.  The pipeline architecture, P1--P9 provenance schema, and bifurcation-aware
+orchestration developed in this dissertation are designed precisely for this trajectory:
+they establish the IS governance substrate that fault-tolerant quantum drug discovery
+workflows will require, built and validated during the window in which the underlying
+quantum computation first becomes feasible.
+
+\textit{The present work therefore occupies a strategically necessary position: it is
+neither premature nor transitional.  It is foundational.}
+
 This distinction is necessary for a defensible arXiv submission.  The article makes workflow,
 record, and evaluation criteria inspectable before full physical-hardware execution exists.
 The architecture can therefore be reviewed by information-systems scholars for artifact design,
