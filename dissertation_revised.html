@@ -2055,6 +2055,56 @@
 
       <h3>Translational Informatics</h3>
       <p>Sarkar (2010). The discipline of designing information systems that bridge clinical data, scientific computation, and actionable medical knowledge. Frames the platform as an IT artifact serving cross-disciplinary stakeholders rather than a physics instrument serving specialists.</p>
+
+      <h3>Enterprise Architecture &amp; the Classical–Quantum Continuum</h3>
+      <p>The Open Group (2022); Lankhorst (2017). SOLANGE is not merely a quantum-chemistry pipeline but an <em>enterprise architecture</em> in the formal sense, and it is described here through TOGAF — the most widely adopted architecture framework. TOGAF contributes two instruments. First, a disciplined vocabulary that decomposes a complex socio-technical system into four architecture domains. Second, the <em>Architecture Development Method</em> (ADM), which models architecture not as a static blueprint but as a governed, iterative <em>migration</em> — the precise conceptual frame for SOLANGE's evolution from a classical proxy to quantum hardware.</p>
+
+      <table>
+        <thead>
+          <tr><th>TOGAF Domain</th><th>Framework Definition</th><th>SOLANGE Instantiation</th><th>Provenance</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Business</td><td>Strategy, drivers, stakeholders, and the problem the system exists to solve.</td><td>Non-druggable NSCLC tumor-suppressor targets (TP53, STK11, KEAP1) — mutations with no small-molecule binding pocket.</td><td>—</td></tr>
+          <tr><td>Data</td><td>Logical and physical data assets and their governance.</td><td>Jordan–Wigner-encoded molecular Hamiltonians, CASSCF reference datasets, and the immutable P1–P9 provenance records (21 CFR §11.10(e)).</td><td>P1 · P2 · P5</td></tr>
+          <tr><td>Application</td><td>Applications, their behavior, and their interactions.</td><td>CASSCF/PySCF (classical reference), VQE on PennyLane (live Phase 3A), and SqDRIFT Trotter-based noise characterization (Phase 3B).</td><td>P1 · P6</td></tr>
+          <tr><td>Technology</td><td>Hardware, networks, and the platform infrastructure beneath everything above.</td><td>The classical→quantum bridge itself: academic HPC (NSF ACCESS-class allocations) on one side, IBM Heron r3 on the other.</td><td>P3 · P4</td></tr>
+        </tbody>
+      </table>
+
+      <p>The ADM frames Phase 3A → 3B as a single governed turn of the architecture cycle. A scientific subtlety is load-bearing here: the intermediate step — the local binding site at roughly 24 active electrons (48 qubits) — is <em>not</em> classical chemistry, which is intractable past ~18e. It is the variational quantum algorithm executed on a classical HPC <em>simulator</em> of the quantum circuit, run at the upper edge of classical simulability for a problem that already exceeds the classical-chemistry ceiling. The provenance layer (P1–P9) operates throughout as TOGAF's <em>Architecture Governance</em>, rendering each iteration auditable. The contribution of this dissertation is located precisely at the intersection of three otherwise-mature fields — classical HPC, quantum computation, and computational oncology — where no prior system has operated under a unified, provenance-complete architecture.</p>
+
+      <figure class="diss-figure">
+        <svg viewBox="0 0 640 600" role="img" aria-labelledby="venn-title venn-desc" style="max-width:560px;margin:0 auto;display:block">
+          <title id="venn-title">Research-focus Venn diagram</title>
+          <desc id="venn-desc">Three overlapping fields — classical HPC, quantum computing, and computational oncology — with SOLANGE located at their triple intersection.</desc>
+          <circle cx="320" cy="215" r="175" fill="#0b4f6c" fill-opacity="0.16" stroke="#0b4f6c" stroke-width="2"/>
+          <circle cx="225" cy="380" r="175" fill="#b8441f" fill-opacity="0.14" stroke="#b8441f" stroke-width="2"/>
+          <circle cx="415" cy="380" r="175" fill="#a88b3a" fill-opacity="0.16" stroke="#a88b3a" stroke-width="2"/>
+          <text x="320" y="118" text-anchor="middle" font-family="var(--body)" font-weight="700" font-size="19" fill="#0b4f6c">Classical HPC</text>
+          <text x="320" y="140" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">CCSD(T) · CASSCF · FCI</text>
+          <text x="320" y="158" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">NSF ACCESS-class HPC</text>
+          <text x="320" y="176" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">tractable ≤ ~18e</text>
+          <text x="150" y="430" text-anchor="middle" font-family="var(--body)" font-weight="700" font-size="19" fill="#b8441f">Quantum</text>
+          <text x="150" y="452" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">VQE · SqDRIFT</text>
+          <text x="150" y="470" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">IBM Heron r3</text>
+          <text x="150" y="488" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">NISQ → FTQC</text>
+          <text x="490" y="430" text-anchor="middle" font-family="var(--body)" font-weight="700" font-size="19" fill="#8a6f20">Oncology</text>
+          <text x="490" y="452" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">Non-druggable NSCLC</text>
+          <text x="490" y="470" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">TP53 · STK11 · KEAP1</text>
+          <text x="490" y="488" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">C275F ground-state</text>
+          <text x="320" y="300" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">hybrid VQE /</text>
+          <text x="320" y="314" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">embedding</text>
+          <text x="225" y="318" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">quantum</text>
+          <text x="225" y="332" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">chemistry</text>
+          <text x="430" y="318" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">in-silico</text>
+          <text x="430" y="332" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">screening</text>
+          <circle cx="320" cy="345" r="62" fill="#0a0e14" fill-opacity="0.92"/>
+          <text x="320" y="338" text-anchor="middle" font-family="var(--body)" font-weight="700" font-size="20" fill="#f5f2ea">SOLANGE™</text>
+          <text x="320" y="358" text-anchor="middle" font-family="var(--body)" font-size="10.5" fill="#e0d9c5">hybrid classical→quantum</text>
+          <text x="320" y="372" text-anchor="middle" font-family="var(--body)" font-size="10.5" fill="#e0d9c5">architecture · P1–P9</text>
+        </svg>
+        <figcaption><strong>Figure 4.1 — The research focus as a triple intersection.</strong> Each field is mature in isolation; SOLANGE is defined by what falls inside all three simultaneously — a provenance-complete, TOGAF-governed pipeline carrying a non-druggable oncology target across the classical→quantum boundary.</figcaption>
+      </figure>
     </section>
 
     <!-- ========== 5. METHODOLOGY ========== -->
