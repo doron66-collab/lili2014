@@ -8,6 +8,11 @@
   status = 200
 
 [[redirects]]
+  from = "/theoretical-foundations"
+  to   = "/theoretical_foundations.html"
+  status = 200
+
+[[redirects]]
   from = "/dissertation_revised"
   to   = "/dissertation_revised.html"
   status = 200
