@@ -40,6 +40,7 @@ create table if not exists public.simulation_runs (
     p2_basis_set        text,
     p2_active_electrons integer,
     p2_active_orbitals  integer,
+    p2_model_compound   text,
 
     -- P3 — Device & calibration
     p3_backend           text,
@@ -60,6 +61,9 @@ create table if not exists public.simulation_runs (
     p5_energy_variance float,
     p5_opt_steps     integer,
     p5_elapsed_s     float,
+    p5_ecore_ha      float,
+    p5_active_energy_ha float,
+    p5_casscf_ref_ha float,
 
     -- P6 — Error mitigation
     p6_method text,

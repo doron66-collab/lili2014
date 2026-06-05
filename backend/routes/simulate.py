@@ -32,6 +32,24 @@ def get_supabase():
         return None
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Columns that exist in public.simulation_runs (see backend/supabase_schema.sql).
+# The insert is filtered to this set so record fields added ahead of a DB
+# migration degrade gracefully instead of failing the whole insert (PGRST204).
+_DB_COLUMNS = frozenset({
+    "id", "created_at", "user_id", "mutation_id", "mutation_name", "pdb_id", "phase",
+    "p1_circuit_hash", "p1_gate_count", "p1_depth", "p1_qubit_count", "p1_ansatz",
+    "p2_compiler", "p2_compiler_version", "p2_encoding", "p2_basis_set",
+    "p2_active_electrons", "p2_active_orbitals", "p2_model_compound",
+    "p3_backend", "p3_backend_version", "p3_calibration_epoch", "p3_simulator",
+    "p4_gate_error_rate", "p4_readout_error_rate", "p4_t1_us", "p4_t2_us", "p4_note",
+    "p5_shots", "p5_raw_energy", "p5_energy_variance", "p5_opt_steps", "p5_elapsed_s",
+    "p5_ecore_ha", "p5_active_energy_ha", "p5_casscf_ref_ha",
+    "p6_method", "p6_note",
+    "p7_energy_ha", "p7_ci_lower", "p7_ci_upper", "p7_confidence", "p7_method",
+    "p8_hash", "p8_algorithm", "p8_sealed_at",
+    "p9_applicable", "p9_note",
+})
+
 # ── Load real JW Hamiltonians from PySCF CASSCF(2,2) ──────────────────────────
 _JW_PATH = Path(__file__).parent.parent / "jw_hamiltonians.json"
 with open(_JW_PATH) as _f:
@@ -412,9 +430,7 @@ async def get_results(limit: int = 20, authorization: str | None = Header(None))
              .order("created_at", desc=True)
              .limit(limit)
              .execute())
-    # Debug: also fetch total count with no RLS filter using service key
-    total_res = sb.table("simulation_runs").select("id", count="exact").execute()
-    return {"data": res.data, "count": len(res.data), "total_in_db": total_res.count}
+    return {"data": res.data, "count": len(res.data)}
 
 
 @router.get("/{mutation_id}")
@@ -511,23 +527,16 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
     record["p8_sealed_at"] = datetime.now(timezone.utc).isoformat()
 
     # ── Persist to Supabase ────────────────────────────────────────────────────
+    # Insert only columns that exist in the table schema, so a future record field
+    # added ahead of a DB migration can never crash the whole insert (PGRST204).
+    safe_record = {k: v for k, v in record.items() if k in _DB_COLUMNS}
     sb = get_supabase()
     db_status = "not_configured"
     db_error  = None
     if sb:
         try:
-            ins = sb.table("simulation_runs").insert(record).execute()
-            # Immediately read back by id to confirm the row actually landed
-            back = (sb.table("simulation_runs")
-                      .select("id, created_at")
-                      .eq("id", run_id)
-                      .execute())
-            if back.data:
-                db_status = "stored"
-                db_error  = f"verified id={run_id[:8]} created_at={back.data[0].get('created_at')}"
-            else:
-                db_status = "insert_ok_but_not_readable"
-                db_error  = f"inserted {len(ins.data)} rows but readback returned 0 — RLS hides own row"
+            sb.table("simulation_runs").insert(safe_record).execute()
+            db_status = "stored"
         except Exception as e:
             db_error  = str(e)
             db_status = "error"
