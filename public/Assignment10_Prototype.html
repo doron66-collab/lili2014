@@ -3478,9 +3478,12 @@ function exportPDF() {
     check(6);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
     doc.text(label, M + indent, y);
+    // Value column starts after the label so long labels never collide with the value.
+    const labelW = doc.getTextWidth(label);
+    const valOff = Math.max(48, labelW + 4);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(20, 20, 20);
-    const lines = doc.splitTextToSize(String(value ?? '—'), CW - 48);
-    doc.text(lines, M + 48 + indent, y);
+    const lines = doc.splitTextToSize(String(value ?? '—'), CW - valOff - indent);
+    doc.text(lines, M + valOff + indent, y);
     nl(5 * lines.length);
   };
   const badge = (txt, r, g, b) => {
