@@ -2092,7 +2092,10 @@ async function loadLiveResults() {
   if (!el) return;
   el.innerHTML = '<div style="color:var(--gray);font-size:12px;padding:8px 0">Fetching from Supabase…</div>';
   try {
-    const res  = await fetch(`${API_BASE}/api/simulate/results?_t=${Date.now()}`);
+    const { data: { session } } = await supa.auth.getSession();
+    const authHeaders = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` } : {};
+    const res  = await fetch(`${API_BASE}/api/simulate/results?_t=${Date.now()}`, { headers: authHeaders });
     const data = await res.json();
     const rows = data.data || [];
     if (rows.length === 0) {

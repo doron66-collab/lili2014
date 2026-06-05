@@ -399,11 +399,14 @@ async def stream_simulation(mutation_id: str, authorization: str | None = Header
 
 
 @router.get("/results")
-async def get_results(limit: int = 20):
+async def get_results(limit: int = 20, authorization: str | None = Header(None)):
     """Return the most recent simulation runs from Supabase."""
     sb = get_supabase()
     if not sb:
         return {"error": "Supabase not configured", "data": []}
+    # Pass user JWT so Supabase RLS can identify the caller and return their rows
+    if authorization and authorization.startswith("Bearer "):
+        sb.postgrest.auth(authorization[7:])
     res = (sb.table("simulation_runs")
              .select("id, created_at, mutation_id, mutation_name, p7_energy_ha, p7_ci_lower, p7_ci_upper, p8_hash, phase")
              .order("created_at", desc=True)
