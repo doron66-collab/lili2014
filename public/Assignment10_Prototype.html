@@ -3569,6 +3569,7 @@ function exportPDF() {
     row('Basis Set',        rec.p2_basis_set);
     row('Active Electrons', rec.p2_active_electrons);
     row('Active Orbitals',  rec.p2_active_orbitals);
+    row('Model Compound',   rec.p2_model_compound);
     nl(2);
 
     // ── P3 ────────────────────────────────────────────────────────────────
@@ -3590,11 +3591,14 @@ function exportPDF() {
 
     // ── P5 ────────────────────────────────────────────────────────────────
     h2('P5 — Raw Outcome Distribution', [14, 116, 144]);
-    row('Shots',           rec.p5_shots ?? 'N/A (simulator)');
-    row('Raw Energy (Hₐ)', rec.p5_raw_energy);
-    row('Energy Variance', rec.p5_energy_variance);
-    row('Opt Steps',       rec.p5_opt_steps);
-    row('Elapsed (s)',     rec.p5_elapsed_s);
+    row('Shots',                  rec.p5_shots ?? 'N/A (simulator)');
+    row('Raw Energy (Hₐ)',        rec.p5_raw_energy);
+    row('Core Energy (Hₐ)',       rec.p5_ecore_ha);
+    row('Active-Space Energy (Hₐ)', rec.p5_active_energy_ha);
+    row('CASSCF Reference (Hₐ)',  rec.p5_casscf_ref_ha);
+    row('Energy Variance',        rec.p5_energy_variance);
+    row('Opt Steps',              rec.p5_opt_steps);
+    row('Elapsed (s)',            rec.p5_elapsed_s);
     nl(2);
 
     // ── P6 ────────────────────────────────────────────────────────────────
