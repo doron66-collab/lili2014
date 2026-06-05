@@ -2017,8 +2017,12 @@
       <div class="section-number">§ 03 <span class="dash"></span> Literature Review &amp; Research Gaps</div>
       <h2 class="section-title">What Exists, What's Missing.</h2>
 
-      <h4 id="sec-3-1">3.1 · Quantum Chemistry and VQE</h4>
-      <p>Peruzzo et al. (2014) introduced VQE as a near-term quantum algorithm for molecular simulation. McClean et al. (2016) established the theoretical framework for variational quantum eigensolvers on NISQ hardware. Bauer et al. (2020) surveyed quantum simulation applications in chemistry. <strong>None of this work addresses specific oncology mutation targets, clinical translation, or the systems infrastructure required to operationalize quantum chemistry results.</strong></p>
+      <h4 id="sec-3-1">3.1 · The Classical→Quantum Lineage and the Tractability Ceiling</h4>
+      <p>The theoretical case for simulating chemistry on quantum hardware forms an unbroken lineage. Feynman (1982) first argued that quantum systems are intractable to classical simulation and that a computer built of quantum elements could simulate them efficiently; Lloyd (1996) made this constructive, proving that a universal quantum computer can efficiently simulate any local quantum system through Trotterized time evolution. Abrams and Lloyd (1999) then supplied the phase-estimation algorithm that converts simulated dynamics into ground-state <em>eigenvalues</em> — the formal bridge from "simulate the system" to "extract its energy" — and Aspuru-Guzik et al. (2005) mapped that machinery onto real molecules. McArdle et al. (2020) review the modern near-term descendants of this lineage. This continuum, from physical principle to executable molecular algorithm, is the theoretical spine on which the present architecture rests.</p>
+
+      <p>The lineage matters because the classical alternative has a definite ceiling. Exact correlation methods — full configuration interaction and the CASSCF/CASCI family — scale combinatorially with active-space size (Helgaker, Jørgensen, &amp; Olsen, 2000; Levine et al., 2021), placing a practical wall near roughly eighteen active electrons. Reiher et al. (2017) quantify the crossover concretely, showing that classically intractable electronic-structure problems become reachable on fault-tolerant quantum hardware. The C275F target of this dissertation (~88 qubits under Jordan–Wigner encoding) sits decisively beyond that classical wall — which is precisely why a quantum route is the appropriate one.</p>
+
+      <p>On the near-term algorithmic side, Peruzzo et al. (2014) introduced the variational quantum eigensolver (VQE) as the hybrid loop pairing a quantum expectation-value estimate with a classical optimizer; McClean et al. (2016) established its theoretical framework; and Preskill (2018) named the NISQ regime that makes such hybrid methods the leading near-term strategy. Kandala et al. (2017) demonstrated hardware-efficient VQE on a superconducting processor, Bauer et al. (2020) surveyed the broader resource landscape, and Tilly et al. (2022) consolidated VQE methods and best practices. The Trotter/randomized-compilation branch — Campbell's (2019) qDRIFT and its stochastic-sampling refinements (Kiss et al., 2023) — supplies the randomized-compilation basis for the sqDRIFT noise-characterization step used in Phase 3B. <strong>None of this work addresses specific oncology mutation targets, clinical translation, or the systems infrastructure required to operationalize quantum chemistry results.</strong></p>
 
       <h4 id="sec-3-2">3.2 · TP53 Mutation Landscape</h4>
       <p>Joerger and Fersht (2016) provide the definitive structural analysis of TP53 mutant classes, distinguishing cavity-creating mutants (Y220C) from DNA-interface structural mutants (C275F) and direct contact mutants (R248W). No published work applies quantum simulation to TP53 DNA-interface structural mutants such as C275F. No computational pathway exists in the literature for C275F drug discovery.</p>
@@ -2036,10 +2040,15 @@
       <h4 id="sec-3-4">3.4 · Hybrid Orchestration Platforms</h4>
       <p>Qiskit Runtime (IBM, 2021) and Orquestra (Zapata Computing, 2020) represented the first wave of single-vendor quantum orchestration. The post-March-2026 landscape is materially different: Nvidia's <strong>CUDA-Q</strong> programming model and the <strong>NVQLink</strong> GPU↔QPU interconnect (announced October 2025, expanded April 14, 2026 with the Ising AI models) constitute a cross-vendor, cross-paradigm orchestration <em>substrate</em>, and hybrid drug-discovery pipelines on it have been demonstrated — IonQ with AstraZeneca, AWS, and Nvidia on Suzuki–Miyaura coupling (June 2025) and Quantinuum with Nvidia on ADAPT-GQE applied to imipramine. Both precedents target generic small-molecule chemistry, not oncology mutation simulation, and neither is designed against a regulatory-records framework. What remains absent is therefore not a generic cross-vendor orchestration platform — that gap has begun to close — but <strong>a cross-vendor orchestration architecture specifically targeting oncology tumor-suppressor mutation simulation, with Part-11-grade provenance machinery sufficient to bring quantum-derived binding data into a regulated drug-development workflow</strong>. This is the narrower, defensible gap that §06.ii and §06.iii jointly close.</p>
 
-      <p>The post-April-2026 landscape was further shaped on <strong>March 26, 2026</strong> by Cleveland Clinic and IBM's published quantum-centric supercomputing (QCSC) workflow — the first protein-scale electronic-structure simulation under that paradigm — which decomposed the 303-atom Trp-cage miniprotein into clusters and routed the most entangled (6–33 MOs each) to IBM Heron r2 via <em>Embedded Wave Function with Sample-based Quantum Diagonalization</em> (SQD). The Cleveland Clinic precedent is a methodological neighbor to this dissertation's sqDRIFT anchor (§1.4.1) and a structural neighbor to the bifurcation-aware orchestration claim (§06.ii), but it targets generic biomolecular discovery, not oncology-specific non-druggable mutations, and operates without a clinical-regulatory governance layer (no Part 11, no P1–P9 provenance record, no ML-decoder lineage capture). <strong>The narrower gap closed by this dissertation — oncology-mutation-specific orchestration with workflow-embedded compliance machinery — is therefore unaffected by the Cleveland Clinic precedent; if anything, it is sharpened.</strong></p>
+      <p>The post-April-2026 landscape was further shaped on <strong>March 26, 2026</strong> by Cleveland Clinic and IBM's published quantum-centric supercomputing (QCSC) workflow — the first protein-scale electronic-structure simulation under that paradigm, whose architectural vision of tightly coupled HPC and quantum resources was set out by Alexeev et al. (2024) — which decomposed the 303-atom Trp-cage miniprotein into clusters and routed the most entangled (6–33 MOs each) to IBM Heron r2 via <em>Embedded Wave Function with Sample-based Quantum Diagonalization</em> (SQD). The Cleveland Clinic precedent is a methodological neighbor to this dissertation's sqDRIFT anchor (§1.4.1) and a structural neighbor to the bifurcation-aware orchestration claim (§06.ii), but it targets generic biomolecular discovery, not oncology-specific non-druggable mutations, and operates without a clinical-regulatory governance layer (no Part 11, no P1–P9 provenance record, no ML-decoder lineage capture). <strong>The narrower gap closed by this dissertation — oncology-mutation-specific orchestration with workflow-embedded compliance machinery — is therefore unaffected by the Cleveland Clinic precedent; if anything, it is sharpened.</strong></p>
 
       <h4 id="sec-3-5">3.5 · Regulatory Frameworks for Quantum Data</h4>
       <p>FDA 21 CFR Part 11 governs electronic records in regulated industries. Existing guidance covers classical computational models but does not address quantum-computed outputs. The April 14, 2026 release of Nvidia's <strong>Ising</strong> — a 3D convolutional neural decoder performing quantum error correction inference at runtime — <em>sharpens</em> the regulatory gap rather than closing it: a regulated drug-discovery pipeline must now produce Part-11-grade records not only of probabilistic quantum sampling (statistical estimators over noisy hardware) but also of a <em>learned probabilistic decoder</em> in the QEC loop, whose model identifier, weight checksum, training corpus, and inference-time configuration become first-class compliance artifacts. The pattern is not unprecedented — FDA's evolving Good Machine Learning Practice (GMLP) guidance already requires model provenance for Software-as-a-Medical-Device — but it has not been extended to the QEC layer of a quantum simulation pipeline. <strong>No published framework applies Part 11 controls to quantum-derived binding data, and none addresses ML-decoded quantum error correction in a regulated workflow.</strong> This is the regulatory gap that §06.iii closes; the eight-element provenance record (P1–P8) is extended with a ninth element (P9) to capture ML-decoder lineage explicitly.</p>
+
+      <h4 id="sec-3-6">3.6 · Enterprise Architecture and Scientific-Data Provenance</h4>
+      <p>The discipline that supplies a vocabulary for designing and governing complex systems-of-systems is enterprise architecture, established by Zachman (1987) and operationalized today through the TOGAF Standard and its Architecture Development Method (The Open Group, 2022), with ArchiMate (The Open Group, 2022) as the companion modeling language and Lankhorst (2017) as the standard scholarly treatment. These frameworks have been applied to scientific computing — Pierantoni et al. (2023) derive a reference architecture for science gateways spanning clouds, grids, and HPC — but the literature stops at the classical substrate: <strong>no published work frames a hybrid classical→quantum scientific pipeline as a governed enterprise architecture.</strong> Conversely, the quantum-chemistry literature reviewed in §3.1 is essentially silent on architecture governance.</p>
+
+      <p>The governance layer that makes such an architecture auditable rests on mature provenance and reproducibility standards. The FAIR principles (Wilkinson et al., 2016) define the findability, accessibility, interoperability, and reusability criteria a records layer must satisfy; the W3C PROV ontology (W3C, 2013) supplies an interoperable data model for serializing a provenance chain; and the reproducibility programs of Sandve et al. (2013) and Stodden et al. (2016) specify the operational and policy disciplines for trustworthy computational results. These standards, however, were written for conventional computation. <strong>None has been extended to a probabilistic, noise-characterized quantum pipeline operating under regulatory-grade controls (21 CFR Part 11).</strong> The P1–P9 provenance schema of this dissertation is the instrument that conjugates these two otherwise-disconnected literatures — enterprise-architecture governance and scientific-data provenance — onto the classical→quantum continuum.</p>
     </section>
 
     <!-- ========== 4. FRAMEWORK ========== -->
@@ -2796,6 +2805,99 @@
         <div class="ref">
           <span class="ref-num">31</span>
           <span>Quantum Computing Report (2026, March 26). <em>Cleveland Clinic and IBM implement quantum workflow for protein simulation</em>. Quantum Computing Report. <a href="https://quantumcomputingreport.com/cleveland-clinic-and-ibm-implement-quantum-workflow-for-protein-simulation/" target="_blank" rel="noopener">quantumcomputingreport.com</a></span>
+        </div>
+      </div>
+
+      <h3 style="margin-top:36px; margin-bottom:14px; font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.12em; color:#666; text-transform:uppercase; font-weight:600;">Theoretical Foundations — Classical→Quantum Continuum &amp; Enterprise Architecture</h3>
+
+      <div class="references">
+        <div class="ref">
+          <span class="ref-num">32</span>
+          <span>Alexeev, Y. et al. (2024). Quantum-centric supercomputing for materials science: A perspective on challenges and future directions. <em>Future Generation Computer Systems</em>, 160, 666–710. <a href="https://doi.org/10.1016/j.future.2024.04.060" target="_blank" rel="noopener">doi:10.1016/j.future.2024.04.060</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">33</span>
+          <span>Campbell, E. (2019). Random compiler for fast Hamiltonian simulation. <em>Physical Review Letters</em>, 123(7), 070503. <a href="https://doi.org/10.1103/PhysRevLett.123.070503" target="_blank" rel="noopener">doi:10.1103/PhysRevLett.123.070503</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">34</span>
+          <span>Feynman, R. P. (1982). Simulating physics with computers. <em>International Journal of Theoretical Physics</em>, 21(6/7), 467–488. <a href="https://doi.org/10.1007/BF02650179" target="_blank" rel="noopener">doi:10.1007/BF02650179</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">35</span>
+          <span>Fowler, A. G., Mariantoni, M., Martinis, J. M., &amp; Cleland, A. N. (2012). Surface codes: Towards practical large-scale quantum computation. <em>Physical Review A</em>, 86(3), 032324. <a href="https://doi.org/10.1103/PhysRevA.86.032324" target="_blank" rel="noopener">doi:10.1103/PhysRevA.86.032324</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">36</span>
+          <span>Helgaker, T., Jørgensen, P., &amp; Olsen, J. (2000). <em>Molecular Electronic-Structure Theory</em>. John Wiley &amp; Sons. <a href="https://doi.org/10.1002/9781119019572" target="_blank" rel="noopener">doi:10.1002/9781119019572</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">37</span>
+          <span>Kandala, A. et al. (2017). Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets. <em>Nature</em>, 549(7671), 242–246. <a href="https://doi.org/10.1038/nature23879" target="_blank" rel="noopener">doi:10.1038/nature23879</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">38</span>
+          <span>Kiss, O., Grossi, M., &amp; Roggero, A. (2023). Importance sampling for stochastic quantum simulations. <em>Quantum</em>, 7, 977. <a href="https://doi.org/10.22331/q-2023-04-13-977" target="_blank" rel="noopener">doi:10.22331/q-2023-04-13-977</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">39</span>
+          <span>Lankhorst, M. (2017). <em>Enterprise Architecture at Work: Modelling, Communication and Analysis</em> (4th ed.). Springer. <a href="https://doi.org/10.1007/978-3-662-53933-0" target="_blank" rel="noopener">doi:10.1007/978-3-662-53933-0</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">40</span>
+          <span>Levine, B. G., Durden, A. S., Esch, M. P., Liang, F., &amp; Shu, Y. (2021). CAS without SCF—Why to use CASCI and where to get the orbitals. <em>The Journal of Chemical Physics</em>, 154(9), 090902. <a href="https://doi.org/10.1063/5.0042147" target="_blank" rel="noopener">doi:10.1063/5.0042147</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">41</span>
+          <span>Lloyd, S. (1996). Universal quantum simulators. <em>Science</em>, 273(5278), 1073–1078. <a href="https://doi.org/10.1126/science.273.5278.1073" target="_blank" rel="noopener">doi:10.1126/science.273.5278.1073</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">42</span>
+          <span>McArdle, S., Endo, S., Aspuru-Guzik, A., Benjamin, S. C., &amp; Yuan, X. (2020). Quantum computational chemistry. <em>Reviews of Modern Physics</em>, 92(1), 015003. <a href="https://doi.org/10.1103/RevModPhys.92.015003" target="_blank" rel="noopener">doi:10.1103/RevModPhys.92.015003</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">43</span>
+          <span>The Open Group (2022). <em>ArchiMate 3.2 Specification</em> (Document No. C226). The Open Group.</span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">44</span>
+          <span>The Open Group (2022). <em>The TOGAF Standard, 10th Edition</em> (Architecture Development Method). The Open Group. ISBN 978-94-018-0859-0.</span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">45</span>
+          <span>Pierantoni, G., Kiss, T., Bolotov, A. et al. (2023). Toward a reference architecture based science gateway framework with embedded e-learning support. <em>Concurrency and Computation: Practice and Experience</em>, 35(18), e6872. <a href="https://doi.org/10.1002/cpe.6872" target="_blank" rel="noopener">doi:10.1002/cpe.6872</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">46</span>
+          <span>Preskill, J. (2018). Quantum computing in the NISQ era and beyond. <em>Quantum</em>, 2, 79. <a href="https://doi.org/10.22331/q-2018-08-06-79" target="_blank" rel="noopener">doi:10.22331/q-2018-08-06-79</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">47</span>
+          <span>Reiher, M., Wiebe, N., Svore, K. M., Wecker, D., &amp; Troyer, M. (2017). Elucidating reaction mechanisms on quantum computers. <em>Proceedings of the National Academy of Sciences</em>, 114(29), 7555–7560. <a href="https://doi.org/10.1073/pnas.1619152114" target="_blank" rel="noopener">doi:10.1073/pnas.1619152114</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">48</span>
+          <span>Sandve, G. K., Nekrutenko, A., Taylor, J., &amp; Hovig, E. (2013). Ten simple rules for reproducible computational research. <em>PLOS Computational Biology</em>, 9(10), e1003285. <a href="https://doi.org/10.1371/journal.pcbi.1003285" target="_blank" rel="noopener">doi:10.1371/journal.pcbi.1003285</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">49</span>
+          <span>Stodden, V. et al. (2016). Enhancing reproducibility for computational methods. <em>Science</em>, 354(6317), 1240–1241. <a href="https://doi.org/10.1126/science.aah6168" target="_blank" rel="noopener">doi:10.1126/science.aah6168</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">50</span>
+          <span>Tilly, J. et al. (2022). The variational quantum eigensolver: A review of methods and best practices. <em>Physics Reports</em>, 986, 1–128. <a href="https://doi.org/10.1016/j.physrep.2022.08.003" target="_blank" rel="noopener">doi:10.1016/j.physrep.2022.08.003</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">51</span>
+          <span>Wilkinson, M. D. et al. (2016). The FAIR Guiding Principles for scientific data management and stewardship. <em>Scientific Data</em>, 3, 160018. <a href="https://doi.org/10.1038/sdata.2016.18" target="_blank" rel="noopener">doi:10.1038/sdata.2016.18</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">52</span>
+          <span>W3C (2013). <em>PROV-O: The PROV Ontology</em> (W3C Recommendation, 30 April 2013). World Wide Web Consortium. <a href="https://www.w3.org/TR/prov-o/" target="_blank" rel="noopener">w3.org/TR/prov-o</a></span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">53</span>
+          <span>Zachman, J. A. (1987). A framework for information systems architecture. <em>IBM Systems Journal</em>, 26(3), 276–292. <a href="https://doi.org/10.1147/sj.263.0276" target="_blank" rel="noopener">doi:10.1147/sj.263.0276</a></span>
         </div>
       </div>
     </section>
