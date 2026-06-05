@@ -516,8 +516,18 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
     db_error  = None
     if sb:
         try:
-            sb.table("simulation_runs").insert(record).execute()
-            db_status = "stored"
+            ins = sb.table("simulation_runs").insert(record).execute()
+            # Immediately read back by id to confirm the row actually landed
+            back = (sb.table("simulation_runs")
+                      .select("id, created_at")
+                      .eq("id", run_id)
+                      .execute())
+            if back.data:
+                db_status = "stored"
+                db_error  = f"verified id={run_id[:8]} created_at={back.data[0].get('created_at')}"
+            else:
+                db_status = "insert_ok_but_not_readable"
+                db_error  = f"inserted {len(ins.data)} rows but readback returned 0 — RLS hides own row"
         except Exception as e:
             db_error  = str(e)
             db_status = "error"
