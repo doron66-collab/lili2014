@@ -2066,7 +2066,10 @@ async function runLiveVQE() {
     }, 1000);
 
     updateAllTabs(data);
-    status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated · record sealed & stored to Supabase`;
+    const dbMsg = data.db_status === 'stored'   ? '· record sealed & stored to Supabase'
+                : data.db_status === 'error'    ? `· ⚠ Supabase write failed: ${data.db_error}`
+                :                                 '· Supabase not configured';
+    status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated ${dbMsg}`;
   } catch (e) {
     clearTimeout(t2); clearTimeout(t3);
     if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }

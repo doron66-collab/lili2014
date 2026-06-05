@@ -6,6 +6,7 @@ Each run produces a complete P1–P9 provenance record stored in Supabase.
 import base64
 import hashlib
 import json
+import logging
 import os
 import time
 import uuid
@@ -506,11 +507,16 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
 
     # ── Persist to Supabase ────────────────────────────────────────────────────
     sb = get_supabase()
+    db_status = "not_configured"
+    db_error  = None
     if sb:
         try:
             sb.table("simulation_runs").insert({**record, "user_id": user_id}).execute()
-        except Exception:
-            pass  # DB write failure must never block the simulation response
+            db_status = "stored"
+        except Exception as e:
+            db_error  = str(e)
+            db_status = "error"
+            logging.error("Supabase insert failed: %s", e)
 
     return {
         "run_id":    run_id,
@@ -555,4 +561,6 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
             "p9_applicable":   record["p9_applicable"],
         },
         "full_record": record,
+        "db_status":   db_status,
+        "db_error":    db_error,
     }
