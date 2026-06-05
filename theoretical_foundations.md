@@ -2,12 +2,8 @@
 ### Theoretical Foundations — literature review, TOGAF lens, and research focus
 *Dissertation · IST 697 · Doron Cohen · CGU 2026 · Supervisor: Prof. Itamar Shabtai*
 
-> **Purpose.** This document answers three supervisory requests: (1) a literature
-> review of the scientific/architectural theory bridging classical and quantum
-> computation and its evolution; (2) an enterprise-architecture framing via TOGAF
-> (The Open Group); (3) a Venn synthesis that sharpens the research focus. HPC
-> exemplar: USC CARC. **All seed citations are marked `[verify]` and must be
-> confirmed against the literature database before inclusion.**
+> **Note.** All seed citations are marked `[verify]` and must be confirmed against
+> the literature database before inclusion.
 
 ---
 
@@ -66,16 +62,22 @@ A single turn of the ADM cycle maps directly onto SOLANGE's maturation:
 
 ```
 Phase 3A (minimal)        Phase 3A (intermediate)        Phase 3B
-4-qubit CAS(2e,2o) VQE  →  ~24e / 48q local site     →   94+ qubit full site
-live on classical cloud    on HPC (CARC / ACCESS)         IBM Heron r3, sqDRIFT
-[architecture validated]   [classical ceiling probed]     [quantum regime]
+4-qubit CAS(2e,2o) VQE  →  local site ~24e → 48q     →   94+ qubit full site
+live on classical cloud    VQE *simulated* on HPC         IBM Heron r3, sqDRIFT
+[architecture validated]   (CARC/ACCESS); edge of         [true quantum regime]
+                            classical simulability
 ```
+
+A clarification that matters scientifically: the intermediate step is **not**
+classical chemistry at 24 active electrons — that is impossible, since CCSD(T)
+breaks down past ~18e. It is a *quantum* algorithm (VQE) for a problem already
+beyond the classical-chemistry ceiling, executed on a classical HPC **simulator**
+of the quantum circuit, run at the upper edge of what is classically simulable.
 
 Throughout this migration the **provenance layer (P1–P9)** plays the role of
 TOGAF's *Architecture Governance* — the continuity-of-record discipline that makes
-each iteration auditable. This is the "evolution of architecture" the supervisor
-asked for: an ADM-style migration from the classical to the quantum technology
-domain, governed end-to-end.
+each iteration auditable: an ADM-style migration from the classical to the quantum
+technology domain, governed end-to-end.
 
 ---
 

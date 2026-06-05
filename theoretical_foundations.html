@@ -228,10 +228,6 @@
   <p class="lede">A literature-grounded framing of the scientific and architectural theory that
   bridges classical high-performance computing and quantum computation — and locates SOLANGE™
   precisely at their intersection.</p>
-  <p class="note">Prepared in response to supervisory guidance (Prof. I. Shabtai): (1) literature review
-  on the classical→quantum architectural lineage; (2) an enterprise-architecture lens
-  (TOGAF, The Open Group); (3) a Venn synthesis to sharpen research focus. Reference HPC exemplar:
-  USC CARC. Seed references below are marked for verification against the literature database.</p>
 
   <hr class="rule">
 
@@ -362,13 +358,15 @@
   <div class="adm">
     <div class="step"><b>Phase 3A — minimal</b>4-qubit CAS(2e,2o) VQE, live on classical cloud. Architecture validated.</div>
     <div class="arrow">→</div>
-    <div class="step"><b>Phase 3A — intermediate</b>~24e / 48q local site on HPC (CARC / ACCESS). Classical ceiling probed.</div>
+    <div class="step"><b>Phase 3A — intermediate</b>Local binding site (~24e → 48q) — already beyond classical chemistry (CCSD(T) fails past ~18e). Run as a VQE circuit <em>simulation</em> on HPC (CARC / ACCESS), at the edge of classical simulability.</div>
     <div class="arrow">→</div>
     <div class="step"><b>Phase 3B</b>94+ qubit full site on IBM Heron r3, sqDRIFT-characterised. Quantum regime.</div>
   </div>
-  <p class="note">This is the "evolution of architecture" the supervisor referred to: not a static design,
-  but an ADM-style migration from the classical to the quantum technology domain, with the provenance
-  layer (P1–P9) acting as TOGAF's Architecture Governance throughout.</p>
+  <p class="note">The architecture is therefore not a static design but an ADM-style migration from the
+  classical to the quantum technology domain. Crucially, the intermediate step is <em>not</em> classical
+  chemistry at 24 electrons — that is impossible past ~18e — but a quantum-algorithm run executed on a
+  classical HPC <em>simulator</em>, probing the boundary of classical simulability. The provenance layer
+  (P1–P9) acts as TOGAF's Architecture Governance throughout.</p>
 
   <hr class="rule">
 
