@@ -61,18 +61,21 @@ than an ad-hoc engineering progression.
 A single turn of the ADM cycle maps directly onto SOLANGE's maturation:
 
 ```
-Phase 3A (minimal)        Phase 3A (intermediate)        Phase 3B
-4-qubit CAS(2e,2o) VQE  →  local site ~24e → 48q     →   94+ qubit full site
-live on classical cloud    VQE *simulated* on HPC         IBM Heron r3, sqDRIFT
-[architecture validated]   (CARC/ACCESS); edge of         [true quantum regime]
-                            classical simulability
+Phase 3A (minimal)        Phase 3A (intermediate)                    Phase 3B
+4-qubit CAS(2e,2o) VQE  →  scientific ceiling: ~24e/48q (~4.5 PB)  →  94+ qubit full site
+live on classical cloud    operational run:    ~20e/40q (~17.6 TB)     IBM Heron r3, sqDRIFT
+[architecture validated]   VQE *simulated* on HPC (CARC/ACCESS)        [true quantum regime]
+                           [2 orders of magnitude above minimal]
 ```
 
 A clarification that matters scientifically: the intermediate step is **not**
-classical chemistry at 24 active electrons — that is impossible, since CCSD(T)
-breaks down past ~18e. It is a *quantum* algorithm (VQE) for a problem already
-beyond the classical-chemistry ceiling, executed on a classical HPC **simulator**
-of the quantum circuit, run at the upper edge of what is classically simulable.
+classical chemistry — that is impossible past ~18e for CCSD(T). It is a *quantum*
+algorithm (VQE) executed on a classical HPC **simulator** of the quantum circuit.
+The scientific ceiling target is ~24e/48q — precisely where both classical
+chemistry and classical state-vector simulation (~4.5 PB) break down. The
+operational run uses ~20e/40q (~17.6 TB, within NSF ACCESS / USC CARC reach),
+which fully demonstrates orchestration-pipeline scaling at meaningful
+quantum-circuit width without approaching the memory limit.
 
 Throughout this migration the **provenance layer (P1–P9)** plays the role of
 TOGAF's *Architecture Governance* — the continuity-of-record discipline that makes

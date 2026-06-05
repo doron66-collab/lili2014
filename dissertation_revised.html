@@ -2080,7 +2080,7 @@
         </tbody>
       </table>
 
-      <p>The ADM frames Phase 3A → 3B as a single governed turn of the architecture cycle. A scientific subtlety is load-bearing here: the intermediate step — the local binding site at roughly 24 active electrons (48 qubits) — is <em>not</em> classical chemistry, which is intractable past ~18e. It is the variational quantum algorithm executed on a classical HPC <em>simulator</em> of the quantum circuit, run at the upper edge of classical simulability for a problem that already exceeds the classical-chemistry ceiling. The provenance layer (P1–P9) operates throughout as TOGAF's <em>Architecture Governance</em>, rendering each iteration auditable. The contribution of this dissertation is located precisely at the intersection of three otherwise-mature fields — classical HPC, quantum computation, and computational oncology — where no prior system has operated under a unified, provenance-complete architecture.</p>
+      <p>The ADM frames Phase 3A → 3B as a single governed turn of the architecture cycle. A scientific subtlety is load-bearing here: the intermediate step targets a local binding site of roughly 24 active electrons (48 qubits) as its scientific ceiling — the precise scale at which both CCSD(T) classical chemistry (~18e) and full state-vector simulation (~4.5 PB) collapse. Operationally the run executes at ~20e/40q (~17.6 TB, within multi-node HPC reach on NSF ACCESS / USC CARC). In either case this is <em>not</em> classical chemistry: it is the variational quantum algorithm executed on a classical HPC <em>simulator</em> of the quantum circuit. The architectural objective — demonstrating that the governed pipeline scales to meaningful quantum-circuit width — is fully achieved at 40 qubits (see §8, Table 8.1 for the memory-scaling rationale). The provenance layer (P1–P9) operates throughout as TOGAF's <em>Architecture Governance</em>, rendering each iteration auditable. The contribution of this dissertation is located precisely at the intersection of three otherwise-mature fields — classical HPC, quantum computation, and computational oncology — where no prior system has operated under a unified, provenance-complete architecture.</p>
 
       <figure class="diss-figure">
         <svg viewBox="0 0 640 600" role="img" aria-labelledby="venn-title venn-desc" style="max-width:560px;margin:0 auto;display:block">
@@ -2145,8 +2145,8 @@
         <div class="phase">
           <div class="phase-num">03<span style="font-size:0.5em;font-style:italic;color:var(--accent);letter-spacing:0;">a</span></div>
           <div class="phase-body">
-            <h4>Architecture Validation Run · Minimal Active Space (4-qubit, live) → Local Binding Site (~24e, pending HPC)</h4>
-            <p><em>The objective of Phase 3A is to demonstrate that the orchestration layer executes end-to-end, not to produce a publishable binding-energy result.</em> <strong>Minimal (live):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Every workflow stage (active-space selection, qubit encoding, Hamiltonian simulation, P1–P9 audit emission, SHA-256 P8 seal, Supabase persistence) is verified end-to-end. <strong>Intermediate (pending HPC):</strong> scale to the full local binding site of C275F (~24e/48q) on an NSF ACCESS or equivalent HPC simulator; same pipeline, expanded active space. Benchmark VQE output against DFT and published CCSD(T) reference values to confirm the architecture transmits a scientifically reasonable signal at biologically relevant scale. Directly enabled by the SqDRIFT benchmark (IBM <em>Science</em>, March 2026: 32 electrons on 100 qubits).</p>
+            <h4>Architecture Validation Run · Minimal Active Space (4-qubit, live) → Local Binding Site (~20e/40q, pending HPC)</h4>
+            <p><em>The objective of Phase 3A is to demonstrate that the orchestration layer executes end-to-end, not to produce a publishable binding-energy result.</em> <strong>Minimal (live):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Every workflow stage (active-space selection, qubit encoding, Hamiltonian simulation, P1–P9 audit emission, SHA-256 P8 seal, Supabase persistence) is verified end-to-end. <strong>Intermediate (pending HPC):</strong> scale to the local binding site of C275F on NSF ACCESS / USC CARC; same pipeline, expanded active space. The scientific ceiling target is ~24e/48q — precisely the scale at which both CCSD(T) classical chemistry (~18e) and full state-vector simulation (~4.5 PB) collapse — but the operational run executes at ~20e/40q (~17.6 TB state-vector), which is within multi-node HPC reach and already two orders of magnitude beyond the minimal prototype. The architectural objective — demonstrating that the full orchestration pipeline (authentication, Hamiltonian encoding, VQE, P1–P9 provenance, SHA-256 sealing) functions correctly at quantum-circuit scale — is fully met at 40 qubits. See §8 for the memory-scaling rationale.</p>
           </div>
           <div class="phase-status complete">✓ Partial — minimal live</div>
         </div>
@@ -2379,8 +2379,63 @@
       <h4>3D Visualization</h4>
       <p>Atomic coordinates are procedurally generated and schematic; they correctly represent structural topology but are not derived from PDB crystallographic data.</p>
 
-      <h4>Hardware Scale</h4>
+      <h4>Hardware Scale &amp; Classical Simulability</h4>
       <p>Full 44-electron pocket simulation on IBM Heron r3 is future work. The dissertation contribution is the architecture that enables this execution, not the execution itself. Full-scale quantum simulation of TP53 C275F (~44 electrons, ~88 qubits) on IBM Heron r3 is designated as a post-dissertation research phase, contingent on IBM Quantum Network institutional access. <strong>The architecture is hardware-agnostic at the workflow level and vendor-specific at the compilation and error-mitigation layer</strong> — IBM Heron r3 is one supported backend among several, with documented translation overhead at the lower layers.</p>
+
+      <p>The table below quantifies why classical simulation of quantum circuits becomes intractable as qubit count grows, and contextualises the Phase 3A scaling choices. A quantum circuit on <em>n</em> qubits requires a complex state-vector of length 2<sup>n</sup>; stored in double precision (complex128, 16 bytes per amplitude), the memory footprint is <strong>2<sup>n</sup> × 16 bytes</strong>. Every additional qubit doubles the requirement.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Qubits <em>n</em></th>
+              <th>State-vector size</th>
+              <th>Memory (complex128)</th>
+              <th>Hardware regime / Phase 3 role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>4</td>
+              <td>16 amplitudes</td>
+              <td>256 B</td>
+              <td>Laptop / cloud VM · <strong>Phase 3A minimal — live</strong></td>
+            </tr>
+            <tr>
+              <td>30</td>
+              <td>~1 × 10⁹</td>
+              <td>16 GB</td>
+              <td>Single GPU / workstation</td>
+            </tr>
+            <tr>
+              <td><strong>40</strong></td>
+              <td>~1.1 × 10¹²</td>
+              <td><strong>~17.6 TB</strong></td>
+              <td>Multi-node HPC (NSF ACCESS / USC CARC) · <strong>Phase 3A intermediate — operational target (~20e/40q)</strong></td>
+            </tr>
+            <tr>
+              <td>45</td>
+              <td>~35 × 10¹²</td>
+              <td>~563 TB</td>
+              <td>Leadership-class HPC (Frontier, Fugaku)</td>
+            </tr>
+            <tr>
+              <td>48</td>
+              <td>~281 × 10¹²</td>
+              <td>~4.5 PB</td>
+              <td>Edge of global classical capacity · <strong>Phase 3A intermediate — scientific ceiling (~24e/48q)</strong></td>
+            </tr>
+            <tr>
+              <td><strong>88</strong></td>
+              <td>~3 × 10²⁶</td>
+              <td><strong>~4.6 × 10⁹ PB</strong></td>
+              <td>Physically intractable on any classical machine · <strong>Phase 3B — requires IBM Heron r3 QPU (~44e full site)</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Phase 3A intermediate targets ~24e/48q as its <em>scientific</em> scale — the precise point where both classical chemistry (CCSD(T) collapses past ~18e) and classical state-vector simulation (~4.5 PB) reach their respective limits. For <em>operational</em> execution, the active space is reduced to ~20e/40q (~17.6 TB), which is within multi-node HPC reach on NSF ACCESS or USC CARC. This reduction does not compromise the architectural objective: the pipeline is demonstrated at quantum-circuit scale two orders of magnitude beyond the minimal prototype, under full P1–P9 provenance governance. Phase 3B (~44e/88q on IBM Heron r3) exits the classically simulable regime entirely — the reason quantum hardware is required.</p>
 
       <h4>Regulatory Scope</h4>
       <p>The compliance framework addresses data governance and audit trail requirements. It does not constitute an FDA submission or clinical trial regulation.</p>
@@ -2600,7 +2655,7 @@
             </tr>
             <tr>
               <td>3A</td>
-              <td>Architecture validation on PennyLane simulator — minimal: 4-qubit CAS(2e,2o) <span class="check">✓</span> live; intermediate: local site (~24e/48q) on HPC <span class="arrow">▶</span> pending</td>
+              <td>Architecture validation on PennyLane simulator — minimal: 4-qubit CAS(2e,2o) <span class="check">✓</span> live; intermediate: local site scientific target ~24e/48q (classical-chemistry ceiling + state-vector memory limit ~4.5 PB); operational run ~20e/40q (~17 TB, within HPC reach) <span class="arrow">▶</span> pending</td>
               <td><span class="check">✓</span> Partial</td>
               <td>May–Aug 2026</td>
             </tr>
@@ -3179,7 +3234,7 @@
             <tr>
               <td><strong>PennyLane</strong></td>
               <td><em>PennyLane (Xanadu's quantum-machine-learning framework)</em></td>
-              <td>The simulator backend for Phase 3A. Currently live at 4 qubits (CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps) on Render cloud. The same PennyLane pipeline scales to ~48 qubits (24e local site) on HPC, enabling architecture validation without IBM Quantum Network access before Phase 3B hardware execution.</td>
+              <td>The simulator backend for Phase 3A. Currently live at 4 qubits (CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps) on Render cloud. The same PennyLane pipeline scales to the intermediate target (~20e/40q, ~17.6 TB state-vector) on NSF ACCESS / USC CARC HPC, enabling architecture validation at meaningful quantum-circuit scale without IBM Quantum Network access before Phase 3B hardware execution. The scientific ceiling target is ~24e/48q (~4.5 PB state-vector, edge of global classical capacity); the operational run uses ~20e/40q, which is well within multi-node HPC reach while still demonstrating two orders of magnitude of scale beyond the 4-qubit minimal prototype.</td>
             </tr>
             <tr>
               <td><strong>PHI</strong></td>
