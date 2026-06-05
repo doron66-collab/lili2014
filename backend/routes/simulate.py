@@ -412,7 +412,9 @@ async def get_results(limit: int = 20, authorization: str | None = Header(None))
              .order("created_at", desc=True)
              .limit(limit)
              .execute())
-    return {"data": res.data, "count": len(res.data)}
+    # Debug: also fetch total count with no RLS filter using service key
+    total_res = sb.table("simulation_runs").select("id", count="exact").execute()
+    return {"data": res.data, "count": len(res.data), "total_in_db": total_res.count}
 
 
 @router.get("/{mutation_id}")
@@ -514,7 +516,7 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
     db_error  = None
     if sb:
         try:
-            sb.table("simulation_runs").insert({**record, "user_id": user_id}).execute()
+            sb.table("simulation_runs").insert(record).execute()
             db_status = "stored"
         except Exception as e:
             db_error  = str(e)
