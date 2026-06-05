@@ -1936,7 +1936,12 @@ function updateAllTabs(data) {
     <div class="audit-row">
       <div class="audit-time">+${r.elapsed_s}s</div>
       <div class="audit-dot" style="background:var(--teal)"></div>
-      <div><strong>VQE converged</strong> — ${rec.p5_opt_steps} iterations · Energy: ${rec.p5_raw_energy} Hₐ · Variance: ${rec.p5_energy_variance?.toExponential(3)} · Backend: ${rec.p3_backend}</div>
+      <div><strong>VQE converged</strong> — ${rec.p5_opt_steps} iterations · Active-space energy: ${rec.p5_active_energy_ha ?? rec.p5_raw_energy} Hₐ · Variance: ${rec.p5_energy_variance?.toExponential(3)} · Backend: ${rec.p3_backend}</div>
+    </div>
+    <div class="audit-row">
+      <div class="audit-time">+${r.elapsed_s}s</div>
+      <div class="audit-dot" style="background:var(--teal)"></div>
+      <div><strong>Total energy assembled</strong> — Core (frozen) energy: ${rec.p5_ecore_ha ?? '—'} Hₐ + Active-space: ${rec.p5_active_energy_ha ?? rec.p5_raw_energy} Hₐ = ${rec.p7_energy_ha} Hₐ · CASSCF reference: ${rec.p5_casscf_ref_ha ?? '—'} Hₐ · Model compound: ${rec.p2_model_compound ?? '—'}</div>
     </div>
     <div class="audit-row">
       <div class="audit-time">+${r.elapsed_s}s</div>
