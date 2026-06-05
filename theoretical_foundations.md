@@ -76,8 +76,7 @@ of the quantum circuit, run at the upper edge of what is classically simulable.
 
 Throughout this migration the **provenance layer (P1–P9)** plays the role of
 TOGAF's *Architecture Governance* — the continuity-of-record discipline that makes
-each iteration auditable: an ADM-style migration from the classical to the quantum
-technology domain, governed end-to-end.
+each iteration auditable.
 
 ---
 
