@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theoretical Foundations — Classical↔Quantum Architecture · SOLANGE™</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0e14;
+    --ink-soft: #1a2028;
+    --paper: #f5f2ea;
+    --paper-warm: #ebe6d9;
+    --paper-deep: #e0d9c5;
+    --rule: #c9c0ab;
+    --muted: #5c6168;
+    --quantum: #0b4f6c;
+    --quantum-glow: #1d8fb0;
+    --accent: #b8441f;
+    --gold: #a88b3a;
+    --green: #3a7d44;
+    --shadow: rgba(10, 14, 20, 0.08);
+
+    --display: 'Fraunces', 'Times New Roman', serif;
+    --body: 'Inter Tight', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--paper);
+    background-image:
+      radial-gradient(ellipse at top left, rgba(11, 79, 108, 0.04), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(184, 68, 31, 0.03), transparent 50%);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 6vh 6vw 12vh; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 18px;
+  }
+
+  .lede {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    max-width: 64ch;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    letter-spacing: -0.015em;
+    color: var(--quantum);
+    margin: 64px 0 6px;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin-right: 14px;
+    vertical-align: 0.18em;
+  }
+
+  h3 {
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 1.06rem;
+    color: var(--ink);
+    margin: 30px 0 8px;
+  }
+
+  p { margin-bottom: 16px; max-width: 70ch; }
+  p .q { color: var(--quantum); font-weight: 600; }
+  p .a { color: var(--accent); font-weight: 600; }
+  p .g { color: var(--gold); font-weight: 600; }
+
+  .rule { height: 1px; background: var(--rule); border: 0; margin: 40px 0; }
+
+  /* ===== Venn ===== */
+  .venn-card {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 28px 20px 18px;
+    margin: 26px 0 8px;
+    box-shadow: 0 6px 28px var(--shadow);
+    text-align: center;
+  }
+  .venn-card svg { max-width: 100%; height: auto; }
+  .venn-caption {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-top: 10px;
+  }
+
+  /* ===== TOGAF table ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 22px 0;
+    font-size: 0.92rem;
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  thead th {
+    background: var(--quantum);
+    color: var(--paper);
+    font-family: var(--body);
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+  }
+  tbody td {
+    padding: 13px 14px;
+    border-top: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: rgba(201, 192, 171, 0.18); }
+  td .layer { font-weight: 700; color: var(--quantum); }
+  td .prov {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+
+  /* ===== ADM strip ===== */
+  .adm {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch;
+    margin: 20px 0;
+  }
+  .adm .step {
+    flex: 1 1 150px;
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--quantum-glow);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 0.86rem;
+  }
+  .adm .step b { color: var(--quantum); display: block; margin-bottom: 3px; }
+  .adm .arrow { align-self: center; color: var(--accent); font-weight: 700; }
+
+  /* ===== Lit review ===== */
+  .lit { margin: 8px 0 0; }
+  .lit-block {
+    border-left: 3px solid var(--gold);
+    padding: 4px 0 4px 20px;
+    margin: 22px 0;
+  }
+  .lit-block h3 { margin-top: 0; }
+  ul { margin: 6px 0 14px 22px; }
+  li { margin-bottom: 7px; max-width: 70ch; }
+  .ref {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+  }
+  .ref .cite { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); }
+
+  .callout {
+    background: rgba(11, 79, 108, 0.05);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 26px 0;
+  }
+  .callout b { color: var(--accent); }
+
+  .note {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 8px;
+  }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--accent);
+    padding: 3px 9px;
+    border-radius: 20px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Dissertation · Theoretical Foundations · IST 697 · CGU 2026</div>
+  <h1>The Classical–Quantum Architectural Continuum</h1>
+  <p class="lede">A literature-grounded framing of the scientific and architectural theory that
+  bridges classical high-performance computing and quantum computation — and locates SOLANGE™
+  precisely at their intersection.</p>
+  <p class="note">Prepared in response to supervisory guidance (Prof. I. Shabtai): (1) literature review
+  on the classical→quantum architectural lineage; (2) an enterprise-architecture lens
+  (TOGAF, The Open Group); (3) a Venn synthesis to sharpen research focus. Reference HPC exemplar:
+  USC CARC. Seed references below are marked for verification against the literature database.</p>
+
+  <hr class="rule">
+
+  <!-- ============ 1. VENN ============ -->
+  <h2><span class="num">01</span>The Focus — A Venn Synthesis</h2>
+  <p>The dissertation's contribution is not any single one of the three mature fields below, but the
+  <span class="a">region where all three intersect</span>: a provenance-complete, enterprise-architected
+  pipeline that carries a problem from classical ground-state methods to quantum hardware, applied to
+  tumour-suppressor mutations that conventional pharmacology cannot drug.</p>
+
+  <div class="venn-card">
+    <svg viewBox="0 0 640 600" role="img" aria-label="Venn diagram of the three contributing fields with SOLANGE at the intersection">
+      <defs>
+        <style>
+          .lbl { font-family: 'Inter Tight', sans-serif; }
+          .ttl { font-weight: 700; }
+          .sub { font-size: 13px; fill: #1a2028; }
+        </style>
+      </defs>
+
+      <!-- circles -->
+      <circle cx="320" cy="215" r="175" fill="#0b4f6c" fill-opacity="0.16" stroke="#0b4f6c" stroke-width="2"/>
+      <circle cx="225" cy="380" r="175" fill="#b8441f" fill-opacity="0.14" stroke="#b8441f" stroke-width="2"/>
+      <circle cx="415" cy="380" r="175" fill="#a88b3a" fill-opacity="0.16" stroke="#a88b3a" stroke-width="2"/>
+
+      <!-- top circle: Classical HPC -->
+      <text class="lbl ttl" x="320" y="118" text-anchor="middle" font-size="19" fill="#0b4f6c">Classical HPC</text>
+      <text class="lbl sub" x="320" y="140" text-anchor="middle">CCSD(T) · CASSCF · FCI</text>
+      <text class="lbl sub" x="320" y="158" text-anchor="middle">CARC / NSF ACCESS</text>
+      <text class="lbl sub" x="320" y="176" text-anchor="middle">tractable ≤ ~18e</text>
+
+      <!-- bottom-left: Quantum Computing -->
+      <text class="lbl ttl" x="150" y="430" text-anchor="middle" font-size="19" fill="#b8441f">Quantum</text>
+      <text class="lbl sub" x="150" y="452" text-anchor="middle">VQE · sqDRIFT</text>
+      <text class="lbl sub" x="150" y="470" text-anchor="middle">IBM Heron r3</text>
+      <text class="lbl sub" x="150" y="488" text-anchor="middle">NISQ → FTQC</text>
+
+      <!-- bottom-right: Computational Oncology -->
+      <text class="lbl ttl" x="490" y="430" text-anchor="middle" font-size="19" fill="#8a6f20">Oncology</text>
+      <text class="lbl sub" x="490" y="452" text-anchor="middle">Non-druggable NSCLC</text>
+      <text class="lbl sub" x="490" y="470" text-anchor="middle">TP53 · STK11 · KEAP1</text>
+      <text class="lbl sub" x="490" y="488" text-anchor="middle">C275F ground-state</text>
+
+      <!-- pairwise intersections -->
+      <text class="lbl sub" x="320" y="300" text-anchor="middle" font-size="11" fill="#5c6168">hybrid VQE /</text>
+      <text class="lbl sub" x="320" y="314" text-anchor="middle" font-size="11" fill="#5c6168">embedding</text>
+
+      <text class="lbl sub" x="225" y="318" text-anchor="middle" font-size="11" fill="#5c6168">quantum</text>
+      <text class="lbl sub" x="225" y="332" text-anchor="middle" font-size="11" fill="#5c6168">chemistry</text>
+
+      <text class="lbl sub" x="430" y="318" text-anchor="middle" font-size="11" fill="#5c6168">in-silico</text>
+      <text class="lbl sub" x="430" y="332" text-anchor="middle" font-size="11" fill="#5c6168">screening</text>
+
+      <!-- center focus -->
+      <circle cx="320" cy="345" r="62" fill="#0a0e14" fill-opacity="0.92"/>
+      <text class="lbl ttl" x="320" y="338" text-anchor="middle" font-size="20" fill="#f5f2ea">SOLANGE™</text>
+      <text class="lbl" x="320" y="358" text-anchor="middle" font-size="10.5" fill="#e0d9c5">hybrid classical→quantum</text>
+      <text class="lbl" x="320" y="372" text-anchor="middle" font-size="10.5" fill="#e0d9c5">architecture · P1–P9</text>
+    </svg>
+    <div class="venn-caption">Fig. 1 — The research focus as the triple intersection. SOLANGE™ is defined by what falls inside all three sets simultaneously.</div>
+  </div>
+
+  <div class="callout">
+    <b>One-sentence focus.</b> SOLANGE™ is the first provenance-complete, enterprise-architected pipeline
+    that transports a non-druggable NSCLC tumour-suppressor mutation (C275F) from the classical
+    ground-state ceiling (CCSD(T)/CASSCF, ~18 active electrons) onto quantum hardware (VQE today,
+    sqDRIFT-characterised Heron r3 tomorrow) under a 21 CFR Part 11 audit trail.
+  </div>
+
+  <hr class="rule">
+
+  <!-- ============ 2. TOGAF ============ -->
+  <h2><span class="num">02</span>An Enterprise-Architecture Lens — TOGAF</h2>
+  <p>TOGAF (The Open Group Architecture Framework, Standard 10th Edition) is the most widely adopted
+  enterprise-architecture methodology. Its value to this dissertation is twofold: it provides a
+  <span class="q">recognised vocabulary</span> for describing a complex socio-technical system in
+  discrete layers, and its <span class="a">Architecture Development Method (ADM)</span> models architecture
+  as an <em>evolving, iterative</em> artefact — exactly the Phase 3A → 3B trajectory SOLANGE follows.
+  Mapping SOLANGE onto TOGAF's four architecture domains converts an engineering build into a
+  methodologically-grounded architectural argument.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:18%">TOGAF Domain</th>
+        <th style="width:30%">Framework definition</th>
+        <th style="width:40%">SOLANGE™ instantiation</th>
+        <th style="width:12%">Provenance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="layer">Business</span></td>
+        <td>Strategy, drivers, stakeholders, and the problem the system exists to solve.</td>
+        <td>Non-druggable NSCLC tumour-suppressor targets (TP53, STK11, KEAP1); the unmet clinical
+            need to characterise mutations with no small-molecule binding pocket.</td>
+        <td><span class="prov">—</span></td>
+      </tr>
+      <tr>
+        <td><span class="layer">Data</span></td>
+        <td>Logical and physical data assets and how they are managed and governed.</td>
+        <td>Molecular Hamiltonians (Jordan–Wigner-encoded), CASSCF reference datasets, and the
+            immutable <code>P1–P9</code> provenance records sealed in Supabase under 21 CFR §11.10(e).</td>
+        <td><span class="prov">P1 · P2 · P5</span></td>
+      </tr>
+      <tr>
+        <td><span class="layer">Application</span></td>
+        <td>The applications, their behaviour, and their interactions.</td>
+        <td>CASSCF/PySCF (classical reference), VQE on PennyLane (live Phase 3A), and sqDRIFT
+            Trotter-based noise characterisation (Phase 3B).</td>
+        <td><span class="prov">P1 · P6</span></td>
+      </tr>
+      <tr>
+        <td><span class="layer">Technology</span></td>
+        <td>The hardware, networks, and platform infrastructure that host everything above.</td>
+        <td>The classical→quantum bridge itself: HPC (USC CARC / NSF ACCESS, Render cloud) on one
+            side, IBM Heron r3 QPU on the other.</td>
+        <td><span class="prov">P3 · P4</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>The ADM cycle as the Phase 3A → 3B narrative</h3>
+  <p>TOGAF's ADM is a cycle (Vision → Business → Information-Systems → Technology → Opportunities →
+  Migration → Governance). SOLANGE traverses exactly one full turn of this cycle as it matures from a
+  classical proxy to quantum hardware:</p>
+
+  <div class="adm">
+    <div class="step"><b>Phase 3A — minimal</b>4-qubit CAS(2e,2o) VQE, live on classical cloud. Architecture validated.</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Phase 3A — intermediate</b>~24e / 48q local site on HPC (CARC / ACCESS). Classical ceiling probed.</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Phase 3B</b>94+ qubit full site on IBM Heron r3, sqDRIFT-characterised. Quantum regime.</div>
+  </div>
+  <p class="note">This is the "evolution of architecture" the supervisor referred to: not a static design,
+  but an ADM-style migration from the classical to the quantum technology domain, with the provenance
+  layer (P1–P9) acting as TOGAF's Architecture Governance throughout.</p>
+
+  <hr class="rule">
+
+  <!-- ============ 3. LIT REVIEW SKELETON ============ -->
+  <h2><span class="num">03</span>Literature-Review Skeleton</h2>
+  <p>Four movements, from physical theory to enterprise architecture to the research gap. Seed
+  references are <span class="badge">verify</span> against the literature database before citing.</p>
+
+  <div class="lit">
+
+    <div class="lit-block">
+      <h3>3.1 · Physical foundations of quantum simulation of chemistry</h3>
+      <p>Establishes <em>why</em> a quantum computer is the natural instrument for ground-state
+      energetics, and where the classical methods break down.</p>
+      <ul>
+        <li class="ref">Feynman — simulating physics with computers; the original argument for quantum simulation. <span class="cite">Feynman 1982, IJTP</span></li>
+        <li class="ref">Lloyd — universal quantum simulators. <span class="cite">Lloyd 1996, Science</span></li>
+        <li class="ref">Classical tractability ceiling: CCSD(T), CASSCF, and full-CI scaling — why ~18 active electrons is the practical wall. <span class="cite">Helgaker, Jørgensen &amp; Olsen (Molecular Electronic-Structure Theory)</span></li>
+        <li class="ref">Quantum chemistry in the age of quantum computing — comprehensive survey. <span class="cite">Cao et al. 2019, Chem. Rev.</span></li>
+      </ul>
+    </div>
+
+    <div class="lit-block">
+      <h3>3.2 · The hybrid classical–quantum algorithmic layer</h3>
+      <p>The methods that actually straddle the two paradigms — the algorithmic content of the
+      intersection.</p>
+      <ul>
+        <li class="ref">VQE — the variational eigenvalue solver. <span class="cite">Peruzzo et al. 2014, Nat. Commun.</span></li>
+        <li class="ref">Theory of variational hybrid quantum-classical algorithms. <span class="cite">McClean et al. 2016, New J. Phys.</span></li>
+        <li class="ref">NISQ-era framing and its limits. <span class="cite">Preskill 2018, Quantum</span></li>
+        <li class="ref">qDRIFT — random/stochastic compiler for fast Hamiltonian simulation (basis of sqDRIFT). <span class="cite">Campbell 2019, Phys. Rev. Lett.</span></li>
+        <li class="ref">VQE review — methods and best practices. <span class="cite">Tilly et al. 2022, Phys. Rep.</span></li>
+      </ul>
+    </div>
+
+    <div class="lit-block">
+      <h3>3.3 · Architectural evolution: from HPC to quantum-accelerated pipelines</h3>
+      <p>The systems/infrastructure lineage — the classical HPC pole (CARC/ACCESS) and the migration
+      toward fault tolerance.</p>
+      <ul>
+        <li class="ref">Quantum algorithms for chemistry and materials — resource estimates and hardware framing. <span class="cite">Bauer et al. 2020, Chem. Rev.</span></li>
+        <li class="ref">Academic HPC infrastructure as the classical pole — USC CARC and the NSF ACCESS allocation model as exemplars of the research-computing substrate. <span class="cite">USC CARC; NSF ACCESS</span></li>
+        <li class="ref">Hybrid quantum-classical orchestration / quantum-HPC integration patterns. <span class="cite">verify — recent quantum-HPC integration literature</span></li>
+        <li class="ref">Fault-tolerance roadmaps and the transitional window (Heron → Starling → Blue Jay). <span class="cite">IBM Quantum roadmap; verify primary sources</span></li>
+      </ul>
+    </div>
+
+    <div class="lit-block">
+      <h3>3.4 · Enterprise architecture as a design discipline</h3>
+      <p>The lens itself — TOGAF and the broader EA tradition, plus the provenance/compliance
+      architecture that governs the whole.</p>
+      <ul>
+        <li class="ref">TOGAF Standard, 10th Edition — ADM and the four architecture domains. <span class="cite">The Open Group 2022</span></li>
+        <li class="ref">Enterprise architecture modelling and its application to complex systems. <span class="cite">Lankhorst (Enterprise Architecture at Work); ArchiMate</span></li>
+        <li class="ref">Provenance &amp; reproducibility architectures in computational science (FAIR data principles). <span class="cite">Wilkinson et al. 2016, Sci. Data</span></li>
+        <li class="ref">Regulatory-grade audit trails for computational records. <span class="cite">FDA 21 CFR Part 11</span></li>
+      </ul>
+    </div>
+
+    <div class="lit-block" style="border-left-color:var(--accent)">
+      <h3>3.5 · Synthesis &amp; research gap</h3>
+      <p>The literature treats each circle of Fig. 1 maturely <em>in isolation</em>. What is absent —
+      the <span class="a">gap this dissertation fills</span> — is a single architecture that (a) is framed
+      by an established enterprise-architecture method (TOGAF/ADM), (b) carries a problem end-to-end
+      across the classical→quantum technology boundary, (c) maintains a regulatory-grade provenance
+      chain (P1–P9), and (d) targets specifically the <em>non-druggable</em> tumour-suppressor class for
+      which no pharmacological pocket exists. SOLANGE™ is that intersection.</p>
+    </div>
+
+  </div>
+
+  <hr class="rule">
+  <p class="note">Companion file: <code>theoretical_foundations.md</code> — the same content as
+  paste-ready academic prose for the dissertation body and arXiv (LaTeX-friendly). All seed citations
+  to be confirmed before inclusion.</p>
+
+</div>
+</body>
+</html>
