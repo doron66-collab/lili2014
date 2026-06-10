@@ -360,17 +360,17 @@
     <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Report Metadata</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Report ID</label>
-        <input id="rev-report-id" class="rev-input" placeholder="e.g. MI25-0349"></div>
+        <input id="rev-report-id" class="rev-input" placeholder="e.g. LAB-2025-001"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Report Date</label>
-        <input id="rev-report-date" class="rev-input" placeholder="e.g. 18/06/2025"></div>
+        <input id="rev-report-date" class="rev-input" placeholder="e.g. 01/01/2025"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Institution</label>
-        <input id="rev-institution" class="rev-input" placeholder="e.g. Emek Medical Center"></div>
+        <input id="rev-institution" class="rev-input" placeholder="e.g. Medical Center"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Tumor Purity</label>
-        <input id="rev-purity" class="rev-input" placeholder="e.g. 65%"></div>
+        <input id="rev-purity" class="rev-input" placeholder="e.g. 70%"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Cancer Type</label>
         <input id="rev-cancer-type" class="rev-input" placeholder="e.g. Adenocarcinoma"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Origin</label>
-        <input id="rev-origin" class="rev-input" placeholder="e.g. Pulmonary"></div>
+        <input id="rev-origin" class="rev-input" placeholder="e.g. Lung / Kidney / Bladder"></div>
     </div>
 
     <!-- Biomarkers -->
@@ -379,14 +379,14 @@
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">EGFR / ALK / KRAS / RET</label>
         <input id="rev-egfr" class="rev-input" placeholder="e.g. Not detected"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">TMB Value (mut/Mb)</label>
-        <input id="rev-tmb-val" class="rev-input" type="number" step="0.1" placeholder="e.g. 7.6"></div>
+        <input id="rev-tmb-val" class="rev-input" type="number" step="0.1" placeholder="e.g. 5.0"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">TMB Tier</label>
         <select id="rev-tmb-tier" class="rev-input">
           <option value="">— select —</option>
           <option>Low</option><option>Intermediate</option><option>High</option>
         </select></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">MSI Value (%)</label>
-        <input id="rev-msi-val" class="rev-input" type="number" step="0.01" placeholder="e.g. 7.77"></div>
+        <input id="rev-msi-val" class="rev-input" type="number" step="0.01" placeholder="e.g. 5.00"></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">MSI Status</label>
         <select id="rev-msi-status" class="rev-input">
           <option value="">— select —</option>
@@ -2302,21 +2302,24 @@ function parseNGSText(text) {
   // Detect variants — look for gene name + p. notation near allele frequency
   const variants = [];
   const knownGenes = Object.keys(GENE_MAP).concat(['MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA','BAP1','PBRM1','SETD2','KDM5C','CDKN2A','FGFR3','TSC1','TSC2']);
+  // Require gene name followed by a clear mutation descriptor to avoid false positives
   const variantRe = new RegExp(
-    `(${knownGenes.join('|')})\\s+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*]+|Loss[^\\n]{0,20}|Deletion[^\\n]{0,20}|Amplification[^\\n]{0,20}))`,
+    `\\b(${knownGenes.join('|')})\\b[\\s:]+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*]+|c\\.[A-Za-z0-9>_]+|Loss.of.function|Loss-of-function|Deletion|Amplification|Frameshift))`,
     'gi'
   );
   let vm;
   while ((vm = variantRe.exec(text)) !== null) {
     const gene = vm[1].toUpperCase();
     const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
-    // Try to find allele frequency nearby
+    // Require allele frequency to be present nearby — no AF = likely not a real variant call
     const nearby = text.slice(Math.max(0,vm.index-80), vm.index+200);
-    const afM    = nearby.match(/(?:AF|VAF|Allele\s*Freq(?:uency)?)[:\s]+(\d+\.?\d*)\s*%?/i)
-                || nearby.match(/(\d+\.\d+)\s*%/);
-    const af     = afM ? parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1) : '';
-    const tierM  = nearby.match(/Tier[:\s]+([IVX1-4]+)/i);
-    const tier   = tierM ? tierM[1] : '';
+    const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?)[:\s]+(\d+\.?\d*)\s*%?/i)
+                || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
+    if (!afM) continue; // skip if no AF found nearby
+    const af    = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
+    if (af < 0.01 || af > 0.99) continue; // implausible AF
+    const tierM = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
+    const tier  = tierM ? tierM[1] : '';
     if (!variants.find(v => v.gene === gene)) {
       variants.push({ gene, mutation: mut, allele_frequency: af, tier });
     }
