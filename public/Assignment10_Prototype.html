@@ -2330,6 +2330,7 @@ function parseNGSText(text) {
 let _pdfParseNote = '';
 
 function openNGSReview(parsed) {
+  parsed = parsed || {};
   const s = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   s('rev-report-id',   '');
   s('rev-report-date', parsed.date);
@@ -2347,16 +2348,16 @@ function openNGSReview(parsed) {
 
   const list = document.getElementById('rev-variants-list');
   list.innerHTML = '';
-  const variants = parsed.variants.length ? parsed.variants : [{ gene:'', mutation:'', allele_frequency:'', tier:'' }];
+  const variants = (parsed.variants || []).length ? parsed.variants : [{ gene:'', mutation:'', allele_frequency:'', tier:'' }];
   variants.forEach(v => addReviewVariant(v));
 
   const noteEl = document.getElementById('rev-parse-note');
-  if (parsed.variants.length === 0) {
-    noteEl.style.display = 'block';
-    noteEl.textContent = '⚠ No variants were auto-detected. Please fill in the variant rows manually — the PDF may use a non-standard layout.';
+  const varCount = (parsed.variants || []).length;
+  noteEl.style.display = 'block';
+  if (varCount === 0) {
+    noteEl.textContent = '⚠ No variants were auto-detected. Please fill in the variant rows manually — the document may use a non-standard layout or not be a medical NGS report.';
   } else {
-    noteEl.style.display = 'block';
-    noteEl.textContent = `✓ ${parsed.variants.length} variant(s) auto-detected. Platform-specific fields (Tier, Badge, Simulation ID) are assigned automatically from our gene database. Please verify all values before loading.`;
+    noteEl.textContent = `✓ ${varCount} variant(s) auto-detected. Platform-specific fields (Tier, Badge, Simulation ID) are assigned automatically from our gene database. Please verify all values before loading.`;
   }
 
   const modal = document.getElementById('ngs-review-modal');
@@ -2465,7 +2466,7 @@ function handleNGSUpload(e) {
     const reader = new FileReader();
     reader.onload = ev => {
       const parsed = parseVCF(ev.target.result);
-      if (parsed.variants.length === 0) {
+      if ((parsed.variants || []).length === 0) {
         alert('No known variants detected in VCF. The file may lack gene annotations (GENE=, ANN=, or CSQ= in INFO). The review form will open so you can fill in variants manually.');
       }
       openNGSReview(parsed);
