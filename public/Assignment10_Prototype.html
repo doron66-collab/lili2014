@@ -485,7 +485,7 @@
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--white);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Report (MI25-0349)</button>
       <button onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
-      <input type="file" id="ngs-upload-input" accept=".json,.pdf" style="display:none" onchange="handleNGSUpload(event)">
+      <input type="file" id="ngs-upload-input" accept=".json,.pdf,.vcf" style="display:none" onchange="handleNGSUpload(event)">
       <button onclick="resetPlatform()" style="background:#dc2626;color:#ffffff;border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↺ Reset Platform</button>
     </div>
   </div>
@@ -2181,6 +2181,105 @@ async function extractPDFText(file) {
   return text;
 }
 
+// ── VCF parser (standard + SnpEff ANN + VEP CSQ annotations) ─────────────
+function parseVCF(text) {
+  const lines = text.split('\n');
+  const allKnown = Object.keys(GENE_MAP).concat(['MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA','BAP1','PBRM1','SETD2','KDM5C','CDKN2A','FGFR3','TSC1','TSC2','TP53','KEAP1','STK11','VHL']);
+
+  // Extract metadata from ## header lines
+  let institution = '', date = '', sampleId = '', cancer = '', purity = '', tmb = '', msi = '';
+  for (const line of lines) {
+    if (!line.startsWith('#')) break;
+    const m = (re) => line.match(re)?.[1]?.trim() || '';
+    institution = institution || m(/##(?:institution|hospital|lab)[=:](.+)/i);
+    date        = date        || m(/##(?:fileDate|date)[=:](.+)/i);
+    sampleId    = sampleId    || m(/##SAMPLE=.*?ID=([^,>]+)/i);
+    cancer      = cancer      || m(/##(?:CancerType|Histology|TumorType)[=:](.+)/i);
+    purity      = purity      || m(/##(?:TumorPurity|Purity)[=:](.+)/i);
+    tmb         = tmb         || m(/##TMB[=:](\d+\.?\d*)/i);
+    msi         = msi         || m(/##MSI[=:](\d+\.?\d*)/i);
+  }
+
+  const variants = [];
+  for (const line of lines) {
+    if (line.startsWith('#') || !line.trim()) continue;
+    const cols = line.split('\t');
+    if (cols.length < 5) continue;
+    const [chrom, pos, , ref, alt, , , info = '', format = '', ...samples] = cols;
+
+    // Parse INFO key=value pairs
+    const infoMap = {};
+    info.split(';').forEach(item => {
+      const eq = item.indexOf('=');
+      if (eq > 0) infoMap[item.slice(0, eq)] = item.slice(eq + 1);
+      else infoMap[item] = '';
+    });
+
+    let gene = '', hgvsp = '', hgvsc = '', af = '', tier = '';
+
+    // Direct annotations
+    gene   = (infoMap.GENE || infoMap.SYMBOL || infoMap.GENE_NAME || '').toUpperCase().split(',')[0].trim();
+    hgvsp  = infoMap.HGVS_P || infoMap.HGVSp || infoMap.AA_CHANGE || '';
+    hgvsc  = infoMap.HGVS_C || infoMap.HGVSc || '';
+
+    // SnpEff ANN=alt|effect|impact|gene|gene_id|...|hgvsc|hgvsp|...
+    if (!gene && infoMap.ANN) {
+      const parts = infoMap.ANN.split('|');
+      if (parts.length > 3) { gene  = parts[3].toUpperCase().trim(); }
+      if (parts.length > 9)  { hgvsc = parts[9]; }
+      if (parts.length > 10) { hgvsp = parts[10]; }
+    }
+
+    // VEP CSQ=alt|consequence|impact|gene|...
+    if (!gene && infoMap.CSQ) {
+      const parts = infoMap.CSQ.split('|');
+      if (parts.length > 3)  { gene  = parts[3].toUpperCase().trim(); }
+      if (parts.length > 10) { hgvsc = parts[10]; }
+      if (parts.length > 11) { hgvsp = parts[11]; }
+    }
+
+    // AF from INFO
+    const rawAF = infoMap.AF || infoMap.VAF || infoMap.FREQ || infoMap.allele_frequency || '';
+    if (rawAF !== '') {
+      af = parseFloat(rawAF);
+      if (!isNaN(af) && af > 1) af = af / 100;
+    }
+
+    // AF from FORMAT/SAMPLE (GATK, VarScan, Ion Torrent)
+    if ((af === '' || isNaN(af)) && format && samples[0]) {
+      const fmtKeys = format.split(':');
+      const smpVals = samples[0].split(':');
+      const pick = (key) => { const i = fmtKeys.indexOf(key); return i >= 0 ? smpVals[i] : null; };
+      const afRaw  = pick('AF') || pick('FREQ');
+      const adRaw  = pick('AD'); const dpRaw = pick('DP');
+      if (afRaw != null) {
+        af = parseFloat(afRaw);
+        if (!isNaN(af) && af > 1) af = af / 100;
+      } else if (adRaw && dpRaw) {
+        const ads = adRaw.split(','); const dp = parseInt(dpRaw);
+        if (ads.length >= 2 && dp > 0) af = parseInt(ads[1]) / dp;
+      }
+    }
+
+    if (!gene || !allKnown.includes(gene)) continue;
+    if (variants.find(v => v.gene === gene)) continue;
+
+    const mutation = hgvsp || hgvsc || `${ref}>${alt}`;
+    const tierM = info.match(/TIER[=:]([IVX1-4]+)/i);
+    if (tierM) tier = tierM[1];
+
+    variants.push({ gene, mutation: mutation.trim(), allele_frequency: isNaN(af) ? '' : af, tier, hgvs: hgvsc });
+  }
+
+  return {
+    date, institution, sampleId,
+    cancer_type: cancer, origin: '', tumor_purity: purity,
+    tmb, tmb_tier: tmb ? (parseFloat(tmb) >= 10 ? 'High' : 'Low') : '',
+    msi, msi_status: '', egfr: '',
+    variants
+  };
+}
+
 // ── Regex-based field extraction ───────────────────────────────────────────
 function parseNGSText(text) {
   const get = (re) => { const m = text.match(re); return m ? m[1]?.trim() : ''; };
@@ -2202,7 +2301,7 @@ function parseNGSText(text) {
 
   // Detect variants — look for gene name + p. notation near allele frequency
   const variants = [];
-  const knownGenes = Object.keys(GENE_MAP).concat(['MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA']);
+  const knownGenes = Object.keys(GENE_MAP).concat(['MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA','BAP1','PBRM1','SETD2','KDM5C','CDKN2A','FGFR3','TSC1','TSC2']);
   const variantRe = new RegExp(
     `(${knownGenes.join('|')})\\s+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*]+|Loss[^\\n]{0,20}|Deletion[^\\n]{0,20}|Amplification[^\\n]{0,20}))`,
     'gi'
@@ -2345,20 +2444,33 @@ function confirmNGSReview() {
   loadNGSReport(ngs);
 }
 
-// ── File upload handler — JSON or PDF ─────────────────────────────────────
+// ── File upload handler — JSON, PDF, or VCF ───────────────────────────────
 function handleNGSUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
   e.target.value = '';
+  const name = file.name.toLowerCase();
 
-  if (file.name.toLowerCase().endsWith('.pdf')) {
+  if (name.endsWith('.pdf')) {
     extractPDFText(file).then(text => {
-      const parsed = parseNGSText(text);
-      openNGSReview(parsed);
+      openNGSReview(parseNGSText(text));
     }).catch(() => {
-      alert('Could not read PDF — it may be image-based (scanned). Please use the JSON format or fill in the review form manually.');
+      alert('Could not read PDF — it may be image-based (scanned). Please fill in the review form manually.');
       openNGSReview({});
     });
+    return;
+  }
+
+  if (name.endsWith('.vcf')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const parsed = parseVCF(ev.target.result);
+      if (parsed.variants.length === 0) {
+        alert('No known variants detected in VCF. The file may lack gene annotations (GENE=, ANN=, or CSQ= in INFO). The review form will open so you can fill in variants manually.');
+      }
+      openNGSReview(parsed);
+    };
+    reader.readAsText(file);
     return;
   }
 
