@@ -2373,11 +2373,11 @@ function addReviewVariant(v = {}) {
   row.className = 'rev-variant-row';
   row.innerHTML = `
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Gene</label>
-      <input class="rev-input rev-gene" placeholder="TP53" value="${v.gene||''}"></div>
+      <input class="rev-input rev-gene" placeholder="e.g. VHL" value="${v.gene||''}"></div>
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Mutation / Description</label>
-      <input class="rev-input rev-mut" placeholder="p.Cys275Phe" value="${v.mutation||''}"></div>
+      <input class="rev-input rev-mut" placeholder="e.g. p.Arg161*" value="${v.mutation||''}"></div>
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Allele Freq</label>
-      <input class="rev-input rev-af" type="number" step="0.001" min="0" max="1" placeholder="0.12" value="${v.allele_frequency||''}"></div>
+      <input class="rev-input rev-af" type="number" step="0.001" min="0" max="1" placeholder="0.00" value="${v.allele_frequency||''}"></div>
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Tier</label>
       <select class="rev-input rev-tier">
         <option value="">—</option>
