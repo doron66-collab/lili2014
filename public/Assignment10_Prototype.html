@@ -360,33 +360,33 @@
     <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Report Metadata</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Report ID</label>
-        <input id="rev-report-id" class="rev-input" placeholder="e.g. LAB-2025-001"></div>
+        <input id="rev-report-id" class="rev-input" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Report Date</label>
-        <input id="rev-report-date" class="rev-input" placeholder="e.g. 01/01/2025"></div>
+        <input id="rev-report-date" class="rev-input" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Institution</label>
-        <input id="rev-institution" class="rev-input" placeholder="e.g. Medical Center"></div>
+        <input id="rev-institution" class="rev-input" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Tumor Purity</label>
-        <input id="rev-purity" class="rev-input" placeholder="e.g. 70%"></div>
+        <input id="rev-purity" class="rev-input" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Cancer Type</label>
-        <input id="rev-cancer-type" class="rev-input" placeholder="e.g. Adenocarcinoma"></div>
+        <input id="rev-cancer-type" class="rev-input" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">Origin</label>
-        <input id="rev-origin" class="rev-input" placeholder="e.g. Lung / Kidney / Bladder"></div>
+        <input id="rev-origin" class="rev-input" placeholder=""></div>
     </div>
 
     <!-- Biomarkers -->
     <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Biomarkers</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">EGFR / ALK / KRAS / RET</label>
-        <input id="rev-egfr" class="rev-input" placeholder="e.g. Not detected"></div>
+        <input id="rev-egfr" class="rev-input" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">TMB Value (mut/Mb)</label>
-        <input id="rev-tmb-val" class="rev-input" type="number" step="0.1" placeholder="e.g. 5.0"></div>
+        <input id="rev-tmb-val" class="rev-input" type="number" step="0.1" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">TMB Tier</label>
         <select id="rev-tmb-tier" class="rev-input">
           <option value="">— select —</option>
           <option>Low</option><option>Intermediate</option><option>High</option>
         </select></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">MSI Value (%)</label>
-        <input id="rev-msi-val" class="rev-input" type="number" step="0.01" placeholder="e.g. 5.00"></div>
+        <input id="rev-msi-val" class="rev-input" type="number" step="0.01" placeholder=""></div>
       <div><label style="font-size:10px;color:var(--gray);display:block;margin-bottom:3px">MSI Status</label>
         <select id="rev-msi-status" class="rev-input">
           <option value="">— select —</option>
@@ -2373,11 +2373,11 @@ function addReviewVariant(v = {}) {
   row.className = 'rev-variant-row';
   row.innerHTML = `
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Gene</label>
-      <input class="rev-input rev-gene" placeholder="e.g. VHL" value="${v.gene||''}"></div>
+      <input class="rev-input rev-gene" placeholder="" value="${v.gene||''}"></div>
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Mutation / Description</label>
-      <input class="rev-input rev-mut" placeholder="e.g. p.Arg161*" value="${v.mutation||''}"></div>
+      <input class="rev-input rev-mut" placeholder="" value="${v.mutation||''}"></div>
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Allele Freq</label>
-      <input class="rev-input rev-af" type="number" step="0.001" min="0" max="1" placeholder="0.00" value="${v.allele_frequency||''}"></div>
+      <input class="rev-input rev-af" type="number" step="0.001" min="0" max="1" placeholder="" value="${v.allele_frequency||''}"></div>
     <div><label style="font-size:9px;color:var(--gray);display:block;margin-bottom:3px">Tier</label>
       <select class="rev-input rev-tier">
         <option value="">—</option>
