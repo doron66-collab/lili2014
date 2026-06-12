@@ -115,57 +115,127 @@ def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
 # C275F full active site (~88q) is the ONLY target within this ceiling.
 # ── Expansion gene map — mirrors frontend GENE_MAP (non-core genes) ───────────
 # Used to build Phase 3A proxy configs on the fly for NGS-detected expansion targets.
-# All use KEAP1_G333C "mutant" (methanethiol) as the generic CAS(2e,2o) LOF proxy —
-# the 4-qubit Hamiltonian is compound-specific but BQP class is determined by full_electrons.
+#
+# Each gene is assigned a biochemically motivated JW proxy compound so that
+# different genes produce distinct VQE energies when simulated.
+#
+# Available proxy compounds (e_casscf from PySCF CASSCF(2,2)/STO-3G):
+#   isobutane   -154.92 Ha  STK11_F354L/mutant   — aliphatic Leu/Ile sidechain
+#   formamide   -166.72 Ha  KEAP1_G333C/native   — Gly amide (small residue)
+#   guanidine   -201.48 Ha  KEAP1_R320Q/native   — Arg sidechain (cationic)
+#   acetamide   -205.32 Ha  KEAP1_R320Q/mutant   — Asn/Gln sidechain amide
+#   acetic_acid -224.84 Ha  STK11_D194N/native   — Asp/Glu carboxylate
+#   toluene     -266.49 Ha  TP53_C275F/mutant    — Phe aromatic sidechain
+#   p_cresol    -340.32 Ha  TP53_Y220C/native    — Tyr phenolic sidechain
+#   methanethiol-432.91 Ha  KEAP1_G333C/mutant   — Cys sulfhydryl sidechain
 _EXPANSION_GENE_MAP = {
-    # Urological / RCC
-    "VHL":     {"full_electrons": 25,  "full_qubits": 50,  "badge": "Structural"},
-    "BAP1":    {"full_electrons": 35,  "full_qubits": 70,  "badge": "Ubiquitin LOF"},
-    "PBRM1":   {"full_electrons": 28,  "full_qubits": 56,  "badge": "Chromatin LOF"},
-    "SETD2":   {"full_electrons": 30,  "full_qubits": 60,  "badge": "Methyltransf. LOF"},
-    "FGFR3":   {"full_electrons": 24,  "full_qubits": 48,  "badge": "Kinase"},
-    "TSC1":    {"full_electrons": 26,  "full_qubits": 52,  "badge": "GAP LOF"},
-    "TSC2":    {"full_electrons": 30,  "full_qubits": 60,  "badge": "GAP LOF"},
-    # Neuroendocrine / glioma
-    "ATRX":    {"full_electrons": 30,  "full_qubits": 60,  "badge": "Helicase LOF"},
-    "IDH1":    {"full_electrons": 22,  "full_qubits": 44,  "badge": "Neomorphic"},
-    "IDH2":    {"full_electrons": 22,  "full_qubits": 44,  "badge": "Neomorphic"},
-    # Pan-cancer
-    "SMARCA4": {"full_electrons": 40,  "full_qubits": 80,  "badge": "ATPase LOF"},
-    "ARID1A":  {"full_electrons": 28,  "full_qubits": 56,  "badge": "Chromatin LOF"},
-    "POLE":    {"full_electrons": 24,  "full_qubits": 48,  "badge": "Exonuclease LOF"},
-    "BRCA1":   {"full_electrons": 32,  "full_qubits": 64,  "badge": "DNA Repair LOF"},
-    "BRCA2":   {"full_electrons": 32,  "full_qubits": 64,  "badge": "DNA Repair LOF"},
-    "ATM":     {"full_electrons": 28,  "full_qubits": 56,  "badge": "DNA Repair LOF"},
-    "TERT":    {"full_electrons": 24,  "full_qubits": 48,  "badge": "Telomerase"},
-    "RB1":     {"full_electrons": 32,  "full_qubits": 64,  "badge": "Cell Cycle LOF"},
-    "NF1":     {"full_electrons": 28,  "full_qubits": 56,  "badge": "RasGAP LOF"},
-    "NF2":     {"full_electrons": 22,  "full_qubits": 44,  "badge": "Scaffold LOF"},
-    "AXIN1":   {"full_electrons": 24,  "full_qubits": 48,  "badge": "WNT Scaffold"},
-    "AXIN2":   {"full_electrons": 24,  "full_qubits": 48,  "badge": "WNT Scaffold"},
-    "CDKN2A":  {"full_electrons": 20,  "full_qubits": 40,  "badge": "Cell Cycle LOF"},
+    # — Cys-dependent active sites → methanethiol (-432.91 Ha) ——————————————
+    "BAP1":    {"full_electrons": 35, "full_qubits": 70, "badge": "Ubiquitin LOF",
+                "jw_source": ("KEAP1_G333C", "mutant"),
+                "proxy_compound": "methanethiol (UCH-domain Cys active site)"},
+    "BRCA1":   {"full_electrons": 32, "full_qubits": 64, "badge": "DNA Repair LOF",
+                "jw_source": ("KEAP1_G333C", "mutant"),
+                "proxy_compound": "methanethiol (RING-domain Cys4 Zn finger)"},
+    "BRCA2":   {"full_electrons": 32, "full_qubits": 64, "badge": "DNA Repair LOF",
+                "jw_source": ("TP53_Y220C",  "mutant"),
+                "proxy_compound": "methanethiol (OB-fold Cys residue)"},
+
+    # — Tyr/phenolic sidechain → p-cresol (-340.32 Ha) ———————————————————————
+    "IDH1":    {"full_electrons": 22, "full_qubits": 44, "badge": "Neomorphic",
+                "jw_source": ("TP53_Y220C", "native"),
+                "proxy_compound": "p-cresol (Tyr139 in isocitrate-binding pocket)"},
+    "IDH2":    {"full_electrons": 22, "full_qubits": 44, "badge": "Neomorphic",
+                "jw_source": ("TP53_Y220C", "native"),
+                "proxy_compound": "p-cresol (Tyr179 neomorphic interface)"},
+    "PBRM1":   {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",
+                "jw_source": ("TP53_Y220C", "native"),
+                "proxy_compound": "p-cresol (bromodomain BD2 Tyr contact)"},
+
+    # — Phe aromatic sidechain → toluene (-266.49 Ha) ————————————————————————
+    "POLE":    {"full_electrons": 24, "full_qubits": 48, "badge": "Exonuclease LOF",
+                "jw_source": ("TP53_C275F", "mutant"),
+                "proxy_compound": "toluene (Tyr/Phe in exonuclease active site)"},
+    "SMARCA4": {"full_electrons": 40, "full_qubits": 80, "badge": "ATPase LOF",
+                "jw_source": ("TP53_C275F", "mutant"),
+                "proxy_compound": "toluene (Phe/Trp aromatic stacking in SnAC motif)"},
+    "ARID1A":  {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",
+                "jw_source": ("TP53_C275F", "mutant"),
+                "proxy_compound": "toluene (AT-hook Phe residue)"},
+
+    # — Asp/Glu carboxylate → acetic acid (-224.84 Ha) ———————————————————————
+    "ATM":     {"full_electrons": 28, "full_qubits": 56, "badge": "DNA Repair LOF",
+                "jw_source": ("STK11_D194N", "native"),
+                "proxy_compound": "acetic_acid (PIKK-family Asp catalytic motif)"},
+    "RB1":     {"full_electrons": 32, "full_qubits": 64, "badge": "Cell Cycle LOF",
+                "jw_source": ("STK11_D194N", "native"),
+                "proxy_compound": "acetic_acid (acidic patch Asp/Glu cleft)"},
+    "SETD2":   {"full_electrons": 30, "full_qubits": 60, "badge": "Methyltransf. LOF",
+                "jw_source": ("STK11_D194N", "native"),
+                "proxy_compound": "acetic_acid (SET-domain Asp in substrate binding)"},
+
+    # — Asn/Gln sidechain amide → acetamide (-205.32 Ha) —————————————————————
+    "AXIN1":   {"full_electrons": 24, "full_qubits": 48, "badge": "WNT Scaffold",
+                "jw_source": ("KEAP1_R320Q", "mutant"),
+                "proxy_compound": "acetamide (DIX-domain Gln interface)"},
+    "AXIN2":   {"full_electrons": 24, "full_qubits": 48, "badge": "WNT Scaffold",
+                "jw_source": ("STK11_D194N", "mutant"),
+                "proxy_compound": "acetamide (DIX-domain Gln, distinct JW key)"},
+    "TERT":    {"full_electrons": 24, "full_qubits": 48, "badge": "Telomerase",
+                "jw_source": ("KEAP1_R320Q", "mutant"),
+                "proxy_compound": "acetamide (RT active site Asn-Gln motif)"},
+
+    # — Arg sidechain guanidinium → guanidine (-201.48 Ha) ————————————————————
+    "NF1":     {"full_electrons": 28, "full_qubits": 56, "badge": "RasGAP LOF",
+                "jw_source": ("KEAP1_R320Q", "native"),
+                "proxy_compound": "guanidine (catalytic Arg finger)"},
+    "NF2":     {"full_electrons": 22, "full_qubits": 44, "badge": "Scaffold LOF",
+                "jw_source": ("KEAP1_R320Q", "native"),
+                "proxy_compound": "guanidine (FERM-domain Arg contact)"},
+    "TSC2":    {"full_electrons": 30, "full_qubits": 60, "badge": "GAP LOF",
+                "jw_source": ("KEAP1_R320Q", "native"),
+                "proxy_compound": "guanidine (GAP arginine-finger equivalent)"},
+
+    # — Small/Gly-like amide → formamide (-166.72 Ha) ————————————————————————
+    "VHL":     {"full_electrons": 25, "full_qubits": 50, "badge": "Structural",
+                "jw_source": ("KEAP1_G333C", "native"),
+                "proxy_compound": "formamide (Pro/Gly hinge in HIF-α binding loop)"},
+    "FGFR3":   {"full_electrons": 24, "full_qubits": 48, "badge": "Kinase",
+                "jw_source": ("KEAP1_G333C", "native"),
+                "proxy_compound": "formamide (Gly hinge of kinase DFG+1 loop)"},
+    "TSC1":    {"full_electrons": 26, "full_qubits": 52, "badge": "GAP LOF",
+                "jw_source": ("KEAP1_G333C", "native"),
+                "proxy_compound": "formamide (Gly-rich hamartin coiled-coil)"},
+
+    # — Aliphatic Leu/Ile hydrophobic core → isobutane (-154.92 Ha) ——————————
+    "ATRX":    {"full_electrons": 30, "full_qubits": 60, "badge": "Helicase LOF",
+                "jw_source": ("STK11_F354L", "mutant"),
+                "proxy_compound": "isobutane (Ile/Leu in ADD-domain hydrophobic core)"},
+    "CDKN2A":  {"full_electrons": 20, "full_qubits": 40, "badge": "Cell Cycle LOF",
+                "jw_source": ("STK11_F354L", "mutant"),
+                "proxy_compound": "isobutane (ankyrin-repeat Leu in CDK4-binding groove)"},
 }
 
 
 def _make_expansion_config(gene: str, gm: dict) -> dict:
     """Build a Phase 3A proxy config for an expansion gene LOF target.
 
-    Uses the KEAP1_G333C mutant (methanethiol) JW Hamiltonian as a generic
-    CAS(2e,2o) LOF proxy — scientifically valid because Phase 3A active space
-    is identical for any 2e/4q system regardless of the model compound chosen.
+    Each gene uses a biochemically motivated model compound whose JW Hamiltonian
+    is pre-computed via PySCF CASSCF(2,2)/STO-3G — valid because Phase 3A
+    runs an identical 4-qubit CAS(2e,2o) circuit regardless of compound.
+    Different compounds give distinct VQE energies so genes are distinguishable.
     """
     fe  = gm["full_electrons"]
     fq  = gm["full_qubits"]
     bqp = "A" if fe >= 30 else "B"
     era = "current" if fq <= 94 else "fault_tolerant"
+    proxy = gm.get("proxy_compound", gm["badge"])
     return {
         "name": f"{gene} Loss-of-Function",
         "pdb":  "AlphaFold",
         "desc": (
-            f"{gene} {gm['badge']} — Phase 3A proxy: CAS(2e,2o) methanethiol "
-            "(KEAP1 Cys-LOF Hamiltonian), STO-3G"
+            f"{gene} {gm['badge']} — Phase 3A proxy: CAS(2e,2o) {proxy}, STO-3G"
         ),
-        "jw_source": ("KEAP1_G333C", "mutant"),
+        "jw_source":        gm["jw_source"],
         "active_electrons": 2,
         "active_orbitals":  2,
         "local_electrons":  fe // 2,
