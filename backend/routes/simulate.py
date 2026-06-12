@@ -113,6 +113,86 @@ def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
 # arXiv:2605.01138) demonstrated 94 qubits on IBM Heron r2 for a 12,635-atom
 # protein-ligand complex — establishing the current NISQ ceiling for chemistry.
 # C275F full active site (~88q) is the ONLY target within this ceiling.
+# ── Expansion gene map — mirrors frontend GENE_MAP (non-core genes) ───────────
+# Used to build Phase 3A proxy configs on the fly for NGS-detected expansion targets.
+# All use KEAP1_G333C "mutant" (methanethiol) as the generic CAS(2e,2o) LOF proxy —
+# the 4-qubit Hamiltonian is compound-specific but BQP class is determined by full_electrons.
+_EXPANSION_GENE_MAP = {
+    # Urological / RCC
+    "VHL":     {"full_electrons": 25,  "full_qubits": 50,  "badge": "Structural"},
+    "BAP1":    {"full_electrons": 35,  "full_qubits": 70,  "badge": "Ubiquitin LOF"},
+    "PBRM1":   {"full_electrons": 28,  "full_qubits": 56,  "badge": "Chromatin LOF"},
+    "SETD2":   {"full_electrons": 30,  "full_qubits": 60,  "badge": "Methyltransf. LOF"},
+    "FGFR3":   {"full_electrons": 24,  "full_qubits": 48,  "badge": "Kinase"},
+    "TSC1":    {"full_electrons": 26,  "full_qubits": 52,  "badge": "GAP LOF"},
+    "TSC2":    {"full_electrons": 30,  "full_qubits": 60,  "badge": "GAP LOF"},
+    # Neuroendocrine / glioma
+    "ATRX":    {"full_electrons": 30,  "full_qubits": 60,  "badge": "Helicase LOF"},
+    "IDH1":    {"full_electrons": 22,  "full_qubits": 44,  "badge": "Neomorphic"},
+    "IDH2":    {"full_electrons": 22,  "full_qubits": 44,  "badge": "Neomorphic"},
+    # Pan-cancer
+    "SMARCA4": {"full_electrons": 40,  "full_qubits": 80,  "badge": "ATPase LOF"},
+    "ARID1A":  {"full_electrons": 28,  "full_qubits": 56,  "badge": "Chromatin LOF"},
+    "POLE":    {"full_electrons": 24,  "full_qubits": 48,  "badge": "Exonuclease LOF"},
+    "BRCA1":   {"full_electrons": 32,  "full_qubits": 64,  "badge": "DNA Repair LOF"},
+    "BRCA2":   {"full_electrons": 32,  "full_qubits": 64,  "badge": "DNA Repair LOF"},
+    "ATM":     {"full_electrons": 28,  "full_qubits": 56,  "badge": "DNA Repair LOF"},
+    "TERT":    {"full_electrons": 24,  "full_qubits": 48,  "badge": "Telomerase"},
+    "RB1":     {"full_electrons": 32,  "full_qubits": 64,  "badge": "Cell Cycle LOF"},
+    "NF1":     {"full_electrons": 28,  "full_qubits": 56,  "badge": "RasGAP LOF"},
+    "NF2":     {"full_electrons": 22,  "full_qubits": 44,  "badge": "Scaffold LOF"},
+    "AXIN1":   {"full_electrons": 24,  "full_qubits": 48,  "badge": "WNT Scaffold"},
+    "AXIN2":   {"full_electrons": 24,  "full_qubits": 48,  "badge": "WNT Scaffold"},
+    "CDKN2A":  {"full_electrons": 20,  "full_qubits": 40,  "badge": "Cell Cycle LOF"},
+}
+
+
+def _make_expansion_config(gene: str, gm: dict) -> dict:
+    """Build a Phase 3A proxy config for an expansion gene LOF target.
+
+    Uses the KEAP1_G333C mutant (methanethiol) JW Hamiltonian as a generic
+    CAS(2e,2o) LOF proxy — scientifically valid because Phase 3A active space
+    is identical for any 2e/4q system regardless of the model compound chosen.
+    """
+    fe  = gm["full_electrons"]
+    fq  = gm["full_qubits"]
+    bqp = "A" if fe >= 30 else "B"
+    era = "current" if fq <= 94 else "fault_tolerant"
+    return {
+        "name": f"{gene} Loss-of-Function",
+        "pdb":  "AlphaFold",
+        "desc": (
+            f"{gene} {gm['badge']} — Phase 3A proxy: CAS(2e,2o) methanethiol "
+            "(KEAP1 Cys-LOF Hamiltonian), STO-3G"
+        ),
+        "jw_source": ("KEAP1_G333C", "mutant"),
+        "active_electrons": 2,
+        "active_orbitals":  2,
+        "local_electrons":  fe // 2,
+        "local_qubits":     fq // 2,
+        "full_electrons":   fe,
+        "full_qubits":      fq,
+        "bqp_class":        bqp,
+        "hardware_era":     era,
+        "phase3b_backend":  (
+            "IBM Heron r3" if era == "current" else "fault-tolerant QPU (~2030+)"
+        ),
+    }
+
+
+def _resolve_config(mutation_id: str) -> dict | None:
+    """Return a MUTATION_CONFIGS entry, or build one for an expansion {GENE}_LOF target."""
+    cfg = MUTATION_CONFIGS.get(mutation_id)
+    if cfg:
+        return cfg
+    if mutation_id.endswith("_LOF"):
+        gene = mutation_id[:-4]
+        gm   = _EXPANSION_GENE_MAP.get(gene)
+        if gm:
+            return _make_expansion_config(gene, gm)
+    return None
+
+
 MUTATION_CONFIGS = {
     "TP53_C275F": {
         "name": "TP53 p.Cys275Phe",
@@ -365,7 +445,7 @@ def _extract_user_id(authorization: str | None) -> str | None:
 @router.get("/{mutation_id}/stream")
 async def stream_simulation(mutation_id: str, authorization: str | None = Header(None)):
     """SSE endpoint — streams each VQE energy value as it is computed."""
-    config = MUTATION_CONFIGS.get(mutation_id)
+    config = _resolve_config(mutation_id)
     if not config:
         raise HTTPException(status_code=404, detail=f"Unknown mutation: {mutation_id}")
 
@@ -444,11 +524,12 @@ async def run_simulation(mutation_id: str, authorization: str | None = Header(No
 
 
 async def _run_simulation_inner(mutation_id: str, authorization: str | None):
-    config = MUTATION_CONFIGS.get(mutation_id)
+    config = _resolve_config(mutation_id)
     if not config:
         raise HTTPException(status_code=404,
                             detail=f"Unknown mutation: {mutation_id}. "
-                                   f"Valid: {list(MUTATION_CONFIGS.keys())}")
+                                   f"Valid: {list(MUTATION_CONFIGS.keys())} "
+                                   f"or any expansion {{GENE}}_LOF where GENE is in the expansion map.")
     user_id = _extract_user_id(authorization)
 
     now    = datetime.now(timezone.utc).isoformat()
