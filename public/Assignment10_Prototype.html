@@ -2494,7 +2494,19 @@ function handleNGSUpload(e) {
 
 function loadNGSReport(ngs) {
   const id = ngs.report_id || 'Unknown';
-  // Reset AI bars to clean state on every NGS load
+
+  // ── Wipe previous NGS state before writing new data ───────────────────
+  const _el = id => document.getElementById(id);
+  ['TP53_C275F','KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q','STK11_LKB1','STK11_F354L','STK11_D194N'].forEach(mid => {
+    if (_el(`mut-freq-${mid}`))     { _el(`mut-freq-${mid}`).textContent = '—'; _el(`mut-freq-${mid}`).style.color = 'var(--gray)'; }
+    if (_el(`mut-status-${mid}`))   _el(`mut-status-${mid}`).innerHTML   = '<span class="badge badge-gray">○ Pending</span>';
+    if (_el(`mut-status-3b-${mid}`)) _el(`mut-status-3b-${mid}`).innerHTML = '';
+  });
+  document.querySelectorAll('.ngs-tier-badge').forEach(b => b.remove());
+  ['ngs-egfr','ngs-tmb','ngs-msi','ngs-tp53','ngs-keap1','ngs-cdkn2a'].forEach(fid => { if (_el(fid)) _el(fid).innerHTML = '—'; });
+  const _alert = _el('ngs-tier1-alert'); if (_alert) { _alert.innerHTML = ''; _alert.style.display = 'none'; }
+  const _banner = _el('ngs-load-banner'); if (_banner) _banner.style.display = 'none';
+  // ──────────────────────────────────────────────────────────────────────
   const _ai3a = document.getElementById('job-ai-bar-3a');
   const _ai3b = document.getElementById('job-ai-bar-3b');
   if (_ai3a) _ai3a.style.width = '0%';
