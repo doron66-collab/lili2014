@@ -2121,14 +2121,40 @@ function loadDemoNGS() { loadNGSReport(MI25_0349); }
 
 // ── Known gene → platform mapping ─────────────────────────────────────────
 const GENE_MAP = {
-  TP53:   { badge_type:'Structural', color:'#E8A020', active_electrons:44, full_qubits:88  },
-  KEAP1:  { badge_type:'PPI',        color:'#b47fd4', active_electrons:155, full_qubits:310 },
-  STK11:  { badge_type:'SL',         color:'#60a5fa', active_electrons:152, full_qubits:304 },
-  KRAS:   { badge_type:'Structural', color:'#34d399', active_electrons:40, full_qubits:80  },
-  BRAF:   { badge_type:'Structural', color:'#f87171', active_electrons:44, full_qubits:88  },
-  EGFR:   { badge_type:'Structural', color:'#fbbf24', active_electrons:48, full_qubits:96  },
-  ALK:    { badge_type:'SL',         color:'#a78bfa', active_electrons:44, full_qubits:88  },
-  VHL:    { badge_type:'Structural', color:'#06b6d4', active_electrons:25, full_qubits:50  },
+  // ── Core NSCLC targets ───────────────────────────────────────────────
+  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:44,  full_qubits:88  },
+  KEAP1:   { badge_type:'PPI',              color:'#b47fd4', active_electrons:155, full_qubits:310 },
+  STK11:   { badge_type:'SL',              color:'#60a5fa', active_electrons:152, full_qubits:304 },
+  KRAS:    { badge_type:'Structural',        color:'#34d399', active_electrons:40,  full_qubits:80  },
+  BRAF:    { badge_type:'Structural',        color:'#f87171', active_electrons:44,  full_qubits:88  },
+  EGFR:    { badge_type:'Structural',        color:'#fbbf24', active_electrons:48,  full_qubits:96  },
+  ALK:     { badge_type:'SL',              color:'#a78bfa', active_electrons:44,  full_qubits:88  },
+  // ── Urological / RCC ─────────────────────────────────────────────────
+  VHL:     { badge_type:'Structural',        color:'#06b6d4', active_electrons:25,  full_qubits:50  },
+  BAP1:    { badge_type:'Ubiquitin LOF',     color:'#0891b2', active_electrons:35,  full_qubits:70  },
+  PBRM1:   { badge_type:'Chromatin LOF',     color:'#0e7490', active_electrons:28,  full_qubits:56  },
+  SETD2:   { badge_type:'Methyltransf. LOF', color:'#164e63', active_electrons:30,  full_qubits:60  },
+  FGFR3:   { badge_type:'Kinase',            color:'#d97706', active_electrons:24,  full_qubits:48  },
+  TSC1:    { badge_type:'GAP LOF',           color:'#92400e', active_electrons:26,  full_qubits:52  },
+  TSC2:    { badge_type:'GAP LOF',           color:'#78350f', active_electrons:30,  full_qubits:60  },
+  // ── Neuroendocrine / glioma ───────────────────────────────────────────
+  ATRX:    { badge_type:'Helicase LOF',      color:'#f97316', active_electrons:30,  full_qubits:60  },
+  IDH1:    { badge_type:'Neomorphic',        color:'#16a34a', active_electrons:22,  full_qubits:44  },
+  IDH2:    { badge_type:'Neomorphic',        color:'#15803d', active_electrons:22,  full_qubits:44  },
+  // ── Pan-cancer chromatin / DNA-repair ────────────────────────────────
+  SMARCA4: { badge_type:'ATPase LOF',        color:'#dc2626', active_electrons:40,  full_qubits:80  },
+  ARID1A:  { badge_type:'Chromatin LOF',     color:'#1e40af', active_electrons:28,  full_qubits:56  },
+  POLE:    { badge_type:'Exonuclease LOF',   color:'#7c3aed', active_electrons:24,  full_qubits:48  },
+  BRCA1:   { badge_type:'DNA Repair LOF',    color:'#be185d', active_electrons:32,  full_qubits:64  },
+  BRCA2:   { badge_type:'DNA Repair LOF',    color:'#9d174d', active_electrons:32,  full_qubits:64  },
+  ATM:     { badge_type:'DNA Repair LOF',    color:'#831843', active_electrons:28,  full_qubits:56  },
+  TERT:    { badge_type:'Telomerase',        color:'#4c1d95', active_electrons:24,  full_qubits:48  },
+  RB1:     { badge_type:'Cell Cycle LOF',    color:'#1e3a5f', active_electrons:32,  full_qubits:64  },
+  NF1:     { badge_type:'RasGAP LOF',        color:'#854d0e', active_electrons:28,  full_qubits:56  },
+  NF2:     { badge_type:'Scaffold LOF',      color:'#713f12', active_electrons:22,  full_qubits:44  },
+  AXIN1:   { badge_type:'WNT Scaffold',      color:'#365314', active_electrons:24,  full_qubits:48  },
+  AXIN2:   { badge_type:'WNT Scaffold',      color:'#166534', active_electrons:24,  full_qubits:48  },
+  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#1d4ed8', active_electrons:20,  full_qubits:40  },
 };
 
 function geneSimId(gene, mutation) {
@@ -2503,6 +2529,7 @@ function loadNGSReport(ngs) {
     if (_el(`mut-status-3b-${mid}`)) _el(`mut-status-3b-${mid}`).innerHTML = '';
   });
   document.querySelectorAll('.ngs-tier-badge').forEach(b => b.remove());
+  document.querySelectorAll('.dynamic-expansion-row').forEach(r => r.remove());
   ['ngs-egfr','ngs-tmb','ngs-msi','ngs-tp53','ngs-keap1','ngs-cdkn2a'].forEach(fid => { if (_el(fid)) _el(fid).innerHTML = '—'; });
   const _alert = _el('ngs-tier1-alert'); if (_alert) { _alert.innerHTML = ''; _alert.style.display = 'none'; }
   const _banner = _el('ngs-load-banner'); if (_banner) _banner.style.display = 'none';
@@ -2602,76 +2629,139 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // ── Compute matched targets FIRST — drives all downstream visibility ──
+  // ── Match NGS variants to platform targets ────────────────────────────
   const ngsGenes = new Set((ngs.variants || []).map(v => (v.gene || '').toUpperCase()));
-  const GENE_TO_TARGETS = {
+
+  // Hardcoded NSCLC core targets
+  const CORE_GENE_TO_TARGETS = {
     TP53:  ['TP53_C275F'],
     KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
     STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
   };
   const matchedTargets = [];
-  Object.entries(GENE_TO_TARGETS).forEach(([gene, targets]) => {
+  Object.entries(CORE_GENE_TO_TARGETS).forEach(([gene, targets]) => {
     if (ngsGenes.has(gene)) matchedTargets.push(...targets);
   });
-  const hasPlatformTargets = matchedTargets.length > 0;
 
-  // Generate pipeline rows — only for matched targets
+  // Expansion: any gene in GENE_MAP with ≥20 active electrons, not already covered
+  const coreGenes = new Set(Object.keys(CORE_GENE_TO_TARGETS));
+  const expansionVariants = [];
+  const seenExpGenes = new Set();
+  (ngs.variants || []).forEach(v => {
+    const gene = (v.gene || '').toUpperCase();
+    if (coreGenes.has(gene) || seenExpGenes.has(gene)) return;
+    const gm = GENE_MAP[gene];
+    if (!gm || gm.active_electrons < 20) return;
+    seenExpGenes.add(gene);
+    const simId = `${gene}_LOF`;
+    const bqpCls = gm.active_electrons >= 30 ? 'A' : 'B';
+    expansionVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency });
+  });
+
+  const allTargets = [...matchedTargets, ...expansionVariants.map(ev => ev.simId)];
+  const hasAnyTargets = allTargets.length > 0;
+
+  // ── Inject dynamic rows for expansion genes ───────────────────────────
+  const mutTbody = document.getElementById('ngs-mutation-rows');
+  const bqpTbody = document.getElementById('ngs-bqp-rows');
+  const pqDiv    = document.getElementById('ngs-pq-items');
+  expansionVariants.forEach(ev => {
+    const bqpBadge = ev.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
+    const bqpRowBg = ev.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
+    const localE   = Math.round(ev.gm.active_electrons / 2);
+    if (mutTbody) {
+      const tr = document.createElement('tr');
+      tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${ev.simId}`;
+      tr.innerHTML = `
+        <td><span class="bqp-badge-${ev.bqpCls.toLowerCase()}">${ev.bqpCls}</span></td>
+        <td style="font-weight:700;color:${ev.gm.color}">${ev.gene}</td>
+        <td id="mut-type-${ev.simId}">${ev.mutation} <span class="badge" style="background:${ev.gm.color}22;color:${ev.gm.color};border:1px solid ${ev.gm.color}55">${ev.gm.badge_type}</span></td>
+        <td style="font-size:10px;color:var(--teal)">★ NGS</td>
+        <td>~${localE}e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
+        <td>~${ev.gm.active_electrons}e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
+        <td><div id="mut-status-${ev.simId}"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-${ev.simId}" style="margin-top:4px"></div></td>`;
+      mutTbody.appendChild(tr);
+    }
+    if (bqpTbody) {
+      const tr = document.createElement('tr');
+      tr.className = 'dynamic-expansion-row'; tr.id = `bqp-row-${ev.simId}`; tr.style = bqpRowBg;
+      tr.innerHTML = `
+        <td><strong style="color:${ev.gm.color}">${ev.gene}</strong></td>
+        <td>${ev.mutation} <span class="badge" style="background:${ev.gm.color}22;color:${ev.gm.color};border:1px solid ${ev.gm.color}55">${ev.gm.badge_type}</span></td>
+        <td>~${ev.gm.active_electrons}</td><td>~${ev.gm.full_qubits}</td>
+        <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
+        <td>${bqpBadge}</td>
+        <td id="bqp-de-${ev.simId}" style="color:var(--gray)">—</td>
+        <td id="bqp-status-${ev.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
+      bqpTbody.appendChild(tr);
+    }
+    if (pqDiv) {
+      const d = document.createElement('div');
+      d.className = 'dynamic-expansion-row'; d.id = `pq-item-${ev.simId}`;
+      d.innerHTML = `<span id="pq-dot-${ev.simId}" style="color:var(--gray)">○</span> ${ev.gene} ${ev.mutation} validation`;
+      pqDiv.appendChild(d);
+    }
+  });
+
+  // Show/hide static core rows + expansion tbodies
+  ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(elId => {
+    const el = document.getElementById(elId);
+    if (el) el.style.display = hasAnyTargets ? '' : 'none';
+  });
+  PIPELINE_TARGETS.forEach(tid => {
+    const show = matchedTargets.includes(tid);
+    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
+      const el = document.getElementById(prefix + tid);
+      if (el) el.style.display = show ? '' : 'none';
+    });
+  });
+
+  // Pipeline rows — core targets + expansion
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
   if (pipelineEl) {
-    if (!hasPlatformTargets) {
-      pipelineEl.innerHTML = '';
-      pipelineEl.style.display = 'none';
+    if (!hasAnyTargets) {
+      pipelineEl.innerHTML = ''; pipelineEl.style.display = 'none';
     } else {
-      pipelineEl.innerHTML = matchedTargets.map((id, i) => {
-        const color  = MUT_COLORS[id] || 'var(--teal)';
-        const meta   = MUT_META[id] || {};
-        const isLast = i === matchedTargets.length - 1;
+      pipelineEl.innerHTML = allTargets.map((tid, i) => {
+        const ev     = expansionVariants.find(e => e.simId === tid);
+        const color  = ev ? ev.gm.color : (MUT_COLORS[tid] || 'var(--teal)');
+        const meta   = MUT_META[tid] || {};
+        const label  = ev ? `${ev.gene} ${ev.mutation}` : (meta.display_name || tid);
+        const isLast = i === allTargets.length - 1;
+        const p3bSub = ev ? `${ev.gm.active_electrons}e / ${ev.gm.full_qubits}q · IBM Heron r3` : phase3bSubtitle(tid);
+        const p3bBdg = ev ? `<span class="badge badge-gray">○ Pending</span>` : phase3bBadge(tid);
         return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
           <div style="min-width:150px">
-            <div style="font-weight:700;font-size:12px;color:${color}">${meta.display_name || id}</div>
+            <div style="font-weight:700;font-size:12px;color:${color}">${label}</div>
             <div style="font-size:10px;color:var(--gray)">Phase 3A · VQE · PennyLane · 4q live</div>
           </div>
-          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${id}" style="width:0%"></div></div></div>
-          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${id}">—</div>
-          <div style="min-width:95px" id="prow-badge-${id}"><span class="badge badge-gray">○ Pending</span></div>
-          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${id}">Not yet run</div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${tid}" style="width:0%"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${tid}">—</div>
+          <div style="min-width:95px" id="prow-badge-${tid}"><span class="badge badge-gray">○ Pending</span></div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${tid}">Not yet run</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:8px 0 8px 18px;${isLast ? '' : 'border-bottom:1px solid var(--border)'}opacity:0.65">
           <div style="min-width:150px">
-            <div style="font-weight:600;font-size:11px;color:${color}">└ Phase 3B · ${meta.display_name || id}</div>
-            <div style="font-size:10px;color:var(--gray)">${phase3bSubtitle(id)}</div>
+            <div style="font-weight:600;font-size:11px;color:${color}">└ Phase 3B · ${label}</div>
+            <div style="font-size:10px;color:var(--gray)">${p3bSub}</div>
           </div>
-          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${id}" style="width:0%;background:var(--gold)"></div></div></div>
-          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${id}">—</div>
-          <div style="min-width:95px" id="prow-badge-3b-${id}">${phase3bBadge(id)}</div>
-          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${id}">Not yet run</div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${tid}" style="width:0%;background:var(--gold)"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${tid}">—</div>
+          <div style="min-width:95px" id="prow-badge-3b-${tid}">${p3bBdg}</div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${tid}">Not yet run</div>
         </div>`;
       }).join('');
       pipelineEl.style.display = '';
     }
   }
 
-  // Show/hide static rows (registry + BQP + pq-items) by gene match
-  ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = hasPlatformTargets ? '' : 'none';
-  });
-  PIPELINE_TARGETS.forEach(id => {
-    const show = matchedTargets.includes(id);
-    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
-      const el = document.getElementById(prefix + id);
-      if (el) el.style.display = show ? '' : 'none';
-    });
-  });
-
-  const ngsSimIds = (ngs.variants || []).map(v => v.simulation_id).filter(Boolean);
-  activeTargets = matchedTargets.length ? matchedTargets : ngsSimIds;
-  const n = matchedTargets.length;
+  activeTargets = allTargets;
+  const n = allTargets.length;
   const pipeTitle = document.getElementById('pipeline-card-title');
   if (pipeTitle) pipeTitle.textContent = n ? `Live Research Pipeline — ${n} Active Target${n !== 1 ? 's' : ''}` : 'Live Research Pipeline — No platform targets in this report';
   const bqpTitle = document.getElementById('bqp-card-title');
-  if (bqpTitle) bqpTitle.textContent = n ? `All-Target Summary — ${n} NSCLC Target${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status` : 'All-Target Summary — No platform targets detected';
+  if (bqpTitle) bqpTitle.textContent = n ? `All-Target Summary — ${n} Target${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status` : 'All-Target Summary — No platform targets detected';
 
   // Apply BQP class visual treatment to all mutation rows
   const BQP_CLASS = {
@@ -2689,10 +2779,10 @@ function loadNGSReport(ngs) {
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
 
-  // Rebuild VQE dropdown: only matched pipeline targets for this NGS
+  // Rebuild VQE dropdown: core NSCLC matched + expansion targets
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
-    const LABELS = {
+    const CORE_LABELS = {
       TP53_C275F:  'TP53 p.Cys275Phe (C275F) [A]',
       STK11_LKB1:  'STK11/LKB1 Loss-of-Function [A]',
       STK11_F354L: 'STK11 p.Phe354Leu [A]',
@@ -2702,12 +2792,16 @@ function loadNGSReport(ngs) {
       KEAP1_R320Q: 'KEAP1 p.Arg320Gln [B]',
     };
     simTarget.innerHTML = '';
-    if (matchedTargets.length === 0) {
+    if (allTargets.length === 0) {
       simTarget.innerHTML = '<option value="" disabled selected style="color:var(--gray)">— No platform targets in this report —</option>';
     } else {
-      matchedTargets.forEach(id => {
+      allTargets.forEach(tid => {
+        const ev  = expansionVariants.find(e => e.simId === tid);
+        const lbl = ev
+          ? `${ev.gene} ${ev.mutation} [${ev.bqpCls}] · ${ev.gm.active_electrons}e`
+          : (CORE_LABELS[tid] || tid);
         const opt = document.createElement('option');
-        opt.value = id; opt.textContent = LABELS[id] || id;
+        opt.value = tid; opt.textContent = lbl;
         simTarget.appendChild(opt);
       });
     }
