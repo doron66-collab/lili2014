@@ -2281,63 +2281,71 @@ function parseVCF(text) {
 function parseNGSText(text) {
   const get = (re) => { const m = text.match(re); return m ? m[1]?.trim() : ''; };
 
-  const tmb  = get(/TMB[^:]*?[:\s]+(\d+\.?\d*)/i)  || get(/Tumor\s+Mutation\s+Burden[^:]*?:\s*(\d+\.?\d*)/i);
-  const msi  = get(/MSI[^:]*?[:\s]+(\d+\.?\d*)/i)  || get(/Microsatellite[^:]*?:\s*(\d+\.?\d*)/i);
-  const msiS = text.match(/MSI[^-\n]*?(Stable|Unstable|MSS|MSI-H)/i)?.[1]
-                  ?.replace('MSS','Stable').replace('MSI-H','Unstable') || '';
-  const tmbT = text.match(/TMB[^-\n]*?(Low|High|Intermediate)/i)?.[1] || (Number(tmb) >= 10 ? 'High' : Number(tmb) > 0 ? 'Low' : '');
+  // TMB — match decimal like "0.5 mutations/Mb" or "TMB: 0.5"; avoid matching row/page numbers
+  const tmb  = get(/(?:TMB|Tumor\s+Mutation\s+Burden)[^:\n\d]*?[:\s]+(\d+\.?\d*)/i)
+            || get(/(\d+\.?\d*)\s*(?:mutations?\/Mb|mut\/Mb|m\/MB)/i);
+  const tmbT = text.match(/TMB[^-\n]*?(Low|High|Intermediate)/i)?.[1]
+            || (Number(tmb) >= 10 ? 'High' : Number(tmb) > 0 ? 'Low' : '');
+
+  // MSI — status text first, then numeric value
+  const msiS = (text.match(/MSI[-\s]*(?:Status)?[:\s]*(Stable|Unstable|MSS|MSI-H|MSI-L)/i)?.[1]
+             || text.match(/Microsatellite[^:\n]*?(Stable|Unstable|Instability)/i)?.[1] || '')
+               .replace(/MSS/i,'Stable').replace(/MSI-H/i,'Unstable').replace(/MSI-L/i,'Stable');
+  const msi  = get(/MSI[^:]*?[:\s]+(\d+\.?\d*)/i) || get(/Microsatellite[^:]*?:\s*(\d+\.?\d*)/i);
 
   // Purity — also handle Tempus "Tumor Percentage"
   const purity = get(/[Tt]umor\s+(?:[Pp]urity|[Pp]ercentage)[:\s]+(\d+\s*%?)/i)
               || get(/[Pp]urity[:\s]+(\d+\s*%?)/i);
 
-  // Institution — also match direct "Institution" label (e.g. Tempus, Foundation Medicine)
-  const institution = get(/(?:Hospital|Medical Center|Institute|Lab|Laboratory|Center)[^:\n]{0,40}[:\n]?\s*([A-Z][^,\n]{3,50})/i)
-                   || get(/(?:Issued by|Prepared by|Reporting Lab)[:\s]+([^\n]{3,60})/i)
-                   || get(/\bInstitution\b[\s:]+([A-Z][a-zA-Z\s]{2,40})/);
+  // Institution — most-specific first; allow lowercase start so "Hadassah" is captured
+  const institution = get(/\bInstitution\b[\s:]+([A-Za-z][a-zA-Z\s\-]{2,50})/i)
+                   || get(/(?:Issued by|Prepared by|Reporting Lab|Ordering\s+(?:Institution|Site))[:\s]+([^\n]{3,60})/i)
+                   || get(/(?:Hospital|Medical Center|Institute|Laboratory|Clinic)[^:\n]{0,30}:\s*([A-Za-z][^,\n]{3,50})/i);
 
-  // Date — also handle "Date Signed/Reported" (Tempus) and "Date Signed" patterns
+  // Date — also handle "Date Signed/Reported" (Tempus)
   const date  = get(/(?:Report\s*Date|Date of Report|Collection\s*Date|Date\s*Signed[/\s]*Reported|Date\s*Signed)[:\s]+([0-9\/\.\-]{6,12})/i)
              || get(/(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/);
 
-  // Cancer type — handle "Diagnosis" on same line or next line (Tempus layout)
-  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s\n]+([^\n,]{4,50})/i);
+  // Cancer type
+  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s\n]+([^\n,]{4,60})/i);
 
-  const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Organ|Tumor\s*specimen)[:\s]+([^\n,]{3,40})/i);
-  const egfr   = text.match(/(?:EGFR|ALK|KRAS|RET)[^\n]*?(Not\s+detected|Detected|Positive|Negative)/i)?.[0]
-                  ?.replace(/\n/g,' ') || '';
+  const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Tumor\s*specimen|Specimen\s*Type)[:\s]+([^\n,]{3,50})/i);
 
-  // Report ID — also capture Tempus ID / Accession No.
+  // EGFR/fusion — only single-gene status lines; do NOT capture gene-list panels
+  const egfr = get(/\bEGFR\b[^,\n]{0,50}?(Not detected|Detected|Positive|Negative|Wild.type|Mutant|Exon\s*\d+)/i)
+            || get(/\bALK\b[^,\n]{0,50}?(Not detected|Detected|Positive|Negative|Rearrangement|Fusion)/i)
+            || '';
+
+  // Report ID — Tempus Accession No.
   const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*No\.?)[:\s]+([A-Z0-9\-]{4,20})/i);
 
-  // Detect variants — look for gene name + p. notation near allele frequency
+  // Variants — allow newlines between gene and mutation (PDF table extraction splits columns)
   const variants = [];
-  const knownGenes = Object.keys(GENE_MAP).concat([
-    'MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA',
+  const knownGenes = [...new Set([...Object.keys(GENE_MAP),
+    'MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA',
     'BAP1','PBRM1','SETD2','KDM5C','CDKN2A','FGFR3','TSC1','TSC2',
     'ATRX','BRCA1','BRCA2','ATM','CHEK2','PALB2','IDH1','IDH2','TERT','NF2',
     'FLT3','KIT','JAK2','POLE','MLH1','MSH2','MSH6','NF1','NOTCH1','NOTCH2',
     'BRAF','KRAS','NRAS','HRAS','FGFR1','FGFR2','CDK6','CCND1','MYC','MYCN',
     'RBM10','SMARCA4','AXIN1','AXIN2'
-  ]);
-  // Require gene name followed by a clear mutation descriptor to avoid false positives
+  ])];
   const variantRe = new RegExp(
-    `\\b(${knownGenes.join('|')})\\b[\\s:]+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*_]+|c\\.[A-Za-z0-9>_]+|Loss.of.function|Loss-of-function|Deletion|Amplification|Frameshift|Splice|Truncat))`,
+    `\\b(${knownGenes.join('|')})\\b[\\s\\S]{0,120}?(p\\.[A-Za-z]\\d+[A-Za-z*_]+|c\\.[A-Za-z0-9>_+]+|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification|Splice[\\w\\s]{0,10}|Truncat\\w*)`,
     'gi'
   );
   let vm;
   while ((vm = variantRe.exec(text)) !== null) {
     const gene = vm[1].toUpperCase();
     const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
-    // Require allele frequency to be present nearby — no AF = likely not a real variant call
-    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+250);
+    // Require allele frequency nearby (expanded window for multi-line table layouts)
+    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+400);
     const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
                 || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
-    if (!afM) continue; // skip if no AF found nearby
-    const af    = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
-    if (af < 0.01 || af > 0.99) continue; // implausible AF
-    const tierM = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
-    const tier  = tierM ? tierM[1] : '';
+    if (!afM) continue;
+    const af     = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
+    if (af < 0.01 || af > 0.99) continue;
+    const tierM  = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
+    const tier   = tierM ? tierM[1] : '';
     if (!variants.find(v => v.gene === gene)) {
       variants.push({ gene, mutation: mut, allele_frequency: af, tier });
     }
