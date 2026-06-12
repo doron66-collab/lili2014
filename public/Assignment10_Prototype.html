@@ -2602,14 +2602,31 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // Generate pipeline rows dynamically from PIPELINE_TARGETS (3A + 3B pair per mutation)
+  // ── Compute matched targets FIRST — drives all downstream visibility ──
+  const ngsGenes = new Set((ngs.variants || []).map(v => (v.gene || '').toUpperCase()));
+  const GENE_TO_TARGETS = {
+    TP53:  ['TP53_C275F'],
+    KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
+    STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
+  };
+  const matchedTargets = [];
+  Object.entries(GENE_TO_TARGETS).forEach(([gene, targets]) => {
+    if (ngsGenes.has(gene)) matchedTargets.push(...targets);
+  });
+  const hasPlatformTargets = matchedTargets.length > 0;
+
+  // Generate pipeline rows — only for matched targets
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
   if (pipelineEl) {
-    pipelineEl.innerHTML = PIPELINE_TARGETS.map((id, i) => {
-      const color  = MUT_COLORS[id] || 'var(--teal)';
-      const meta   = MUT_META[id] || {};
-      const isLast = i === PIPELINE_TARGETS.length - 1;
-      return `
+    if (!hasPlatformTargets) {
+      pipelineEl.innerHTML = '';
+      pipelineEl.style.display = 'none';
+    } else {
+      pipelineEl.innerHTML = matchedTargets.map((id, i) => {
+        const color  = MUT_COLORS[id] || 'var(--teal)';
+        const meta   = MUT_META[id] || {};
+        const isLast = i === matchedTargets.length - 1;
+        return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
           <div style="min-width:150px">
             <div style="font-weight:700;font-size:12px;color:${color}">${meta.display_name || id}</div>
@@ -2630,29 +2647,16 @@ function loadNGSReport(ngs) {
           <div style="min-width:95px" id="prow-badge-3b-${id}">${phase3bBadge(id)}</div>
           <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${id}">Not yet run</div>
         </div>`;
-    }).join('');
-    pipelineEl.style.display = '';
+      }).join('');
+      pipelineEl.style.display = '';
+    }
   }
 
-  // ── Show only rows whose gene is present in the uploaded NGS ─────────
-  const ngsGenes = new Set((ngs.variants || []).map(v => (v.gene || '').toUpperCase()));
-  const GENE_TO_TARGETS = {
-    TP53:  ['TP53_C275F'],
-    KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
-    STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
-  };
-  const matchedTargets = [];
-  Object.entries(GENE_TO_TARGETS).forEach(([gene, targets]) => {
-    if (ngsGenes.has(gene)) matchedTargets.push(...targets);
-  });
-
-  // Show tbodies only if there are matched targets
-  const hasPlatformTargets = matchedTargets.length > 0;
+  // Show/hide static rows (registry + BQP + pq-items) by gene match
   ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = hasPlatformTargets ? '' : 'none';
   });
-  // Show/hide individual rows based on gene match
   PIPELINE_TARGETS.forEach(id => {
     const show = matchedTargets.includes(id);
     ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
