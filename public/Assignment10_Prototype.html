@@ -1052,7 +1052,7 @@
       </thead>
       <!-- NGS-driven rows — hidden until NGS loaded -->
       <tbody id="ngs-bqp-rows" style="display:none">
-      <tr style="background:rgba(232,160,32,0.06)">
+      <tr id="bqp-row-TP53_C275F" style="background:rgba(232,160,32,0.06)">
         <td><strong style="color:var(--gold)">TP53</strong></td>
         <td>C275F <span class="badge badge-gold">Structural</span></td>
         <td>~44</td>
@@ -1062,7 +1062,7 @@
         <td id="bqp-de-TP53_C275F"><span style="color:var(--gray)">—</span></td>
         <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      <tr>
+      <tr id="bqp-row-KEAP1_LOF">
         <td><strong style="color:#b47fd4">KEAP1</strong></td>
         <td>C196Leufs* <span class="badge badge-violet">PPI</span></td>
         <td>~155</td>
@@ -1072,7 +1072,7 @@
         <td id="bqp-de-KEAP1_LOF" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      <tr>
+      <tr id="bqp-row-KEAP1_G333C">
         <td><strong style="color:#d946ef">KEAP1</strong></td>
         <td>G333C <span class="badge badge-violet">PPI</span></td>
         <td>~155</td>
@@ -1082,7 +1082,7 @@
         <td id="bqp-de-KEAP1_G333C" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_G333C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      <tr>
+      <tr id="bqp-row-KEAP1_R320Q">
         <td><strong style="color:#a855f7">KEAP1</strong></td>
         <td>R320Q <span class="badge badge-violet">PPI</span></td>
         <td>~155</td>
@@ -1092,7 +1092,7 @@
         <td id="bqp-de-KEAP1_R320Q" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      <tr>
+      <tr id="bqp-row-STK11_LKB1">
         <td><strong style="color:#34d399">STK11</strong></td>
         <td>LKB1 LOF <span class="badge badge-gray">SL</span></td>
         <td>~152</td>
@@ -1102,7 +1102,7 @@
         <td id="bqp-de-STK11_LKB1" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      <tr>
+      <tr id="bqp-row-STK11_F354L">
         <td><strong style="color:#4ade80">STK11</strong></td>
         <td>F354L <span class="badge badge-gray">Kinase LOF</span></td>
         <td>~48 <span style="color:var(--gray);font-size:9px">(local · near-term⚡)</span></td>
@@ -1112,7 +1112,7 @@
         <td id="bqp-de-STK11_F354L" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_F354L"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
-      <tr>
+      <tr id="bqp-row-STK11_D194N">
         <td><strong style="color:#22d3ee">STK11</strong></td>
         <td>D194N <span class="badge badge-gray">Kinase LOF</span></td>
         <td>~152</td>
@@ -1275,13 +1275,13 @@
         <div style="font-size:11px;line-height:2;color:var(--light)">
           <!-- NGS-driven items — hidden until NGS loaded -->
           <div id="ngs-pq-items" style="display:none">
-            <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
-            <div><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
-            <div><span id="pq-dot-KEAP1_G333C" style="color:var(--gray)">○</span> KEAP1 G333C validation</div>
-            <div><span id="pq-dot-KEAP1_R320Q" style="color:var(--gray)">○</span> KEAP1 R320Q validation</div>
-            <div><span id="pq-dot-STK11_LKB1"  style="color:var(--gray)">○</span> STK11 LKB1 validation</div>
-            <div><span id="pq-dot-STK11_F354L" style="color:var(--gray)">○</span> STK11 F354L validation</div>
-            <div><span id="pq-dot-STK11_D194N" style="color:var(--gray)">○</span> STK11 D194N validation</div>
+            <div id="pq-item-TP53_C275F"><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
+            <div id="pq-item-KEAP1_LOF"><span id="pq-dot-KEAP1_LOF"   style="color:var(--gray)">○</span> KEAP1 LOF validation</div>
+            <div id="pq-item-KEAP1_G333C"><span id="pq-dot-KEAP1_G333C" style="color:var(--gray)">○</span> KEAP1 G333C validation</div>
+            <div id="pq-item-KEAP1_R320Q"><span id="pq-dot-KEAP1_R320Q" style="color:var(--gray)">○</span> KEAP1 R320Q validation</div>
+            <div id="pq-item-STK11_LKB1"><span id="pq-dot-STK11_LKB1"  style="color:var(--gray)">○</span> STK11 LKB1 validation</div>
+            <div id="pq-item-STK11_F354L"><span id="pq-dot-STK11_F354L" style="color:var(--gray)">○</span> STK11 F354L validation</div>
+            <div id="pq-item-STK11_D194N"><span id="pq-dot-STK11_D194N" style="color:var(--gray)">○</span> STK11 D194N validation</div>
           </div>
           <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility <span style="color:var(--gray);font-size:10px">(Phase 3B)</span></div>
         </div>
@@ -2634,17 +2634,40 @@ function loadNGSReport(ngs) {
     pipelineEl.style.display = '';
   }
 
-  // Show remaining mutation lists
-  ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.style.display = '';
+  // ── Show only rows whose gene is present in the uploaded NGS ─────────
+  const ngsGenes = new Set((ngs.variants || []).map(v => (v.gene || '').toUpperCase()));
+  const GENE_TO_TARGETS = {
+    TP53:  ['TP53_C275F'],
+    KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
+    STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
+  };
+  const matchedTargets = [];
+  Object.entries(GENE_TO_TARGETS).forEach(([gene, targets]) => {
+    if (ngsGenes.has(gene)) matchedTargets.push(...targets);
   });
+
+  // Show tbodies only if there are matched targets
+  const hasPlatformTargets = matchedTargets.length > 0;
+  ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hasPlatformTargets ? '' : 'none';
+  });
+  // Show/hide individual rows based on gene match
+  PIPELINE_TARGETS.forEach(id => {
+    const show = matchedTargets.includes(id);
+    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
+      const el = document.getElementById(prefix + id);
+      if (el) el.style.display = show ? '' : 'none';
+    });
+  });
+
   const ngsSimIds = (ngs.variants || []).map(v => v.simulation_id).filter(Boolean);
-  activeTargets = ngsSimIds;
-  const n = PIPELINE_TARGETS.length;
+  activeTargets = matchedTargets.length ? matchedTargets : ngsSimIds;
+  const n = matchedTargets.length;
   const pipeTitle = document.getElementById('pipeline-card-title');
-  if (pipeTitle) pipeTitle.textContent = `Live Research Pipeline — ${n} Active Target${n !== 1 ? 's' : ''}`;
+  if (pipeTitle) pipeTitle.textContent = n ? `Live Research Pipeline — ${n} Active Target${n !== 1 ? 's' : ''}` : 'Live Research Pipeline — No platform targets in this report';
   const bqpTitle = document.getElementById('bqp-card-title');
-  if (bqpTitle) bqpTitle.textContent = `All-Target Summary — ${ngsSimIds.length} NSCLC Mutation${ngsSimIds.length !== 1 ? 's' : ''} · BQP Classification & Simulation Status`;
+  if (bqpTitle) bqpTitle.textContent = n ? `All-Target Summary — ${n} NSCLC Target${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status` : 'All-Target Summary — No platform targets detected';
 
   // Apply BQP class visual treatment to all mutation rows
   const BQP_CLASS = {
@@ -2662,7 +2685,7 @@ function loadNGSReport(ngs) {
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
 
-  // Rebuild VQE dropdown: NGS targets only — Y220C reference removed on NGS load
+  // Rebuild VQE dropdown: only matched pipeline targets for this NGS
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
     const LABELS = {
@@ -2675,12 +2698,15 @@ function loadNGSReport(ngs) {
       KEAP1_R320Q: 'KEAP1 p.Arg320Gln [B]',
     };
     simTarget.innerHTML = '';
-    ['TP53_C275F','STK11_LKB1','STK11_F354L','STK11_D194N',
-     'KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'].forEach(id => {
-      const opt = document.createElement('option');
-      opt.value = id; opt.textContent = LABELS[id] || id;
-      simTarget.appendChild(opt);
-    });
+    if (matchedTargets.length === 0) {
+      simTarget.innerHTML = '<option value="" disabled selected style="color:var(--gray)">— No platform targets in this report —</option>';
+    } else {
+      matchedTargets.forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = LABELS[id] || id;
+        simTarget.appendChild(opt);
+      });
+    }
   }
 
   // Auto-fetch structure sources for all variants
