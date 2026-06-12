@@ -884,7 +884,7 @@
     <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <select id="sim-target" onchange="resetJobCards()" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
-        <option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>
+        <option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
         ▶ Run Live Simulation
@@ -2801,7 +2801,7 @@ function resetPlatform() {
   // ── State ──────────────────────────────────────────────────────────────
   lastRunData = null;
   pqCompleted.clear();
-  activeTargets = ['TP53_Y220C'];
+  activeTargets = [];
   runHistory.length = 0;
   printQueue.length = 0;
   sessionStorage.setItem('session_start', new Date().toISOString());
@@ -2913,7 +2913,7 @@ function resetPlatform() {
   updateJobCard('', 'idle');
 
   // ── Orchestration — VQE engine dropdown + result panel ───────────────
-  el('sim-target') && (el('sim-target').innerHTML = '<option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C)</option>');
+  el('sim-target') && (el('sim-target').innerHTML = '<option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>');
   el('sim-result') && (el('sim-result').style.display = 'none');
   el('sim-status') && (el('sim-status').textContent = '');
   ['r-energy','r-ci','r-circuit','r-runid','r-seal'].forEach(id => { if (el(id)) el(id).textContent = ''; });
