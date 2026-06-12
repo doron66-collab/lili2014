@@ -532,16 +532,6 @@
           <th>Full e⁻ · Phase 3B</th>
           <th>Status</th>
         </tr>
-        <!-- Y220C — always visible anchor/reference -->
-        <tr id="mut-row-TP53_Y220C" data-bqp="C">
-          <td><span class="badge badge-gray" style="font-size:9px">C</span></td>
-          <td style="font-weight:700;color:#E8A020">TP53</td>
-          <td>p.Tyr220Cys <span class="badge badge-gold">Structural</span></td>
-          <td style="font-size:10px;color:var(--gray)">Anchor</td>
-          <td>~19e <span style="color:var(--gray);font-size:10px">(pocket)</span></td>
-          <td>~38e <span style="color:var(--gray);font-size:10px">(full pocket)</span></td>
-          <td id="mut-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
-        </tr>
         <!-- NGS-driven rows — hidden until NGS loaded -->
         <tbody id="ngs-mutation-rows" style="display:none">
         <!-- CLASS A — QUANTUM-NECESSARY -->
@@ -1060,19 +1050,6 @@
           <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th>ΔE Result</th><th>Status</th>
         </tr>
       </thead>
-      <!-- Y220C — always visible -->
-      <tbody>
-      <tr>
-        <td><strong style="color:#60a5fa">TP53</strong></td>
-        <td>Y220C <span class="badge badge-gold">Structural</span></td>
-        <td>~38</td>
-        <td>~76</td>
-        <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
-        <td><span class="badge badge-teal">BQP</span></td>
-        <td id="bqp-de-TP53_Y220C" style="color:var(--gray)">—</td>
-        <td id="bqp-status-TP53_Y220C"><span class="badge badge-gray">○ Pending</span></td>
-      </tr>
-      </tbody>
       <!-- NGS-driven rows — hidden until NGS loaded -->
       <tbody id="ngs-bqp-rows" style="display:none">
       <tr style="background:rgba(232,160,32,0.06)">
@@ -1296,8 +1273,6 @@
           <span id="pq-badge" class="badge badge-gray">NOT STARTED</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <!-- Y220C — always visible -->
-          <div><span id="pq-dot-TP53_Y220C"  style="color:var(--gray)">○</span> TP53 Y220C benchmark</div>
           <!-- NGS-driven items — hidden until NGS loaded -->
           <div id="ngs-pq-items" style="display:none">
             <div><span id="pq-dot-TP53_C275F"  style="color:var(--gray)">○</span> TP53 C275F validation</div>
@@ -2675,11 +2650,10 @@ function loadNGSReport(ngs) {
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
 
-  // Rebuild VQE dropdown: Y220C always first, then Class A & B only
+  // Rebuild VQE dropdown: NGS targets only — Y220C reference removed on NGS load
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
     const LABELS = {
-      TP53_Y220C:  'TP53 p.Tyr220Cys (Y220C) [C]',
       TP53_C275F:  'TP53 p.Cys275Phe (C275F) [A]',
       STK11_LKB1:  'STK11/LKB1 Loss-of-Function [A]',
       STK11_F354L: 'STK11 p.Phe354Leu [A]',
@@ -2688,8 +2662,7 @@ function loadNGSReport(ngs) {
       KEAP1_G333C: 'KEAP1 p.Gly333Cys [B]',
       KEAP1_R320Q: 'KEAP1 p.Arg320Gln [B]',
     };
-    simTarget.innerHTML = '<option value="TP53_Y220C">TP53 p.Tyr220Cys (Y220C) [C - Reference]</option>';
-    // Add Class A targets first, then Class B
+    simTarget.innerHTML = '';
     ['TP53_C275F','STK11_LKB1','STK11_F354L','STK11_D194N',
      'KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'].forEach(id => {
       const opt = document.createElement('option');
