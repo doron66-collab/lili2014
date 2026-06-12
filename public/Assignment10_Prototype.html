@@ -2286,22 +2286,43 @@ function parseNGSText(text) {
   const msiS = text.match(/MSI[^-\n]*?(Stable|Unstable|MSS|MSI-H)/i)?.[1]
                   ?.replace('MSS','Stable').replace('MSI-H','Unstable') || '';
   const tmbT = text.match(/TMB[^-\n]*?(Low|High|Intermediate)/i)?.[1] || (Number(tmb) >= 10 ? 'High' : Number(tmb) > 0 ? 'Low' : '');
-  const purity = get(/[Tt]umor\s+[Pp]urity[:\s]+(\d+\s*%?)/i) || get(/[Pp]urity[:\s]+(\d+\s*%?)/i);
+
+  // Purity — also handle Tempus "Tumor Percentage"
+  const purity = get(/[Tt]umor\s+(?:[Pp]urity|[Pp]ercentage)[:\s]+(\d+\s*%?)/i)
+              || get(/[Pp]urity[:\s]+(\d+\s*%?)/i);
+
+  // Institution — also match direct "Institution" label (e.g. Tempus, Foundation Medicine)
   const institution = get(/(?:Hospital|Medical Center|Institute|Lab|Laboratory|Center)[^:\n]{0,40}[:\n]?\s*([A-Z][^,\n]{3,50})/i)
-                   || get(/(?:Issued by|Prepared by|Reporting Lab)[:\s]+([^\n]{3,60})/i);
-  const date  = get(/(?:Report\s*Date|Date of Report|Collection\s*Date)[:\s]+([0-9\/\.\-]{6,12})/i)
+                   || get(/(?:Issued by|Prepared by|Reporting Lab)[:\s]+([^\n]{3,60})/i)
+                   || get(/\bInstitution\b[\s:]+([A-Z][a-zA-Z\s]{2,40})/);
+
+  // Date — also handle "Date Signed/Reported" (Tempus) and "Date Signed" patterns
+  const date  = get(/(?:Report\s*Date|Date of Report|Collection\s*Date|Date\s*Signed[/\s]*Reported|Date\s*Signed)[:\s]+([0-9\/\.\-]{6,12})/i)
              || get(/(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/);
-  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s]+([^\n,]{4,50})/i);
-  const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Organ)[:\s]+([^\n,]{3,40})/i);
+
+  // Cancer type — handle "Diagnosis" on same line or next line (Tempus layout)
+  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s\n]+([^\n,]{4,50})/i);
+
+  const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Organ|Tumor\s*specimen)[:\s]+([^\n,]{3,40})/i);
   const egfr   = text.match(/(?:EGFR|ALK|KRAS|RET)[^\n]*?(Not\s+detected|Detected|Positive|Negative)/i)?.[0]
                   ?.replace(/\n/g,' ') || '';
 
+  // Report ID — also capture Tempus ID / Accession No.
+  const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*No\.?)[:\s]+([A-Z0-9\-]{4,20})/i);
+
   // Detect variants — look for gene name + p. notation near allele frequency
   const variants = [];
-  const knownGenes = Object.keys(GENE_MAP).concat(['MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA','BAP1','PBRM1','SETD2','KDM5C','CDKN2A','FGFR3','TSC1','TSC2']);
+  const knownGenes = Object.keys(GENE_MAP).concat([
+    'MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','MYC','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA',
+    'BAP1','PBRM1','SETD2','KDM5C','CDKN2A','FGFR3','TSC1','TSC2',
+    'ATRX','BRCA1','BRCA2','ATM','CHEK2','PALB2','IDH1','IDH2','TERT','NF2',
+    'FLT3','KIT','JAK2','POLE','MLH1','MSH2','MSH6','NF1','NOTCH1','NOTCH2',
+    'BRAF','KRAS','NRAS','HRAS','FGFR1','FGFR2','CDK6','CCND1','MYC','MYCN',
+    'RBM10','SMARCA4','AXIN1','AXIN2'
+  ]);
   // Require gene name followed by a clear mutation descriptor to avoid false positives
   const variantRe = new RegExp(
-    `\\b(${knownGenes.join('|')})\\b[\\s:]+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*]+|c\\.[A-Za-z0-9>_]+|Loss.of.function|Loss-of-function|Deletion|Amplification|Frameshift))`,
+    `\\b(${knownGenes.join('|')})\\b[\\s:]+([^\\n]{0,60}?(?:p\\.[A-Za-z]\\d+[A-Za-z*_]+|c\\.[A-Za-z0-9>_]+|Loss.of.function|Loss-of-function|Deletion|Amplification|Frameshift|Splice|Truncat))`,
     'gi'
   );
   let vm;
@@ -2309,8 +2330,8 @@ function parseNGSText(text) {
     const gene = vm[1].toUpperCase();
     const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
     // Require allele frequency to be present nearby — no AF = likely not a real variant call
-    const nearby = text.slice(Math.max(0,vm.index-80), vm.index+200);
-    const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?)[:\s]+(\d+\.?\d*)\s*%?/i)
+    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+250);
+    const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
                 || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
     if (!afM) continue; // skip if no AF found nearby
     const af    = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
@@ -2322,7 +2343,7 @@ function parseNGSText(text) {
     }
   }
 
-  return { date, institution, cancer_type: cancer, origin, tumor_purity: purity,
+  return { report_id: reportId, date, institution, cancer_type: cancer, origin, tumor_purity: purity,
            tmb, tmb_tier: tmbT, msi, msi_status: msiS, egfr, variants };
 }
 
@@ -2332,7 +2353,7 @@ let _pdfParseNote = '';
 function openNGSReview(parsed) {
   parsed = parsed || {};
   const s = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  s('rev-report-id',   '');
+  s('rev-report-id',   parsed.report_id);
   s('rev-report-date', parsed.date);
   s('rev-institution', parsed.institution);
   s('rev-purity',      parsed.tumor_purity);
