@@ -1993,6 +1993,8 @@ async function runLiveVQE() {
     const convBadge = document.getElementById('convergence-badge');
     if (convBadge) convBadge.innerHTML = '<span style="color:var(--teal)">⟳ Computing…</span>';
 
+    let data = null;
+    streamLoop:
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -2002,7 +2004,10 @@ async function runLiveVQE() {
       for (const line of lines) {
         if (!line.startsWith('data:')) continue;
         const msg = JSON.parse(line.slice(5).trim());
-        if (msg.done) break;
+        if (msg.done) {
+          data = msg.result;
+          break streamLoop;
+        }
         const e = msg.energy;
         streamPts.push(e);
         if (streamEMax === null || e > streamEMax) streamEMax = e;
@@ -2016,15 +2021,12 @@ async function runLiveVQE() {
       }
     }
     if (convBadge) convBadge.innerHTML = '<span style="color:var(--green)">✓ Live</span>';
+    if (!data) throw new Error('Simulation stream ended without a result');
 
-    // ── Full result fetch ─────────────────────────────────────────────────────
-    const res = await fetch(`${API_BASE}/api/simulate/${mutationId}`, { headers });
+    // ── Single VQE run complete — same data drives both the live stream above
+    // and every downstream tab, so the chart never redraws with a second,
+    // independently-computed result ──────────────────────────────────────────
     clearTimeout(t2); clearTimeout(t3);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
-    }
-    const data = await res.json();
     // Snap VQE bar to 100% first, then mark done — both appear in same frame
     if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
     if (_vqeBar) _vqeBar.style.width = '100%';

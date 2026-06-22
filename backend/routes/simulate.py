@@ -329,7 +329,7 @@ MUTATION_CONFIGS = {
 }
 
 
-def run_vqe(config: dict) -> dict:
+def run_vqe(config: dict, progress_cb=None) -> dict:
     """
     Live 4-qubit VQE on PennyLane default.qubit simulator.
 
@@ -385,9 +385,11 @@ def run_vqe(config: dict) -> dict:
 
     t_start        = time.time()
     energies_active = []
-    for _ in range(80):
+    for i in range(80):
         params, e = opt.step_and_cost(circuit, params)
         energies_active.append(float(e))
+        if progress_cb:
+            progress_cb(i, round(ecore + float(e), 8))
     elapsed = time.time() - t_start
 
     final_active   = energies_active[-1]
@@ -456,44 +458,32 @@ def _extract_user_id(authorization: str | None) -> str | None:
 
 @router.get("/{mutation_id}/stream")
 async def stream_simulation(mutation_id: str, authorization: str | None = Header(None)):
-    """SSE endpoint — streams each VQE energy value as it is computed."""
+    """SSE endpoint — runs VQE exactly once, streaming each energy value as it is
+    computed, then emits a single final message carrying the full P1-P9 result
+    payload (same shape as GET /{mutation_id}) so the frontend never needs a
+    second, independently-computed fetch for the same run."""
     config = _resolve_config(mutation_id)
     if not config:
         raise HTTPException(status_code=404, detail=f"Unknown mutation: {mutation_id}")
-
-    jw_key, side = config["jw_source"]
-    jw_entry     = _JW_DATA[jw_key][side]
-    ecore        = jw_entry["ecore"]
-    hamiltonian  = _build_hamiltonian(jw_entry["terms"])
 
     async def generate():
         loop   = asyncio.get_event_loop()
         queue  = asyncio.Queue()
 
-        def vqe_worker():
-            dev = qml.device("default.qubit", wires=_QUBITS)
-
-            @qml.qnode(dev)
-            def circuit(params):
-                qml.AllSinglesDoubles(
-                    weights=params, wires=range(_QUBITS),
-                    hf_state=pnp.array(_HF_STATE),
-                    singles=_SINGLES, doubles=_DOUBLES,
-                )
-                return qml.expval(hamiltonian)
-
-            params = pnp.zeros(_N_PARAMS, requires_grad=True)
-            opt    = qml.AdamOptimizer(stepsize=0.4)
-
-            for i in range(80):
-                params, e = opt.step_and_cost(circuit, params)
+        def worker():
+            def progress_cb(step, energy):
                 asyncio.run_coroutine_threadsafe(
-                    queue.put({"step": i, "energy": round(ecore + float(e), 8)}), loop
+                    queue.put({"step": step, "energy": energy}), loop
                 )
-            asyncio.run_coroutine_threadsafe(queue.put({"done": True}), loop)
+
+            vqe = run_vqe(config, progress_cb=progress_cb)
+            final = _assemble_and_persist(mutation_id, config, vqe, authorization)
+            asyncio.run_coroutine_threadsafe(
+                queue.put({"done": True, "result": final}), loop
+            )
 
         executor = ThreadPoolExecutor(max_workers=1)
-        loop.run_in_executor(executor, vqe_worker)
+        loop.run_in_executor(executor, worker)
 
         while True:
             item = await queue.get()
@@ -542,13 +532,20 @@ async def _run_simulation_inner(mutation_id: str, authorization: str | None):
                             detail=f"Unknown mutation: {mutation_id}. "
                                    f"Valid: {list(MUTATION_CONFIGS.keys())} "
                                    f"or any expansion {{GENE}}_LOF where GENE is in the expansion map.")
+    # ── Run VQE ────────────────────────────────────────────────────────────────
+    vqe = run_vqe(config)
+    return _assemble_and_persist(mutation_id, config, vqe, authorization)
+
+
+def _assemble_and_persist(mutation_id: str, config: dict, vqe: dict, authorization: str | None) -> dict:
+    """Build the P1-P9 provenance record from an already-computed VQE result,
+    seal it (P8), persist to Supabase, and return the full API response shape.
+    Shared by the plain GET endpoint and the SSE /stream endpoint so a single
+    VQE run always produces a single, consistent result payload."""
     user_id = _extract_user_id(authorization)
 
     now    = datetime.now(timezone.utc).isoformat()
     run_id = str(uuid.uuid4())
-
-    # ── Run VQE ────────────────────────────────────────────────────────────────
-    vqe = run_vqe(config)
 
     # ── Assemble P1–P9 provenance record ───────────────────────────────────────
     record = {
