@@ -2809,6 +2809,41 @@ function loadNGSReport(ngs) {
 
   // Auto-fetch structure sources for all variants
   lookupStructureSources(ngs.variants || []);
+
+  // ── Bridge to the 3D viewer (separate /3d app, same origin) ───────────────
+  // The "View 3D Simulations" button opens solange-platform.bio/3d in a new
+  // tab. That app has no other channel to this page, so persist THIS patient's
+  // active variant set to localStorage; the 3D viewer reads it on load and
+  // renders these mutations instead of its built-in demo set.
+  try {
+    const bridgeVariants = (ngs.variants || []).map(v => {
+      const gene = (v.gene || '').toUpperCase();
+      const gm = GENE_MAP[gene] || {};
+      return {
+        gene,
+        mutation:         v.mutation || '',
+        hgvs:             v.hgvs || '',
+        simulation_id:    v.simulation_id || geneSimId(gene, v.mutation),
+        tier:             v.tier || '',
+        badge_type:       v.badge_type || gm.badge_type || '',
+        allele_frequency: v.allele_frequency != null ? v.allele_frequency : null,
+        active_electrons: v.active_electrons != null ? v.active_electrons : (gm.active_electrons != null ? gm.active_electrons : null),
+        full_qubits:      v.full_qubits != null ? v.full_qubits : (gm.full_qubits != null ? gm.full_qubits : null),
+        color:            gm.color || '#06b6d4',
+        source:           v.source || 'ngs',
+      };
+    });
+    localStorage.setItem('solange_3d_variants', JSON.stringify({
+      report_id:   id,
+      institution: ngs.institution || '',
+      report_date: ngs.report_date || '',
+      saved_at:    new Date().toISOString(),
+      variants:    bridgeVariants,
+    }));
+  } catch (e) {
+    // localStorage unavailable (private mode / quota) — 3D viewer falls back
+    // to its built-in demo set. Non-fatal.
+  }
 }
 
 async function lookupStructureSources(variants) {
@@ -2941,6 +2976,8 @@ function resetPlatform() {
   runHistory.length = 0;
   printQueue.length = 0;
   sessionStorage.setItem('session_start', new Date().toISOString());
+  // Clear the 3D-viewer bridge so /3d reverts to its built-in demo set.
+  try { localStorage.removeItem('solange_3d_variants'); } catch (e) {}
   renderEnergyChart();
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';

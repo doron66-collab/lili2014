@@ -108,6 +108,104 @@ const PDB_MAP = [
   { pdb: '2OCJ', chain: 'A', highlightRes: [275] },         // TP53 C275F
 ] as const;
 
+// ── Patient-report bridge ─────────────────────────────────────────────────────
+// The main platform (Assignment10_Prototype.html, served at the same origin)
+// writes the active NGS/TEMPUS variant set to localStorage under this key when a
+// report is loaded. This viewer reads it on mount and renders THOSE mutations
+// instead of the built-in demo set above. If the key is absent (viewer opened
+// standalone) we fall back to all five demo models, preserving prior behaviour.
+const BRIDGE_KEY = 'solange_3d_variants';
+
+// simulation_id → index into MUT / PDB_MAP (a bespoke, hand-built 3D model)
+const MODEL_INDEX: Record<string, number> = {
+  TP53_Y220C: 0,
+  KEAP1_LOF:  1,
+  CDKN2A_P16: 2,
+  STK11_LKB1: 3,
+  TP53_C275F: 4,
+};
+// Genes with exactly ONE bespoke model — allow a gene-level match when the
+// simulation_id doesn't line up exactly (e.g. an uploaded KEAP1 frameshift or a
+// CDKN2A deletion still maps to the single KEAP1 / CDKN2A model). TP53 is
+// deliberately excluded: it has two models, so an unmatched TP53 variant falls
+// through to the real-PDB path rather than guessing.
+const GENE_MODEL_INDEX: Record<string, number> = {
+  KEAP1: 1, CDKN2A: 2, STK11: 3,
+};
+
+interface BridgeVariant {
+  gene: string;
+  mutation: string;
+  hgvs?: string;
+  simulation_id: string;
+  tier?: string;
+  badge_type?: string;
+  allele_frequency?: number | null;
+  active_electrons?: number | null;
+  full_qubits?: number | null;
+  color?: string;     // CSS hex string, e.g. '#E8A020'
+  source?: string;    // 'ngs' | 'research' | …
+}
+
+type ViewEntry =
+  | { kind: 'full'; modelIndex: number; meta: BridgeVariant }
+  | { kind: 'pdb';  meta: BridgeVariant };
+
+// Build the ordered list the viewer should show, from the patient report if
+// present, otherwise the built-in demo set.
+function buildViewList(): { entries: ViewEntry[]; reportId: string | null } {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(BRIDGE_KEY) : null;
+    if (raw) {
+      const data = JSON.parse(raw);
+      const vars: BridgeVariant[] = Array.isArray(data?.variants) ? data.variants : [];
+      if (vars.length) {
+        const entries: ViewEntry[] = vars.map(v => {
+          const simId = (v.simulation_id || '').toUpperCase();
+          const gene  = (v.gene || '').toUpperCase();
+          let mi = MODEL_INDEX[simId];
+          if (mi === undefined && GENE_MODEL_INDEX[gene] !== undefined) mi = GENE_MODEL_INDEX[gene];
+          return mi !== undefined
+            ? { kind: 'full', modelIndex: mi, meta: v }
+            : { kind: 'pdb', meta: v };
+        });
+        return { entries, reportId: data.report_id || null };
+      }
+    }
+  } catch {
+    // Corrupt/blocked storage — fall through to the demo set.
+  }
+  // Fallback: the original five demo models.
+  const simIds = Object.keys(MODEL_INDEX); // insertion order matches MUT indices
+  const entries: ViewEntry[] = MUT.map((m, i) => ({
+    kind: 'full',
+    modelIndex: i,
+    meta: { gene: m.id, mutation: m.variant, simulation_id: simIds[i], source: 'demo' },
+  }));
+  return { entries, reportId: null };
+}
+
+// Resolve a real structure for an unknown gene via the same backend endpoint the
+// platform's "Structure Sources" card uses (UniProt → RCSB PDB → AlphaFold).
+async function resolveStructure(gene: string): Promise<{ pdb: string; chain: string; url?: string } | null> {
+  const base = (typeof window !== 'undefined' && (window as any).QCAIHPC_API_BASE)
+    || 'https://qcaihpc-simulation-api.onrender.com';
+  try {
+    const r = await fetch(`${base}/api/pdb/lookup/gene/${encodeURIComponent(gene)}`).then(res => res.json());
+    if (r?.pdb_ids?.length) return { pdb: r.pdb_ids[0], chain: 'A' };
+    if (r?.alphafold_model_url) return { pdb: `AF-${r.uniprot_id || gene}`, chain: 'A', url: r.alphafold_model_url };
+  } catch {
+    // Backend asleep / offline — caller surfaces a message.
+  }
+  return null;
+}
+
+function cssHexToInt(hex?: string): number {
+  if (!hex) return 0x06b6d4;
+  const n = parseInt(hex.replace('#', ''), 16);
+  return Number.isFinite(n) ? n : 0x06b6d4;
+}
+
 // ── Electron-density particle system ─────────────────────────────────────────
 function makeElectronCloud(cx: number, cy: number, cz: number, color: number, n = 180) {
   const rng = seededRNG(cx * 1000 + cy * 100 + cz * 10 + color);
@@ -156,16 +254,27 @@ function makeWavefunctionRings(color: number) {
 interface PdbMutInfo {
   id: string; variant: string; pdb: string; chain: string;
   highlightRes: number[]; color: number; drug: string; phase: string;
+  url?: string;   // optional explicit structure URL (e.g. AlphaFold model)
 }
 
 export default function NSCLCViewer() {
   const mountRef = useRef<HTMLDivElement>(null);
   const [showLoops, setShowLoops] = useState(false);
   const [pdbMut, setPdbMut] = useState<PdbMutInfo | null>(null);
+  // Read the patient report (or demo fallback) once, at mount.
+  const [view] = useState(buildViewList);
 
   useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
+
+    // ── Resolve the view list into scene-drivable entries ───────────────────
+    // 'full' entries (genes we have a hand-built 3D model for) drive the Three.js
+    // scene below. 'pdb' entries (everything else in the report) are reachable
+    // from the nav and open the real crystal/AlphaFold structure on demand.
+    const SCENE = view.entries
+      .filter((e): e is Extract<ViewEntry, { kind: 'full' }> => e.kind === 'full')
+      .map(e => ({ model: MUT[e.modelIndex], pdb: PDB_MAP[e.modelIndex], meta: e.meta }));
     const W = el.clientWidth, H = el.clientHeight;
 
     // ── Renderer ──────────────────────────────────────────────────────────────
@@ -222,8 +331,8 @@ export default function NSCLCViewer() {
     const wavefunctionGrps: THREE.Group[] = [];
     const heatmapMats: THREE.MeshStandardMaterial[][] = [];
 
-    for (let i = 0; i < MUT.length; i++) {
-      const m = MUT[i];
+    for (let i = 0; i < SCENE.length; i++) {
+      const m = SCENE[i].model;
       const root = new THREE.Group();
       root.visible = (i === 0);
       scene.add(root);
@@ -287,7 +396,7 @@ export default function NSCLCViewer() {
       dgGrp.add(wfGrp); wavefunctionGrps.push(wfGrp);
 
       // ── C275F: Phe275 aromatic π-ring (benzene 6e/6-orbital system) ──────
-      if (i === 4) {
+      if (m.variant === 'C275F') {
         const piGrp = new THREE.Group();
         // Hexagonal ring (benzene)
         for (let ring = 0; ring < 2; ring++) {
@@ -389,13 +498,28 @@ export default function NSCLCViewer() {
     }
 
     const dockBtn = mkBtn('⬡ DOCK MOLECULE', triggerDock);
-    const prevBtn = mkBtn('◀', () => switchTo((cur - 1 + MUT.length) % MUT.length));
-    const nextBtn = mkBtn('▶', () => switchTo((cur + 1) % MUT.length));
-    const dots = MUT.map((m, i) => {
-      const c = '#' + m.color.toString(16).padStart(6,'0');
+    const prevBtn = mkBtn('◀', () => { if (SCENE.length) switchTo((cur - 1 + SCENE.length) % SCENE.length); });
+    const nextBtn = mkBtn('▶', () => { if (SCENE.length) switchTo((cur + 1) % SCENE.length); });
+
+    // One marker per detected variant. Solid ring = built-in 3D model (click →
+    // animated scene). Dashed ring = real-PDB / AlphaFold fallback (click →
+    // load the crystallographic structure for that gene).
+    let sceneCounter = 0;
+    const dots = view.entries.map(entry => {
       const d = document.createElement('button');
-      d.style.cssText = `width:9px;height:9px;border-radius:50%;border:2px solid ${c};background:transparent;cursor:pointer;pointer-events:all;padding:0;transition:all .22s;`;
-      d.onclick = () => switchTo(i); return d;
+      if (entry.kind === 'full') {
+        const sceneIndex = sceneCounter++;
+        const c = '#' + MUT[entry.modelIndex].color.toString(16).padStart(6, '0');
+        d.style.cssText = `width:9px;height:9px;border-radius:50%;border:2px solid ${c};background:transparent;cursor:pointer;pointer-events:all;padding:0;transition:all .22s;`;
+        d.title = `${entry.meta.gene} ${entry.meta.mutation || ''}`.trim();
+        d.onclick = () => switchTo(sceneIndex);
+        return { el: d, sceneIndex, color: c };
+      }
+      const c = entry.meta.color || '#7fc7ff';
+      d.style.cssText = `width:9px;height:9px;border-radius:50%;border:2px dashed ${c};background:transparent;cursor:pointer;pointer-events:all;padding:0;transition:all .22s;`;
+      d.title = `${entry.meta.gene} ${entry.meta.mutation || ''} — real PDB structure`.trim();
+      d.onclick = () => openPdbFallback(entry.meta);
+      return { el: d, sceneIndex: -1, color: c };
     });
     // 6th dot — Loops 3D structural viewer
     const loopsBtn = document.createElement('button');
@@ -414,18 +538,53 @@ export default function NSCLCViewer() {
     pdbBtn.onmouseover = () => { pdbBtn.style.background = 'rgba(80,160,255,.28)'; };
     pdbBtn.onmouseout  = () => { pdbBtn.style.background = 'rgba(80,160,255,.12)'; };
     pdbBtn.onclick = () => {
-      const m = MUT[cur];
-      const p = PDB_MAP[cur];
+      if (!SCENE.length) return;
+      const m = SCENE[cur].model;
+      const p = SCENE[cur].pdb;
       setPdbMut({
-        id: m.id, variant: m.variant,
+        id: SCENE[cur].meta.gene || m.id, variant: SCENE[cur].meta.mutation || m.variant,
         pdb: p.pdb, chain: p.chain, highlightRes: [...p.highlightRes],
         color: m.color, drug: m.drug, phase: m.phase,
       });
     };
-    nav.append(prevBtn, ...dots, nextBtn, dockBtn, loopsBtn, pdbBtn);
+    nav.append(prevBtn, ...dots.map(d => d.el), nextBtn, dockBtn, loopsBtn, pdbBtn);
+
+    // Open the real crystallographic / AlphaFold structure for a variant that
+    // has no built-in 3D model (resolved live via the platform backend).
+    async function openPdbFallback(meta: BridgeVariant) {
+      const gene = (meta.gene || '').toUpperCase();
+      statusBox.textContent = `◌ Resolving ${gene} structure…`;
+      statusBox.style.color = 'rgba(255,200,80,.9)';
+      const s = await resolveStructure(gene);
+      if (!s) {
+        statusBox.textContent = `✗ No structure found for ${gene}`;
+        statusBox.style.color = 'rgba(255,120,120,.9)';
+        return;
+      }
+      statusBox.textContent = `🔬 ${gene} · ${s.pdb}`;
+      statusBox.style.color = 'rgba(110,200,255,.9)';
+      setPdbMut({
+        id: gene,
+        variant: meta.mutation || '',
+        pdb: s.pdb, chain: s.chain, highlightRes: [],
+        color: cssHexToInt(meta.color),
+        drug: meta.source === 'research' ? 'Research literature target' : 'NGS-detected variant',
+        phase: meta.tier ? `Tier ${meta.tier}` : '—',
+        url: s.url,
+      });
+    }
 
     function refreshUI() {
-      const m = MUT[cur];
+      if (!SCENE.length) {
+        infoBox.innerHTML = `
+          <div style="color:#7fc7ff;font-size:15px;font-weight:bold;letter-spacing:2px;margin-bottom:8px;">No stylized model</div>
+          <div style="color:rgba(200,220,255,.85);font-size:10px;line-height:1.7;">None of the detected variants has a built-in animated model. Use the dashed markers below to open the real PDB / AlphaFold structure for each gene.</div>`;
+        dots.forEach(d => { d.el.style.transform = 'scale(1)'; if (d.sceneIndex >= 0) d.el.style.background = 'transparent'; });
+        rightLabel.innerHTML = `${view.entries.length} VARIANT(S)<br><span style="opacity:.4;font-size:9px;">IBM sqDRIFT · NSCLC</span>`;
+        return;
+      }
+      const m = SCENE[cur].model;
+      const meta = SCENE[cur].meta;
       const cc = '#' + m.color.toString(16).padStart(6,'0');
       const dc = '#' + m.dCol.toString(16).padStart(6,'0');
       const pc = '#' + m.pCol.toString(16).padStart(6,'0');
@@ -444,8 +603,8 @@ export default function NSCLCViewer() {
           <div style="color:rgba(255,180,80,.9);font-size:8px;letter-spacing:1px;">STRUCTURAL MUTANT · No approved drug · No C275F-specific trial · Quantum simulation frontier</div>
         </div>` : '';
       infoBox.innerHTML = `
-        <div style="color:${cc};font-size:20px;font-weight:bold;letter-spacing:3px;margin-bottom:2px;">${m.id}</div>
-        <div style="color:rgba(200,220,255,.85);font-size:9.5px;letter-spacing:2px;margin-bottom:14px;">MUTATION · ${m.variant}</div>
+        <div style="color:${cc};font-size:20px;font-weight:bold;letter-spacing:3px;margin-bottom:2px;">${meta.gene || m.id}</div>
+        <div style="color:rgba(200,220,255,.85);font-size:9.5px;letter-spacing:2px;margin-bottom:14px;">MUTATION · ${meta.mutation || m.variant}</div>
         <div style="color:${dc};font-size:13px;font-weight:bold;margin-bottom:3px;">⬡ ${m.drug}</div>
         <div style="color:rgba(190,215,255,.9);font-size:9.5px;margin-bottom:3px;">${m.sub}</div>
         <div style="color:rgba(180,210,255,.9);font-size:9.5px;margin-bottom:14px;">${m.phase}</div>
@@ -454,17 +613,17 @@ export default function NSCLCViewer() {
           <div style="color:rgba(220,235,255,.95);font-size:10.5px;line-height:1.7;">${m.mech}</div>
         </div>
         ${bqpBox}`;
-      dots.forEach((d, i) => {
-        const c = '#' + MUT[i].color.toString(16).padStart(6,'0');
-        d.style.background = i === cur ? c : 'transparent';
-        d.style.transform  = i === cur ? 'scale(1.5)' : 'scale(1)';
+      dots.forEach(d => {
+        const active = d.sceneIndex === cur;
+        if (d.sceneIndex >= 0) d.el.style.background = active ? d.color : 'transparent';
+        d.el.style.transform = active ? 'scale(1.5)' : 'scale(1)';
       });
       const labels = ['● POCKET ACTIVE', '● LIGAND APPROACHING →', '✓ DOCKED  |  sqDRIFT ACTIVE'];
       statusBox.textContent = labels[Math.min(animState, 2)];
       statusBox.style.color = animState >= 2 ? 'rgba(80,255,160,.9)'
                             : animState === 1 ? 'rgba(255,200,80,.9)'
                             : 'rgba(110,200,255,.75)';
-      rightLabel.innerHTML = `MUTATION ${cur+1} / ${MUT.length}<br><span style="opacity:.4;font-size:9px;">IBM sqDRIFT · NSCLC</span>`;
+      rightLabel.innerHTML = `MUTATION ${cur+1} / ${SCENE.length}<br><span style="opacity:.4;font-size:9px;">IBM sqDRIFT · NSCLC</span>`;
     }
 
     function resetDrug(idx: number) {
@@ -484,8 +643,8 @@ export default function NSCLCViewer() {
       });
       // reset heatmap
       heatmapMats[idx].forEach(mat => {
-        mat.color.set(new THREE.Color(MUT[idx].pCol));
-        mat.emissive.set(new THREE.Color(MUT[idx].pCol));
+        mat.color.set(new THREE.Color(SCENE[idx].model.pCol));
+        mat.emissive.set(new THREE.Color(SCENE[idx].model.pCol));
         mat.emissiveIntensity = 0.6;
       });
       // hide electron cloud
@@ -493,14 +652,15 @@ export default function NSCLCViewer() {
     }
 
     function switchTo(idx: number) {
-      if (idx === cur) return;
-      roots[cur].visible = false;
+      if (idx === cur || !roots[idx]) return;
+      if (roots[cur]) roots[cur].visible = false;
       cur = idx; animState = 0; animT = 0;
       dockBtn.textContent = '⬡ DOCK MOLECULE';
       resetDrug(idx); roots[idx].visible = true; refreshUI();
     }
 
     function triggerDock() {
+      if (!SCENE.length) return;
       if (animState >= 2) {
         animState = 0; animT = 0;
         dockBtn.textContent = '⬡ DOCK MOLECULE';
@@ -525,6 +685,15 @@ export default function NSCLCViewer() {
       T += 0.011;
 
       const root = roots[cur];
+      if (!root) {
+        // No built-in 3D scene for this report (all variants use PDB fallback).
+        // Keep the camera/lights alive; structures open in the PDB overlay.
+        L1.position.set(Math.sin(T * .22) * 8, Math.cos(T * .18) * 7, 6);
+        L2.position.set(Math.cos(T * .19) * 7, -4, Math.sin(T * .27) * 6);
+        controls.update();
+        composer.render();
+        return;
+      }
       const pkGrp = pocketGrps[cur];
       const dgGrp = drugGrps[cur];
       const cloud = electronClouds[cur];
