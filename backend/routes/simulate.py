@@ -551,6 +551,7 @@ def _assemble_and_persist(mutation_id: str, config: dict, vqe: dict, authorizati
     record = {
         "id":            run_id,
         "created_at":    now,
+        "user_id":       user_id,
         "mutation_id":   mutation_id,
         "mutation_name": config["name"],
         "pdb_id":        config["pdb"],
