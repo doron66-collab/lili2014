@@ -80,6 +80,39 @@ Together, these two layers constitute SOLANGE's real contribution. The quantum c
 
 ---
 
+## 6. Beyond NSCLC: Generalization, Additional Interfaces, and Commercialization
+
+*Addendum — for internal/committee discussion only. Not intended for the dissertation body.*
+
+### 6.1 Is SOLANGE a General Platform, or NSCLC-Specific?
+
+Architecturally, SOLANGE is already pan-cancer, not NSCLC-only. The backend's expansion gene map already carries config entries — Jordan-Wigner Hamiltonian source, PDB structure, active electron/orbital counts — for more than twenty additional tumor-suppressor/loss-of-function genes spanning multiple cancer types (e.g., VHL, BAP1, PBRM1, BRCA1/2, IDH1/2, ATM, RB1, NF1/2, TERT, CDKN2A), all driven through the same schema used for TP53/STK11/KEAP1. NSCLC is the *validated flagship use case* for the dissertation, not a technical ceiling.
+
+**Recommended framing:** present NSCLC as the rigorously validated end-to-end demonstration (richest clinical and structural data, clearest "non-druggable" narrative), while stating explicitly that the underlying architecture generalizes to any loss-of-function mutation with a resolvable structure. This is more defensible to a committee than an unqualified pan-cancer claim, while still capturing the generalizability point reviewers look for in a systems/architecture contribution.
+
+### 6.2 Candidate Additional Interfaces
+
+The highest-value additions extend SOLANGE's actual differentiator — the governance/translational layers — rather than simply adding more disease coverage:
+
+1. **Regulatory export interface** — a structured P1–P9 → IND/NDA submission-package template. This operationalizes the "regulatory-grade provenance" claim rather than leaving it as an assertion.
+2. **Clinical/variant-interpretation interface** — extends the existing NGS-report upload pathway from 3D visualization into a ranked druggability/feasibility decision-support summary, reaching the translational-layer audience (clinicians, tumor boards) directly.
+3. **Programmatic API/SDK** — allows a pharma data-science team to call SOLANGE from their own pipeline rather than through the web UI. This is typically the interface that actually drives partnership and licensing conversations, more so than the front-end.
+
+Lower-priority additions (e.g., expanded visualization/chart types) would not materially advance either the scientific or commercialization argument and are not recommended as a near-term focus.
+
+### 6.3 Commercialization Potential
+
+Realistic paths, in approximate order of near-term plausibility:
+
+- **B2B SaaS/API licensing** to pharma and biotech computational-chemistry teams — a narrow but real market; the provenance layer is the defensible moat (a generic VQE notebook cannot be sold as a compliance product).
+- **Academic/CRO licensing** to translational cancer research labs without in-house quantum computing expertise.
+- **Co-development or data partnership with a quantum hardware vendor** (e.g., IBM) — a flagship oncology workload of this kind is exactly what hardware vendors look to co-fund or showcase; the existing Heron r3 relationship is a natural starting point.
+- **Direct-to-clinic regulatory submission product** — plausible in principle but on a five-to-ten-year regulatory-approval horizon; not a near-term commercialization claim.
+
+**Recommended framing for any external-facing material:** the licensable intellectual property is the P1–P9 provenance schema and the cross-vendor orchestration architecture; the NSCLC application is the proof of concept demonstrating that IP, not the product itself. This keeps the claim credible rather than reading as a business plan.
+
+---
+
 Please let me know if anything here needs adjustment before it goes to Molly.
 
 Best,
