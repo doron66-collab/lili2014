@@ -11,6 +11,8 @@ Itamar,
 
 Below is a summary of SOLANGE's value proposition — who it serves, why it is differentiated from existing platforms, and how its two core layers (governance and translational) fit together. I'd appreciate your review before this goes to Molly. It is not yet incorporated into the dissertation body; it is intended as a standalone positioning document.
 
+*Revision note: Section 6.3 ("Commercialization Potential") has been revised in response to your comment that the answer to "Why would a pharma company spend money on this?" needed to be sharper — it now leads with business outcomes (reduced workflow fragmentation, reduced integration effort, improved reproducibility, audit-ready computational evidence, faster transition from computational results to actionable decisions) rather than with platform features.*
+
 ---
 
 ## 1. Conceptual Lineage: Why Feynman Matters Here
@@ -102,14 +104,32 @@ Lower-priority additions (e.g., expanded visualization/chart types) would not ma
 
 ### 6.3 Commercialization Potential
 
-Realistic paths, in approximate order of near-term plausibility:
+*Revised per Prof. Shabtai's review comment: sharpen the answer to "Why would a pharma company spend money on this?" by leading with business outcomes — reduced workflow fragmentation, reduced integration effort, improved reproducibility, audit-ready computational evidence, and faster transition from computational results to actionable drug-discovery decisions — rather than leading with platform features (P1–P9, orchestration, cross-vendor support).*
 
-- **B2B SaaS/API licensing** to pharma and biotech computational-chemistry teams — a narrow but real market; the provenance layer is the defensible moat (a generic VQE notebook cannot be sold as a compliance product).
-- **Academic/CRO licensing** to translational cancer research labs without in-house quantum computing expertise.
+#### 6.3.1 Why Would a Pharma Company Spend Money on This?
+
+A pharma R&D organization is not paying for VQE itself — that algorithm is freely available. It would pay to remove **cost, delay, and risk** from the path between a computational result and a decision it can act on or defend to a regulator. SOLANGE converts each technical capability into a business outcome:
+
+| Outcome | What it replaces today | Why it has business value |
+|---|---|---|
+| **Reduced workflow fragmentation** | Manually stitching together a classical chemistry tool, a quantum SDK, a noise-mitigation toolchain, an HPC scheduler, and a separate compliance system for every target | Fewer hand-offs means fewer person-hours per target and fewer places a project stalls waiting on a different team or tool |
+| **Reduced integration effort** | Every new hire or partner team re-learning multiple vendor SDKs (Qiskit, PennyLane, CUDA-Q) and re-building glue code between them | Lower onboarding cost and faster time-to-first-result for a computational chemistry team adopting the platform |
+| **Improved reproducibility** | Re-running an analysis and getting a different answer because the exact code version, hardware, or parameters used originally were not captured | Reproducibility failures are a recognized, measurable cost driver in pharma R&D (wasted analyst time, delayed go/no-go decisions); a platform that records every run by construction removes that failure mode rather than managing it after the fact |
+| **Audit-ready computational evidence** | A separate, often retrospective effort — typically weeks of work per study — to reconstruct an audit trail before a regulatory filing | Removes a known bottleneck and source of risk immediately before a submission deadline, rather than discovering a documentation gap under regulatory review |
+| **Faster transition from computational result to actionable decision** | Raw energies/Hamiltonians sitting in a research notebook, requiring manual translation before a chemistry or regulatory team can use them | Shortens the distance between "the computation finished" and "a decision-maker can act on it," compressing the discovery-to-decision cycle |
+
+**The net pitch:** SOLANGE does not ask a pharma buyer to evaluate a new quantum algorithm. It asks them to evaluate whether removing integration overhead, reproducibility risk, and audit-trail risk from their existing computational-chemistry workflow is worth paying for — a much easier internal business case to make than "should we invest in quantum computing."
+
+#### 6.3.2 Commercialization Paths
+
+Realistic paths, in approximate order of near-term plausibility — each is a route to monetizing the outcomes above, not the underlying technical features:
+
+- **B2B SaaS/API licensing** to pharma and biotech computational-chemistry teams — priced and sold on reduced integration effort and audit-readiness, not on access to a VQE implementation; this is the defensible moat, since a generic notebook cannot be sold as a compliance product.
+- **Academic/CRO licensing** to translational cancer research labs without in-house quantum computing expertise — sold on removing the need to build and maintain a multi-vendor toolchain in-house.
 - **Co-development or data partnership with a quantum hardware vendor** (e.g., IBM) — a flagship oncology workload of this kind is exactly what hardware vendors look to co-fund or showcase; the existing Heron r3 relationship is a natural starting point.
 - **Direct-to-clinic regulatory submission product** — plausible in principle but on a five-to-ten-year regulatory-approval horizon; not a near-term commercialization claim.
 
-**Recommended framing for any external-facing material:** the licensable intellectual property is the P1–P9 provenance schema and the cross-vendor orchestration architecture; the NSCLC application is the proof of concept demonstrating that IP, not the product itself. This keeps the claim credible rather than reading as a business plan.
+**Recommended framing for any external-facing material:** lead with the outcomes a buyer already budgets for — reduced integration cost, reduced reproducibility risk, audit-readiness, faster decision cycles — and treat the P1–P9 schema and cross-vendor orchestration as the *mechanism* that delivers them, not as the headline. The NSCLC application remains the proof of concept demonstrating that the mechanism works, not the product itself.
 
 ---
 
