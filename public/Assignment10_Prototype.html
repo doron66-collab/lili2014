@@ -933,6 +933,9 @@
 
   <div class="card" id="s3-live-card" style="margin-bottom:16px;border:1px solid rgba(0,168,214,0.4);background:#223244">
     <div class="card-title" style="color:var(--white);text-transform:uppercase;letter-spacing:0.5px">Phase 3A Live Results — Quantum Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
+    <div id="s3-proxy-notice" style="display:none;margin:8px 0 4px;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:6px;font-size:10.5px;color:var(--gray)">
+      <span style="color:var(--gold);font-weight:700">⚠ Phase 3A Residue-Class Proxy</span> — <span id="s3-proxy-text"></span>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-energy">—</div>
@@ -1835,6 +1838,16 @@ function updateAllTabs(data) {
   if (s3card) {
     const s3Mut = document.getElementById('s3-mutation');
     if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = 'var(--gray)'; }
+    const s3Proxy = document.getElementById('s3-proxy-notice');
+    const s3ProxyText = document.getElementById('s3-proxy-text');
+    const isLofProxy = (rec.mutation_id || '').endsWith('_LOF');
+    if (s3Proxy) s3Proxy.style.display = isLofProxy ? '' : 'none';
+    if (s3ProxyText && isLofProxy) {
+      const compound = rec.p2_model_compound || r.compound || '—';
+      const origLabel = window.__pendingMutLabel || '';
+      const prefix = origLabel && origLabel !== rec.mutation_name ? `${origLabel} → ` : '';
+      s3ProxyText.textContent = `${prefix}${rec.mutation_id} uses the ${compound} residue-class surrogate. All mutations of the same compound class share this Hamiltonian in Phase 3A — identical energies across different reports are expected and scientifically valid. Phase 3B on IBM Heron r3 will compute per-mutation Hamiltonians.`;
+    }
     const s3E = document.getElementById('s3-energy');
     if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
     const s3El = document.getElementById('s3-energy-lbl');
@@ -1941,7 +1954,10 @@ function updateAllTabs(data) {
 
 // ── Run live VQE simulation ────────────────────────────────────────────────
 async function runLiveVQE() {
-  const mutationId = document.getElementById('sim-target').value;
+  const simTargetEl = document.getElementById('sim-target');
+  const mutationId  = simTargetEl.value;
+  const selOpt = simTargetEl?.selectedOptions?.[0];
+  window.__pendingMutLabel = selOpt?.textContent?.split('[')[0].trim() || mutationId;
   const btn    = document.getElementById('sim-btn');
   const status = document.getElementById('sim-status');
   const errBox = document.getElementById('sim-error');
@@ -3157,6 +3173,7 @@ function resetPlatform() {
 
   // ── Results — Phase 3A live card ─────────────────────────────────────
   if (el('s3-mutation')) { el('s3-mutation').textContent = 'No run yet'; el('s3-mutation').style.color = 'var(--gray)'; }
+  if (el('s3-proxy-notice')) el('s3-proxy-notice').style.display = 'none';
   ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
     if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
@@ -3782,6 +3799,14 @@ function displayRunResults(data) {
   // Results tab s3 card
   const s3Mut = document.getElementById('s3-mutation');
   if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
+  const s3ProxyD = document.getElementById('s3-proxy-notice');
+  const s3ProxyTextD = document.getElementById('s3-proxy-text');
+  const isLofProxyD = (rec.mutation_id || '').endsWith('_LOF');
+  if (s3ProxyD) s3ProxyD.style.display = isLofProxyD ? '' : 'none';
+  if (s3ProxyTextD && isLofProxyD) {
+    const compoundD = rec.p2_model_compound || r.compound || '—';
+    s3ProxyTextD.textContent = `${rec.mutation_id} uses the ${compoundD} residue-class surrogate. All mutations of the same compound class share this Hamiltonian in Phase 3A — identical energies across different reports are expected and scientifically valid. Phase 3B on IBM Heron r3 will compute per-mutation Hamiltonians.`;
+  }
   const s3E = document.getElementById('s3-energy');
   if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
   const s3R = document.getElementById('s3-runtime');
