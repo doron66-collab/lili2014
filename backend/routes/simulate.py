@@ -237,21 +237,6 @@ MUTATION_CONFIGS = {
         "hardware_era": "placeholder",
         "phase3b_backend": "IBM Heron r3",
     },
-    "TP53_LOF": {
-        "name": "TP53 Loss-of-Function",
-        "pdb": "2OCJ",
-        "desc": "TP53 Arg248 guanidinium — CAS(2e,2o) guanidine proxy (L3-loop DNA contact), STO-3G",
-        "jw_source": ("TP53_LOF", "native"),     # guanidine (Arg248 native DNA-contacting sidechain)
-        "active_electrons": 2,
-        "active_orbitals":  2,
-        "local_electrons":  22,   # L3-loop 5 Å shell — PDB 2OCJ coordinate-verified
-        "local_qubits":     44,
-        "full_electrons":   44,   # Zn²⁺ shell + DNA-guanine interface — PDB 2OCJ coordinate-verified
-        "full_qubits":      88,   # within IBM Heron r3 94-qubit demonstrated ceiling (Merz et al. 2026)
-        "bqp_class":        "A",
-        "hardware_era":     "current",
-        "phase3b_backend":  "IBM Heron r3",
-    },
     "KEAP1_LOF": {
         "name": "KEAP1 Loss-of-Function",
         "pdb": "2FLU",
