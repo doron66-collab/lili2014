@@ -2356,7 +2356,11 @@ function parseNGSText(rawText) {
   const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*(?:No\.?|Number|#)|Report\s*(?:No\.?|Number|#|ID)|Lab(?:oratory)?\s*(?:No\.?|#|ID)|Case\s*(?:No\.?|Number|#)|Order\s*(?:No\.?|#)|Ref(?:erence)?\s*(?:No\.?|#))[:\s]+([A-Z0-9\-\/]{3,25})/i)
               || get(/\bID\b[\s:#]+([A-Z0-9][A-Z0-9\-]{3,20})/i);
 
-  // Variants — allow newlines between gene and mutation (PDF table extraction splits columns)
+  // Variants — two-pass extraction handles both orderings found in real PDFs:
+  //   Pass 1 (mutation-first): "c.375+2T>G, 83.5%, RB1"  ← Rambam/Archer layout
+  //   Pass 2 (gene-first):     "TP53 p.R175H  34%"       ← Foundation/Tempus layout
+  // Pass 1 runs first so its matches take priority (they are more precise —
+  // the mutation is found first, then the gene is confirmed nearby).
   const variants = [];
   const knownGenes = [...new Set([...Object.keys(GENE_MAP),
     'MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA',
@@ -2366,32 +2370,55 @@ function parseNGSText(rawText) {
     'BRAF','KRAS','NRAS','HRAS','FGFR1','FGFR2','CDK6','CCND1','MYC','MYCN',
     'RBM10','SMARCA4','AXIN1','AXIN2'
   ])];
-  const variantRe = new RegExp(
-    `\\b(${knownGenes.join('|')})\\b[\\s\\S]{0,150}?` +
-    `(p\\.[A-Za-z]{1,3}\\d+[A-Za-z*_\\d]{1,30}` +
-    `|c\\.[A-Za-z0-9>_+\\-(*)]{1,30}` +
+
+  const MUT_PAT =
+    `p\\.[A-Za-z]{1,3}\\d+[A-Za-z*_\\d]{1,30}` +
+    `|c\\.[A-Za-z0-9>_+\\-()\\[\\]*]{1,30}` +
     `|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification` +
-    `|Splice[\\w\\s]{0,10}|Truncat\\w*|Likely\\s*[Pp]athogenic|VUS)`,
-    'gi'
-  );
+    `|Splice[\\w\\s]{0,10}|Truncat\\w*|Likely\\s*[Pp]athogenic|VUS`;
+  const GENE_PAT = `(?<![a-z])(${knownGenes.join('|')})\\b`;
+
+  function extractAF(nearby) {
+    const m = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
+           || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
+    if (!m) return null;
+    const v = parseFloat(m[1]) / (parseFloat(m[1]) > 1 ? 100 : 1);
+    return (v >= 0.005 && v <= 0.995) ? v : null;
+  }
+  function extractTier(nearby) {
+    const m = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
+    return m ? m[1] : '';
+  }
+  function addVariant(gene, mut, af, tier) {
+    gene = gene.toUpperCase();
+    if (!variants.find(v => v.gene === gene))
+      variants.push({ gene, mutation: mut.replace(/\s+/g,' ').trim().slice(0,60), allele_frequency: af, tier });
+  }
+
+  // ── Pass 1: mutation-first ("c.375+2T>G ... RB1") ──────────────────────
+  const mutFirstRe = new RegExp(`(${MUT_PAT})[^\\n]{0,120}?${GENE_PAT}`, 'gi');
   let vm;
+  while ((vm = mutFirstRe.exec(text)) !== null) {
+    const mut  = vm[1];
+    const gene = vm[2];
+    const nearby = text.slice(Math.max(0, vm.index - 50), vm.index + 400);
+    const af   = extractAF(nearby);
+    // Require AF for pass-1 matches to avoid false positives from gene lists
+    if (af === null) continue;
+    addVariant(gene, mut, af, extractTier(nearby));
+  }
+
+  // ── Pass 2: gene-first ("TP53 ... p.R175H") ────────────────────────────
+  const variantRe = new RegExp(
+    `${GENE_PAT}[\\s\\S]{0,150}?(${MUT_PAT})`, 'gi'
+  );
   while ((vm = variantRe.exec(text)) !== null) {
-    const gene = vm[1].toUpperCase();
-    const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
-    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+500);
-    const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
-                || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
-    // AF is optional — include variant even without it so user can fill in the review modal
-    let af = null;
-    if (afM) {
-      af = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
-      if (af < 0.005 || af > 0.995) continue; // filter noise (< 0.5 % or > 99.5 %)
-    }
-    const tierM  = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
-    const tier   = tierM ? tierM[1] : '';
-    if (!variants.find(v => v.gene === gene)) {
-      variants.push({ gene, mutation: mut, allele_frequency: af, tier });
-    }
+    const gene = vm[1];
+    const mut  = vm[2];
+    const nearby = text.slice(Math.max(0, vm.index - 100), vm.index + 500);
+    const af   = extractAF(nearby);
+    if (af !== null && af < 0.005) continue;
+    addVariant(gene, mut, af, extractTier(nearby));
   }
 
   return { report_id: reportId, date, institution, cancer_type: cancer, origin, tumor_purity: purity,
