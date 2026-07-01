@@ -472,16 +472,22 @@ async def stream_simulation(mutation_id: str, authorization: str | None = Header
         queue  = asyncio.Queue()
 
         def worker():
-            def progress_cb(step, energy):
-                asyncio.run_coroutine_threadsafe(
-                    queue.put({"step": step, "energy": energy}), loop
-                )
+            try:
+                def progress_cb(step, energy):
+                    asyncio.run_coroutine_threadsafe(
+                        queue.put({"step": step, "energy": energy}), loop
+                    )
 
-            vqe = run_vqe(config, progress_cb=progress_cb)
-            final = _assemble_and_persist(mutation_id, config, vqe, authorization)
-            asyncio.run_coroutine_threadsafe(
-                queue.put({"done": True, "result": final}), loop
-            )
+                vqe = run_vqe(config, progress_cb=progress_cb)
+                final = _assemble_and_persist(mutation_id, config, vqe, authorization)
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"done": True, "result": final}), loop
+                )
+            except Exception as exc:
+                logging.error("VQE worker error for %s: %s", mutation_id, exc, exc_info=True)
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"error": str(exc), "done": True}), loop
+                )
 
         executor = ThreadPoolExecutor(max_workers=1)
         loop.run_in_executor(executor, worker)

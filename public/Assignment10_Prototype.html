@@ -1980,6 +1980,10 @@ async function runLiveVQE() {
     // ── SSE streaming convergence chart ──────────────────────────────────────
     const streamUrl = `${API_BASE}/api/simulate/${mutationId}/stream`;
     const streamRes = await fetch(streamUrl, { headers });
+    if (!streamRes.ok) {
+      const errBody = await streamRes.text().catch(() => '');
+      throw new Error(`HTTP ${streamRes.status}: ${errBody.slice(0, 200)}`);
+    }
     const reader    = streamRes.body.getReader();
     const decoder   = new TextDecoder();
     let   streamBuf = '';
@@ -2005,6 +2009,7 @@ async function runLiveVQE() {
         if (!line.startsWith('data:')) continue;
         const msg = JSON.parse(line.slice(5).trim());
         if (msg.done) {
+          if (msg.error) throw new Error(`VQE computation failed: ${msg.error}`);
           data = msg.result;
           break streamLoop;
         }
