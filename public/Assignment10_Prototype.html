@@ -2409,6 +2409,11 @@ function parseNGSText(rawText) {
   }
 
   // ── Pass 2: gene-first ("TP53 ... p.R175H") ────────────────────────────
+  // Require AF OR a clinical classification term near the mutation.
+  // Without either, the match is likely from a methodology/description section
+  // (e.g. "TP53 p.Cys275Phe is a known hotspot tested by this panel") and
+  // should NOT be reported as a patient finding.
+  const CLINICAL_SIGNAL = /\b(?:Pathogenic|Likely\s*Pathogenic|VUS|Variant\s*of\s*Uncertain|Tier|Benign|Oncogenic|Detected|Positive)\b/i;
   const variantRe = new RegExp(
     `${GENE_PAT}[\\s\\S]{0,150}?(${MUT_PAT})`, 'gi'
   );
@@ -2418,6 +2423,8 @@ function parseNGSText(rawText) {
     const nearby = text.slice(Math.max(0, vm.index - 100), vm.index + 500);
     const af   = extractAF(nearby);
     if (af !== null && af < 0.005) continue;
+    // Skip if no AF and no clinical signal — almost certainly a false positive
+    if (af === null && !CLINICAL_SIGNAL.test(nearby)) continue;
     addVariant(gene, mut, af, extractTier(nearby));
   }
 
