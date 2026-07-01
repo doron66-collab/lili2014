@@ -883,7 +883,7 @@
   <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
     <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="sim-target" onchange="resetJobCards()" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
+      <select id="sim-target" onchange="resetJobCards(); updateSimButton();" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
         <option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
@@ -1839,15 +1839,7 @@ function updateAllTabs(data) {
     const s3Mut = document.getElementById('s3-mutation');
     if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = 'var(--gray)'; }
     const s3Proxy = document.getElementById('s3-proxy-notice');
-    const s3ProxyText = document.getElementById('s3-proxy-text');
-    const isLofProxy = (rec.mutation_id || '').endsWith('_LOF');
-    if (s3Proxy) s3Proxy.style.display = isLofProxy ? '' : 'none';
-    if (s3ProxyText && isLofProxy) {
-      const compound = rec.p2_model_compound || r.compound || '—';
-      const origLabel = window.__pendingMutLabel || '';
-      const prefix = origLabel && origLabel !== rec.mutation_name ? `${origLabel} → ` : '';
-      s3ProxyText.textContent = `${prefix}${rec.mutation_id} uses the ${compound} residue-class surrogate. All mutations of the same compound class share this Hamiltonian in Phase 3A — identical energies across different reports are expected and scientifically valid. Phase 3B on IBM Heron r3 will compute per-mutation Hamiltonians.`;
-    }
+    if (s3Proxy) s3Proxy.style.display = 'none';
     const s3E = document.getElementById('s3-energy');
     if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
     const s3El = document.getElementById('s3-energy-lbl');
@@ -1952,12 +1944,81 @@ function updateAllTabs(data) {
   updateDashboardAfterRun(data.full_record.mutation_id, data);
 }
 
+// ── Sim button state — Phase 3A vs Phase 3B ───────────────────────────────
+function updateSimButton() {
+  const simId = document.getElementById('sim-target')?.value;
+  const btn   = document.getElementById('sim-btn');
+  if (!btn) return;
+  const phase3aRunnable = simId && window.__phase3aIds && window.__phase3aIds.has(simId);
+  const phase3bOnly     = simId && !phase3aRunnable;
+  btn.disabled = !simId;
+  if (!simId) {
+    btn.textContent = '▶ Run Live Simulation';
+    btn.style.background = 'var(--gray)';
+    btn.style.cursor = 'not-allowed';
+  } else if (phase3aRunnable) {
+    btn.textContent = '▶ Run Phase 3A VQE';
+    btn.style.background = 'var(--teal)';
+    btn.style.cursor = 'pointer';
+    btn.disabled = false;
+  } else {
+    btn.innerHTML = '⟶ View Phase 3B Target Specs';
+    btn.style.background = '#92400e';
+    btn.style.cursor = 'pointer';
+    btn.disabled = false;
+  }
+}
+
+// ── Show Phase 3B pending result in the results panel ─────────────────────
+function showPhase3BPendingResult(mutationId, inputLabel) {
+  const gene = mutationId.replace(/_LOF$/, '');
+  const gm   = GENE_MAP[gene] || {};
+  show('s3');
+  const s3Mut = document.getElementById('s3-mutation');
+  if (s3Mut) { s3Mut.textContent = `${gene} — Phase 3B target`; s3Mut.style.color = 'var(--gold)'; }
+  ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
+  });
+  const s3Ri = document.getElementById('s3-runid');
+  if (s3Ri) s3Ri.textContent = 'No Phase 3A run — Phase 3B pending';
+  const s3El = document.getElementById('s3-energy-lbl');
+  if (s3El) s3El.textContent = `Phase 3B target · ${gm.full_electrons || '?'}e / ${gm.full_qubits || '?'} qubits`;
+  const s3Ft = document.getElementById('s3-footer');
+  if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${gm.full_electrons || '?'}e / ${gm.full_qubits || '?'} qubits on IBM Heron r3</span> · No Phase 3A Hamiltonian available`;
+  const s3Desc = document.getElementById('s3-casscf-desc');
+  if (s3Desc) s3Desc.textContent = `No per-mutation Phase 3A Hamiltonian for ${mutationId} — awaiting IBM Heron r3`;
+  const s3Proxy = document.getElementById('s3-proxy-notice');
+  const s3ProxyText = document.getElementById('s3-proxy-text');
+  if (s3Proxy) {
+    s3Proxy.style.display = '';
+    s3Proxy.style.background = 'rgba(251,191,36,0.08)';
+    s3Proxy.style.borderColor = 'rgba(251,191,36,0.4)';
+    s3Proxy.querySelector('span').textContent = '⟶ Phase 3B Target — IBM Heron r3';
+  }
+  if (s3ProxyText) {
+    const orig = inputLabel ? `${inputLabel} → ` : '';
+    s3ProxyText.innerHTML = `${orig}<strong>${mutationId}</strong> has no per-mutation Phase 3A Hamiltonian. ` +
+      `Computing this target requires Phase 3B on IBM Heron r3 (${gm.full_qubits || '?'} qubits). ` +
+      `Phase 3A is limited to 8 named targets with validated CAS(2,2) Hamiltonians: ` +
+      `TP53 C275F · TP53 Y220C · KEAP1 LOF · KEAP1 G333C · KEAP1 R320Q · STK11 LKB1 · STK11 F354L · STK11 D194N.`;
+  }
+}
+
 // ── Run live VQE simulation ────────────────────────────────────────────────
 async function runLiveVQE() {
   const simTargetEl = document.getElementById('sim-target');
   const mutationId  = simTargetEl.value;
   const selOpt = simTargetEl?.selectedOptions?.[0];
-  window.__pendingMutLabel = selOpt?.textContent?.split('[')[0].trim() || mutationId;
+  const inputLabel = selOpt?.textContent?.split('·')[0].trim() || mutationId;
+  window.__pendingMutLabel = inputLabel;
+
+  // Phase 3B-only targets — no per-mutation Hamiltonian, show spec card
+  if (window.__phase3aIds && !window.__phase3aIds.has(mutationId)) {
+    showPhase3BPendingResult(mutationId, inputLabel);
+    return;
+  }
+
   const btn    = document.getElementById('sim-btn');
   const status = document.getElementById('sim-status');
   const errBox = document.getElementById('sim-error');
@@ -2713,10 +2774,18 @@ function loadNGSReport(ngs) {
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
   // ── Match NGS variants to platform simulation targets ─────────────────
-  // Each variant from the report maps to exactly ONE simulation ID.
-  // Named point mutations (e.g. C275F) map to their specific MUTATION_CONFIGS entry.
-  // All other variants map to {GENE}_LOF — a real VQE run on that gene's model.
-  // No hardcoded dissertation targets are injected; only what is in the report.
+  // Named point mutations with per-site Hamiltonians → Phase 3A runnable.
+  // All other variants → {GENE}_LOF which is Phase 3B-only (no per-mutation
+  // Hamiltonian; showing identical energies for different mutations would be
+  // scientifically misleading).
+
+  // Phase 3A-runnable simIds — each has a validated, per-site CAS(2,2) Hamiltonian
+  const PHASE3A_IDS = new Set([
+    'TP53_C275F', 'TP53_Y220C',
+    'KEAP1_LOF', 'KEAP1_G333C', 'KEAP1_R320Q',
+    'STK11_LKB1', 'STK11_F354L', 'STK11_D194N',
+  ]);
+  window.__phase3aIds = PHASE3A_IDS;
 
   // Known specific mutation → simId mappings (checked before LOF fallback)
   const NAMED_MUTATIONS = {
@@ -2724,8 +2793,10 @@ function loadNGSReport(ngs) {
     'TP53_Y220C':  [/Y220C/i, /Tyr220Cy/i],
     'KEAP1_G333C': [/G333C/i, /Gly333Cy/i],
     'KEAP1_R320Q': [/R320Q/i, /Arg320Gl/i],
+    'KEAP1_LOF':   [/Loss.of.function/i, /LOF/i, /frameshift/i, /deletion/i, /truncat/i, /splice/i, /fs\*/i],
     'STK11_F354L': [/F354L/i, /Phe354Le/i],
     'STK11_D194N': [/D194N/i, /Asp194As/i],
+    'STK11_LKB1':  [/Loss.of.function/i, /LOF/i, /frameshift/i, /deletion/i, /truncat/i, /splice/i, /LKB/i, /fs\*/i],
   };
   function resolveSimId(gene, mutation) {
     const g = (gene || '').toUpperCase();
@@ -2747,7 +2818,8 @@ function loadNGSReport(ngs) {
     if (seenSimIds.has(simId)) return;
     seenSimIds.add(simId);
     const bqpCls = gm.active_electrons >= 30 ? 'A' : 'B';
-    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency });
+    const phase3a = PHASE3A_IDS.has(simId);
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a });
   });
 
   // Register labels in __activeVariants so getDisplayName() returns patient data
@@ -2881,9 +2953,15 @@ function loadNGSReport(ngs) {
       allVariants.forEach(av => {
         const opt = document.createElement('option');
         opt.value = av.simId;
-        opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls}] · ${av.gm.active_electrons}e`;
+        if (av.phase3a) {
+          opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls}] · ${av.gm.active_electrons}e`;
+        } else {
+          opt.textContent = `${av.gene} ${av.mutation} · Phase 3B only — IBM Heron r3 (${av.gm.full_qubits}q)`;
+          opt.style.color = '#f59e0b';
+        }
         simTarget.appendChild(opt);
       });
+      updateSimButton();
     }
   }
 
@@ -3800,13 +3878,7 @@ function displayRunResults(data) {
   const s3Mut = document.getElementById('s3-mutation');
   if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
   const s3ProxyD = document.getElementById('s3-proxy-notice');
-  const s3ProxyTextD = document.getElementById('s3-proxy-text');
-  const isLofProxyD = (rec.mutation_id || '').endsWith('_LOF');
-  if (s3ProxyD) s3ProxyD.style.display = isLofProxyD ? '' : 'none';
-  if (s3ProxyTextD && isLofProxyD) {
-    const compoundD = rec.p2_model_compound || r.compound || '—';
-    s3ProxyTextD.textContent = `${rec.mutation_id} uses the ${compoundD} residue-class surrogate. All mutations of the same compound class share this Hamiltonian in Phase 3A — identical energies across different reports are expected and scientifically valid. Phase 3B on IBM Heron r3 will compute per-mutation Hamiltonians.`;
-  }
+  if (s3ProxyD) s3ProxyD.style.display = 'none';
   const s3E = document.getElementById('s3-energy');
   if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
   const s3R = document.getElementById('s3-runtime');
