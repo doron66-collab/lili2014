@@ -2281,16 +2281,25 @@ function parseVCF(text) {
 }
 
 // ── Normalize PDF-extracted text ──────────────────────────────────────────
-// PDF column extraction often concatenates adjacent cells without a space.
-// e.g. "NotesTP53" (header "Notes" + data "TP53"), "MSSPercentage" (value + next label).
-// Rule 1: lowercase→uppercase-sequence  →  insert space ("notesTP53" → "notes TP53")
-// Rule 2: uppercase-run→CapitalizedWord →  insert space ("MSSPercentage" → "MSS Percentage")
-// Mutation notations (p.Glu31ArgfsTer34) are safe: the transitions don't match these rules.
+// PDF column extraction often concatenates adjacent cells without spaces,
+// e.g. "NotesTP53" (column header glued to first data cell) or "MSSPercentage".
+// Strategy: temporarily mask HGVS mutation notations so they survive intact,
+// apply boundary-splitting rules to the rest, then unmask.
 function normalizeNGSText(raw) {
-  return raw
-    .replace(/([a-z])([A-Z][A-Z0-9]{1,})/g, '$1 $2')
-    .replace(/([A-Z]{2,})([A-Z][a-z]{2,})/g, '$1 $2')
+  // Step 1 – protect HGVS notations (p./c./g./r. + alphanumeric/punctuation).
+  // This keeps c.35_36delAG, p.Glu31ArgfsTer34, c.1001+1G>A intact.
+  const saved = [];
+  let t = raw.replace(/[pcgr]\.[A-Za-z0-9>_+\-()[\]*]{1,50}/g, m => {
+    saved.push(m);
+    return `\x00${saved.length - 1}\x00`;
+  });
+  // Step 2 – insert space at concatenation boundaries
+  t = t
+    .replace(/([a-z])([A-Z][A-Z0-9]{1,})/g, '$1 $2')   // "notesTP53"     → "notes TP53"
+    .replace(/([A-Z]{2,})([A-Z][a-z]{2,})/g, '$1 $2')   // "MSSPercentage" → "MSS Percentage"
     .replace(/  +/g, ' ');
+  // Step 3 – restore protected notations
+  return t.replace(/\x00(\d+)\x00/g, (_, i) => saved[+i]);
 }
 
 // ── Regex-based field extraction ───────────────────────────────────────────
