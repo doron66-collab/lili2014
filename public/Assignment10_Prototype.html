@@ -2278,8 +2278,22 @@ function parseVCF(text) {
   };
 }
 
+// ── Normalize PDF-extracted text ──────────────────────────────────────────
+// PDF column extraction often concatenates adjacent cells without a space.
+// e.g. "NotesTP53" (header "Notes" + data "TP53"), "MSSPercentage" (value + next label).
+// Rule 1: lowercase→uppercase-sequence  →  insert space ("notesTP53" → "notes TP53")
+// Rule 2: uppercase-run→CapitalizedWord →  insert space ("MSSPercentage" → "MSS Percentage")
+// Mutation notations (p.Glu31ArgfsTer34) are safe: the transitions don't match these rules.
+function normalizeNGSText(raw) {
+  return raw
+    .replace(/([a-z])([A-Z][A-Z0-9]{1,})/g, '$1 $2')
+    .replace(/([A-Z]{2,})([A-Z][a-z]{2,})/g, '$1 $2')
+    .replace(/  +/g, ' ');
+}
+
 // ── Regex-based field extraction ───────────────────────────────────────────
-function parseNGSText(text) {
+function parseNGSText(rawText) {
+  const text = normalizeNGSText(rawText);
   const get = (re) => { const m = text.match(re); return m ? m[1]?.trim() : ''; };
 
   // TMB — match decimal like "0.5 mutations/Mb" or "TMB: 0.5"; avoid matching row/page numbers
@@ -2288,27 +2302,37 @@ function parseNGSText(text) {
   const tmbT = text.match(/TMB[^-\n]*?(Low|High|Intermediate)/i)?.[1]
             || (Number(tmb) >= 10 ? 'High' : Number(tmb) > 0 ? 'Low' : '');
 
-  // MSI — status text first, then numeric value
-  const msiS = (text.match(/MSI[-\s]*(?:Status)?[:\s]*(Stable|Unstable|MSS|MSI-H|MSI-L)/i)?.[1]
-             || text.match(/Microsatellite[^:\n]*?(Stable|Unstable|Instability)/i)?.[1] || '')
-               .replace(/MSS/i,'Stable').replace(/MSI-H/i,'Unstable').replace(/MSI-L/i,'Stable');
+  // MSI — status text first (allow up to 100 chars between "MSI" and the status word,
+  // e.g. "MSI Status: Score 0.7 ? MSS"), then numeric value
+  const msiS = (
+      text.match(/\bMSI\b[^.\n]{0,100}?(MSS|MSI-H|MSI-L|Stable|Unstable)/i)?.[1]
+   || text.match(/\bMicrosatellite\b[^.\n]{0,100}?(MSS|MSI-H|MSI-L|Stable|Unstable|Instability)/i)?.[1]
+   || '')
+    .replace(/^MSS$/i,'Stable').replace(/^MSI-H$/i,'Unstable').replace(/^MSI-L$/i,'Stable')
+    .replace(/Instability/i,'Unstable');
   const msi  = get(/MSI[^:]*?[:\s]+(\d+\.?\d*)/i) || get(/Microsatellite[^:]*?:\s*(\d+\.?\d*)/i);
 
-  // Purity — also handle Tempus "Tumor Percentage"
+  // Purity — various phrasings across vendors
   const purity = get(/[Tt]umor\s+(?:[Pp]urity|[Pp]ercentage)[:\s]+(\d+\s*%?)/i)
+              || get(/[Pp]ercentage\s+of\s+(?:tumor|cancer|neoplastic)\s+(?:cells?|content|tissue)[^:\n]{0,30}:\s*(\d+\s*%?)/i)
+              || get(/(?:Cellularity|Tumor\s*content|Neoplastic\s*cells?)[:\s]+(\d+\s*%?)/i)
               || get(/[Pp]urity[:\s]+(\d+\s*%?)/i);
 
-  // Institution — most-specific first; allow lowercase start so "Hadassah" is captured
-  const institution = get(/\bInstitution\b[\s:]+([A-Za-z][a-zA-Z\s\-]{2,50})/i)
+  // Institution — most-specific first; support Hebrew characters (֐-׿)
+  // and recognize known Israeli hospital names even when no label precedes them
+  const institution = get(/\bInstitution\b[\s:]+([^\n]{2,60})/i)
                    || get(/(?:Issued by|Prepared by|Reporting Lab|Ordering\s+(?:Institution|Site))[:\s]+([^\n]{3,60})/i)
-                   || get(/(?:Hospital|Medical Center|Institute|Laboratory|Clinic)[^:\n]{0,30}:\s*([A-Za-z][^,\n]{3,50})/i);
+                   || get(/(?:Hospital|Medical Center|Institute|Laboratory|Clinic)\b[^:\n]{0,30}:\s*([^\n]{3,60})/i)
+                   || get(/\b((?:Rambam|Hadassah|Sheba|Ichilov|Beilinson|Kaplan|Soroka|Wolfson|Schneider|Assuta|Tel Aviv Sourasky)[^,\n]{0,50})/i)
+                   || get(/([֐-׿][^\n]{2,50}(?:חולים|רפואי|ביה"ח|מרכז)[^\n]{0,30})/u);
 
   // Date — also handle "Date Signed/Reported" (Tempus)
   const date  = get(/(?:Report\s*Date|Date of Report|Collection\s*Date|Date\s*Signed[/\s]*Reported|Date\s*Signed)[:\s]+([0-9\/\.\-]{6,12})/i)
              || get(/(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/);
 
-  // Cancer type
-  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s\n]+([^\n,]{4,60})/i);
+  // Cancer type — labeled field first, then keyword scan of the full text
+  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type|Primary\s*Diagnosis)[:\s\n]+([^\n,]{4,60})/i)
+              || (text.match(/\b((?:Undifferentiated\s+)?(?:Pleomorphic\s+)?Sarcoma|Osteosarcoma|Leiomyosarcoma|Liposarcoma|Rhabdomyosarcoma|Ewing\s+Sarcoma|Gastrointestinal\s+Stromal\s+Tumor|GIST|Carcinoma|Adenocarcinoma|Squamous\s+Cell|Melanoma|Lymphoma|Leukemia|Glioblastoma|Mesothelioma|NSCLC|SCLC|Non-small\s*cell|Small\s*cell|Myeloma)\b/i)?.[1]);
 
   const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Tumor\s*specimen|Specimen\s*Type)[:\s]+([^\n,]{3,50})/i);
 
@@ -2317,8 +2341,9 @@ function parseNGSText(text) {
             || get(/\bALK\b[^,\n]{0,50}?(Not detected|Detected|Positive|Negative|Rearrangement|Fusion)/i)
             || '';
 
-  // Report ID — Tempus Accession No.
-  const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*No\.?)[:\s]+([A-Z0-9\-]{4,20})/i);
+  // Report ID — Tempus, Foundation, Rambam and generic lab accession numbers
+  const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*(?:No\.?|Number|#)|Report\s*(?:No\.?|Number|#|ID)|Lab(?:oratory)?\s*(?:No\.?|#|ID)|Case\s*(?:No\.?|Number|#)|Order\s*(?:No\.?|#)|Ref(?:erence)?\s*(?:No\.?|#))[:\s]+([A-Z0-9\-\/]{3,25})/i)
+              || get(/\bID\b[\s:#]+([A-Z0-9][A-Z0-9\-]{3,20})/i);
 
   // Variants — allow newlines between gene and mutation (PDF table extraction splits columns)
   const variants = [];
@@ -2331,20 +2356,26 @@ function parseNGSText(text) {
     'RBM10','SMARCA4','AXIN1','AXIN2'
   ])];
   const variantRe = new RegExp(
-    `\\b(${knownGenes.join('|')})\\b[\\s\\S]{0,120}?(p\\.[A-Za-z]\\d+[A-Za-z*_]+|c\\.[A-Za-z0-9>_+]+|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification|Splice[\\w\\s]{0,10}|Truncat\\w*)`,
+    `\\b(${knownGenes.join('|')})\\b[\\s\\S]{0,150}?` +
+    `(p\\.[A-Za-z]{1,3}\\d+[A-Za-z*_\\d]{1,30}` +
+    `|c\\.[A-Za-z0-9>_+\\-(*)]{1,30}` +
+    `|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification` +
+    `|Splice[\\w\\s]{0,10}|Truncat\\w*|Likely\\s*[Pp]athogenic|VUS)`,
     'gi'
   );
   let vm;
   while ((vm = variantRe.exec(text)) !== null) {
     const gene = vm[1].toUpperCase();
     const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
-    // Require allele frequency nearby (expanded window for multi-line table layouts)
-    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+400);
+    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+500);
     const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
                 || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
-    if (!afM) continue;
-    const af     = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
-    if (af < 0.01 || af > 0.99) continue;
+    // AF is optional — include variant even without it so user can fill in the review modal
+    let af = null;
+    if (afM) {
+      af = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
+      if (af < 0.005 || af > 0.995) continue; // filter noise (< 0.5 % or > 99.5 %)
+    }
     const tierM  = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
     const tier   = tierM ? tierM[1] : '';
     if (!variants.find(v => v.gene === gene)) {
