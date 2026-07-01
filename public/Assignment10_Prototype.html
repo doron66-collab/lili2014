@@ -2698,6 +2698,17 @@ function loadNGSReport(ngs) {
     KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
     STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
   };
+
+  // Build patient-label overrides so every display function shows the actual
+  // mutation from this report rather than the hardcoded dissertation reference.
+  window.__patientMutLabel = {};
+  Object.entries(CORE_GENE_TO_TARGETS).forEach(([gene, targets]) => {
+    const pv = (ngs.variants || []).find(v => v.gene === gene);
+    if (pv && pv.mutation) {
+      targets.forEach(tid => { window.__patientMutLabel[tid] = `${gene} ${pv.mutation}`; });
+    }
+  });
+
   const matchedTargets = [];
   Object.entries(CORE_GENE_TO_TARGETS).forEach(([gene, targets]) => {
     if (ngsGenes.has(gene)) matchedTargets.push(...targets);
@@ -2786,7 +2797,7 @@ function loadNGSReport(ngs) {
         const ev     = expansionVariants.find(e => e.simId === tid);
         const color  = ev ? ev.gm.color : (MUT_COLORS[tid] || 'var(--teal)');
         const meta   = MUT_META[tid] || {};
-        const label  = ev ? `${ev.gene} ${ev.mutation}` : (meta.display_name || tid);
+        const label  = ev ? `${ev.gene} ${ev.mutation}` : getDisplayName(tid);
         const isLast = i === allTargets.length - 1;
         const p3bSub = ev ? `${ev.gm.active_electrons}e / ${ev.gm.full_qubits}q · IBM Heron r3` : phase3bSubtitle(tid);
         const p3bBdg = ev ? `<span class="badge badge-gray">○ Pending</span>` : phase3bBadge(tid);
@@ -3057,7 +3068,7 @@ function resetPlatform() {
   const vbv = document.getElementById('vqe-bar-val');
   if (vbv) vbv.textContent = '−11.7';
   const ect = document.getElementById('energy-chart-title');
-  if (ect) ect.textContent = 'Binding Energy Comparison · TP53 C275F Active Space';
+  if (ect) ect.textContent = `Binding Energy Comparison · ${getDisplayName('TP53_C275F')} Active Space`;
   const ecf = document.getElementById('energy-chart-footnote');
   if (ecf) ecf.innerHTML = 'DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span>';
   const cpoly = document.getElementById('convergence-polyline');
@@ -3236,8 +3247,7 @@ function updateDashboardAfterRun(mutationId, data) {
 
 // ── Pipeline stage animator ────────────────────────────────────────────────
 function mutationLabel(mutId) {
-  const name = (MUT_META[mutId] || {}).display_name || mutId;
-  return `Phase 3A · ${name} · 2q VQE Proxy`;
+  return `Phase 3A · ${getDisplayName(mutId)} · 2q VQE Proxy`;
 }
 
 // stageIndex: 0=idle, 1=dispatching, 2=aggregating, 3=validating, 4=complete
@@ -3360,6 +3370,15 @@ const PIPELINE_TARGETS = [
   'STK11_LKB1', 'STK11_F354L', 'STK11_D194N',
 ];
 
+// Patient-specific mutation label overrides (populated on NGS upload).
+// When a patient report has e.g. TP53 c.375+2T>G, we store
+// __patientMutLabel['TP53_C275F'] = 'TP53 c.375+2T>G' so every display
+// function shows the actual patient mutation instead of the dissertation anchor.
+window.__patientMutLabel = {};
+function getDisplayName(mutId) {
+  return window.__patientMutLabel[mutId] || (MUT_META[mutId] || {}).display_name || mutId;
+}
+
 function submitPhase3B(mutationId) {
   const meta = MUT_META[mutationId] || {};
   const lastRun = lastRunData || {};
@@ -3370,7 +3389,7 @@ function submitPhase3B(mutationId) {
     status: 'Pending IBM Heron r3 Access',
     target: {
       mutation_id: mutationId,
-      display_name: meta.display_name || mutationId,
+      display_name: getDisplayName(mutationId),
       gene: mutationId.split('_')[0],
       source: meta.source,
       full_electrons: meta.full_electrons,
@@ -3403,7 +3422,7 @@ function submitPhase3B(mutationId) {
       phase3a_qasm: [
         'OPENQASM 3.0;',
         'include "stdgates.inc";',
-        `// SOLANGE™ Phase 3A VQE Circuit — ${meta.display_name || mutationId}`,
+        `// SOLANGE™ Phase 3A VQE Circuit — ${getDisplayName(mutationId)}`,
         '// Active space: CAS(2e,2o) — 4-qubit Jordan-Wigner · Phase 3A live execution',
         `// Ansatz: ${lastRun.p1_ansatz || 'Ry-CNOT-Ry hardware-efficient'}`,
         `// Basis set: ${lastRun.p2_basis_set || 'STO-3G (PySCF CASSCF(2,2))'}`,
@@ -3431,7 +3450,7 @@ function submitPhase3B(mutationId) {
       phase3b_qasm_template: [
         'OPENQASM 3.0;',
         'include "stdgates.inc";',
-        `// SOLANGE™ Phase 3B Circuit Template — ${meta.display_name || mutationId}`,
+        `// SOLANGE™ Phase 3B Circuit Template — ${getDisplayName(mutationId)}`,
         `// Full active space: ${meta.full_electrons}e / ${meta.full_qubits} qubits (Jordan-Wigner encoding)`,
         '// Target backend: IBM Heron r3',
         '// Error mitigation: ZNE (Zero Noise Extrapolation)',
@@ -3488,7 +3507,7 @@ function submitPhase3B(mutationId) {
   `;
   toast.innerHTML = `
     <div style="font-weight:700;color:#06b6d4;margin-bottom:6px">⚛ Phase 3B Package Generated</div>
-    <div>The submission package for <strong style="color:#f1f5f9">${meta.display_name || mutationId}</strong> has been created and downloaded.</div>
+    <div>The submission package for <strong style="color:#f1f5f9">${getDisplayName(mutationId)}</strong> has been created and downloaded.</div>
     <div style="margin-top:6px;color:#94a3b8;font-size:11px">Execution will be initiated upon IBM Heron r3 system access authorization.</div>
   `;
   document.body.appendChild(toast);
