@@ -1694,9 +1694,9 @@ function show(id) {
 function updateResultsCharts(data) {
   const rec  = data.full_record;
   const r    = data.result;
-  const mutName = rec.mutation_name || rec.mutation_id;
-  const electrons = rec.p2_active_electrons || '2';
   const mutId = rec.mutation_id || '';
+  const mutName = getDisplayName(mutId) || rec.mutation_name || mutId;
+  const electrons = rec.p2_active_electrons || '2';
   const meta = MUT_META[mutId] || {};
   const fullE = meta.full_electrons || '?';
   const fullQ = meta.full_qubits   || '?';
@@ -2787,6 +2787,34 @@ function loadNGSReport(ngs) {
     });
   });
 
+  // Update static HTML cells for core targets to show the patient's actual mutation
+  Object.entries(window.__patientMutLabel).forEach(([tid, label]) => {
+    const gene = label.split(' ')[0];
+    const mut  = label.slice(gene.length + 1);
+    // Dashboard target registry — mutation column
+    const mutTypeEl = document.getElementById(`mut-type-${tid}`);
+    if (mutTypeEl) {
+      const badgeHtml = (mutTypeEl.querySelector('.badge') || {}).outerHTML || '';
+      mutTypeEl.innerHTML = `${mut} ${badgeHtml}`;
+    }
+    // BQP table — second <td> in the row
+    const bqpRow = document.getElementById(`bqp-row-${tid}`);
+    if (bqpRow) {
+      const cell = bqpRow.querySelectorAll('td')[1];
+      if (cell) {
+        const badgeHtml = (cell.querySelector('.badge') || {}).outerHTML || '';
+        cell.innerHTML = `${mut} ${badgeHtml}`;
+      }
+    }
+    // PQ checklist item
+    const pqItem = document.getElementById(`pq-item-${tid}`);
+    if (pqItem) {
+      const dotEl = pqItem.querySelector(`#pq-dot-${tid}`);
+      const dotHtml = dotEl ? dotEl.outerHTML : `<span id="pq-dot-${tid}" style="color:var(--gray)">○</span>`;
+      pqItem.innerHTML = `${dotHtml} ${label} validation`;
+    }
+  });
+
   // Pipeline rows — core targets + expansion
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
   if (pipelineEl) {
@@ -3650,8 +3678,9 @@ function renderEnergyChart() {
   const groups = {};
   runHistory.forEach(d => {
     const rec  = d.full_record;
-    const gene = (rec.mutation_name || '').split(' ')[0];
-    const key  = rec.mutation_name || d.run_id.slice(0, 8);
+    const label = getDisplayName(rec.mutation_id) || rec.mutation_name || d.run_id.slice(0, 8);
+    const gene = label.split(' ')[0];
+    const key  = label;
     if (!groups[key]) groups[key] = { gene, runs: [] };
     groups[key].runs.push({ energy: d.result.energy_ha, ci_half: d.result.ci_half });
   });
