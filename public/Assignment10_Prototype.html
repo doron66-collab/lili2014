@@ -3552,7 +3552,7 @@ function downloadCasscfIntegrals() {
   const vqe = lastRunData._vqe || {};
 
   const mutId    = rec.mutation_id   || '';
-  const mutName  = rec.mutation_name || mutId;
+  const mutName  = getDisplayName(mutId) || rec.mutation_name || mutId;
   const compound = r.model_compound  || rec.p2_model_compound || 'unknown';
   const eRhf     = lastRunData._e_rhf   || null;
   const jwTerms  = lastRunData._jw_terms || [];
