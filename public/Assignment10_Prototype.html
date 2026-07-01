@@ -2857,9 +2857,20 @@ function loadNGSReport(ngs) {
     } else {
       allTargets.forEach(tid => {
         const ev  = expansionVariants.find(e => e.simId === tid);
-        const lbl = ev
-          ? `${ev.gene} ${ev.mutation} [${ev.bqpCls}] · ${ev.gm.active_electrons}e`
-          : (CORE_LABELS[tid] || tid);
+        let lbl;
+        if (ev) {
+          lbl = `${ev.gene} ${ev.mutation} [${ev.bqpCls}] · ${ev.gm.active_electrons}e`;
+        } else {
+          // For core targets use the patient's actual mutation from the report,
+          // not the hardcoded dissertation reference mutation.
+          const coreGene = Object.entries(CORE_GENE_TO_TARGETS)
+            .find(([, targets]) => targets.includes(tid))?.[0];
+          const pv = coreGene && (ngs.variants || []).find(v => v.gene === coreGene);
+          const bqpCls = BQP_CLASS[tid] || 'B';
+          lbl = (pv && pv.mutation)
+            ? `${coreGene} ${pv.mutation} [${bqpCls}]`
+            : (CORE_LABELS[tid] || tid);
+        }
         const opt = document.createElement('option');
         opt.value = tid; opt.textContent = lbl;
         simTarget.appendChild(opt);
