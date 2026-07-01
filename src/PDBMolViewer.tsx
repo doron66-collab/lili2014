@@ -10,6 +10,7 @@ interface MutInfo {
   color: number;
   drug: string;
   phase: string;
+  url?: string;   // explicit structure URL (e.g. AlphaFold); defaults to RCSB
 }
 
 interface Props {
@@ -40,7 +41,7 @@ export default function PDBMolViewer({ mutation, onBack }: Props) {
     stageRef.current = stage;
 
     const mutColor = hexToNGLColor(mutation.color);
-    const pdbUrl = `https://files.rcsb.org/download/${mutation.pdb}.pdb`;
+    const pdbUrl = mutation.url || `https://files.rcsb.org/download/${mutation.pdb}.pdb`;
 
     stage.loadFile(pdbUrl, { ext: 'pdb', defaultRepresentation: false }).then((component: any) => {
       const ch = mutation.chain;
