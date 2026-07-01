@@ -132,6 +132,7 @@ def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
 #   toluene       → Phe aromatic stacking (DIX domain, OB fold, ARID)
 #   methanol      → Ser/Thr hydroxyl contact (VHL, FGFR3, CDKN2A)
 _EXPANSION_GENE_CONFIGS = {
+    "TP53":    {"full_electrons": 44, "full_qubits": 88,  "badge": "Structural LOF",     "jw_source": ("TP53_LOF",    "native"), "pdb": "2OCJ",           "native_residue": "Arg248",  "native_compound": "guanidine"},
     "VHL":     {"full_electrons": 25, "full_qubits": 50, "badge": "Structural",         "jw_source": ("VHL_LOF",     "native"), "pdb": "1LM8",           "native_residue": "Ser111",  "native_compound": "methanol"},
     "BAP1":    {"full_electrons": 35, "full_qubits": 70, "badge": "Ubiquitin LOF",      "jw_source": ("BAP1_LOF",    "native"), "pdb": "3KVF",           "native_residue": "Cys91",   "native_compound": "methanethiol"},
     "PBRM1":   {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",      "jw_source": ("PBRM1_LOF",   "native"), "pdb": "3G0L",           "native_residue": "Tyr1242", "native_compound": "p_cresol"},

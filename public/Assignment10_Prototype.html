@@ -2689,166 +2689,142 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // ── Match NGS variants to platform targets ────────────────────────────
-  const ngsGenes = new Set((ngs.variants || []).map(v => (v.gene || '').toUpperCase()));
+  // ── Match NGS variants to platform simulation targets ─────────────────
+  // Each variant from the report maps to exactly ONE simulation ID.
+  // Named point mutations (e.g. C275F) map to their specific MUTATION_CONFIGS entry.
+  // All other variants map to {GENE}_LOF — a real VQE run on that gene's model.
+  // No hardcoded dissertation targets are injected; only what is in the report.
 
-  // Hardcoded NSCLC core targets
-  const CORE_GENE_TO_TARGETS = {
-    TP53:  ['TP53_C275F'],
-    KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
-    STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
+  // Known specific mutation → simId mappings (checked before LOF fallback)
+  const NAMED_MUTATIONS = {
+    'TP53_C275F':  [/C275F/i, /Cys275/i],
+    'TP53_Y220C':  [/Y220C/i, /Tyr220Cy/i],
+    'KEAP1_G333C': [/G333C/i, /Gly333Cy/i],
+    'KEAP1_R320Q': [/R320Q/i, /Arg320Gl/i],
+    'STK11_F354L': [/F354L/i, /Phe354Le/i],
+    'STK11_D194N': [/D194N/i, /Asp194As/i],
   };
-
-  // Build patient-label overrides so every display function shows the actual
-  // mutation from this report rather than the hardcoded dissertation reference.
-  window.__patientMutLabel = {};
-  Object.entries(CORE_GENE_TO_TARGETS).forEach(([gene, targets]) => {
-    const pv = (ngs.variants || []).find(v => v.gene === gene);
-    if (pv && pv.mutation) {
-      targets.forEach(tid => { window.__patientMutLabel[tid] = `${gene} ${pv.mutation}`; });
+  function resolveSimId(gene, mutation) {
+    const g = (gene || '').toUpperCase();
+    const m = mutation || '';
+    for (const [simId, patterns] of Object.entries(NAMED_MUTATIONS)) {
+      if (simId.startsWith(g + '_') && patterns.some(p => p.test(m))) return simId;
     }
-  });
+    return `${g}_LOF`;
+  }
 
-  const matchedTargets = [];
-  Object.entries(CORE_GENE_TO_TARGETS).forEach(([gene, targets]) => {
-    if (ngsGenes.has(gene)) matchedTargets.push(...targets);
-  });
-
-  // Expansion: any gene in GENE_MAP with ≥20 active electrons, not already covered
-  const coreGenes = new Set(Object.keys(CORE_GENE_TO_TARGETS));
-  const expansionVariants = [];
-  const seenExpGenes = new Set();
+  // Build one simulation target per distinct variant (gene-level dedup)
+  const seenSimIds = new Set();
+  const allVariants = [];
   (ngs.variants || []).forEach(v => {
     const gene = (v.gene || '').toUpperCase();
-    if (coreGenes.has(gene) || seenExpGenes.has(gene)) return;
-    const gm = GENE_MAP[gene];
+    const gm   = GENE_MAP[gene];
     if (!gm || gm.active_electrons < 20) return;
-    seenExpGenes.add(gene);
-    const simId = `${gene}_LOF`;
+    const simId = resolveSimId(gene, v.mutation);
+    if (seenSimIds.has(simId)) return;
+    seenSimIds.add(simId);
     const bqpCls = gm.active_electrons >= 30 ? 'A' : 'B';
-    expansionVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency });
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency });
   });
 
-  const allTargets = [...matchedTargets, ...expansionVariants.map(ev => ev.simId)];
+  // Register labels in __activeVariants so getDisplayName() returns patient data
+  window.__activeVariants = {};
+  allVariants.forEach(av => {
+    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}` };
+  });
+
+  const allTargets    = allVariants.map(av => av.simId);
   const hasAnyTargets = allTargets.length > 0;
 
-  // ── Inject dynamic rows for expansion genes ───────────────────────────
+  // Hide ALL static core rows — patient report drives every row dynamically
+  PIPELINE_TARGETS.forEach(tid => {
+    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
+      const el = document.getElementById(prefix + tid);
+      if (el) el.style.display = 'none';
+    });
+  });
+  // Remove any rows injected by a previous report upload
+  document.querySelectorAll('.dynamic-expansion-row').forEach(el => el.remove());
+
+  // ── Inject one dynamic row per patient variant ─────────────────────────
   const mutTbody = document.getElementById('ngs-mutation-rows');
   const bqpTbody = document.getElementById('ngs-bqp-rows');
   const pqDiv    = document.getElementById('ngs-pq-items');
-  expansionVariants.forEach(ev => {
-    const bqpBadge = ev.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
-    const bqpRowBg = ev.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
-    const localE   = Math.round(ev.gm.active_electrons / 2);
+  allVariants.forEach(av => {
+    const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
+    const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
+    const localE   = Math.round(av.gm.active_electrons / 2);
     if (mutTbody) {
       const tr = document.createElement('tr');
-      tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${ev.simId}`;
+      tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${av.simId}`;
       tr.innerHTML = `
-        <td><span class="bqp-badge-${ev.bqpCls.toLowerCase()}">${ev.bqpCls}</span></td>
-        <td style="font-weight:700;color:${ev.gm.color}">${ev.gene}</td>
-        <td id="mut-type-${ev.simId}">${ev.mutation} <span class="badge" style="background:${ev.gm.color}22;color:${ev.gm.color};border:1px solid ${ev.gm.color}55">${ev.gm.badge_type}</span></td>
+        <td><span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span></td>
+        <td style="font-weight:700;color:${av.gm.color}">${av.gene}</td>
+        <td id="mut-type-${av.simId}">${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
         <td style="font-size:10px;color:var(--teal)">★ NGS</td>
         <td>~${localE}e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
-        <td>~${ev.gm.active_electrons}e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
-        <td><div id="mut-status-${ev.simId}"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-${ev.simId}" style="margin-top:4px"></div></td>`;
+        <td>~${av.gm.active_electrons}e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
+        <td><div id="mut-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-${av.simId}" style="margin-top:4px"></div></td>`;
       mutTbody.appendChild(tr);
     }
     if (bqpTbody) {
       const tr = document.createElement('tr');
-      tr.className = 'dynamic-expansion-row'; tr.id = `bqp-row-${ev.simId}`; tr.style = bqpRowBg;
+      tr.className = 'dynamic-expansion-row'; tr.id = `bqp-row-${av.simId}`; tr.style = bqpRowBg;
       tr.innerHTML = `
-        <td><strong style="color:${ev.gm.color}">${ev.gene}</strong></td>
-        <td>${ev.mutation} <span class="badge" style="background:${ev.gm.color}22;color:${ev.gm.color};border:1px solid ${ev.gm.color}55">${ev.gm.badge_type}</span></td>
-        <td>~${ev.gm.active_electrons}</td><td>~${ev.gm.full_qubits}</td>
+        <td><strong style="color:${av.gm.color}">${av.gene}</strong></td>
+        <td>${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
+        <td>~${av.gm.active_electrons}</td><td>~${av.gm.full_qubits}</td>
         <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
         <td>${bqpBadge}</td>
-        <td id="bqp-de-${ev.simId}" style="color:var(--gray)">—</td>
-        <td id="bqp-status-${ev.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
+        <td id="bqp-de-${av.simId}" style="color:var(--gray)">—</td>
+        <td id="bqp-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
       bqpTbody.appendChild(tr);
     }
     if (pqDiv) {
       const d = document.createElement('div');
-      d.className = 'dynamic-expansion-row'; d.id = `pq-item-${ev.simId}`;
-      d.innerHTML = `<span id="pq-dot-${ev.simId}" style="color:var(--gray)">○</span> ${ev.gene} ${ev.mutation} validation`;
+      d.className = 'dynamic-expansion-row'; d.id = `pq-item-${av.simId}`;
+      d.innerHTML = `<span id="pq-dot-${av.simId}" style="color:var(--gray)">○</span> ${av.gene} ${av.mutation} validation`;
       pqDiv.appendChild(d);
     }
   });
 
-  // Show/hide static core rows + expansion tbodies
+  // Show/hide table sections
   ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(elId => {
     const el = document.getElementById(elId);
     if (el) el.style.display = hasAnyTargets ? '' : 'none';
   });
-  PIPELINE_TARGETS.forEach(tid => {
-    const show = matchedTargets.includes(tid);
-    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
-      const el = document.getElementById(prefix + tid);
-      if (el) el.style.display = show ? '' : 'none';
-    });
-  });
 
-  // Update static HTML cells for core targets to show the patient's actual mutation
-  Object.entries(window.__patientMutLabel).forEach(([tid, label]) => {
-    const gene = label.split(' ')[0];
-    const mut  = label.slice(gene.length + 1);
-    // Dashboard target registry — mutation column
-    const mutTypeEl = document.getElementById(`mut-type-${tid}`);
-    if (mutTypeEl) {
-      const badgeHtml = (mutTypeEl.querySelector('.badge') || {}).outerHTML || '';
-      mutTypeEl.innerHTML = `${mut} ${badgeHtml}`;
-    }
-    // BQP table — second <td> in the row
-    const bqpRow = document.getElementById(`bqp-row-${tid}`);
-    if (bqpRow) {
-      const cell = bqpRow.querySelectorAll('td')[1];
-      if (cell) {
-        const badgeHtml = (cell.querySelector('.badge') || {}).outerHTML || '';
-        cell.innerHTML = `${mut} ${badgeHtml}`;
-      }
-    }
-    // PQ checklist item
-    const pqItem = document.getElementById(`pq-item-${tid}`);
-    if (pqItem) {
-      const dotEl = pqItem.querySelector(`#pq-dot-${tid}`);
-      const dotHtml = dotEl ? dotEl.outerHTML : `<span id="pq-dot-${tid}" style="color:var(--gray)">○</span>`;
-      pqItem.innerHTML = `${dotHtml} ${label} validation`;
-    }
-  });
-
-  // Pipeline rows — core targets + expansion
+  // Pipeline rows
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
   if (pipelineEl) {
     if (!hasAnyTargets) {
       pipelineEl.innerHTML = ''; pipelineEl.style.display = 'none';
     } else {
-      pipelineEl.innerHTML = allTargets.map((tid, i) => {
-        const ev     = expansionVariants.find(e => e.simId === tid);
-        const color  = ev ? ev.gm.color : (MUT_COLORS[tid] || 'var(--teal)');
-        const meta   = MUT_META[tid] || {};
-        const label  = ev ? `${ev.gene} ${ev.mutation}` : getDisplayName(tid);
-        const isLast = i === allTargets.length - 1;
-        const p3bSub = ev ? `${ev.gm.active_electrons}e / ${ev.gm.full_qubits}q · IBM Heron r3` : phase3bSubtitle(tid);
-        const p3bBdg = ev ? `<span class="badge badge-gray">○ Pending</span>` : phase3bBadge(tid);
+      pipelineEl.innerHTML = allVariants.map((av, i) => {
+        const isLast = i === allVariants.length - 1;
+        const color  = av.gm.color;
+        const label  = `${av.gene} ${av.mutation}`;
+        const p3bSub = `${av.gm.active_electrons}e / ${av.gm.full_qubits}q · IBM Heron r3`;
         return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
           <div style="min-width:150px">
             <div style="font-weight:700;font-size:12px;color:${color}">${label}</div>
             <div style="font-size:10px;color:var(--gray)">Phase 3A · VQE · PennyLane · 4q live</div>
           </div>
-          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${tid}" style="width:0%"></div></div></div>
-          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${tid}">—</div>
-          <div style="min-width:95px" id="prow-badge-${tid}"><span class="badge badge-gray">○ Pending</span></div>
-          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${tid}">Not yet run</div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${av.simId}" style="width:0%"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${av.simId}">—</div>
+          <div style="min-width:95px" id="prow-badge-${av.simId}"><span class="badge badge-gray">○ Pending</span></div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${av.simId}">Not yet run</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:8px 0 8px 18px;${isLast ? '' : 'border-bottom:1px solid var(--border)'}opacity:0.65">
           <div style="min-width:150px">
             <div style="font-weight:600;font-size:11px;color:${color}">└ Phase 3B · ${label}</div>
             <div style="font-size:10px;color:var(--gray)">${p3bSub}</div>
           </div>
-          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${tid}" style="width:0%;background:var(--gold)"></div></div></div>
-          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${tid}">—</div>
-          <div style="min-width:95px" id="prow-badge-3b-${tid}">${p3bBdg}</div>
-          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${tid}">Not yet run</div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${av.simId}" style="width:0%;background:var(--gold)"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${av.simId}">—</div>
+          <div style="min-width:95px" id="prow-badge-3b-${av.simId}"><span class="badge badge-gray">○ Pending</span></div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${av.simId}">Not yet run</div>
         </div>`;
       }).join('');
       pipelineEl.style.display = '';
@@ -2862,56 +2838,27 @@ function loadNGSReport(ngs) {
   const bqpTitle = document.getElementById('bqp-card-title');
   if (bqpTitle) bqpTitle.textContent = n ? `All-Target Summary — ${n} Target${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status` : 'All-Target Summary — No platform targets detected';
 
-  // Apply BQP class visual treatment to all mutation rows
-  const BQP_CLASS = {
-    TP53_C275F:'A', STK11_LKB1:'A', STK11_F354L:'A', STK11_D194N:'A',
-    KEAP1_LOF:'B',  KEAP1_G333C:'B', KEAP1_R320Q:'B',
-    TP53_Y220C:'C',
-  };
-  Object.entries(BQP_CLASS).forEach(([id, cls]) => {
-    const row = document.getElementById(`mut-row-${id}`);
+  // BQP class visual treatment for dynamically injected rows
+  allVariants.forEach(av => {
+    const row = document.getElementById(`mut-row-${av.simId}`);
     if (!row) return;
     row.classList.remove('bqp-row-a','bqp-row-b','bqp-row-c');
-    row.classList.add(`bqp-row-${cls.toLowerCase()}`);
+    row.classList.add(`bqp-row-${av.bqpCls.toLowerCase()}`);
   });
-  // Show filter legend
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
 
-  // Rebuild VQE dropdown: core NSCLC matched + expansion targets
+  // Rebuild VQE dropdown — one option per patient variant
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
-    const CORE_LABELS = {
-      TP53_C275F:  'TP53 p.Cys275Phe (C275F) [A]',
-      STK11_LKB1:  'STK11/LKB1 Loss-of-Function [A]',
-      STK11_F354L: 'STK11 p.Phe354Leu [A]',
-      STK11_D194N: 'STK11 p.Asp194Asn [A]',
-      KEAP1_LOF:   'KEAP1 Loss-of-Function [B]',
-      KEAP1_G333C: 'KEAP1 p.Gly333Cys [B]',
-      KEAP1_R320Q: 'KEAP1 p.Arg320Gln [B]',
-    };
     simTarget.innerHTML = '';
-    if (allTargets.length === 0) {
+    if (!hasAnyTargets) {
       simTarget.innerHTML = '<option value="" disabled selected style="color:var(--gray)">— No platform targets in this report —</option>';
     } else {
-      allTargets.forEach(tid => {
-        const ev  = expansionVariants.find(e => e.simId === tid);
-        let lbl;
-        if (ev) {
-          lbl = `${ev.gene} ${ev.mutation} [${ev.bqpCls}] · ${ev.gm.active_electrons}e`;
-        } else {
-          // For core targets use the patient's actual mutation from the report,
-          // not the hardcoded dissertation reference mutation.
-          const coreGene = Object.entries(CORE_GENE_TO_TARGETS)
-            .find(([, targets]) => targets.includes(tid))?.[0];
-          const pv = coreGene && (ngs.variants || []).find(v => v.gene === coreGene);
-          const bqpCls = BQP_CLASS[tid] || 'B';
-          lbl = (pv && pv.mutation)
-            ? `${coreGene} ${pv.mutation} [${bqpCls}]`
-            : (CORE_LABELS[tid] || tid);
-        }
+      allVariants.forEach(av => {
         const opt = document.createElement('option');
-        opt.value = tid; opt.textContent = lbl;
+        opt.value = av.simId;
+        opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls}] · ${av.gm.active_electrons}e`;
         simTarget.appendChild(opt);
       });
     }
@@ -3398,13 +3345,12 @@ const PIPELINE_TARGETS = [
   'STK11_LKB1', 'STK11_F354L', 'STK11_D194N',
 ];
 
-// Patient-specific mutation label overrides (populated on NGS upload).
-// When a patient report has e.g. TP53 c.375+2T>G, we store
-// __patientMutLabel['TP53_C275F'] = 'TP53 c.375+2T>G' so every display
-// function shows the actual patient mutation instead of the dissertation anchor.
-window.__patientMutLabel = {};
+// Active patient variants (populated on NGS upload).
+// Maps simId → {gene, mutation, label} for whatever's in the patient report.
+window.__activeVariants = {};
 function getDisplayName(mutId) {
-  return window.__patientMutLabel[mutId] || (MUT_META[mutId] || {}).display_name || mutId;
+  if (window.__activeVariants && window.__activeVariants[mutId]) return window.__activeVariants[mutId].label;
+  return (MUT_META[mutId] || {}).display_name || mutId;
 }
 
 function submitPhase3B(mutationId) {
