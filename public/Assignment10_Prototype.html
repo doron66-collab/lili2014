@@ -2356,11 +2356,14 @@ function parseNGSText(rawText) {
   const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*(?:No\.?|Number|#)|Report\s*(?:No\.?|Number|#|ID)|Lab(?:oratory)?\s*(?:No\.?|#|ID)|Case\s*(?:No\.?|Number|#)|Order\s*(?:No\.?|#)|Ref(?:erence)?\s*(?:No\.?|#))[:\s]+([A-Z0-9\-\/]{3,25})/i)
               || get(/\bID\b[\s:#]+([A-Z0-9][A-Z0-9\-]{3,20})/i);
 
-  // Variants — two-pass extraction handles both orderings found in real PDFs:
-  //   Pass 1 (mutation-first): "c.375+2T>G, 83.5%, RB1"  ← Rambam/Archer layout
-  //   Pass 2 (gene-first):     "TP53 p.R175H  34%"       ← Foundation/Tempus layout
-  // Pass 1 runs first so its matches take priority (they are more precise —
-  // the mutation is found first, then the gene is confirmed nearby).
+  // Variant extraction — gene-first scan with (?<![a-z]) lookbehind instead of \b.
+  // \b fails on PDF column concatenation ("NotesTP53" — no boundary between s and T).
+  // (?<![a-z]) allows the match as long as the gene name is not preceded by a
+  // lowercase letter, so "Notes TP53" (after normalisation) and standalone "TP53"
+  // both match, while "mutTP53" or "hotspotTP53" are correctly rejected.
+  //
+  // AF or a clinical classification word is required near the mutation to suppress
+  // false positives from methodology sections that mention hotspot names in prose.
   const variants = [];
   const knownGenes = [...new Set([...Object.keys(GENE_MAP),
     'MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA',
@@ -2376,7 +2379,6 @@ function parseNGSText(rawText) {
     `|c\\.[A-Za-z0-9>_+\\-()\\[\\]*]{1,30}` +
     `|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification` +
     `|Splice[\\w\\s]{0,10}|Truncat\\w*|Likely\\s*[Pp]athogenic|VUS`;
-  const GENE_PAT = `(?<![a-z])(${knownGenes.join('|')})\\b`;
 
   function extractAF(nearby) {
     const m = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
@@ -2395,35 +2397,17 @@ function parseNGSText(rawText) {
       variants.push({ gene, mutation: mut.replace(/\s+/g,' ').trim().slice(0,60), allele_frequency: af, tier });
   }
 
-  // ── Pass 1: mutation-first ("c.375+2T>G ... RB1") ──────────────────────
-  const mutFirstRe = new RegExp(`(${MUT_PAT})[^\\n]{0,120}?${GENE_PAT}`, 'gi');
-  let vm;
-  while ((vm = mutFirstRe.exec(text)) !== null) {
-    const mut  = vm[1];
-    const gene = vm[2];
-    const nearby = text.slice(Math.max(0, vm.index - 50), vm.index + 400);
-    const af   = extractAF(nearby);
-    // Require AF for pass-1 matches to avoid false positives from gene lists
-    if (af === null) continue;
-    addVariant(gene, mut, af, extractTier(nearby));
-  }
-
-  // ── Pass 2: gene-first ("TP53 ... p.R175H") ────────────────────────────
-  // Require AF OR a clinical classification term near the mutation.
-  // Without either, the match is likely from a methodology/description section
-  // (e.g. "TP53 p.Cys275Phe is a known hotspot tested by this panel") and
-  // should NOT be reported as a patient finding.
   const CLINICAL_SIGNAL = /\b(?:Pathogenic|Likely\s*Pathogenic|VUS|Variant\s*of\s*Uncertain|Tier|Benign|Oncogenic|Detected|Positive)\b/i;
   const variantRe = new RegExp(
-    `${GENE_PAT}[\\s\\S]{0,150}?(${MUT_PAT})`, 'gi'
+    `(?<![a-z])(${knownGenes.join('|')})\\b[\\s\\S]{0,150}?(${MUT_PAT})`, 'gi'
   );
+  let vm;
   while ((vm = variantRe.exec(text)) !== null) {
-    const gene = vm[1];
-    const mut  = vm[2];
+    const gene   = vm[1];
+    const mut    = vm[2];
     const nearby = text.slice(Math.max(0, vm.index - 100), vm.index + 500);
-    const af   = extractAF(nearby);
+    const af     = extractAF(nearby);
     if (af !== null && af < 0.005) continue;
-    // Skip if no AF and no clinical signal — almost certainly a false positive
     if (af === null && !CLINICAL_SIGNAL.test(nearby)) continue;
     addVariant(gene, mut, af, extractTier(nearby));
   }
