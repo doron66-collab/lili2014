@@ -1389,7 +1389,7 @@
             <tr>
               <td><strong>SqDRIFT</strong></td>
               <td><em>Sample-based quantum Diagonalization with stochastic Trotter (qDRIFT)</em></td>
-              <td>The quantum algorithm anchoring Layer 1 of the dissertation. Demonstrated by IBM in March 2026 (<em>Science</em>): 32-electron simulation of C₁₃Cl₂ on 100 qubits of Heron, beyond the classical CASSCF ceiling of ~18 electrons. SqDRIFT inherits qDRIFT's provable convergence bounds — a property the dissertation leverages for the metal-coordinating cluster of the active space.</td>
+              <td>The quantum algorithm anchoring Layer 1 of the dissertation. Demonstrated by IBM in 2026 (IBM Research; arXiv:2603.08696 and the SqDRIFT method paper arXiv:2508.02578): a 32-electron active space of C₁₃Cl₂ on 100 qubits of Heron, beyond the classical CASSCF ceiling of ~18 electrons. SqDRIFT inherits qDRIFT's provable convergence bounds — a property the dissertation leverages for the metal-coordinating cluster of the active space.</td>
             </tr>
             <tr>
               <td><strong>STK11</strong></td>
@@ -1793,7 +1793,7 @@
       <p><em>This subsection defines a system requirement for the orchestration architecture, not a chemistry claim.</em> For the workflow to handle C275F end-to-end, it must commit to a precise active-space boundary; that boundary determines qubit count, telemetry volume, and audit-trail granularity downstream. The chemistry is anchoring detail; the IT contribution is the workflow's ability to execute reproducibly at either boundary. Two levels are defined, each corresponding to a distinct architectural validation phase.</p>
 
       <h4>Local Binding Site · ~24 Active Electrons</h4>
-      <p>Encompasses the immediate chemical environment of the mutation: the F275 aromatic π-system (6 electrons), adjacent residues C277 and A276 (~10 electrons), and relevant bonding orbitals between them (~8 electrons). This level is sufficient for quantum-accurate drug candidate identification — characterizing the altered binding pocket geometry, evaluating candidate molecule interactions, and comparing wild-type versus mutant electronic structure. Requiring approximately 50–60 qubits under Jordan-Wigner encoding, this active space is directly feasible on IBM Heron r3 (156 qubits) and is enabled by the SqDRIFT benchmark (IBM <em>Science</em>, March 2026: 32 electrons demonstrated on 100 qubits).</p>
+      <p>Encompasses the immediate chemical environment of the mutation: the F275 aromatic π-system (6 electrons), adjacent residues C277 and A276 (~10 electrons), and relevant bonding orbitals between them (~8 electrons). This level is sufficient for quantum-accurate drug candidate identification — characterizing the altered binding pocket geometry, evaluating candidate molecule interactions, and comparing wild-type versus mutant electronic structure. Requiring approximately 48 qubits under Jordan-Wigner encoding, this active space is directly feasible on IBM Heron r3 (156 qubits) and is enabled by the SqDRIFT benchmark (IBM Research, 2026; arXiv:2603.08696: 32 electrons demonstrated on 100 qubits).</p>
 
       <h4>Full Binding Site · ~44 Active Electrons</h4>
       <p>Extends the local site to incorporate the complete biologically active environment: the Zn²⁺ coordination shell and its four ligands (C176, H179, C238, C242), plus the DNA-guanine interface and phosphate backbone (~12–20 additional electrons). This level is required for full functional validation — confirming whether a drug candidate restores p53 DNA-binding activity. Jordan-Wigner encoding maps ~44 electrons to ~88 qubits, placing this within IBM Heron r3 capacity but at the frontier of demonstrated capability.</p>
@@ -1810,7 +1810,7 @@
           </thead>
           <tbody>
             <tr>
-              <td>C₁₃Cl₂ (IBM <em>Science</em> benchmark)</td>
+              <td>C₁₃Cl₂ (IBM Research 2026 benchmark)</td>
               <td>32</td>
               <td>~100</td>
               <td><span class="check">✓</span> Demonstrated</td>
@@ -1946,7 +1946,7 @@
             • SqDRIFT — sample-based quantum diagonalization (Trotterized, stochastic drift)
           </text>
           <text x="40" y="550" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
-            • Empirical anchors: 100q C₁₃Cl₂ (Science, Mar 2026) · Trp-cage protein (Cleveland Clinic + IBM, Mar 2026)
+            • Empirical anchors: 100q C₁₃Cl₂ (IBM Research, 2026) · Trp-cage protein (Cleveland Clinic + IBM, 2026)
           </text>
 
           <rect x="20" y="594" width="840" height="80" rx="6"
@@ -2190,7 +2190,7 @@
         <div style="margin:32px 0 28px 0; padding:24px 28px; background:rgba(6,182,212,0.06); border-left:3px solid var(--teal); border-radius:6px;">
           <h4 style="margin:0 0 14px 0; font-size:1em; color:var(--teal); letter-spacing:0.03em;">The Transitional Window: Situating SqDRIFT and Heron r3 Within IBM's Fault-Tolerant Roadmap</h4>
           <p style="margin:0 0 12px 0;">The selection of IBM Heron r3 as the quantum hardware substrate and SqDRIFT as the molecular simulation algorithm reflects a deliberate positioning within a well-defined and time-bounded technological window. IBM's publicly disclosed roadmap — supported by a $10+ billion capital commitment and a $1 billion CHIPS Act award — establishes a clear architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction. The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and Starling (2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing 100 million quantum gates.</p>
-          <p style="margin:0 0 12px 0;">This roadmap does not diminish the contribution of the present work — it contextualizes and justifies it. Heron r3, as the current-generation superconducting processor, and SqDRIFT, as the leading NISQ-era Trotter-based simulation protocol with formally bounded error scaling, represent the state of the art during precisely the window in which clinically relevant quantum molecular simulation first becomes computationally tractable. IBM's own March 2026 <em>Science</em> publication demonstrated SqDRIFT on 100 qubits simulating 32 electrons in C₁₃Cl₂ — a benchmark that for the first time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach of available hardware.</p>
+          <p style="margin:0 0 12px 0;">This roadmap does not diminish the contribution of the present work — it contextualizes and justifies it. Heron r3, as the current-generation superconducting processor, and SqDRIFT, as a leading NISQ-era sample-based quantum diagonalization protocol whose stochastic state sampling inherits qDRIFT's formally bounded error scaling, represent the state of the art during precisely the window in which clinically relevant quantum molecular simulation first becomes computationally tractable. IBM's own 2026 demonstration (IBM Research; arXiv:2603.08696) applied SqDRIFT on 100 qubits to a 32-electron active space of C₁₃Cl₂ — a benchmark that for the first time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach of available hardware.</p>
           <p style="margin:0 0 12px 0;">The significance of this window extends beyond the chemistry. The transition to fault-tolerant quantum computing will not resolve — and in fact will intensify — the information systems challenges that constitute the primary contribution of this dissertation. As IBM scales toward Starling (2029) and the Blue Jay quantum-centric supercomputer (2,000 logical qubits, 2033), targeting drug discovery as an explicit commercial vertical, the regulatory reconstruction problem becomes more acute, not less. Probabilistic, learned quantum outputs will be generated at greater scale and complexity, yet no established framework exists for governing their audit trails, ensuring reproducibility, or satisfying FDA 21 CFR Part 11 requirements in a clinical submission context. The pipeline architecture, P1–P9 provenance schema, and bifurcation-aware orchestration developed in this dissertation are designed precisely for this trajectory: they establish the IS governance substrate that fault-tolerant quantum drug discovery workflows will require, built and validated during the window in which the underlying quantum computation first becomes feasible.</p>
           <p style="margin:0; font-style:italic; font-weight:600;">The present work therefore occupies a strategically necessary position: it is neither premature nor transitional. It is foundational.</p>
         </div>
@@ -2475,7 +2475,7 @@
       <p>The proof-of-concept execution anchors on superconducting qubits (§1.4). This decision is the best-supported choice at the time of submission, but it narrows the empirical claims of the dissertation. Multi-modality validation — re-running the pipeline against trapped-ion or neutral-atom backends to demonstrate behavioral equivalence — is deferred to future work. The architecture is described abstractly enough that re-anchoring on a different modality is a defined exercise should the empirical landscape shift before defense.</p>
 
       <h4>Nvidia Substrate (Forward-Compatible, Not Empirically Exercised)</h4>
-      <p>The post-April-2026 hybrid substrate — Nvidia <strong>CUDA-Q</strong>, <strong>NVQLink</strong>, and <strong>Ising</strong> — is acknowledged in §1.4.1 and treated as commodity infrastructure in the three-layer architecture (§06.ii). <strong>Phase 3 of this dissertation does not execute on that substrate.</strong> IBM is absent from Nvidia's announced NVQLink partner roster (Atom Computing, IonQ, IQM, Q-CTRL, Academia Sinica, EeroQ), and the SqDRIFT empirical anchor (C₁₃Cl₂, <em>Science</em> 2026) runs on IBM Heron via Qiskit Runtime with deterministic decoding (pyMatching). The contribution is therefore <em>structural</em>, not empirical: <strong>(a)</strong> the orchestration architecture is designed to interoperate with the Nvidia substrate (§06.ii property 3, bifurcation-aware), but Phase 3 exercises only the IBM-native side; <strong>(b)</strong> the ninth element P9 of the Part-11 provenance record (§06.iii) is <em>forward-compatible</em> — it specifies what records a regulated workflow will require when ML-decoded QEC enters production, but Phase 3's P9 records reduce to the minimal deterministic form (algorithm name + software version). Empirical validation of bifurcation-aware orchestration across both stacks, and of ML-decoder provenance on a live Ising-class decoder, are designated post-dissertation research phases.</p>
+      <p>The post-April-2026 hybrid substrate — Nvidia <strong>CUDA-Q</strong>, <strong>NVQLink</strong>, and <strong>Ising</strong> — is acknowledged in §1.4.1 and treated as commodity infrastructure in the three-layer architecture (§06.ii). <strong>Phase 3 of this dissertation does not execute on that substrate.</strong> IBM is absent from Nvidia's announced NVQLink partner roster (Atom Computing, IonQ, IQM, Q-CTRL, Academia Sinica, EeroQ), and the SqDRIFT empirical anchor (C₁₃Cl₂, IBM Research 2026; arXiv:2603.08696) runs on IBM Heron via Qiskit Runtime with deterministic decoding (pyMatching). The contribution is therefore <em>structural</em>, not empirical: <strong>(a)</strong> the orchestration architecture is designed to interoperate with the Nvidia substrate (§06.ii property 3, bifurcation-aware), but Phase 3 exercises only the IBM-native side; <strong>(b)</strong> the ninth element P9 of the Part-11 provenance record (§06.iii) is <em>forward-compatible</em> — it specifies what records a regulated workflow will require when ML-decoded QEC enters production, but Phase 3's P9 records reduce to the minimal deterministic form (algorithm name + software version). Empirical validation of bifurcation-aware orchestration across both stacks, and of ML-decoder provenance on a live Ising-class decoder, are designated post-dissertation research phases.</p>
 
       <h4>IND Regulatory Boundary</h4>
       <p>The compliance framework (§06.iii) addresses the <em>information-systems layer</em> of FDA 21 CFR Part 11 — what records must be retained, in what form, against what validation criteria. It does not address the broader regulatory-science questions: the criteria under which quantum-simulated binding affinities could be admitted as evidence in an Investigational New Drug (IND) submission, clinical-trial protocol design implications of using quantum-derived candidates, or FDA's separate guidances on Model-Informed Drug Development. These topics fall outside the dissertation's scope and are reserved for future regulatory-science work.</p>
@@ -3049,7 +3049,7 @@
             <tr>
               <td><strong>C₁₃Cl₂</strong></td>
               <td><em>13-Carbon, 2-Chlorine half-Möbius molecule</em></td>
-              <td>The synthetic molecule used by IBM in the March 2026 Science paper to demonstrate SqDRIFT at 32 electrons / 100 qubits - the empirical anchor of the dissertation's Layer 1 scientific claim. The transition from C₁₃Cl₂ (synthetic, vacuum, cryogenic) to a clinically relevant metalloprotein mutation is explicitly framed as Layer 1 of the dissertation's novelty argument.</td>
+              <td>The synthetic molecule used by IBM in its 2026 demonstration (IBM Research; arXiv:2603.08696) to run SqDRIFT at 32 electrons / 100 qubits - the empirical anchor of the dissertation's Layer 1 scientific claim. The transition from C₁₃Cl₂ (synthetic, vacuum, cryogenic) to a clinically relevant metalloprotein mutation is explicitly framed as Layer 1 of the dissertation's novelty argument.</td>
             </tr>
             <tr>
               <td><strong>C275F</strong></td>
@@ -3329,7 +3329,7 @@
             <tr>
               <td><strong>QV</strong></td>
               <td><em>Quantum Volume</em></td>
-              <td>An IBM-defined benchmark capturing combined qubit count, connectivity, and gate fidelity. The poster lists IBM Heron r3 at QV ≥ 2048 - establishing that the hardware regime of the IBM Science 2026 anchor (32 electrons, 100 qubits) is reproducible at Phase 3B scale.</td>
+              <td>An IBM-defined benchmark capturing combined qubit count, connectivity, and gate fidelity. The poster lists IBM Heron r3 at QV ≥ 2048 - establishing that the hardware regime of the IBM Research 2026 anchor (32 electrons, 100 qubits) is reproducible at Phase 3B scale.</td>
             </tr>
             <tr>
               <td><strong>RP2D</strong></td>
@@ -3349,7 +3349,7 @@
             <tr>
               <td><strong>SqDRIFT</strong></td>
               <td><em>Sample-based quantum Diagonalization with stochastic Trotter (qDRIFT)</em></td>
-              <td>The quantum algorithm anchoring Layer 1 of the dissertation. Demonstrated by IBM in March 2026 (Science): 32-electron simulation of C₁₃Cl₂ on 100 qubits of Heron, beyond the classical CASSCF ceiling of ~18 electrons. SqDRIFT inherits qDRIFT's provable convergence bounds - a strength the dissertation contrasts with EWF-SQD's empirical-only convergence.</td>
+              <td>The quantum algorithm anchoring Layer 1 of the dissertation. Demonstrated by IBM in 2026 (IBM Research; arXiv:2603.08696 and the SqDRIFT method paper arXiv:2508.02578): a 32-electron active space of C₁₃Cl₂ on 100 qubits of Heron, beyond the classical CASSCF ceiling of ~18 electrons. SqDRIFT inherits qDRIFT's provable convergence bounds - a strength the dissertation contrasts with EWF-SQD's empirical-only convergence.</td>
             </tr>
             <tr>
               <td><strong>STK11</strong></td>

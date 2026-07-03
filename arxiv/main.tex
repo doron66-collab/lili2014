@@ -247,7 +247,7 @@ provenance granularity.
 \textbf{Tier} & \textbf{Active e$^{-}$} & \textbf{Approx.\ qubits} & \textbf{Architectural role} \\
 \midrule
 Reference molecular benchmark & 32 & 100 &
-  External SqDRIFT/Heron precedent (IBM \textit{Science}, March 2026) \\
+  External SqDRIFT/Heron precedent (IBM Research 2026; arXiv:2603.08696) \\
 C275F local active site & $\sim$24 & $\sim$48 &
   Phase 3A proof-of-concept; simulator validation; near-term quantum-kernel test \\
 C275F full active site  & $\sim$44 & $\sim$88 &
@@ -401,9 +401,10 @@ diagonalization method: the quantum processor samples the dominant electronic co
 and a classical solver diagonalizes the Hamiltonian projected onto that sampled subspace.  It
 matters because the target problem class is fermionic-Hamiltonian ground-state estimation at
 active-space sizes beyond the classical exact ceiling.  IBM's
-public materials describe a March 2026 quantum-computing contribution to a molecular discovery
-published in \textit{Science}; secondary reporting describes the use of SqDRIFT on 100~qubits
-to explore a 32-electron active space beyond an approximately 18-electron exact-classical
+public materials (IBM Research; arXiv:2603.08696, and the SqDRIFT method paper
+arXiv:2508.02578) describe a 2026 quantum-computing contribution to the discovery of the
+half-M\"obius molecule C\textsubscript{13}Cl\textsubscript{2}, in which SqDRIFT on 100~qubits
+explores a 32-electron active space beyond an approximately 18-electron exact-classical
 ceiling~\cite{ibm2026molecule,qcreport2026}.
 
 At the moment of backend dispatch, Layer~1 stamps three provenance records.  The system emits
@@ -1074,6 +1075,16 @@ IBM Newsroom, 2026.
 Quantum Computing Report.
 IBM and Researchers Synthesize First Half-M\"{o}bius Molecule Validated by Quantum Computing.
 Quantum Computing Report, 2026.
+
+\bibitem{halfmobius2026}
+IBM Research and collaborators.
+Exploring pathways towards quantum advantage in quantum chemistry: the case of a molecule with half-M\"{o}bius topology.
+arXiv:2603.08696, 2026.
+
+\bibitem{sqdrift2026}
+IBM Research and collaborators.
+Quantum chemistry with provable convergence via randomized sample-based Krylov quantum diagonalization.
+arXiv:2508.02578, 2026.
 
 \bibitem{bennett1997}
 Charles~H. Bennett, Ethan Bernstein, Gilles Brassard, and Umesh Vazirani.
