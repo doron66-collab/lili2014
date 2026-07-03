@@ -73,9 +73,16 @@ classical chemistry — that is impossible past ~18e for CCSD(T). It is a *quant
 algorithm (VQE) executed on a classical HPC **simulator** of the quantum circuit.
 The scientific ceiling target is ~24e/48q — precisely where both classical
 chemistry and classical state-vector simulation (~4.5 PB) break down. The
-operational run uses ~20e/40q (~17.6 TB, within NSF ACCESS / USC CARC reach),
+operational run uses ~20e/40q (~17.6 TB, within NSF ACCESS / USC CARC reach) as an
+exact state-vector simulation of the circuit (not a tensor-network approximation),
 which fully demonstrates orchestration-pipeline scaling at meaningful
-quantum-circuit width without approaching the memory limit.
+quantum-circuit width without approaching the memory limit. This is a maturation of
+the orchestration and governance layer across scale — an *operational-stability*
+result — not an extension of VQE toward hardware and not a claim of *scientific
+validity*: the quantum algorithm is deliberately swapped by scale and substrate
+(VQE for small, classically verifiable cases; sqDRIFT at hardware scale in Phase 3B),
+and at ~20e the convergence is assessed against an approximate classical reference
+(DMRG or CCSD(T)), since full-CI is intractable at that active-space size.
 
 Throughout this migration the **provenance layer (P1–P9)** plays the role of
 TOGAF's *Architecture Governance* — the continuity-of-record discipline that makes
