@@ -22,10 +22,10 @@
 - Key mutation: C275F (44 electrons / 88 qubits)
 - Classical limit: CCSD(T) breaks down past ~18e
 - Phase 3A: Live classical proxy — VQE ground-state energies, 4-qubit JW Hamiltonian, PySCF CAS(2e,2o)/STO-3G
-- Phase 3B: Full quantum hardware — IBM Heron r3, sqDRIFT noise characterization, 94+ qubits
+- Phase 3B: Full quantum hardware — IBM Heron r3, sqDRIFT sample-based quantum diagonalization, 94+ qubits
 
 ## IBM
-- Algorithm: sqDRIFT (Trotter-based noise characterization)
+- Algorithm: sqDRIFT (sample-based quantum diagonalization; quantum sampling + classical diagonalization, NOT noise characterization)
 - Hardware: IBM Heron r3
 - Contact: Michal Rosen-Zvi (ROSEN@il.ibm.com) — leaving IBM, referred to Ella (quantum partnerships)
 - Ella: leads quantum partnerships at IBM Research Israel

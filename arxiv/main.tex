@@ -396,8 +396,11 @@ provenance and auditability across backend-specific execution paths.}
 
 % CORRECTION #2 / #3: Animate which P-records are stamped at Layer 1 and their regulatory purpose.
 Layer~1 houses the quantum kernel: QPU plus quantum algorithm.  In the dissertation proposal,
-this layer is anchored by SqDRIFT on IBM Heron~r3.  SqDRIFT matters because the target
-problem class is fermionic-Hamiltonian simulation with stochastic drift sampling.  IBM's
+this layer is anchored by SqDRIFT on IBM Heron~r3.  SqDRIFT is a sample-based quantum
+diagonalization method: the quantum processor samples the dominant electronic configurations,
+and a classical solver diagonalizes the Hamiltonian projected onto that sampled subspace.  It
+matters because the target problem class is fermionic-Hamiltonian ground-state estimation at
+active-space sizes beyond the classical exact ceiling.  IBM's
 public materials describe a March 2026 quantum-computing contribution to a molecular discovery
 published in \textit{Science}; secondary reporting describes the use of SqDRIFT on 100~qubits
 to explore a 32-electron active space beyond an approximately 18-electron exact-classical
@@ -755,11 +758,11 @@ modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and
 
 This roadmap does not diminish the contribution of the present work---it contextualizes and
 justifies it.  Heron~r3, as the current-generation superconducting processor, and SqDRIFT,
-as the leading NISQ-era Trotter-based simulation protocol with formally bounded error
-scaling, represent the state of the art during precisely the window in which clinically
+as a leading NISQ-era sample-based quantum diagonalization protocol whose stochastic state
+sampling inherits qDRIFT's formally bounded error scaling, represent the state of the art during precisely the window in which clinically
 relevant quantum molecular simulation first becomes computationally tractable.  IBM's own
-March 2026 \textit{Science} publication demonstrated SqDRIFT on 100 qubits simulating
-32~electrons in C\textsubscript{13}Cl\textsubscript{2}---a benchmark that for the first
+March 2026 demonstration applied SqDRIFT on 100 qubits to a 32-electron active space of
+C\textsubscript{13}Cl\textsubscript{2}---a benchmark that for the first
 time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach
 of available hardware.
 

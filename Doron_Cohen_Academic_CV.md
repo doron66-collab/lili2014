@@ -31,12 +31,12 @@ Computational and quantum-simulation methods for non-druggable tumor-suppressor 
 Designed and built a full-stack research platform (React/TypeScript frontend, FastAPI/Python backend, Supabase persistence) implementing a two-phase quantum simulation pipeline for oncology target validation:
 
 - **Phase 3A — Classical proxy:** Live VQE ground-state energy calculations using 4-qubit Jordan-Wigner Hamiltonians derived from PySCF CASSCF(2e,2o)/STO-3G computations, addressing the breakdown of classical CCSD(T) methods beyond ~18 active electrons.
-- **Phase 3B — Quantum hardware roadmap:** Architecture for full quantum-hardware execution on IBM Heron r3 devices (94+ qubits), incorporating sqDRIFT (Trotter-based) noise characterization, scaling toward the C275F mutation model (44 electrons / 88 qubits).
+- **Phase 3B — Quantum hardware roadmap:** Architecture for full quantum-hardware execution on IBM Heron r3 devices (94+ qubits), incorporating sqDRIFT (sample-based quantum diagonalization), scaling toward the C275F mutation model (44 electrons / 88 qubits).
 - **Expansion gene framework:** Extended the simulation engine from a single hardcoded gene to 23 configurable tumor-suppressor/oncogene loss-of-function targets, each independently parameterized (electron count, qubit count, structural source, BQP complexity class, target hardware era) and backed by 29 distinct, independently computed CASSCF(2,2)/STO-3G Jordan-Wigner Hamiltonians built from gene-specific functional-residue model compounds.
 - **Data integrity safeguards:** Identified and corrected a placeholder-data defect in which multiple expansion genes shared a single gene's Hamiltonian, and a CASSCF orbital-convergence bug arising from sequential same-process computation; resolved via per-gene subprocess isolation to guarantee independent, scientifically valid results for every gene.
 - **Regulatory compliance:** Implemented FDA 21 CFR §11.10(e)-aligned provenance tracking (P1–P9 audit records) with cryptographic audit-hash verification for computational result traceability.
 
-External collaboration: IBM Research (quantum hardware partnership discussions, sqDRIFT noise-characterization algorithm).
+External collaboration: IBM Research (quantum hardware partnership discussions, sqDRIFT sample-based quantum diagonalization algorithm).
 
 ---
 
@@ -49,7 +49,7 @@ External collaboration: IBM Research (quantum hardware partnership discussions, 
 ## TECHNICAL SKILLS
 
 - **Quantum / computational chemistry:** Variational Quantum Eigensolver (VQE), Jordan-Wigner transformation, CASSCF, CCSD(T), PySCF
-- **Quantum hardware:** IBM Qiskit ecosystem, IBM Heron r3, noise characterization (sqDRIFT)
+- **Quantum hardware:** IBM Qiskit ecosystem, IBM Heron r3, sample-based quantum diagonalization (sqDRIFT)
 - **Software:** Python, TypeScript/React, FastAPI, Supabase/PostgreSQL
 - **Deployment:** Netlify (frontend CI/CD), Render (backend CI/CD)
 - **Regulatory/compliance:** FDA 21 CFR Part 11 electronic records and audit-trail design

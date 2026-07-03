@@ -56,7 +56,7 @@ Not really — adjacent precedents exist, but none combine all three things SOLA
 Today, doing what SOLANGE does manually would require stitching together:
 1. A classical chemistry tool (PySCF, Gaussian) for the molecular model/integrals
 2. A quantum SDK (Qiskit, PennyLane, Cirq — different one again for Nvidia's CUDA-Q)
-3. A separate noise-characterization/error-mitigation toolchain (Phase 3B / SqDRIFT)
+3. A separate quantum-sampling/error-mitigation toolchain (Phase 3B / SqDRIFT sample-based quantum diagonalization)
 4. A separate HPC job scheduler for classical-simulation-at-scale
 5. A separate, usually manual, compliance/documentation system (spreadsheets, lab notebooks) to reconstruct an audit trail after the fact
 6. Manual translation of raw energy/Hamiltonian outputs into something a drug-discovery decision-maker can act on

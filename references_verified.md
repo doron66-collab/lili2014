@@ -30,7 +30,7 @@
    — Comprehensive modern review tying JW mappings, VQE, and phase estimation together. Best single citation to situate the 4-qubit JW/VQE proxy.
 
 6. **McArdle, S., Endo, S., Aspuru-Guzik, A., Benjamin, S. C., & Yuan, X. (2020).** "Quantum Computational Chemistry." *Rev. Mod. Phys.* 92(1), 015003. DOI: `10.1103/RevModPhys.92.015003`.
-   — Authoritative RMP review of NISQ-era quantum chemistry; supports the Phase 3A→3B narrative (classical proxy → hardware with noise characterization).
+   — Authoritative RMP review of NISQ-era quantum chemistry; supports the Phase 3A→3B narrative (classical proxy → hardware with sample-based quantum diagonalization).
 
 ---
 

@@ -15,7 +15,7 @@ but precisely in the region where **three** of them intersect:
 1. **Classical HPC** — CCSD(T), CASSCF, and full-CI electronic-structure methods
    executed on research-computing infrastructure (USC CARC, NSF ACCESS). This pole
    is bounded by a hard tractability ceiling at roughly **18 active electrons**.
-2. **Quantum computing** — variational (VQE) and Trotter-based (sqDRIFT) algorithms
+2. **Quantum computing** — variational (VQE) and sample-based quantum diagonalization (sqDRIFT) algorithms
    on near-term hardware (IBM Heron r3), spanning the NISQ-to-fault-tolerant
    transition.
 3. **Computational oncology** — the non-druggable NSCLC tumour-suppressor targets
@@ -27,7 +27,7 @@ but precisely in the region where **three** of them intersect:
 > *SOLANGE™ is the first provenance-complete, enterprise-architected pipeline that
 > transports a non-druggable NSCLC tumour-suppressor mutation (C275F) from the
 > classical ground-state ceiling — CCSD(T)/CASSCF at ~18 active electrons — onto
-> quantum hardware (VQE today, sqDRIFT-characterised IBM Heron r3 tomorrow) under a
+> quantum hardware (VQE today, sqDRIFT sample-based quantum diagonalization on IBM Heron r3 tomorrow) under a
 > 21 CFR Part 11 audit trail.*
 
 *(Figure 1 — the three-set Venn diagram — is rendered in the companion
@@ -53,7 +53,7 @@ than an ad-hoc engineering progression.
 |---|---|---|---|
 | **Business** | Strategy, drivers, stakeholders, the problem solved | Non-druggable NSCLC tumour-suppressor targets (TP53, STK11, KEAP1); the unmet need to characterise mutations with no druggable pocket | — |
 | **Data** | Logical/physical data assets and their governance | Jordan–Wigner-encoded molecular Hamiltonians, CASSCF reference datasets, immutable `P1–P9` provenance records (Supabase, 21 CFR §11.10(e)) | P1 · P2 · P5 |
-| **Application** | Applications, their behaviour and interactions | CASSCF/PySCF (classical reference), VQE on PennyLane (live Phase 3A), sqDRIFT noise characterisation (Phase 3B) | P1 · P6 |
+| **Application** | Applications, their behaviour and interactions | CASSCF/PySCF (classical reference), VQE on PennyLane (live Phase 3A), sqDRIFT sample-based quantum diagonalisation (Phase 3B) | P1 · P6 |
 | **Technology** | Hardware, networks, platform infrastructure | The classical→quantum bridge: HPC (USC CARC / NSF ACCESS, Render cloud) ↔ IBM Heron r3 QPU | P3 · P4 |
 
 ### 2.2 The ADM cycle as the Phase 3A → 3B narrative
