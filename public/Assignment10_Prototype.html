@@ -2831,11 +2831,15 @@ function loadNGSReport(ngs) {
   const allTargets    = allVariants.map(av => av.simId);
   const hasAnyTargets = allTargets.length > 0;
 
-  // Hide ALL static core rows — patient report drives every row dynamically
+  // Remove ALL static core rows — patient report drives every row dynamically.
+  // These are removed (not hidden) so their ids (e.g. pq-dot-TP53_C275F) cannot
+  // collide with the dynamic rows created below: a duplicate id would make
+  // getElementById() resolve to the hidden static element, so per-mutation
+  // status/validation updates (the green ✓) would land on an invisible node.
   PIPELINE_TARGETS.forEach(tid => {
     ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
       const el = document.getElementById(prefix + tid);
-      if (el) el.style.display = 'none';
+      if (el) el.remove();
     });
   });
   // Remove any rows injected by a previous report upload
