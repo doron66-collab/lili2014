@@ -34,4 +34,9 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    from routes.simulate import _EXPANSION_GENE_CONFIGS, MUTATION_CONFIGS
+    return {
+        "status": "ok",
+        "expansion_genes": sorted(_EXPANSION_GENE_CONFIGS.keys()),
+        "named_mutations": sorted(MUTATION_CONFIGS.keys()),
+    }

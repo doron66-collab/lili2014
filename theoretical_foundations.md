@@ -81,6 +81,23 @@ Throughout this migration the **provenance layer (P1–P9)** plays the role of
 TOGAF's *Architecture Governance* — the continuity-of-record discipline that makes
 each iteration auditable.
 
+### 2.3 Basis-set scope and Phase 3A target selection
+
+The STO-3G minimal basis set was selected to maintain a 4-qubit active space
+compatible with current quantum hardware, with the understanding that chemically
+accurate results require larger basis sets in Phase 3B.
+
+Phase 3A results are reported exclusively for the eight validated per-site
+targets — TP53 C275F, TP53 Y220C, KEAP1 LOF, KEAP1 G333C, KEAP1 R320Q,
+STK11 LKB1, STK11 F354L, and STK11 D194N — each associated with a distinct
+model compound chosen to represent the key sidechain interaction at the mutation
+site (toluene for Phe, methanethiol for Cys, acetic acid for Asp, acetamide for
+Gln, isobutane for Leu). All remaining patient-report variants are designated
+Phase 3B and flagged for IBM Heron r3 computation, as no per-mutation Phase 3A
+Hamiltonian exists for them. Presenting residue-class surrogates as per-mutation
+results would constitute scientific misrepresentation and is explicitly excluded
+from the SOLANGE™ pipeline by design.
+
 ---
 
 ## 3. Literature-Review Skeleton

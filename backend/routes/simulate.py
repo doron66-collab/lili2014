@@ -132,7 +132,8 @@ def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
 #   toluene       → Phe aromatic stacking (DIX domain, OB fold, ARID)
 #   methanol      → Ser/Thr hydroxyl contact (VHL, FGFR3, CDKN2A)
 _EXPANSION_GENE_CONFIGS = {
-    "VHL":     {"full_electrons": 25, "full_qubits": 50, "badge": "Structural",         "jw_source": ("VHL_LOF",     "native"), "pdb": "1LM8",           "native_residue": "Ser111",  "native_compound": "methanol"},
+    "TP53":    {"full_electrons": 44, "full_qubits": 88,  "badge": "Structural LOF",     "jw_source": ("TP53_LOF",    "native"), "pdb": "2OCJ",           "native_residue": "Arg248",  "native_compound": "guanidine"},
+    "VHL":     {"full_electrons": 25, "full_qubits": 50, "badge": "Structural",         "jw_source": ("VHL_LOF",     "native"), "pdb": "1LM8",           "native_residue": "Ser111",  "native_compound": "formamide"},
     "BAP1":    {"full_electrons": 35, "full_qubits": 70, "badge": "Ubiquitin LOF",      "jw_source": ("BAP1_LOF",    "native"), "pdb": "3KVF",           "native_residue": "Cys91",   "native_compound": "methanethiol"},
     "PBRM1":   {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",      "jw_source": ("PBRM1_LOF",   "native"), "pdb": "3G0L",           "native_residue": "Tyr1242", "native_compound": "p_cresol"},
     "SETD2":   {"full_electrons": 30, "full_qubits": 60, "badge": "Methyltransf. LOF",  "jw_source": ("SETD2_LOF",   "native"), "pdb": "5JLB",           "native_residue": "Tyr1666", "native_compound": "p_cresol"},
@@ -142,14 +143,14 @@ _EXPANSION_GENE_CONFIGS = {
     "ATRX":    {"full_electrons": 30, "full_qubits": 60, "badge": "Helicase LOF",       "jw_source": ("ATRX_LOF",    "native"), "pdb": "AlphaFold",      "native_residue": "Asp2104", "native_compound": "acetic_acid"},
     "IDH1":    {"full_electrons": 22, "full_qubits": 44, "badge": "Neomorphic",         "jw_source": ("IDH1_LOF",    "native"), "pdb": "1T0L",           "native_residue": "Arg132",  "native_compound": "guanidine"},
     "IDH2":    {"full_electrons": 22, "full_qubits": 44, "badge": "Neomorphic",         "jw_source": ("IDH2_LOF",    "native"), "pdb": "1LWD",           "native_residue": "Arg172",  "native_compound": "guanidine"},
-    "SMARCA4": {"full_electrons": 40, "full_qubits": 80, "badge": "ATPase LOF",         "jw_source": ("SMARCA4_LOF", "native"), "pdb": "6LTJ",           "native_residue": "Glu479",  "native_compound": "propionic_acid"},
+    "SMARCA4": {"full_electrons": 40, "full_qubits": 80, "badge": "ATPase LOF",         "jw_source": ("SMARCA4_LOF", "native"), "pdb": "6LTJ",           "native_residue": "Glu479",  "native_compound": "acetic_acid"},
     "ARID1A":  {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",      "jw_source": ("ARID1A_LOF",  "native"), "pdb": "2L9X",           "native_residue": "Trp1815", "native_compound": "toluene"},
-    "POLE":    {"full_electrons": 24, "full_qubits": 48, "badge": "Exonuclease LOF",    "jw_source": ("POLE_LOF",    "native"), "pdb": "4M8O",           "native_residue": "Glu272",  "native_compound": "propionic_acid"},
+    "POLE":    {"full_electrons": 24, "full_qubits": 48, "badge": "Exonuclease LOF",    "jw_source": ("POLE_LOF",    "native"), "pdb": "4M8O",           "native_residue": "Glu272",  "native_compound": "acetic_acid"},
     "BRCA1":   {"full_electrons": 32, "full_qubits": 64, "badge": "DNA Repair LOF",     "jw_source": ("BRCA1_LOF",   "native"), "pdb": "1JM7",           "native_residue": "Cys44",   "native_compound": "methanethiol"},
     "BRCA2":   {"full_electrons": 32, "full_qubits": 64, "badge": "DNA Repair LOF",     "jw_source": ("BRCA2_LOF",   "native"), "pdb": "1MJE",           "native_residue": "Phe3175", "native_compound": "toluene"},
     "ATM":     {"full_electrons": 28, "full_qubits": 56, "badge": "DNA Repair LOF",     "jw_source": ("ATM_LOF",     "native"), "pdb": "AlphaFold",      "native_residue": "Asp2870", "native_compound": "acetic_acid"},
     "TERT":    {"full_electrons": 24, "full_qubits": 48, "badge": "Telomerase",         "jw_source": ("TERT_LOF",    "native"), "pdb": "7LYT",           "native_residue": "Asp712",  "native_compound": "acetic_acid"},
-    "RB1":     {"full_electrons": 32, "full_qubits": 64, "badge": "Cell Cycle LOF",     "jw_source": ("RB1_LOF",     "native"), "pdb": "2AZE",           "native_residue": "Glu2",    "native_compound": "propionic_acid"},
+    "RB1":     {"full_electrons": 32, "full_qubits": 64, "badge": "Cell Cycle LOF",     "jw_source": ("RB1_LOF",     "native"), "pdb": "2AZE",           "native_residue": "Glu2",    "native_compound": "acetic_acid"},
     "NF1":     {"full_electrons": 28, "full_qubits": 56, "badge": "RasGAP LOF",         "jw_source": ("NF1_LOF",     "native"), "pdb": "1NF1",           "native_residue": "Arg1276", "native_compound": "guanidine"},
     "NF2":     {"full_electrons": 22, "full_qubits": 44, "badge": "Scaffold LOF",       "jw_source": ("NF2_LOF",     "native"), "pdb": "1H4R",           "native_residue": "Arg341",  "native_compound": "guanidine"},
     "AXIN1":   {"full_electrons": 24, "full_qubits": 48, "badge": "WNT Scaffold",       "jw_source": ("AXIN1_LOF",   "native"), "pdb": "1WSP",           "native_residue": "Phe631",  "native_compound": "toluene"},
@@ -471,16 +472,22 @@ async def stream_simulation(mutation_id: str, authorization: str | None = Header
         queue  = asyncio.Queue()
 
         def worker():
-            def progress_cb(step, energy):
-                asyncio.run_coroutine_threadsafe(
-                    queue.put({"step": step, "energy": energy}), loop
-                )
+            try:
+                def progress_cb(step, energy):
+                    asyncio.run_coroutine_threadsafe(
+                        queue.put({"step": step, "energy": energy}), loop
+                    )
 
-            vqe = run_vqe(config, progress_cb=progress_cb)
-            final = _assemble_and_persist(mutation_id, config, vqe, authorization)
-            asyncio.run_coroutine_threadsafe(
-                queue.put({"done": True, "result": final}), loop
-            )
+                vqe = run_vqe(config, progress_cb=progress_cb)
+                final = _assemble_and_persist(mutation_id, config, vqe, authorization)
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"done": True, "result": final}), loop
+                )
+            except Exception as exc:
+                logging.error("VQE worker error for %s: %s", mutation_id, exc, exc_info=True)
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"error": str(exc), "done": True}), loop
+                )
 
         executor = ThreadPoolExecutor(max_workers=1)
         loop.run_in_executor(executor, worker)

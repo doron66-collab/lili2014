@@ -883,7 +883,7 @@
   <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
     <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="sim-target" onchange="resetJobCards()" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
+      <select id="sim-target" onchange="resetJobCards(); updateSimButton();" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
         <option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>
       </select>
       <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
@@ -933,6 +933,9 @@
 
   <div class="card" id="s3-live-card" style="margin-bottom:16px;border:1px solid rgba(0,168,214,0.4);background:#223244">
     <div class="card-title" style="color:var(--white);text-transform:uppercase;letter-spacing:0.5px">Phase 3A Live Results — Quantum Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
+    <div id="s3-proxy-notice" style="display:none;margin:8px 0 4px;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:6px;font-size:10.5px;color:var(--gray)">
+      <span style="color:var(--gold);font-weight:700">⚠ Phase 3A Residue-Class Proxy</span> — <span id="s3-proxy-text"></span>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
       <div class="stat">
         <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-energy">—</div>
@@ -975,7 +978,7 @@
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="font-size:10px;color:var(--gray);flex:1;min-width:180px">
         <strong style="color:var(--teal)">PySCF CASSCF(2,2) integrals available</strong><br>
-        Real ab initio Hamiltonian for TP53 C275F · Phe275 π system · STO-3G
+        <span id="s3-casscf-desc">Real ab initio Hamiltonian for TP53 C275F · Phe275 π system · STO-3G</span>
       </div>
       <button onclick="downloadCasscfIntegrals()" style="background:var(--teal);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
         ⬇ Download CASSCF Integrals
@@ -1694,9 +1697,9 @@ function show(id) {
 function updateResultsCharts(data) {
   const rec  = data.full_record;
   const r    = data.result;
-  const mutName = rec.mutation_name || rec.mutation_id;
-  const electrons = rec.p2_active_electrons || '2';
   const mutId = rec.mutation_id || '';
+  const mutName = getDisplayName(mutId) || rec.mutation_name || mutId;
+  const electrons = rec.p2_active_electrons || '2';
   const meta = MUT_META[mutId] || {};
   const fullE = meta.full_electrons || '?';
   const fullQ = meta.full_qubits   || '?';
@@ -1835,6 +1838,8 @@ function updateAllTabs(data) {
   if (s3card) {
     const s3Mut = document.getElementById('s3-mutation');
     if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = 'var(--gray)'; }
+    const s3Proxy = document.getElementById('s3-proxy-notice');
+    if (s3Proxy) s3Proxy.style.display = 'none';
     const s3E = document.getElementById('s3-energy');
     if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
     const s3El = document.getElementById('s3-energy-lbl');
@@ -1861,6 +1866,8 @@ function updateAllTabs(data) {
     const meta3b = MUT_META[rec.mutation_id] || {};
     const s3Ft = document.getElementById('s3-footer');
     if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${meta3b.full_electrons || '?'}e / ${meta3b.full_qubits || '?'} qubits on ${meta3b.backend || 'fault-tolerant QPU'}</span> · All P1–P9 provenance sealed`;
+    const s3Desc = document.getElementById('s3-casscf-desc');
+    if (s3Desc) s3Desc.textContent = `Real ab initio Hamiltonian for ${rec.mutation_name} · ${rec.p2_model_compound || r.compound || '—'} proxy · STO-3G`;
   }
 
   // ── Compliance tab — P1-P9 schema table statuses ─────────────────────
@@ -1937,9 +1944,81 @@ function updateAllTabs(data) {
   updateDashboardAfterRun(data.full_record.mutation_id, data);
 }
 
+// ── Sim button state — Phase 3A vs Phase 3B ───────────────────────────────
+function updateSimButton() {
+  const simId = document.getElementById('sim-target')?.value;
+  const btn   = document.getElementById('sim-btn');
+  if (!btn) return;
+  const phase3aRunnable = simId && window.__phase3aIds && window.__phase3aIds.has(simId);
+  const phase3bOnly     = simId && !phase3aRunnable;
+  btn.disabled = !simId;
+  if (!simId) {
+    btn.textContent = '▶ Run Live Simulation';
+    btn.style.background = 'var(--gray)';
+    btn.style.cursor = 'not-allowed';
+  } else if (phase3aRunnable) {
+    btn.textContent = '▶ Run Phase 3A VQE';
+    btn.style.background = 'var(--teal)';
+    btn.style.cursor = 'pointer';
+    btn.disabled = false;
+  } else {
+    btn.innerHTML = '⟶ View Phase 3B Target Specs';
+    btn.style.background = '#92400e';
+    btn.style.cursor = 'pointer';
+    btn.disabled = false;
+  }
+}
+
+// ── Show Phase 3B pending result in the results panel ─────────────────────
+function showPhase3BPendingResult(mutationId, inputLabel) {
+  const gene = mutationId.replace(/_LOF$/, '');
+  const gm   = GENE_MAP[gene] || {};
+  show('s3');
+  const s3Mut = document.getElementById('s3-mutation');
+  if (s3Mut) { s3Mut.textContent = `${gene} — Phase 3B target`; s3Mut.style.color = 'var(--gold)'; }
+  ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
+  });
+  const s3Ri = document.getElementById('s3-runid');
+  if (s3Ri) s3Ri.textContent = 'No Phase 3A run — Phase 3B pending';
+  const s3El = document.getElementById('s3-energy-lbl');
+  if (s3El) s3El.textContent = `Phase 3B target · ${gm.full_electrons || '?'}e / ${gm.full_qubits || '?'} qubits`;
+  const s3Ft = document.getElementById('s3-footer');
+  if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${gm.full_electrons || '?'}e / ${gm.full_qubits || '?'} qubits on IBM Heron r3</span> · No Phase 3A Hamiltonian available`;
+  const s3Desc = document.getElementById('s3-casscf-desc');
+  if (s3Desc) s3Desc.textContent = `No per-mutation Phase 3A Hamiltonian for ${mutationId} — awaiting IBM Heron r3`;
+  const s3Proxy = document.getElementById('s3-proxy-notice');
+  const s3ProxyText = document.getElementById('s3-proxy-text');
+  if (s3Proxy) {
+    s3Proxy.style.display = '';
+    s3Proxy.style.background = 'rgba(251,191,36,0.08)';
+    s3Proxy.style.borderColor = 'rgba(251,191,36,0.4)';
+    s3Proxy.querySelector('span').textContent = '⟶ Phase 3B Target — IBM Heron r3';
+  }
+  if (s3ProxyText) {
+    const orig = inputLabel ? `${inputLabel} → ` : '';
+    s3ProxyText.innerHTML = `${orig}<strong>${mutationId}</strong> has no per-mutation Phase 3A Hamiltonian. ` +
+      `Computing this target requires Phase 3B on IBM Heron r3 (${gm.full_qubits || '?'} qubits). ` +
+      `Phase 3A is limited to 8 named targets with validated CAS(2,2) Hamiltonians: ` +
+      `TP53 C275F · TP53 Y220C · KEAP1 LOF · KEAP1 G333C · KEAP1 R320Q · STK11 LKB1 · STK11 F354L · STK11 D194N.`;
+  }
+}
+
 // ── Run live VQE simulation ────────────────────────────────────────────────
 async function runLiveVQE() {
-  const mutationId = document.getElementById('sim-target').value;
+  const simTargetEl = document.getElementById('sim-target');
+  const mutationId  = simTargetEl.value;
+  const selOpt = simTargetEl?.selectedOptions?.[0];
+  const inputLabel = selOpt?.textContent?.split('·')[0].trim() || mutationId;
+  window.__pendingMutLabel = inputLabel;
+
+  // Phase 3B-only targets — no per-mutation Hamiltonian, show spec card
+  if (window.__phase3aIds && !window.__phase3aIds.has(mutationId)) {
+    showPhase3BPendingResult(mutationId, inputLabel);
+    return;
+  }
+
   const btn    = document.getElementById('sim-btn');
   const status = document.getElementById('sim-status');
   const errBox = document.getElementById('sim-error');
@@ -1980,6 +2059,10 @@ async function runLiveVQE() {
     // ── SSE streaming convergence chart ──────────────────────────────────────
     const streamUrl = `${API_BASE}/api/simulate/${mutationId}/stream`;
     const streamRes = await fetch(streamUrl, { headers });
+    if (!streamRes.ok) {
+      const errBody = await streamRes.text().catch(() => '');
+      throw new Error(`HTTP ${streamRes.status}: ${errBody.slice(0, 200)}`);
+    }
     const reader    = streamRes.body.getReader();
     const decoder   = new TextDecoder();
     let   streamBuf = '';
@@ -2005,6 +2088,7 @@ async function runLiveVQE() {
         if (!line.startsWith('data:')) continue;
         const msg = JSON.parse(line.slice(5).trim());
         if (msg.done) {
+          if (msg.error) throw new Error(`VQE computation failed: ${msg.error}`);
           data = msg.result;
           break streamLoop;
         }
@@ -2280,8 +2364,31 @@ function parseVCF(text) {
   };
 }
 
+// ── Normalize PDF-extracted text ──────────────────────────────────────────
+// PDF column extraction often concatenates adjacent cells without spaces,
+// e.g. "NotesTP53" (column header glued to first data cell) or "MSSPercentage".
+// Strategy: temporarily mask HGVS mutation notations so they survive intact,
+// apply boundary-splitting rules to the rest, then unmask.
+function normalizeNGSText(raw) {
+  // Step 1 – protect HGVS notations (p./c./g./r. + alphanumeric/punctuation).
+  // This keeps c.35_36delAG, p.Glu31ArgfsTer34, c.1001+1G>A intact.
+  const saved = [];
+  let t = raw.replace(/[pcgr]\.[A-Za-z0-9>_+\-()[\]*]{1,50}/g, m => {
+    saved.push(m);
+    return `\x00${saved.length - 1}\x00`;
+  });
+  // Step 2 – insert space at concatenation boundaries
+  t = t
+    .replace(/([a-z])([A-Z][A-Z0-9]{1,})/g, '$1 $2')   // "notesTP53"     → "notes TP53"
+    .replace(/([A-Z]{2,})([A-Z][a-z]{2,})/g, '$1 $2')   // "MSSPercentage" → "MSS Percentage"
+    .replace(/  +/g, ' ');
+  // Step 3 – restore protected notations
+  return t.replace(/\x00(\d+)\x00/g, (_, i) => saved[+i]);
+}
+
 // ── Regex-based field extraction ───────────────────────────────────────────
-function parseNGSText(text) {
+function parseNGSText(rawText) {
+  const text = normalizeNGSText(rawText);
   const get = (re) => { const m = text.match(re); return m ? m[1]?.trim() : ''; };
 
   // TMB — match decimal like "0.5 mutations/Mb" or "TMB: 0.5"; avoid matching row/page numbers
@@ -2290,27 +2397,37 @@ function parseNGSText(text) {
   const tmbT = text.match(/TMB[^-\n]*?(Low|High|Intermediate)/i)?.[1]
             || (Number(tmb) >= 10 ? 'High' : Number(tmb) > 0 ? 'Low' : '');
 
-  // MSI — status text first, then numeric value
-  const msiS = (text.match(/MSI[-\s]*(?:Status)?[:\s]*(Stable|Unstable|MSS|MSI-H|MSI-L)/i)?.[1]
-             || text.match(/Microsatellite[^:\n]*?(Stable|Unstable|Instability)/i)?.[1] || '')
-               .replace(/MSS/i,'Stable').replace(/MSI-H/i,'Unstable').replace(/MSI-L/i,'Stable');
+  // MSI — status text first (allow up to 100 chars between "MSI" and the status word,
+  // e.g. "MSI Status: Score 0.7 ? MSS"), then numeric value
+  const msiS = (
+      text.match(/\bMSI\b[^.\n]{0,100}?(MSS|MSI-H|MSI-L|Stable|Unstable)/i)?.[1]
+   || text.match(/\bMicrosatellite\b[^.\n]{0,100}?(MSS|MSI-H|MSI-L|Stable|Unstable|Instability)/i)?.[1]
+   || '')
+    .replace(/^MSS$/i,'Stable').replace(/^MSI-H$/i,'Unstable').replace(/^MSI-L$/i,'Stable')
+    .replace(/Instability/i,'Unstable');
   const msi  = get(/MSI[^:]*?[:\s]+(\d+\.?\d*)/i) || get(/Microsatellite[^:]*?:\s*(\d+\.?\d*)/i);
 
-  // Purity — also handle Tempus "Tumor Percentage"
+  // Purity — various phrasings across vendors
   const purity = get(/[Tt]umor\s+(?:[Pp]urity|[Pp]ercentage)[:\s]+(\d+\s*%?)/i)
+              || get(/[Pp]ercentage\s+of\s+(?:tumor|cancer|neoplastic)\s+(?:cells?|content|tissue)[^:\n]{0,30}:\s*(\d+\s*%?)/i)
+              || get(/(?:Cellularity|Tumor\s*content|Neoplastic\s*cells?)[:\s]+(\d+\s*%?)/i)
               || get(/[Pp]urity[:\s]+(\d+\s*%?)/i);
 
-  // Institution — most-specific first; allow lowercase start so "Hadassah" is captured
-  const institution = get(/\bInstitution\b[\s:]+([A-Za-z][a-zA-Z\s\-]{2,50})/i)
+  // Institution — most-specific first; support Hebrew characters (֐-׿)
+  // and recognize known Israeli hospital names even when no label precedes them
+  const institution = get(/\bInstitution\b[\s:]+([^\n]{2,60})/i)
                    || get(/(?:Issued by|Prepared by|Reporting Lab|Ordering\s+(?:Institution|Site))[:\s]+([^\n]{3,60})/i)
-                   || get(/(?:Hospital|Medical Center|Institute|Laboratory|Clinic)[^:\n]{0,30}:\s*([A-Za-z][^,\n]{3,50})/i);
+                   || get(/(?:Hospital|Medical Center|Institute|Laboratory|Clinic)\b[^:\n]{0,30}:\s*([^\n]{3,60})/i)
+                   || get(/\b((?:Rambam|Hadassah|Sheba|Ichilov|Beilinson|Kaplan|Soroka|Wolfson|Schneider|Assuta|Tel Aviv Sourasky)[^,\n]{0,50})/i)
+                   || get(/([֐-׿][^\n]{2,50}(?:חולים|רפואי|ביה"ח|מרכז)[^\n]{0,30})/u);
 
   // Date — also handle "Date Signed/Reported" (Tempus)
   const date  = get(/(?:Report\s*Date|Date of Report|Collection\s*Date|Date\s*Signed[/\s]*Reported|Date\s*Signed)[:\s]+([0-9\/\.\-]{6,12})/i)
              || get(/(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/);
 
-  // Cancer type
-  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type)[:\s\n]+([^\n,]{4,60})/i);
+  // Cancer type — labeled field first, then keyword scan of the full text
+  const cancer = get(/(?:Diagnosis|Histology|Cancer\s*Type|Tumor\s*Type|Primary\s*Diagnosis)[:\s\n]+([^\n,]{4,60})/i)
+              || (text.match(/\b((?:Undifferentiated\s+)?(?:Pleomorphic\s+)?Sarcoma|Osteosarcoma|Leiomyosarcoma|Liposarcoma|Rhabdomyosarcoma|Ewing\s+Sarcoma|Gastrointestinal\s+Stromal\s+Tumor|GIST|Carcinoma|Adenocarcinoma|Squamous\s+Cell|Melanoma|Lymphoma|Leukemia|Glioblastoma|Mesothelioma|NSCLC|SCLC|Non-small\s*cell|Small\s*cell|Myeloma)\b/i)?.[1]);
 
   const origin = get(/(?:Primary\s*Site|Tissue\s*of\s*Origin|Primary\s*Origin|Tumor\s*specimen|Specimen\s*Type)[:\s]+([^\n,]{3,50})/i);
 
@@ -2319,10 +2436,18 @@ function parseNGSText(text) {
             || get(/\bALK\b[^,\n]{0,50}?(Not detected|Detected|Positive|Negative|Rearrangement|Fusion)/i)
             || '';
 
-  // Report ID — Tempus Accession No.
-  const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*No\.?)[:\s]+([A-Z0-9\-]{4,20})/i);
+  // Report ID — Tempus, Foundation, Rambam and generic lab accession numbers
+  const reportId = get(/(?:Tempus\s*ID\s*#?|Accession\s*(?:No\.?|Number|#)|Report\s*(?:No\.?|Number|#|ID)|Lab(?:oratory)?\s*(?:No\.?|#|ID)|Case\s*(?:No\.?|Number|#)|Order\s*(?:No\.?|#)|Ref(?:erence)?\s*(?:No\.?|#))[:\s]+([A-Z0-9\-\/]{3,25})/i)
+              || get(/\bID\b[\s:#]+([A-Z0-9][A-Z0-9\-]{3,20})/i);
 
-  // Variants — allow newlines between gene and mutation (PDF table extraction splits columns)
+  // Variant extraction — gene-first scan with (?<![a-z]) lookbehind instead of \b.
+  // \b fails on PDF column concatenation ("NotesTP53" — no boundary between s and T).
+  // (?<![a-z]) allows the match as long as the gene name is not preceded by a
+  // lowercase letter, so "Notes TP53" (after normalisation) and standalone "TP53"
+  // both match, while "mutTP53" or "hotspotTP53" are correctly rejected.
+  //
+  // AF or a clinical classification word is required near the mutation to suppress
+  // false positives from methodology sections that mention hotspot names in prose.
   const variants = [];
   const knownGenes = [...new Set([...Object.keys(GENE_MAP),
     'MET','RET','ROS1','ERBB2','NTRK1','NTRK2','NTRK3','CDK4','MDM2','PTEN','RB1','SMAD4','ARID1A','PIK3CA',
@@ -2332,26 +2457,43 @@ function parseNGSText(text) {
     'BRAF','KRAS','NRAS','HRAS','FGFR1','FGFR2','CDK6','CCND1','MYC','MYCN',
     'RBM10','SMARCA4','AXIN1','AXIN2'
   ])];
+
+  const MUT_PAT =
+    `p\\.[A-Za-z]{1,3}\\d+[A-Za-z*_\\d]{1,30}` +
+    `|c\\.[A-Za-z0-9>_+\\-()\\[\\]*]{1,30}` +
+    `|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification` +
+    `|Splice[\\w\\s]{0,10}|Truncat\\w*|Likely\\s*[Pp]athogenic|VUS`;
+
+  function extractAF(nearby) {
+    const m = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
+           || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
+    if (!m) return null;
+    const v = parseFloat(m[1]) / (parseFloat(m[1]) > 1 ? 100 : 1);
+    return (v >= 0.005 && v <= 0.995) ? v : null;
+  }
+  function extractTier(nearby) {
+    const m = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
+    return m ? m[1] : '';
+  }
+  function addVariant(gene, mut, af, tier) {
+    gene = gene.toUpperCase();
+    if (!variants.find(v => v.gene === gene))
+      variants.push({ gene, mutation: mut.replace(/\s+/g,' ').trim().slice(0,60), allele_frequency: af, tier });
+  }
+
+  const CLINICAL_SIGNAL = /\b(?:Pathogenic|Likely\s*Pathogenic|VUS|Variant\s*of\s*Uncertain|Tier|Benign|Oncogenic|Detected|Positive)\b/i;
   const variantRe = new RegExp(
-    `\\b(${knownGenes.join('|')})\\b[\\s\\S]{0,120}?(p\\.[A-Za-z]\\d+[A-Za-z*_]+|c\\.[A-Za-z0-9>_+]+|Loss.of.function|Loss-of-function|Frameshift|Deletion|Amplification|Splice[\\w\\s]{0,10}|Truncat\\w*)`,
-    'gi'
+    `(?<![a-z])(${knownGenes.join('|')})\\b[\\s\\S]{0,150}?(${MUT_PAT})`, 'gi'
   );
   let vm;
   while ((vm = variantRe.exec(text)) !== null) {
-    const gene = vm[1].toUpperCase();
-    const mut  = vm[2].replace(/\s+/g,' ').trim().slice(0,60);
-    // Require allele frequency nearby (expanded window for multi-line table layouts)
-    const nearby = text.slice(Math.max(0,vm.index-100), vm.index+400);
-    const afM    = nearby.match(/(?:\bAF\b|\bVAF\b|Allele\s*Freq(?:uency)?|Variant\s*Allele\s*Fraction)[:\s]+(\d+\.?\d*)\s*%?/i)
-                || nearby.match(/\b(\d{1,2}\.\d{1,2})\s*%/);
-    if (!afM) continue;
-    const af     = parseFloat(afM[1]) / (parseFloat(afM[1]) > 1 ? 100 : 1);
-    if (af < 0.01 || af > 0.99) continue;
-    const tierM  = nearby.match(/\bTier[:\s]+([IVX1-4]+)/i);
-    const tier   = tierM ? tierM[1] : '';
-    if (!variants.find(v => v.gene === gene)) {
-      variants.push({ gene, mutation: mut, allele_frequency: af, tier });
-    }
+    const gene   = vm[1];
+    const mut    = vm[2];
+    const nearby = text.slice(Math.max(0, vm.index - 100), vm.index + 500);
+    const af     = extractAF(nearby);
+    if (af !== null && af < 0.005) continue;
+    if (af === null && !CLINICAL_SIGNAL.test(nearby)) continue;
+    addVariant(gene, mut, af, extractTier(nearby));
   }
 
   return { report_id: reportId, date, institution, cancer_type: cancer, origin, tumor_purity: purity,
@@ -2631,127 +2773,153 @@ function loadNGSReport(ngs) {
   const footer = document.getElementById('ngs-footer');
   if (footer) footer.textContent = `Cancer type: ${ngs.cancer_type} · ${ngs.origin} origin · Tumor purity ${ngs.tumor_purity} · ${ngs.institution} · ${ngs.report_date}`;
 
-  // ── Match NGS variants to platform targets ────────────────────────────
-  const ngsGenes = new Set((ngs.variants || []).map(v => (v.gene || '').toUpperCase()));
+  // ── Match NGS variants to platform simulation targets ─────────────────
+  // Named point mutations with per-site Hamiltonians → Phase 3A runnable.
+  // All other variants → {GENE}_LOF which is Phase 3B-only (no per-mutation
+  // Hamiltonian; showing identical energies for different mutations would be
+  // scientifically misleading).
 
-  // Hardcoded NSCLC core targets
-  const CORE_GENE_TO_TARGETS = {
-    TP53:  ['TP53_C275F'],
-    KEAP1: ['KEAP1_LOF','KEAP1_G333C','KEAP1_R320Q'],
-    STK11: ['STK11_LKB1','STK11_F354L','STK11_D194N'],
+  // Phase 3A-runnable simIds — each has a validated, per-site CAS(2,2) Hamiltonian
+  const PHASE3A_IDS = new Set([
+    'TP53_C275F', 'TP53_Y220C',
+    'KEAP1_LOF', 'KEAP1_G333C', 'KEAP1_R320Q',
+    'STK11_LKB1', 'STK11_F354L', 'STK11_D194N',
+  ]);
+  window.__phase3aIds = PHASE3A_IDS;
+
+  // Known specific mutation → simId mappings (checked before LOF fallback)
+  const NAMED_MUTATIONS = {
+    'TP53_C275F':  [/C275F/i, /Cys275/i],
+    'TP53_Y220C':  [/Y220C/i, /Tyr220Cy/i],
+    'KEAP1_G333C': [/G333C/i, /Gly333Cy/i],
+    'KEAP1_R320Q': [/R320Q/i, /Arg320Gl/i],
+    'KEAP1_LOF':   [/Loss.of.function/i, /LOF/i, /frameshift/i, /deletion/i, /truncat/i, /splice/i, /fs\*/i],
+    'STK11_F354L': [/F354L/i, /Phe354Le/i],
+    'STK11_D194N': [/D194N/i, /Asp194As/i],
+    'STK11_LKB1':  [/Loss.of.function/i, /LOF/i, /frameshift/i, /deletion/i, /truncat/i, /splice/i, /LKB/i, /fs\*/i],
   };
-  const matchedTargets = [];
-  Object.entries(CORE_GENE_TO_TARGETS).forEach(([gene, targets]) => {
-    if (ngsGenes.has(gene)) matchedTargets.push(...targets);
-  });
+  function resolveSimId(gene, mutation) {
+    const g = (gene || '').toUpperCase();
+    const m = mutation || '';
+    for (const [simId, patterns] of Object.entries(NAMED_MUTATIONS)) {
+      if (simId.startsWith(g + '_') && patterns.some(p => p.test(m))) return simId;
+    }
+    return `${g}_LOF`;
+  }
 
-  // Expansion: any gene in GENE_MAP with ≥20 active electrons, not already covered
-  const coreGenes = new Set(Object.keys(CORE_GENE_TO_TARGETS));
-  const expansionVariants = [];
-  const seenExpGenes = new Set();
+  // Build one simulation target per distinct variant (gene-level dedup)
+  const seenSimIds = new Set();
+  const allVariants = [];
   (ngs.variants || []).forEach(v => {
     const gene = (v.gene || '').toUpperCase();
-    if (coreGenes.has(gene) || seenExpGenes.has(gene)) return;
-    const gm = GENE_MAP[gene];
+    const gm   = GENE_MAP[gene];
     if (!gm || gm.active_electrons < 20) return;
-    seenExpGenes.add(gene);
-    const simId = `${gene}_LOF`;
+    const simId = resolveSimId(gene, v.mutation);
+    if (seenSimIds.has(simId)) return;
+    seenSimIds.add(simId);
     const bqpCls = gm.active_electrons >= 30 ? 'A' : 'B';
-    expansionVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency });
+    const phase3a = PHASE3A_IDS.has(simId);
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a });
   });
 
-  const allTargets = [...matchedTargets, ...expansionVariants.map(ev => ev.simId)];
+  // Register labels in __activeVariants so getDisplayName() returns patient data
+  window.__activeVariants = {};
+  allVariants.forEach(av => {
+    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}` };
+  });
+
+  const allTargets    = allVariants.map(av => av.simId);
   const hasAnyTargets = allTargets.length > 0;
 
-  // ── Inject dynamic rows for expansion genes ───────────────────────────
+  // Hide ALL static core rows — patient report drives every row dynamically
+  PIPELINE_TARGETS.forEach(tid => {
+    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
+      const el = document.getElementById(prefix + tid);
+      if (el) el.style.display = 'none';
+    });
+  });
+  // Remove any rows injected by a previous report upload
+  document.querySelectorAll('.dynamic-expansion-row').forEach(el => el.remove());
+
+  // ── Inject one dynamic row per patient variant ─────────────────────────
   const mutTbody = document.getElementById('ngs-mutation-rows');
   const bqpTbody = document.getElementById('ngs-bqp-rows');
   const pqDiv    = document.getElementById('ngs-pq-items');
-  expansionVariants.forEach(ev => {
-    const bqpBadge = ev.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
-    const bqpRowBg = ev.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
-    const localE   = Math.round(ev.gm.active_electrons / 2);
+  allVariants.forEach(av => {
+    const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
+    const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
+    const localE   = Math.round(av.gm.active_electrons / 2);
     if (mutTbody) {
       const tr = document.createElement('tr');
-      tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${ev.simId}`;
+      tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${av.simId}`;
       tr.innerHTML = `
-        <td><span class="bqp-badge-${ev.bqpCls.toLowerCase()}">${ev.bqpCls}</span></td>
-        <td style="font-weight:700;color:${ev.gm.color}">${ev.gene}</td>
-        <td id="mut-type-${ev.simId}">${ev.mutation} <span class="badge" style="background:${ev.gm.color}22;color:${ev.gm.color};border:1px solid ${ev.gm.color}55">${ev.gm.badge_type}</span></td>
+        <td><span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span></td>
+        <td style="font-weight:700;color:${av.gm.color}">${av.gene}</td>
+        <td id="mut-type-${av.simId}">${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
         <td style="font-size:10px;color:var(--teal)">★ NGS</td>
         <td>~${localE}e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
-        <td>~${ev.gm.active_electrons}e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
-        <td><div id="mut-status-${ev.simId}"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-${ev.simId}" style="margin-top:4px"></div></td>`;
+        <td>~${av.gm.active_electrons}e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
+        <td><div id="mut-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-${av.simId}" style="margin-top:4px"></div></td>`;
       mutTbody.appendChild(tr);
     }
     if (bqpTbody) {
       const tr = document.createElement('tr');
-      tr.className = 'dynamic-expansion-row'; tr.id = `bqp-row-${ev.simId}`; tr.style = bqpRowBg;
+      tr.className = 'dynamic-expansion-row'; tr.id = `bqp-row-${av.simId}`; tr.style = bqpRowBg;
       tr.innerHTML = `
-        <td><strong style="color:${ev.gm.color}">${ev.gene}</strong></td>
-        <td>${ev.mutation} <span class="badge" style="background:${ev.gm.color}22;color:${ev.gm.color};border:1px solid ${ev.gm.color}55">${ev.gm.badge_type}</span></td>
-        <td>~${ev.gm.active_electrons}</td><td>~${ev.gm.full_qubits}</td>
+        <td><strong style="color:${av.gm.color}">${av.gene}</strong></td>
+        <td>${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
+        <td>~${av.gm.active_electrons}</td><td>~${av.gm.full_qubits}</td>
         <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
         <td>${bqpBadge}</td>
-        <td id="bqp-de-${ev.simId}" style="color:var(--gray)">—</td>
-        <td id="bqp-status-${ev.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
+        <td id="bqp-de-${av.simId}" style="color:var(--gray)">—</td>
+        <td id="bqp-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
       bqpTbody.appendChild(tr);
     }
     if (pqDiv) {
       const d = document.createElement('div');
-      d.className = 'dynamic-expansion-row'; d.id = `pq-item-${ev.simId}`;
-      d.innerHTML = `<span id="pq-dot-${ev.simId}" style="color:var(--gray)">○</span> ${ev.gene} ${ev.mutation} validation`;
+      d.className = 'dynamic-expansion-row'; d.id = `pq-item-${av.simId}`;
+      d.innerHTML = `<span id="pq-dot-${av.simId}" style="color:var(--gray)">○</span> ${av.gene} ${av.mutation} validation`;
       pqDiv.appendChild(d);
     }
   });
 
-  // Show/hide static core rows + expansion tbodies
+  // Show/hide table sections
   ['ngs-mutation-rows','ngs-bqp-rows','ngs-pq-items'].forEach(elId => {
     const el = document.getElementById(elId);
     if (el) el.style.display = hasAnyTargets ? '' : 'none';
   });
-  PIPELINE_TARGETS.forEach(tid => {
-    const show = matchedTargets.includes(tid);
-    ['mut-row-','bqp-row-','pq-item-'].forEach(prefix => {
-      const el = document.getElementById(prefix + tid);
-      if (el) el.style.display = show ? '' : 'none';
-    });
-  });
 
-  // Pipeline rows — core targets + expansion
+  // Pipeline rows
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
   if (pipelineEl) {
     if (!hasAnyTargets) {
       pipelineEl.innerHTML = ''; pipelineEl.style.display = 'none';
     } else {
-      pipelineEl.innerHTML = allTargets.map((tid, i) => {
-        const ev     = expansionVariants.find(e => e.simId === tid);
-        const color  = ev ? ev.gm.color : (MUT_COLORS[tid] || 'var(--teal)');
-        const meta   = MUT_META[tid] || {};
-        const label  = ev ? `${ev.gene} ${ev.mutation}` : (meta.display_name || tid);
-        const isLast = i === allTargets.length - 1;
-        const p3bSub = ev ? `${ev.gm.active_electrons}e / ${ev.gm.full_qubits}q · IBM Heron r3` : phase3bSubtitle(tid);
-        const p3bBdg = ev ? `<span class="badge badge-gray">○ Pending</span>` : phase3bBadge(tid);
+      pipelineEl.innerHTML = allVariants.map((av, i) => {
+        const isLast = i === allVariants.length - 1;
+        const color  = av.gm.color;
+        const label  = `${av.gene} ${av.mutation}`;
+        const p3bSub = `${av.gm.active_electrons}e / ${av.gm.full_qubits}q · IBM Heron r3`;
         return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
           <div style="min-width:150px">
             <div style="font-weight:700;font-size:12px;color:${color}">${label}</div>
             <div style="font-size:10px;color:var(--gray)">Phase 3A · VQE · PennyLane · 4q live</div>
           </div>
-          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${tid}" style="width:0%"></div></div></div>
-          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${tid}">—</div>
-          <div style="min-width:95px" id="prow-badge-${tid}"><span class="badge badge-gray">○ Pending</span></div>
-          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${tid}">Not yet run</div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-${av.simId}" style="width:0%"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-${av.simId}">—</div>
+          <div style="min-width:95px" id="prow-badge-${av.simId}"><span class="badge badge-gray">○ Pending</span></div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-${av.simId}">Not yet run</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:8px 0 8px 18px;${isLast ? '' : 'border-bottom:1px solid var(--border)'}opacity:0.65">
           <div style="min-width:150px">
             <div style="font-weight:600;font-size:11px;color:${color}">└ Phase 3B · ${label}</div>
             <div style="font-size:10px;color:var(--gray)">${p3bSub}</div>
           </div>
-          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${tid}" style="width:0%;background:var(--gold)"></div></div></div>
-          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${tid}">—</div>
-          <div style="min-width:95px" id="prow-badge-3b-${tid}">${p3bBdg}</div>
-          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${tid}">Not yet run</div>
+          <div style="flex:1"><div class="progress-wrap"><div class="progress-fill" id="prow-bar-3b-${av.simId}" style="width:0%;background:var(--gold)"></div></div></div>
+          <div style="min-width:32px;text-align:right;font-size:12px;font-weight:700;color:var(--gray)" id="prow-pct-3b-${av.simId}">—</div>
+          <div style="min-width:95px" id="prow-badge-3b-${av.simId}"><span class="badge badge-gray">○ Pending</span></div>
+          <div style="min-width:85px;font-size:10px;color:var(--gray)" id="prow-time-3b-${av.simId}">Not yet run</div>
         </div>`;
       }).join('');
       pipelineEl.style.display = '';
@@ -2765,47 +2933,35 @@ function loadNGSReport(ngs) {
   const bqpTitle = document.getElementById('bqp-card-title');
   if (bqpTitle) bqpTitle.textContent = n ? `All-Target Summary — ${n} Target${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status` : 'All-Target Summary — No platform targets detected';
 
-  // Apply BQP class visual treatment to all mutation rows
-  const BQP_CLASS = {
-    TP53_C275F:'A', STK11_LKB1:'A', STK11_F354L:'A', STK11_D194N:'A',
-    KEAP1_LOF:'B',  KEAP1_G333C:'B', KEAP1_R320Q:'B',
-    TP53_Y220C:'C',
-  };
-  Object.entries(BQP_CLASS).forEach(([id, cls]) => {
-    const row = document.getElementById(`mut-row-${id}`);
+  // BQP class visual treatment for dynamically injected rows
+  allVariants.forEach(av => {
+    const row = document.getElementById(`mut-row-${av.simId}`);
     if (!row) return;
     row.classList.remove('bqp-row-a','bqp-row-b','bqp-row-c');
-    row.classList.add(`bqp-row-${cls.toLowerCase()}`);
+    row.classList.add(`bqp-row-${av.bqpCls.toLowerCase()}`);
   });
-  // Show filter legend
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
 
-  // Rebuild VQE dropdown: core NSCLC matched + expansion targets
+  // Rebuild VQE dropdown — one option per patient variant
   const simTarget = document.getElementById('sim-target');
   if (simTarget) {
-    const CORE_LABELS = {
-      TP53_C275F:  'TP53 p.Cys275Phe (C275F) [A]',
-      STK11_LKB1:  'STK11/LKB1 Loss-of-Function [A]',
-      STK11_F354L: 'STK11 p.Phe354Leu [A]',
-      STK11_D194N: 'STK11 p.Asp194Asn [A]',
-      KEAP1_LOF:   'KEAP1 Loss-of-Function [B]',
-      KEAP1_G333C: 'KEAP1 p.Gly333Cys [B]',
-      KEAP1_R320Q: 'KEAP1 p.Arg320Gln [B]',
-    };
     simTarget.innerHTML = '';
-    if (allTargets.length === 0) {
+    if (!hasAnyTargets) {
       simTarget.innerHTML = '<option value="" disabled selected style="color:var(--gray)">— No platform targets in this report —</option>';
     } else {
-      allTargets.forEach(tid => {
-        const ev  = expansionVariants.find(e => e.simId === tid);
-        const lbl = ev
-          ? `${ev.gene} ${ev.mutation} [${ev.bqpCls}] · ${ev.gm.active_electrons}e`
-          : (CORE_LABELS[tid] || tid);
+      allVariants.forEach(av => {
         const opt = document.createElement('option');
-        opt.value = tid; opt.textContent = lbl;
+        opt.value = av.simId;
+        if (av.phase3a) {
+          opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls}] · ${av.gm.active_electrons}e`;
+        } else {
+          opt.textContent = `${av.gene} ${av.mutation} · Phase 3B only — IBM Heron r3 (${av.gm.full_qubits}q)`;
+          opt.style.color = '#f59e0b';
+        }
         simTarget.appendChild(opt);
       });
+      updateSimButton();
     }
   }
 
@@ -2988,7 +3144,7 @@ function resetPlatform() {
   const vbv = document.getElementById('vqe-bar-val');
   if (vbv) vbv.textContent = '−11.7';
   const ect = document.getElementById('energy-chart-title');
-  if (ect) ect.textContent = 'Binding Energy Comparison · TP53 C275F Active Space';
+  if (ect) ect.textContent = `Binding Energy Comparison · ${getDisplayName('TP53_C275F')} Active Space`;
   const ecf = document.getElementById('energy-chart-footnote');
   if (ecf) ecf.innerHTML = 'DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold (±2 kcal/mol) · VQE error: <span class="teal">0.5 kcal/mol ✓</span>';
   const cpoly = document.getElementById('convergence-polyline');
@@ -3095,6 +3251,7 @@ function resetPlatform() {
 
   // ── Results — Phase 3A live card ─────────────────────────────────────
   if (el('s3-mutation')) { el('s3-mutation').textContent = 'No run yet'; el('s3-mutation').style.color = 'var(--gray)'; }
+  if (el('s3-proxy-notice')) el('s3-proxy-notice').style.display = 'none';
   ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
     if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
   });
@@ -3167,8 +3324,7 @@ function updateDashboardAfterRun(mutationId, data) {
 
 // ── Pipeline stage animator ────────────────────────────────────────────────
 function mutationLabel(mutId) {
-  const name = (MUT_META[mutId] || {}).display_name || mutId;
-  return `Phase 3A · ${name} · 2q VQE Proxy`;
+  return `Phase 3A · ${getDisplayName(mutId)} · 2q VQE Proxy`;
 }
 
 // stageIndex: 0=idle, 1=dispatching, 2=aggregating, 3=validating, 4=complete
@@ -3291,6 +3447,14 @@ const PIPELINE_TARGETS = [
   'STK11_LKB1', 'STK11_F354L', 'STK11_D194N',
 ];
 
+// Active patient variants (populated on NGS upload).
+// Maps simId → {gene, mutation, label} for whatever's in the patient report.
+window.__activeVariants = {};
+function getDisplayName(mutId) {
+  if (window.__activeVariants && window.__activeVariants[mutId]) return window.__activeVariants[mutId].label;
+  return (MUT_META[mutId] || {}).display_name || mutId;
+}
+
 function submitPhase3B(mutationId) {
   const meta = MUT_META[mutationId] || {};
   const lastRun = lastRunData || {};
@@ -3301,7 +3465,7 @@ function submitPhase3B(mutationId) {
     status: 'Pending IBM Heron r3 Access',
     target: {
       mutation_id: mutationId,
-      display_name: meta.display_name || mutationId,
+      display_name: getDisplayName(mutationId),
       gene: mutationId.split('_')[0],
       source: meta.source,
       full_electrons: meta.full_electrons,
@@ -3334,7 +3498,7 @@ function submitPhase3B(mutationId) {
       phase3a_qasm: [
         'OPENQASM 3.0;',
         'include "stdgates.inc";',
-        `// SOLANGE™ Phase 3A VQE Circuit — ${meta.display_name || mutationId}`,
+        `// SOLANGE™ Phase 3A VQE Circuit — ${getDisplayName(mutationId)}`,
         '// Active space: CAS(2e,2o) — 4-qubit Jordan-Wigner · Phase 3A live execution',
         `// Ansatz: ${lastRun.p1_ansatz || 'Ry-CNOT-Ry hardware-efficient'}`,
         `// Basis set: ${lastRun.p2_basis_set || 'STO-3G (PySCF CASSCF(2,2))'}`,
@@ -3362,7 +3526,7 @@ function submitPhase3B(mutationId) {
       phase3b_qasm_template: [
         'OPENQASM 3.0;',
         'include "stdgates.inc";',
-        `// SOLANGE™ Phase 3B Circuit Template — ${meta.display_name || mutationId}`,
+        `// SOLANGE™ Phase 3B Circuit Template — ${getDisplayName(mutationId)}`,
         `// Full active space: ${meta.full_electrons}e / ${meta.full_qubits} qubits (Jordan-Wigner encoding)`,
         '// Target backend: IBM Heron r3',
         '// Error mitigation: ZNE (Zero Noise Extrapolation)',
@@ -3419,7 +3583,7 @@ function submitPhase3B(mutationId) {
   `;
   toast.innerHTML = `
     <div style="font-weight:700;color:#06b6d4;margin-bottom:6px">⚛ Phase 3B Package Generated</div>
-    <div>The submission package for <strong style="color:#f1f5f9">${meta.display_name || mutationId}</strong> has been created and downloaded.</div>
+    <div>The submission package for <strong style="color:#f1f5f9">${getDisplayName(mutationId)}</strong> has been created and downloaded.</div>
     <div style="margin-top:6px;color:#94a3b8;font-size:11px">Execution will be initiated upon IBM Heron r3 system access authorization.</div>
   `;
   document.body.appendChild(toast);
@@ -3436,7 +3600,7 @@ function downloadCasscfIntegrals() {
   const vqe = lastRunData._vqe || {};
 
   const mutId    = rec.mutation_id   || '';
-  const mutName  = rec.mutation_name || mutId;
+  const mutName  = getDisplayName(mutId) || rec.mutation_name || mutId;
   const compound = r.model_compound  || rec.p2_model_compound || 'unknown';
   const eRhf     = lastRunData._e_rhf   || null;
   const jwTerms  = lastRunData._jw_terms || [];
@@ -3562,8 +3726,9 @@ function renderEnergyChart() {
   const groups = {};
   runHistory.forEach(d => {
     const rec  = d.full_record;
-    const gene = (rec.mutation_name || '').split(' ')[0];
-    const key  = rec.mutation_name || d.run_id.slice(0, 8);
+    const label = getDisplayName(rec.mutation_id) || rec.mutation_name || d.run_id.slice(0, 8);
+    const gene = label.split(' ')[0];
+    const key  = label;
     if (!groups[key]) groups[key] = { gene, runs: [] };
     groups[key].runs.push({ energy: d.result.energy_ha, ci_half: d.result.ci_half });
   });
@@ -3712,6 +3877,8 @@ function displayRunResults(data) {
   // Results tab s3 card
   const s3Mut = document.getElementById('s3-mutation');
   if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
+  const s3ProxyD = document.getElementById('s3-proxy-notice');
+  if (s3ProxyD) s3ProxyD.style.display = 'none';
   const s3E = document.getElementById('s3-energy');
   if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
   const s3R = document.getElementById('s3-runtime');
@@ -3731,6 +3898,8 @@ function displayRunResults(data) {
   if (s3Bas) { s3Bas.textContent = rec.p2_basis_set || '—'; s3Bas.style.color = 'var(--light)'; }
   const s3Ans = document.getElementById('s3-ansatz');
   if (s3Ans) { s3Ans.textContent = rec.p1_ansatz || '—'; s3Ans.style.color = 'var(--gold)'; }
+  const s3Desc = document.getElementById('s3-casscf-desc');
+  if (s3Desc) s3Desc.textContent = `Real ab initio Hamiltonian for ${rec.mutation_name} · ${rec.p2_model_compound || r.compound || '—'} proxy · STO-3G`;
 }
 
 function exportPDF() {
