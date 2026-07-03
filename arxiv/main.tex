@@ -494,7 +494,13 @@ correlation structure, and accuracy requirements justify an escalated kernel.
 The BQP-relevant classification is therefore operational, not absolutist.  It relies on
 the established quantum-computing framing that selected local-Hamiltonian and
 molecular-energy estimation problems admit quantum
-formulations~\cite{abrams1999,aspuru2005,bennett1997}.  If a classical method later demonstrates
+formulations~\cite{abrams1999,aspuru2005,bennett1997}.  No formal classical--quantum
+separation is claimed: ground-state finding is QMA-hard in the general case, and
+containment in BQP is conditional on preparing an initial state with sufficient overlap on
+the true ground state.  Lee et al.~\cite{lee2023} argue that these caveats erode the case
+for exponential quantum advantage across chemical space; that critique is accepted here in
+the general case and delimits the present claim to a \emph{practical} quantum algorithm in
+the selected operational regime, not a proof of exponential advantage.  If a classical method later demonstrates
 chemical accuracy for the specified active-space boundary within tractable resources, the
 orchestration layer routes the workload to that classical backend.  This revisability is
 a feature: the architecture governs escalation rather than advocating one substrate
@@ -1075,6 +1081,12 @@ IBM Newsroom, 2026.
 Quantum Computing Report.
 IBM and Researchers Synthesize First Half-M\"{o}bius Molecule Validated by Quantum Computing.
 Quantum Computing Report, 2026.
+
+\bibitem{lee2023}
+S.~Lee, J.~Lee, H.~Zhai, Y.~Tong, A.~M. Dalzell, A.~Kumar, P.~Helms, J.~Gray, Z.-H. Cui, W.~Liu, M.~Kastoryano, R.~Babbush, J.~Preskill, D.~R. Reichman, E.~T. Campbell, E.~F. Valeev, L.~Lin, and G.~K.-L. Chan.
+Evaluating the evidence for exponential quantum advantage in ground-state quantum chemistry.
+\textit{Nature Communications}, 14(1):1952, 2023.
+\doi{10.1038/s41467-023-37587-6}.
 
 \bibitem{halfmobius2026}
 IBM Research and collaborators.
