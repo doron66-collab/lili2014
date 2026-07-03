@@ -1394,7 +1394,7 @@
             <tr>
               <td><strong>STK11</strong></td>
               <td><em>Serine/Threonine Kinase 11 (also LKB1)</em></td>
-              <td>One of the four STK11/LKB1 target mutations (LKB1 LOF, F354L, D194N), classified Class A (quantum-necessary). Full active site: ~152 active electrons (~304 qubits under Jordan-Wigner encoding) — designated fault-tolerant QPU target (~2030+). STK11 F354L local site (~48e/~96q; AlphaFold Q15831) is a near-term exception executable on IBM Heron r3, only 2 qubits beyond the demonstrated 94-qubit ceiling. PDB source: 2WTK.</td>
+              <td>One of the four STK11/LKB1 target mutations (LKB1 LOF, F354L, D194N), classified Class A (quantum-necessary). Full active site: ~152 active electrons (~304 qubits under Jordan-Wigner encoding) — designated fault-tolerant QPU target (~2030+). STK11 F354L local site (~48e/~96q; AlphaFold Q15831) is a near-term exception executable on IBM Heron r3, only 2 qubits beyond the demonstrated 94-qubit ceiling (Merz et al. 2026, arXiv:2605.01138). PDB source: 2WTK.</td>
             </tr>
             <tr>
               <td><strong>TP53</strong></td>
@@ -1450,7 +1450,7 @@
       <p>NSCLC is the leading cause of cancer mortality globally, accounting for approximately <strong>2.1 million new diagnoses per year</strong> and <strong>1.53 million deaths annually</strong> (GLOBOCAN 2022). Approximately <strong>70% of patients are diagnosed at advanced stage</strong> (locally advanced or metastatic), when curative resection is no longer possible. Median overall survival at advanced stage ranges from <strong>8 to 14 months</strong>, and five-year survival is approximately <strong>35% for locally advanced disease</strong> and <strong>7% for metastatic disease</strong> — a figure itself inflated by the subset of patients who carry actionable driver mutations (EGFR, ALK, KRAS G12C) and benefit from approved targeted therapies. For the majority who do not carry actionable mutations, median survival and five-year rates are substantially lower. Advances in targeted therapy have transformed outcomes for patients with those actionable drivers — but they represent a minority. The majority of NSCLC patients carry mutations that current drug design approaches cannot address. They have no approved targeted therapy.</p>
 
       <h4>Table 1 — Pipeline-Eligible Non-druggable NSCLC Mutations</h4>
-      <p><em>Fifteen mutations across nine genes satisfying the BQP-relevant classification criteria: no approved targeted therapy, fermionic active space within quantum feasibility window, and no tractable classical solution at chemical accuracy.</em></p>
+      <p><em>Fifteen per-variant classification entries across the nine tumor-suppressor genes with complete active-space data, each satisfying the BQP-relevant classification criteria: no approved targeted therapy, fermionic active space within quantum feasibility window, and no tractable classical solution at chemical accuracy. The full pipeline-eligible set spans eleven genes; the two additional genes — SETD2 and U2AF1 — appear in the patient-burden analysis of Table 2 and await full active-space classification.</em></p>
       <div class="table-wrap">
       <table>
         <thead>
@@ -1638,7 +1638,7 @@
       <p style="font-size:0.82rem; color:var(--muted); margin-top:0.75rem; line-height:1.5;"><sup>†</sup> Also observed in urological malignancies (urothelial carcinoma, renal cell carcinoma); SOLANGE pipeline directly applicable without architectural modification.</p>
 
       <h4>Table 2 — Annual Patient Burden by Mutation: Non-druggable NSCLC in the Quantum Feasibility Window</h4>
-      <p><em>Per-mutation patient counts derived from NSCLC frequency estimates applied to 2.12M new diagnoses/year (GLOBOCAN 2022). Naïve sum (2,877,000) exceeds annual incidence because individual patients carry multiple co-occurring mutations; the ~40% overlap correction yields the unique-patient estimate. All mutations satisfy the three BQP-relevant classification criteria: no approved targeted therapy, fermionic active space within quantum feasibility window, and no tractable classical solution at chemical accuracy.</em></p>
+      <p><em>Per-mutation patient counts derived from NSCLC frequency estimates applied to 2.12M new diagnoses/year (GLOBOCAN 2022). Naïve sum (2,877,000) exceeds annual incidence because individual patients carry multiple co-occurring mutations; a ~55–62% overlap correction yields the unique-patient estimate (2,877,000 × ~0.40 ≈ 1.1–1.3M). All mutations satisfy the three BQP-relevant classification criteria: no approved targeted therapy, fermionic active space within quantum feasibility window, and no tractable classical solution at chemical accuracy. This burden analysis spans eleven genes — the nine classified in Table 1 plus SETD2 and U2AF1, which contribute to the population estimate but await full active-space classification.</em></p>
       <div class="table-wrap">
       <table>
         <thead>
@@ -1747,7 +1747,7 @@
             <td>Exceeds annual incidence due to co-occurring mutations in the same patient</td>
           </tr>
           <tr>
-            <td><strong>Overlap-corrected total (~40% correction)</strong></td>
+            <td><strong>Overlap-corrected total (~55–62% correction)</strong></td>
             <td>—</td>
             <td><strong>~1.1–1.3M unique patients/year</strong></td>
             <td>Unique patients carrying ≥1 non-druggable mutation within the quantum feasibility window</td>
@@ -1818,7 +1818,7 @@
             <tr>
               <td>C275F — Local binding site</td>
               <td>~24</td>
-              <td>~50–60</td>
+              <td>~48</td>
               <td><span class="check">✓</span> Feasible today</td>
             </tr>
             <tr>
@@ -2062,7 +2062,7 @@
       <p><em>Figure 3.1 documents the platform's input diversity, not its scientific scope.</em> Each of the five PDB entries is a data source the orchestration architecture must consume: a machine-readable record whose coordinate geometry determines active-space size, qubit demand, and backend routing for that specific job. The five targets differ significantly across all three dimensions — from the small ankyrin-repeat scaffold of CDKN2A p16 (156 residues, PDB 2A5E) to the Kelch β-propeller of KEAP1 (302 residues, PDB 2FLU) to the zinc-coordinated DNA-binding domain of TP53 C275F (~88 qubits under Jordan-Wigner encoding). Managing that heterogeneity through a single governed pipeline — same provenance schema, same compliance output, same audit trail — without manual re-derivation per target is the information systems design problem this dissertation solves. The platform consumes these five records; it does not produce them.</p>
 
       <h4 id="sec-3-3">3.3 · Quantum Computing in Drug Discovery</h4>
-      <p>Cao et al. (2019) reviewed quantum computing applications in quantum chemistry. Santagati et al. (2024) demonstrated quantum simulation of small drug-like molecules on real hardware. No published work applies these methods to non-druggable NSCLC tumor suppressor contact mutants or integrates them into a governed clinical workflow.</p>
+      <p>Cao et al. (2019) reviewed quantum computing applications in quantum chemistry. Santagati et al. (2024) demonstrated quantum simulation of small drug-like molecules on real hardware. No published work applies these methods to non-druggable NSCLC tumor-suppressor structural mutants or integrates them into a governed clinical workflow.</p>
 
       <h4 id="sec-3-4">3.4 · Hybrid Orchestration Platforms</h4>
       <p>Qiskit Runtime (IBM, 2021) and Orquestra (Zapata Computing, 2020) represented the first wave of single-vendor quantum orchestration. The post-March-2026 landscape is materially different: Nvidia's <strong>CUDA-Q</strong> programming model and the <strong>NVQLink</strong> GPU↔QPU interconnect (announced October 2025, expanded April 14, 2026 with the Ising AI models) constitute a cross-vendor, cross-paradigm orchestration <em>substrate</em>, and hybrid drug-discovery pipelines on it have been demonstrated — IonQ with AstraZeneca, AWS, and Nvidia on Suzuki–Miyaura coupling (June 2025) and Quantinuum with Nvidia on ADAPT-GQE applied to imipramine. Both precedents target generic small-molecule chemistry, not oncology mutation simulation, and neither is designed against a regulatory-records framework. What remains absent is therefore not a generic cross-vendor orchestration platform — that gap has begun to close — but <strong>a cross-vendor orchestration architecture specifically targeting oncology tumor-suppressor mutation simulation, with Part-11-grade provenance machinery sufficient to bring quantum-derived binding data into a regulated drug-development workflow</strong>. This is the narrower, defensible gap that §06.ii and §06.iii jointly close.</p>
@@ -2286,7 +2286,7 @@
       <p><strong>Scoring:</strong> Likert 1–7 on each criterion. Acceptance threshold: <code>mean ≥ 5.0</code> with <code>no individual score &lt; 4</code>. <strong>Inter-rater reliability:</strong> Krippendorff's α reported on agreement-targeted criteria; α &lt; 0.67 flags a criterion requiring refinement or signaling genuine disagreement.</p>
 
       <h4>Layer 4 · Case-Based Walkthrough (Peffers et al., 2007)</h4>
-      <p>Two clinical scenarios are traced end-to-end through the platform, one real (the anchoring patient — <code>MI25-0349</code> with TP53 C275F), one hypothetical (a KEAP1 contact-mutant case). For each scenario the documentation captures: every design decision invoked; every point at which the audit trail caught — or should have caught — an anomaly; every step requiring manual intervention; and the stakeholder output produced for each persona (oncologist view, pharma view, IT view). This narrative complements the numbers — the case-based evidence is what shows the system <em>works in context</em>, not only on the bench.</p>
+      <p>Two clinical scenarios are traced end-to-end through the platform, one real (the anchoring patient — <code>MI25-0349</code> with TP53 C275F), one hypothetical (a KEAP1 loss-of-function case). For each scenario the documentation captures: every design decision invoked; every point at which the audit trail caught — or should have caught — an anomaly; every step requiring manual intervention; and the stakeholder output produced for each persona (oncologist view, pharma view, IT view). This narrative complements the numbers — the case-based evidence is what shows the system <em>works in context</em>, not only on the bench.</p>
 
       <h4>Phase 4 Sub-Phases &amp; Schedule</h4>
       <div class="table-wrap">
@@ -2325,8 +2325,8 @@
           <div class="contribution-num">i</div>
           <div>
             <h3 id="sec-6-i">BQP-Relevant Classification Framework for Non-druggable Tumor Suppressor Targets</h3>
-            <p>The first published analysis establishing TP53 C275F as a BQP-relevant problem in the context of oncology drug discovery — under the standard complexity-theoretic framing of quantum chemistry (Abrams &amp; Lloyd, 1999; Aspuru-Guzik et al., 2005). The framework defines the active-space boundary (~44 electrons) beyond which the best known classical methods do not achieve the required chemical accuracy within tractable resources, and at which a known BQP-class quantum algorithm provides polynomial-time tractability. The framework is dual-conditional: classical intractability <em>in practice</em> plus BQP-class quantum tractability <em>in principle</em>. It does <em>not</em> claim BQP-hardness or a formal classical-vs-quantum separation, both of which remain open in general; it claims a defensible operational regime under which quantum-derived molecular evidence is the appropriate target of an orchestration architecture. The framework is explicitly conditional on the current state of classical methods (DMRG, neural quantum states, tensor networks) and revisable as those methods advance — providing a reusable classification template applicable to other non-druggable mutation targets. <em>This is a theoretical IT contribution; it does not require hardware execution to be valid.</em></p>
-            <p>The framework is designed as a reusable classification tool applicable beyond the four anchor mutations. Fifteen pipeline-eligible non-druggable mutations have been identified across nine genes (TP53, KEAP1, CDKN2A, STK11, NF1, RB1, SMARCA4, RBM10, ARID1A), collectively affecting an estimated <strong>1.1–1.3 million unique NSCLC patients annually</strong> — representing the largest unaddressed population in computational oncology within the quantum feasibility window. Each satisfies the dual BQP-relevant condition: classical intractability at chemical accuracy at the specified active-space boundary, and a known BQP-class quantum algorithmic formulation for the corresponding fermionic Hamiltonian eigenvalue problem. The classification template defined here for C275F is directly applicable to all fifteen.</p>
+            <p>The first published analysis establishing TP53 C275F as a BQP-relevant problem in the context of oncology drug discovery — under the standard complexity-theoretic framing of quantum chemistry (Abrams &amp; Lloyd, 1999; Aspuru-Guzik et al., 2005). The framework defines the active-space boundary (~44 electrons) beyond which the best known classical methods do not achieve the required chemical accuracy within tractable resources, and at which a known BQP-class quantum algorithm provides polynomial-time tractability. The framework is dual-conditional: classical intractability <em>in practice</em> plus BQP-class quantum tractability <em>in principle</em>. It does <em>not</em> claim BQP-hardness or a formal classical-vs-quantum separation, both of which remain open in general; it claims a defensible operational regime under which quantum-derived molecular evidence is the appropriate target of an orchestration architecture. The framework is explicitly conditional on the current state of classical methods (DMRG, neural quantum states, tensor networks) and revisable as those methods advance — providing a reusable classification template applicable to other non-druggable mutation targets. Operationally, the template sorts targets into three classes: <strong>Class A (quantum-necessary)</strong> — no classical method, exact or approximate, reaches chemical accuracy at the active-space boundary within tractable resources, so quantum simulation is the only defensible route; <strong>Class B (quantum-advantaged)</strong> — defensible classical approximations exist, but quantum simulation yields materially higher accuracy or reliability at the boundary; and <strong>Class C (classically-tractable)</strong> — within reach of classical methods at chemical accuracy, and therefore not a quantum target. Under this template C275F is Class B: it sits in the empirically quantum-advantaged regime defined by the current state of both classical and quantum methods circa 2026. <em>This is a theoretical IT contribution; it does not require hardware execution to be valid.</em></p>
+            <p>The framework is designed as a reusable classification tool applicable beyond the four anchor mutations. Fifteen pipeline-eligible non-druggable mutations have been identified across eleven genes (TP53, KEAP1, CDKN2A, STK11, NF1, RB1, SMARCA4, RBM10, ARID1A, SETD2, U2AF1), collectively affecting an estimated <strong>1.1–1.3 million unique NSCLC patients annually</strong> — representing the largest unaddressed population in computational oncology within the quantum feasibility window. Each satisfies the dual BQP-relevant condition: classical intractability at chemical accuracy at the specified active-space boundary, and a known BQP-class quantum algorithmic formulation for the corresponding fermionic Hamiltonian eigenvalue problem. The classification template defined here for C275F is directly applicable to all fifteen.</p>
           </div>
         </div>
 
@@ -3149,7 +3149,7 @@
             <tr>
               <td><strong>GARD</strong></td>
               <td><em>Genomic-Adjusted Radiation Dose</em></td>
-              <td>A radiogenomic model predicting individual tumor radiosensitivity from gene-expression signatures. Mentioned in the Future Research Direction on the poster: post-doctoral work would extend the dissertation's quantum-derived mechanistic features into GARD-class radiotherapy decision support for TP53 contact-mutant tumors. Out of dissertation scope.</td>
+              <td>A radiogenomic model predicting individual tumor radiosensitivity from gene-expression signatures. Mentioned in the Future Research Direction on the poster: post-doctoral work would extend the dissertation's quantum-derived mechanistic features into GARD-class radiotherapy decision support for TP53-mutant tumors. Out of dissertation scope.</td>
             </tr>
             <tr>
               <td><strong>GNN</strong></td>
@@ -3354,12 +3354,12 @@
             <tr>
               <td><strong>STK11</strong></td>
               <td><em>Serine/Threonine Kinase 11 (also LKB1)</em></td>
-              <td>One of the four STK11/LKB1 target mutations (LKB1 LOF, F354L, D194N), classified Class A (quantum-necessary). Full active site: ~152 active electrons (~304 qubits under Jordan-Wigner encoding) — designated fault-tolerant QPU target (~2030+). STK11 F354L local site (~48e/~96q; AlphaFold Q15831) is a near-term exception executable on IBM Heron r3, only 2 qubits beyond the demonstrated 94-qubit ceiling. PDB source: 2WTK.</td>
+              <td>One of the four STK11/LKB1 target mutations (LKB1 LOF, F354L, D194N), classified Class A (quantum-necessary). Full active site: ~152 active electrons (~304 qubits under Jordan-Wigner encoding) — designated fault-tolerant QPU target (~2030+). STK11 F354L local site (~48e/~96q; AlphaFold Q15831) is a near-term exception executable on IBM Heron r3, only 2 qubits beyond the demonstrated 94-qubit ceiling (Merz et al. 2026, arXiv:2605.01138). PDB source: 2WTK.</td>
             </tr>
             <tr>
               <td><strong>TP53</strong></td>
               <td><em>Tumor Protein 53 (the p53 tumor suppressor gene)</em></td>
-              <td>The most frequently mutated gene in human cancers (~59% of solid tumors). The dissertation focuses on TP53 contact mutants - particularly C275F - that disrupt DNA-contact geometry without creating druggable pockets. TP53's Zn²⁺ tetrahedral coordination site (Cys176/His179/Cys238/Cys242) requires ~22–28 active electrons, the paradigmatic case for SqDRIFT-grade simulation.</td>
+              <td>The most frequently mutated gene in human cancers (~59% of solid tumors). The dissertation focuses on TP53 structural (DNA-interface) mutants - particularly C275F - that disrupt DNA-binding geometry without creating druggable pockets. TP53's Zn²⁺ tetrahedral coordination site (Cys176/His179/Cys238/Cys242) requires ~22–28 active electrons, the paradigmatic case for SqDRIFT-grade simulation.</td>
             </tr>
             <tr>
               <td><strong>Trp-cage</strong></td>
