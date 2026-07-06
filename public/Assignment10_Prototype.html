@@ -2628,9 +2628,17 @@ function handleNGSUpload(e) {
 
   if (name.endsWith('.pdf')) {
     extractPDFText(file).then(text => {
-      openNGSReview(parseNGSText(text));
+      // A scanned / image-only PDF has no text layer: pdf.js returns (near-)empty
+      // text without throwing, so detect it here and tell the user precisely why
+      // nothing auto-populated, instead of the generic "non-standard layout" note.
+      if (!text || text.replace(/\s+/g, '').length < 20) {
+        alert('This PDF has no readable text layer — it appears to be a scanned (image-only) '
+            + 'document, so its text cannot be extracted automatically. The review form will open; '
+            + 'please enter the variants manually from the report (Gene, Mutation, Allele Frequency %).');
+      }
+      openNGSReview(parseNGSText(text || ''));
     }).catch(() => {
-      alert('Could not read PDF — it may be image-based (scanned). Please fill in the review form manually.');
+      alert('Could not read this PDF. The review form will open so you can enter the variants manually.');
       openNGSReview({});
     });
     return;
