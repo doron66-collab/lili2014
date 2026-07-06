@@ -2000,8 +2000,8 @@ function showPhase3BPendingResult(mutationId, inputLabel) {
     const orig = inputLabel ? `${inputLabel} → ` : '';
     s3ProxyText.innerHTML = `${orig}<strong>${mutationId}</strong> has no per-mutation Phase 3A Hamiltonian. ` +
       `Computing this target requires Phase 3B on IBM Heron r3 (${gm.full_qubits || '?'} qubits). ` +
-      `Phase 3A is limited to 8 named targets with validated CAS(2,2) Hamiltonians: ` +
-      `TP53 C275F · TP53 Y220C · KEAP1 LOF · KEAP1 G333C · KEAP1 R320Q · STK11 LKB1 · STK11 F354L · STK11 D194N.`;
+      `Phase 3A is limited to 10 named targets with validated CAS(2,2) Hamiltonians: ` +
+      `TP53 C275F · TP53 Y220C · KEAP1 LOF · KEAP1 G333C · KEAP1 R320Q · STK11 LKB1 · STK11 F354L · STK11 D194N · CDKN2A LOF · ARID2 LOF.`;
   }
 }
 
@@ -2797,6 +2797,9 @@ function loadNGSReport(ngs) {
     'TP53_C275F', 'TP53_Y220C',
     'KEAP1_LOF', 'KEAP1_G333C', 'KEAP1_R320Q',
     'STK11_LKB1', 'STK11_F354L', 'STK11_D194N',
+    // Expansion targets with their own validated CAS(2e,2o) JW Hamiltonians
+    // (real PySCF, generate_expansion_jw.py) — backend runs them via _make_expansion_config.
+    'CDKN2A_LOF', 'ARID2_LOF',
   ]);
   window.__phase3aIds = PHASE3A_IDS;
 
