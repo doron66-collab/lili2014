@@ -2197,9 +2197,13 @@ const MI25_0349 = {
   origin: 'Pulmonary', tumor_purity: '65%',
   biomarkers: { EGFR_ALK_KRAS_RET: 'Not detected', TMB_value: 7.6, TMB_tier: 'Low', MSI_value: 7.77, MSI_status: 'Stable' },
   variants: [
-    { gene:'TP53',  mutation:'p.Cys275Phe',    hgvs:'c.824G>T', allele_frequency:0.1266, chromosome:'17', tier:'I',   badge_type:'Structural', simulation_id:'TP53_C275F',  source:'ngs',      active_electrons:44,  full_qubits:88  },
-    { gene:'KEAP1', mutation:'p.Cys196Leufs*', allele_frequency:0.1290,                                   tier:'III', badge_type:'PPI',        simulation_id:'KEAP1_LOF',   source:'ngs',      active_electrons:155, full_qubits:310 },
-    { gene:'STK11', mutation:'Loss-of-function',                                                                       badge_type:'SL',         simulation_id:'STK11_LKB1',  source:'research', active_electrons:152, full_qubits:304 },
+    // Real findings from NGS report MI25-0349 (Oncomine Comprehensive Assay Plus, FRANKLIN):
+    { gene:'TP53',   mutation:'p.Cys275Phe',            hgvs:'c.824G>T',  allele_frequency:0.1266, chromosome:'17', tier:'I',   badge_type:'Structural',     simulation_id:'TP53_C275F',  source:'ngs',      active_electrons:44,  full_qubits:88  },
+    { gene:'KEAP1',  mutation:'p.Cys196Leufs*',         hgvs:'c.587del',  allele_frequency:0.1290, chromosome:'19', tier:'III', badge_type:'PPI',            simulation_id:'KEAP1_LOF',   source:'ngs',      active_electrons:155, full_qubits:310 },
+    { gene:'CDKN2A', mutation:'Homozygous deletion (CN 0.4)',              allele_frequency:null,   chromosome:'9',  tier:'III', badge_type:'Cell Cycle LOF', simulation_id:'CDKN2A_LOF',  source:'ngs',      active_electrons:20,  full_qubits:40  },
+    { gene:'ARID2',  mutation:'p.Gln1118*',             hgvs:'c.3352C>T', allele_frequency:0.2251, chromosome:'12', tier:'III', badge_type:'Chromatin LOF',  simulation_id:'ARID2_LOF',   source:'ngs',      active_electrons:28,  full_qubits:56  },
+    // Illustrative platform target (canonical non-druggable gene) — NOT detected in this patient's report:
+    { gene:'STK11',  mutation:'Loss-of-function',                                                                    tier:null,  badge_type:'SL',             simulation_id:'STK11_LKB1',  source:'research', active_electrons:152, full_qubits:304 },
   ]
 };
 
@@ -2828,7 +2832,7 @@ function loadNGSReport(ngs) {
     seenSimIds.add(simId);
     const bqpCls = gm.active_electrons >= 30 ? 'A' : 'B';
     const phase3a = PHASE3A_IDS.has(simId);
-    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a });
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs') });
   });
 
   // Register labels in __activeVariants so getDisplayName() returns patient data
@@ -2869,7 +2873,7 @@ function loadNGSReport(ngs) {
         <td><span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span></td>
         <td style="font-weight:700;color:${av.gm.color}">${av.gene}</td>
         <td id="mut-type-${av.simId}">${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
-        <td style="font-size:10px;color:var(--teal)">★ NGS</td>
+        <td style="font-size:10px;color:${av.source==='research'?'#93c5fd':'var(--teal)'}">${av.source==='research'?'📚 Research':'★ NGS'}</td>
         <td>~${localE}e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
         <td>~${av.gm.active_electrons}e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
         <td><div id="mut-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-${av.simId}" style="margin-top:4px"></div></td>`;
