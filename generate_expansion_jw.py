@@ -444,6 +444,19 @@ EXPANSION_MODELS = {
         "mutant": {"compound": "formamide", "residue": "Gly692", "note": "Loss of Arg sidechain destabilises TSC1-TSC2 complex; mTORC1 deregulated"},
         "pdb": "AlphaFold-Q92574",
     },
+    "ARID2_LOF": {
+        "gene": "ARID2", "full_electrons": 28, "full_qubits": 56,
+        # PBAF-specific SWI/SNF subunit (BAF200), sister to ARID1A. Patient variant
+        # p.Gln1118* (NGS report MI25-0349, Tier III, 22.51% AF) is a nonsense mutation
+        # truncating ARID2 at codon 1118, removing the C-terminal C2H2 zinc-finger
+        # domains required for PBAF complex integrity → loss of function.
+        # Native: acetamide (Gln1118 sidechain amide at the truncation point)
+        # Mutant: formamide (backbone only — truncation abolishes the sidechain/C-terminus)
+        # Ref: Li M et al. (2011) Science 333:1157; Xu F et al. (2012) ARID2 in NSCLC/HCC
+        "native": {"compound": "acetamide", "residue": "Gln1118",        "note": "Gln1118 sidechain amide at the C-terminal truncation point (p.Gln1118*)"},
+        "mutant": {"compound": "formamide", "residue": "LOF (Gln1118*)",  "note": "Nonsense truncation removes C-terminal C2H2 zinc fingers; PBAF chromatin-remodeling LOF"},
+        "pdb": "AlphaFold-Q68CP9",
+    },
     "TSC2_LOF": {
         "gene": "TSC2", "full_electrons": 30, "full_qubits": 60,
         # GAP domain Arg1743 (equivalent to NF1 catalytic Arg-finger) inserts into Rheb

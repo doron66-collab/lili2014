@@ -145,6 +145,7 @@ _EXPANSION_GENE_CONFIGS = {
     "IDH2":    {"full_electrons": 22, "full_qubits": 44, "badge": "Neomorphic",         "jw_source": ("IDH2_LOF",    "native"), "pdb": "1LWD",           "native_residue": "Arg172",  "native_compound": "guanidine"},
     "SMARCA4": {"full_electrons": 40, "full_qubits": 80, "badge": "ATPase LOF",         "jw_source": ("SMARCA4_LOF", "native"), "pdb": "6LTJ",           "native_residue": "Glu479",  "native_compound": "acetic_acid"},
     "ARID1A":  {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",      "jw_source": ("ARID1A_LOF",  "native"), "pdb": "2L9X",           "native_residue": "Trp1815", "native_compound": "toluene"},
+    "ARID2":   {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",      "jw_source": ("ARID2_LOF",   "native"), "pdb": "AlphaFold",      "native_residue": "Gln1118", "native_compound": "acetamide"},
     "POLE":    {"full_electrons": 24, "full_qubits": 48, "badge": "Exonuclease LOF",    "jw_source": ("POLE_LOF",    "native"), "pdb": "4M8O",           "native_residue": "Glu272",  "native_compound": "acetic_acid"},
     "BRCA1":   {"full_electrons": 32, "full_qubits": 64, "badge": "DNA Repair LOF",     "jw_source": ("BRCA1_LOF",   "native"), "pdb": "1JM7",           "native_residue": "Cys44",   "native_compound": "methanethiol"},
     "BRCA2":   {"full_electrons": 32, "full_qubits": 64, "badge": "DNA Repair LOF",     "jw_source": ("BRCA2_LOF",   "native"), "pdb": "1MJE",           "native_residue": "Phe3175", "native_compound": "toluene"},
