@@ -505,17 +505,41 @@ def main():
         "nelecas":        args.nelecas,
         "source":         "HPC/Laguna",
     }
-    jw_path = Path(args.out) / f"jw_{args.key}_{args.side}.json"
+    # Unique, timestamped stem so every run is archived (dissertation reproducibility)
+    # instead of overwriting. e.g. ARID2_LOF_native_cas8-8_20260707T1830.
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    stem  = f"{args.key}_{args.side}_cas{args.nelecas}-{args.ncas}_{stamp}"
+    jw_path = Path(args.out) / f"jw_{stem}.json"
     jw_path.write_text(json.dumps({args.key: {args.side: jw_entry}}, indent=2))
     print(f"WROTE {jw_path}")
 
     # ── Artifact 2: signed P1-P9 provenance ──
     prov = build_provenance(args, cas, terms, e_active_exact, vqe, gpu_name, vram_mb)
-    prov_path = Path(args.out) / f"provenance_{args.key}_{args.side}.json"
+    prov_path = Path(args.out) / f"provenance_{stem}.json"
     prov_path.write_text(json.dumps(prov, indent=2, default=str))
     print(f"WROTE {prov_path}")
     print(f"P8 seal: {prov['p8_hash'][:16]}…  "
           f"(SOLANGE re-verifies this by recomputing the hash — that check needs no GPU)")
+
+    # ── Master run log (append-only): one line per run, the local archive index ──
+    exact_ref = e_active_exact if e_active_exact is not None else cas.get("e_fci_active")
+    log_row = {
+        "timestamp": stamp, "key": args.key, "side": args.side,
+        "compound": args.compound, "basis": args.basis,
+        "ncas": args.ncas, "nelecas": args.nelecas, "qubits": n_qubits,
+        "e_casscf": cas["e_casscf"], "e_exact_active": exact_ref,
+        "e_vqe_ha": (vqe["energy_ha"] if vqe else None),
+        "delta_mha": ((vqe["energy_ha"] - exact_ref) * 1000
+                      if (vqe and exact_ref is not None) else None),
+        "device": (vqe["device"] if vqe else None),
+        "elapsed_s": (vqe["elapsed_s"] if vqe else None),
+        "n_paulis": len(terms), "p8_hash": prov["p8_hash"],
+        "jw_file": jw_path.name, "provenance_file": prov_path.name,
+    }
+    log_path = Path(args.out) / "runs_log.jsonl"
+    with open(log_path, "a") as lf:
+        lf.write(json.dumps(log_row, default=str) + "\n")
+    print(f"LOGGED → {log_path}  (append-only archive of every run)")
     print("=" * 68)
 
     if args.submit:
