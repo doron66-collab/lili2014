@@ -5,9 +5,10 @@ A beginner-friendly walkthrough to run the SOLANGE HPC pipeline on the
 *what*. Work through it top to bottom.
 
 Cluster facts (for reference):
-- Scheduler: **SLURM**. GPU partition: `gpu` (A100 80GB/40GB, L40S, A40, V100, P100).
-- We target **A100-80GB** — best FP64, ~30-qubit statevector ceiling.
-- Home directory: `/home1/<NetID>`.
+- Cluster: **Laguna**, part of **USC CARC**. OnDemand portal: `laguna-ood.carc.usc.edu`.
+- Scheduler: **SLURM**. GPU partition: `gpu` (target **A100-80GB** — best FP64,
+  ~30-qubit statevector ceiling).
+- Home directory: `/home1/<NetID>` (CARC convention).
 
 ---
 
@@ -17,14 +18,22 @@ Cluster facts (for reference):
 
 ---
 
-## Step 1 — Log in (SSH)
+## Step 1 — Log in (get a terminal) — two equivalent options
+
+**Option A — SSH (terminal client):**
 ```bash
-ssh <your-NetID>@discovery.usc.edu
+ssh <your-NetID>@laguna.carc.usc.edu
 ```
 Enter your password, then approve the Duo prompt on your phone.
+(If that hostname is rejected, check the CARC "Getting Started with Laguna" page
+for the exact login host and use that.)
 
-You are now on a **login node**. RULE: never run heavy compute here — it is shared.
-We send the real work to a compute node in Step 5.
+**Option B — OnDemand shell (browser, no SSH client):**
+Go to `https://laguna-ood.carc.usc.edu`, log in (NetID + Duo), then top menu
+**Clusters → Laguna Shell Access**. This opens a real terminal in the browser.
+
+Either way you land on a **login node**. RULE: never run heavy compute here — it is
+shared. We send the real work to a compute node in Step 5.
 
 ---
 
