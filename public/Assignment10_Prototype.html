@@ -763,6 +763,78 @@
     <div id="pipe-status-line" style="font-size:11px;color:var(--gray);margin-top:6px;min-height:16px"></div>
   </div>
 
+  <!-- ── Compute Dispatcher — QC·AI·HPC backend routing ─────────────────── -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing</div>
+    <p style="font-size:11px;color:var(--gray);margin:4px 0 12px;line-height:1.6">
+      The orchestrator routes each active-space size to the backend that can actually solve it:
+      CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that,
+      and real quantum hardware once the problem passes the classical reach. The rule is applied
+      per problem — this is a dispatch <em>decision</em>, not in-browser execution.
+    </p>
+    <div id="dispatch-tiers" style="margin-bottom:16px;overflow-x:auto"></div>
+    <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
+    <div id="dispatch-muts" style="margin:6px 0 16px;overflow-x:auto"></div>
+    <div class="card-title" style="font-size:13px">Phase 3A-HPC Ladder · Laguna (USC CARC)</div>
+    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
+      Real runs dispatched to the Laguna cluster — <strong>not</strong> executed in-browser.
+      <span style="color:var(--teal)">exact</span> = reference ground state · VQE-UCCSD = near-term-device demonstration.
+    </p>
+    <div id="dispatch-hpc" style="overflow-x:auto"></div>
+  </div>
+  <script>
+  (function(){
+    function routeBackend(q){
+      if(q<=4)   return {t:'CPU statevector',       w:'Render · live in-browser',        p:'3A',     c:'#22c55e'};
+      if(q<=30)  return {t:'GPU statevector',        w:'Laguna · L40S/A100 (cuStateVec)', p:'3A-HPC', c:'#06b6d4'};
+      if(q<=120) return {t:'DMRG / tensor-network',  w:'Laguna · largemem (1.5 TB)',      p:'3A-HPC', c:'#a78bfa'};
+      return               {t:'Quantum hardware',     w:'IBM Heron r3',                    p:'3B',     c:'#E8A020'};
+    }
+    window.routeBackend = routeBackend;
+    var C='padding:6px 9px;border-bottom:1px solid var(--border);font-size:11px;white-space:nowrap';
+    var TH='text-align:left;'+C+';color:var(--gray);font-weight:600';
+    function badge(txt,col){return '<span style="color:'+col+';font-weight:700">'+txt+'</span>';}
+
+    // 1) tier rule
+    var tiers=[['≤ 4 qubits',4],['5 – 30 qubits',20],['31 – 120 qubits',80],['> 120 qubits',300]];
+    var h='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Problem size</th>'+
+      '<th style="'+TH+'">Backend</th><th style="'+TH+'">Where</th><th style="'+TH+'">Phase</th></tr>';
+    tiers.forEach(function(t){var r=routeBackend(t[1]);
+      h+='<tr><td style="'+C+'">'+t[0]+'</td><td style="'+C+'">'+badge(r.t,r.c)+'</td>'+
+         '<td style="'+C+';color:var(--gray)">'+r.w+'</td><td style="'+C+'">Phase '+r.p+'</td></tr>';});
+    document.getElementById('dispatch-tiers').innerHTML=h+'</table>';
+
+    // 2) per-mutation routing (full active site)
+    var muts=[['TP53','p.Cys275Phe',88],['KEAP1','p.Cys196Leufs*',310],
+      ['CDKN2A','Homozygous deletion',40],['ARID2','p.Gln1118*',56],['STK11','Loss-of-function',304]];
+    var m='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Gene</th>'+
+      '<th style="'+TH+'">Mutation</th><th style="'+TH+'">Full site</th><th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
+    muts.forEach(function(x){var r=routeBackend(x[2]);
+      m+='<tr><td style="'+C+';font-weight:700">'+x[0]+'</td><td style="'+C+';color:var(--gray)">'+x[1]+'</td>'+
+         '<td style="'+C+'">'+x[2]+'q</td><td style="'+C+'">'+badge(r.t,r.c)+' <span style="color:var(--gray);font-size:10px">· '+r.w+'</span></td>'+
+         '<td style="'+C+'">Phase '+r.p+'</td></tr>';});
+    document.getElementById('dispatch-muts').innerHTML=m+'</table>';
+
+    // 3) HPC ladder — real Laguna runs (ARID2 acetamide/native, 6-31g). exact = reference.
+    var hpc=[
+      {cas:'CAS(2,2)',  q:4,  ex:-205.319503, vqe:-205.319492, d:0.01, dev:'CPU · live (SOLANGE)'},
+      {cas:'CAS(8,8)',  q:16, ex:-208.007882, vqe:-208.003740, d:4.14, dev:'Laguna · CPU (lightning.qubit)'},
+      {cas:'CAS(10,10)',q:20, ex:null,        vqe:null,        d:null, dev:'Laguna · GPU (lightning.gpu)', run:true}
+    ];
+    var f=function(v){return v==null?'—':v.toFixed(6);};
+    var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Active space</th>'+
+      '<th style="'+TH+'">Qubits</th><th style="'+TH+'">Exact (Ha)</th><th style="'+TH+'">VQE-UCCSD (Ha)</th>'+
+      '<th style="'+TH+'">ΔE</th><th style="'+TH+'">Backend</th></tr>';
+    hpc.forEach(function(x){var r=routeBackend(x.q);
+      var de=x.run?'<span style="color:var(--gold)">running…</span>':
+        (x.d<=1.6?'<span style="color:var(--green)">':'<span style="color:var(--gold)">')+x.d.toFixed(2)+' mHa</span>';
+      hh+='<tr><td style="'+C+';font-weight:600">'+x.cas+'</td><td style="'+C+'">'+x.q+'q</td>'+
+          '<td style="'+C+';color:var(--teal)">'+f(x.ex)+'</td><td style="'+C+'">'+f(x.vqe)+'</td>'+
+          '<td style="'+C+'">'+de+'</td><td style="'+C+';color:'+r.c+';font-size:10px">'+x.dev+'</td></tr>';});
+    document.getElementById('dispatch-hpc').innerHTML=hh+'</table>';
+  })();
+  </script>
+
   <div class="grid-2" style="margin-bottom:16px">
     <!-- Job Dispatcher -->
     <div class="card">
