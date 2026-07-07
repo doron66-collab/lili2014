@@ -426,6 +426,10 @@ def main():
     ap.add_argument("--vqe", action="store_true", help="also run statevector VQE (GPU)")
     ap.add_argument("--vqe-steps", type=int, default=80)
     ap.add_argument("--out", default="./out", help="output directory")
+    ap.add_argument("--submit", nargs="?", const="https://qcaihpc-simulation-api.onrender.com",
+                    default=None, metavar="URL",
+                    help="POST result+provenance to the SOLANGE backend for dynamic ingest "
+                         "(re-verified there). Optional URL; defaults to the production API.")
     ap.add_argument("--verbose", type=int, default=0)
     args = ap.parse_args()
 
@@ -511,14 +515,32 @@ def main():
     prov_path.write_text(json.dumps(prov, indent=2, default=str))
     print(f"WROTE {prov_path}")
     print(f"P8 seal: {prov['p8_hash'][:16]}…  "
-          f"(SOLANGE re-verifies this later by recomputing the hash — that check needs no GPU)")
+          f"(SOLANGE re-verifies this by recomputing the hash — that check needs no GPU)")
     print("=" * 68)
-    print("NOTE: these two files are on Laguna ONLY — they are NOT in SOLANGE yet and")
-    print("nothing has been pushed. To get them into SOLANGE, either:")
-    print(f"  • POST them to the /api/simulate/hpc endpoint (dynamic — coming), or")
-    print(f"  • send them to sync manually:")
-    print(f"      {jw_path}")
-    print(f"      {prov_path}")
+
+    if args.submit:
+        try:
+            import urllib.request
+            url = args.submit.rstrip("/") + "/api/simulate/hpc/submit"
+            body = json.dumps({"jw": jw_entry, "provenance": prov}, default=str).encode()
+            req = urllib.request.Request(
+                url, data=body, method="POST",
+                headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                resp = json.loads(r.read().decode())
+            print(f"SUBMITTED → {url}")
+            print(f"  status={resp.get('status')}  seal_ok={resp.get('seal_ok')}  "
+                  f"consistency_ok={resp.get('consistency_ok')}  db={resp.get('db_status')}")
+            print(f"  SOLANGE recomputed P8 = {str(resp.get('recomputed_p8'))[:16]}… "
+                  f"({'matched → verified' if resp.get('seal_ok') else 'MISMATCH'})")
+            print("  → now visible in SOLANGE · phase=3A-HPC · provenance_source=HPC/Laguna")
+        except Exception as e:
+            print(f"SUBMIT FAILED ({e}). Files are saved locally — retry --submit or sync manually:")
+            print(f"  {jw_path}\n  {prov_path}")
+    else:
+        print("NOTE: files are on Laguna only — NOT in SOLANGE. Add --submit to POST them")
+        print("      (re-verified there), or sync manually:")
+        print(f"  {jw_path}\n  {prov_path}")
 
 
 if __name__ == "__main__":
