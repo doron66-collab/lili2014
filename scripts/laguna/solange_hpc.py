@@ -176,6 +176,12 @@ def build_jw_terms(h1e, h2e, ncas, exact=True):
     one_body = np.zeros((dim, dim))
     two_body = np.zeros((dim, dim, dim, dim))
 
+    # PySCF get_h2eff is CHEMIST-ordered (pq|rs); OpenFermion's two_body_tensor
+    # is PHYSICIST-ordered for a†_p a†_q a_r a_s. Correct remap: g = h2e(0,2,3,1),
+    # paired with the ab/ba spin pattern below. Verified end-to-end (2e-sector
+    # ground state == e_casscf - ecore for both symmetric and asymmetric compounds).
+    g = np.transpose(np.asarray(h2e), (0, 2, 3, 1))
+
     for p in range(n_orb):
         for q in range(n_orb):
             one_body[2*p,   2*q]   = h1e[p, q]      # alpha
@@ -185,11 +191,11 @@ def build_jw_terms(h1e, h2e, ncas, exact=True):
         for q in range(n_orb):
             for r in range(n_orb):
                 for s in range(n_orb):
-                    val = 0.5 * h2e[p, q, r, s]
+                    val = 0.5 * g[p, q, r, s]
                     two_body[2*p,   2*q,   2*r,   2*s]   = val   # aa
                     two_body[2*p+1, 2*q+1, 2*r+1, 2*s+1] = val   # bb
-                    two_body[2*p,   2*q+1, 2*r,   2*s+1] = val   # ab
-                    two_body[2*p+1, 2*q,   2*r+1, 2*s]   = val   # ba
+                    two_body[2*p,   2*q+1, 2*r+1, 2*s]   = val   # ab
+                    two_body[2*p+1, 2*q,   2*r,   2*s+1] = val   # ba
 
     ham_op = InteractionOperator(constant=0.0,
                                  one_body_tensor=one_body,

@@ -562,31 +562,36 @@ def build_jw_terms(h1e, h2e, ecore):
     import scipy.sparse.linalg as spla
 
     # Construct InteractionOperator from 1e/2e integrals (2 spatial orbitals, 4 spin-orbitals)
-    # Convention: h2e_of[i,j,k,l] = <ij|kl> = h2e[i,k,j,l] (openfermion uses chemist notation)
+    # PySCF get_h2eff returns CHEMIST-ordered integrals (pq|rs). OpenFermion's
+    # two_body_tensor expects PHYSICIST ordering for a†_p a†_q a_r a_s. The correct
+    # remap is g[p,q,r,s] = h2e_chem[p,s,q,r]  (numpy transpose (0,2,3,1)), paired
+    # with the ab/ba spin pattern below. Verified end-to-end: 2e-sector ground
+    # state of the resulting qubit Hamiltonian == e_casscf - ecore to <1e-4 Ha for
+    # BOTH symmetric compounds (toluene) and asymmetric ones (acetamide/formamide).
+    # The previous direct mapping h2e[p,q,r,s] with the swapped spin pattern was
+    # masked by integral symmetry for most compounds but wrong for acetamide —
+    # the ARID2 −206.86 vs −205.32 bug.
     n_orb = 2
     one_body = np.zeros((2 * n_orb, 2 * n_orb))
     two_body = np.zeros((2 * n_orb, 2 * n_orb, 2 * n_orb, 2 * n_orb))
 
-    # Spin-orbital mapping: 0=α0, 1=α1, 2=β0, 3=β1
+    g = np.transpose(np.asarray(h2e), (0, 2, 3, 1))   # chemist -> physicist ordering
+
+    # Spin-orbital mapping: index 2*p = orbital p (alpha), 2*p+1 = orbital p (beta)
     for p in range(n_orb):
         for q in range(n_orb):
-            # Alpha spin
-            one_body[2*p,   2*q]   = h1e[p, q]
-            # Beta spin
-            one_body[2*p+1, 2*q+1] = h1e[p, q]
+            one_body[2*p,   2*q]   = h1e[p, q]   # alpha
+            one_body[2*p+1, 2*q+1] = h1e[p, q]   # beta
 
     for p in range(n_orb):
         for q in range(n_orb):
             for r in range(n_orb):
                 for s in range(n_orb):
-                    val = 0.5 * h2e[p, q, r, s]
-                    # αα
-                    two_body[2*p,   2*q,   2*r,   2*s]   = val
-                    # ββ
-                    two_body[2*p+1, 2*q+1, 2*r+1, 2*s+1] = val
-                    # αβ
-                    two_body[2*p,   2*q+1, 2*r,   2*s+1] = val
-                    two_body[2*p+1, 2*q,   2*r+1, 2*s]   = val
+                    val = 0.5 * g[p, q, r, s]
+                    two_body[2*p,   2*q,   2*r,   2*s]   = val   # αα
+                    two_body[2*p+1, 2*q+1, 2*r+1, 2*s+1] = val   # ββ
+                    two_body[2*p,   2*q+1, 2*r+1, 2*s]   = val   # αβ
+                    two_body[2*p+1, 2*q,   2*r,   2*s+1] = val   # βα
 
     ham_op = InteractionOperator(constant=0.0, one_body_tensor=one_body, two_body_tensor=two_body)
     jw_op  = jordan_wigner(ham_op)
