@@ -279,6 +279,7 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
     t0 = time.time()
     energies = []
     best = float("inf")
+    best_params = params
     stall = 0
     for i in range(steps):
         params, e = opt.step_and_cost(circuit, params)
@@ -288,6 +289,7 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
             print(f"    step {i:3d}  E = {e:.6f} Ha  (stepsize {opt.stepsize:.3g})")
         if e < best - 1e-8:
             best = e
+            best_params = params.copy()      # keep the BEST, not the last
             stall = 0
         else:
             stall += 1
@@ -295,9 +297,10 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
                 opt.stepsize *= 0.5
                 stall = 0
                 if opt.stepsize < 5e-4:      # already at the minimum → stop
-                    print(f"    converged at step {i} (E = {e:.8f} Ha)")
+                    print(f"    converged at step {i} (best E = {best:.8f} Ha)")
                     break
     elapsed = time.time() - t0
+    params = best_params                     # report the best variational estimate
     tail = energies[-20:] if len(energies) >= 20 else energies
     variance = float(np.var(tail))
 
@@ -315,9 +318,9 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
         pass
 
     return {
-        "energy_ha": float(energies[-1]), "variance": variance,
+        "energy_ha": float(best), "variance": variance,
         "elapsed_s": round(elapsed, 3), "device": str(dev.name),
-        "gate_count": gate_count, "depth": depth, "steps": steps,
+        "gate_count": gate_count, "depth": depth, "steps": len(energies),
         "convergence": energies,
     }
 
