@@ -339,8 +339,15 @@ def build_p8_seal(record: dict) -> str:
 def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb):
     now = datetime.now(timezone.utc).isoformat()
     n_qubits = 2 * cas["ncas"]
-    energy = vqe["energy_ha"] if vqe else (e_active_exact if e_active_exact is not None
-                                           else cas["e_casscf"])
+    # p7 must be a TOTAL energy (ecore + active) to match e_casscf (total) and the
+    # live 4q runs' convention — VQE/exact solve the ACTIVE Hamiltonian (ecore=0),
+    # so add ecore back. Storing the active energy made ΔE nonsense in the panel.
+    if vqe:
+        energy = cas["ecore"] + vqe["energy_ha"]
+    elif e_active_exact is not None:
+        energy = cas["ecore"] + e_active_exact
+    else:
+        energy = cas["e_casscf"]
     method = "statevector VQE (AllSinglesDoubles UCCSD)" if vqe else \
              "exact active-space diagonalisation"
     backend = (f"{gpu_name} · {vram_mb} MiB · "
