@@ -860,11 +860,21 @@
         var q=orb?2*orb:null;
         var r=routeBackend(q||4);
         var ex=x.p5_casscf_ref_ha, vqe=x.p7_energy_ha;
-        var dmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
-        var de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
+        // Exact-reference-only rung (VQE-UCCSD ansatz impractical at this size):
+        // show it honestly — no fake ΔE=0 from comparing exact against itself.
+        var exactOnly=/exact/i.test(x.p7_method||'')||/none/i.test(x.p1_ansatz||'');
+        var vqeCell, de;
+        if(exactOnly){
+          vqeCell='<span style="color:var(--gray)">— (UCCSD ansatz walls out)</span>';
+          de='<span style="color:var(--gray)">—</span>';
+        } else {
+          vqeCell=f(vqe);
+          var dmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
+          de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
+        }
         var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):(x.mutation_id||'—');
         hh+='<tr><td style="'+C+';font-weight:600">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
-            '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+f(vqe)+'</td>'+
+            '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
             '<td style="'+C+'"><span style="color:var(--green)" title="'+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td></tr>';
       });

@@ -614,9 +614,9 @@ async def list_hpc_runs(limit: int = 50):
     try:
         res = (sb.table("simulation_runs")
                  .select("id, created_at, mutation_id, mutation_name, phase, "
-                         "p2_active_electrons, p2_active_orbitals, p2_basis_set, "
+                         "p1_ansatz, p2_active_electrons, p2_active_orbitals, p2_basis_set, "
                          "p3_backend, p5_elapsed_s, p5_ecore_ha, p5_casscf_ref_ha, "
-                         "p7_energy_ha, p8_hash")
+                         "p7_energy_ha, p7_method, p8_hash")
                  .eq("phase", "3A-HPC")
                  .order("created_at", desc=True)
                  .limit(limit)
