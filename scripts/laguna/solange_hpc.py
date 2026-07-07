@@ -474,8 +474,12 @@ def main():
         print("Running statevector VQE ...")
         vqe = run_vqe(terms, n_qubits, args.nelecas, steps=args.vqe_steps)
         print(f"VQE     E = {vqe['energy_ha']:.8f} Ha  ({vqe['elapsed_s']}s, {vqe['device']})")
-        if e_active_exact is not None:
-            print(f"ΔE(VQE−exact) = {(vqe['energy_ha']-e_active_exact)*1000:.3f} mHa")
+        # exact reference: openfermion diag (<=16q) else the pyscf FCI from the
+        # consistency gate (available at every size) — so ΔE prints beyond 16 qubits.
+        exact_ref = e_active_exact if e_active_exact is not None else cas.get("e_fci_active")
+        if exact_ref is not None:
+            print(f"exact active E = {exact_ref:.8f} Ha  (reference)")
+            print(f"ΔE(VQE−exact) = {(vqe['energy_ha']-exact_ref)*1000:.3f} mHa")
 
     # e_active_rhf: active-space HF reference = total RHF − frozen-core energy.
     e_active_rhf = cas["e_rhf"] - cas["ecore"]
@@ -506,10 +510,15 @@ def main():
     prov_path = Path(args.out) / f"provenance_{args.key}_{args.side}.json"
     prov_path.write_text(json.dumps(prov, indent=2, default=str))
     print(f"WROTE {prov_path}")
-    print(f"P8 seal: {prov['p8_hash'][:16]}…  (re-verifiable in SOLANGE, no GPU needed)")
+    print(f"P8 seal: {prov['p8_hash'][:16]}…  "
+          f"(SOLANGE re-verifies this later by recomputing the hash — that check needs no GPU)")
     print("=" * 68)
-    print("Send both JSON files back to sync into SOLANGE "
-          "(jw_hamiltonians.json + Compliance record).")
+    print("NOTE: these two files are on Laguna ONLY — they are NOT in SOLANGE yet and")
+    print("nothing has been pushed. To get them into SOLANGE, either:")
+    print(f"  • POST them to the /api/simulate/hpc endpoint (dynamic — coming), or")
+    print(f"  • send them to sync manually:")
+    print(f"      {jw_path}")
+    print(f"      {prov_path}")
 
 
 if __name__ == "__main__":
