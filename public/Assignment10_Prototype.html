@@ -2320,9 +2320,12 @@ function loadDemoNGS() { loadNGSReport(MI25_0349); }
 // ── Known gene → platform mapping ─────────────────────────────────────────
 const GENE_MAP = {
   // ── Core NSCLC targets ───────────────────────────────────────────────
-  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:44,  full_qubits:88  },
-  KEAP1:   { badge_type:'PPI',              color:'#b47fd4', active_electrons:155, full_qubits:310 },
-  STK11:   { badge_type:'SL',              color:'#60a5fa', active_electrons:152, full_qubits:304 },
+  // bqp_class = authoritative A/B/C classification (matches backend + dissertation),
+  // NOT derived from size. A = quantum-necessary (no classical path); B = quantum-
+  // advantaged (classical insufficient). KEAP1 is the tell: biggest at 310q yet B.
+  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:44,  full_qubits:88,  bqp_class:'A' },
+  KEAP1:   { badge_type:'PPI',              color:'#b47fd4', active_electrons:155, full_qubits:310, bqp_class:'B' },
+  STK11:   { badge_type:'SL',              color:'#60a5fa', active_electrons:152, full_qubits:304, bqp_class:'A' },
   KRAS:    { badge_type:'Structural',        color:'#34d399', active_electrons:40,  full_qubits:80  },
   BRAF:    { badge_type:'Structural',        color:'#f87171', active_electrons:44,  full_qubits:88  },
   EGFR:    { badge_type:'Structural',        color:'#fbbf24', active_electrons:48,  full_qubits:96  },
@@ -2342,7 +2345,7 @@ const GENE_MAP = {
   // ── Pan-cancer chromatin / DNA-repair ────────────────────────────────
   SMARCA4: { badge_type:'ATPase LOF',        color:'#dc2626', active_electrons:40,  full_qubits:80  },
   ARID1A:  { badge_type:'Chromatin LOF',     color:'#1e40af', active_electrons:28,  full_qubits:56  },
-  ARID2:   { badge_type:'Chromatin LOF',     color:'#3730a3', active_electrons:28,  full_qubits:56  },
+  ARID2:   { badge_type:'Chromatin LOF',     color:'#3730a3', active_electrons:28,  full_qubits:56,  bqp_class:'B' },
   POLE:    { badge_type:'Exonuclease LOF',   color:'#7c3aed', active_electrons:24,  full_qubits:48  },
   BRCA1:   { badge_type:'DNA Repair LOF',    color:'#be185d', active_electrons:32,  full_qubits:64  },
   BRCA2:   { badge_type:'DNA Repair LOF',    color:'#9d174d', active_electrons:32,  full_qubits:64  },
@@ -2353,7 +2356,7 @@ const GENE_MAP = {
   NF2:     { badge_type:'Scaffold LOF',      color:'#713f12', active_electrons:22,  full_qubits:44  },
   AXIN1:   { badge_type:'WNT Scaffold',      color:'#365314', active_electrons:24,  full_qubits:48  },
   AXIN2:   { badge_type:'WNT Scaffold',      color:'#166534', active_electrons:24,  full_qubits:48  },
-  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#1d4ed8', active_electrons:20,  full_qubits:40  },
+  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#1d4ed8', active_electrons:20,  full_qubits:40,  bqp_class:'B' },
 };
 
 function geneSimId(gene, mutation) {
@@ -2941,7 +2944,9 @@ function loadNGSReport(ngs) {
     const simId = resolveSimId(gene, v.mutation);
     if (seenSimIds.has(simId)) return;
     seenSimIds.add(simId);
-    const bqpCls = gm.active_electrons >= 30 ? 'A' : 'B';
+    // Authoritative class (matches backend/dissertation) when defined; the size
+    // proxy is only a fallback for genes without a curated classification.
+    const bqpCls = gm.bqp_class || (gm.active_electrons >= 30 ? 'A' : 'B');
     const phase3a = PHASE3A_IDS.has(simId);
     allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs') });
   });
