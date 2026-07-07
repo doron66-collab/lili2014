@@ -269,15 +269,34 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
 
     n_params = len(singles) + len(doubles)
     params = pnp.zeros(n_params, requires_grad=True)
-    opt = qml.AdamOptimizer(stepsize=0.05)
+    opt = qml.AdamOptimizer(stepsize=0.1)
 
+    # Adaptive loop: `steps` is a MAX. When the energy stops improving we shrink
+    # the stepsize (settles into the minimum → closes the last mHa to chemical
+    # accuracy); when the stepsize is tiny AND progress has stalled we stop early
+    # (no wasted iterations on a plateau). Fixes both the ~4 mHa plateau and the
+    # "400 steps but converged by ~120" waste.
     t0 = time.time()
     energies = []
+    best = float("inf")
+    stall = 0
     for i in range(steps):
         params, e = opt.step_and_cost(circuit, params)
-        energies.append(float(e))
+        e = float(e)
+        energies.append(e)
         if i % 20 == 0:
-            print(f"    step {i:3d}  E = {float(e):.6f} Ha")
+            print(f"    step {i:3d}  E = {e:.6f} Ha  (stepsize {opt.stepsize:.3g})")
+        if e < best - 1e-8:
+            best = e
+            stall = 0
+        else:
+            stall += 1
+            if stall >= 25:                 # progress stalled → refine
+                opt.stepsize *= 0.5
+                stall = 0
+                if opt.stepsize < 5e-4:      # already at the minimum → stop
+                    print(f"    converged at step {i} (E = {e:.8f} Ha)")
+                    break
     elapsed = time.time() - t0
     tail = energies[-20:] if len(energies) >= 20 else energies
     variance = float(np.var(tail))
