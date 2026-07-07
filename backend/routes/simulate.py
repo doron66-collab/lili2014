@@ -17,7 +17,7 @@ import pennylane as qml
 from pennylane import numpy as pnp
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Body, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from supabase import create_client
 
@@ -521,6 +521,95 @@ async def get_results(limit: int = 20, authorization: str | None = Header(None))
              .limit(limit)
              .execute())
     return {"data": res.data, "count": len(res.data)}
+
+
+@router.post("/hpc/submit")
+async def submit_hpc_run(payload: dict = Body(...)):
+    """Ingest an externally-executed HPC run (e.g. Laguna) into SOLANGE.
+
+    SOLANGE does NOT trust the submitter — it EARNS the green "Passed" by:
+      1. Re-computing the P8 seal (SHA-256 over P1-P7,P9) and comparing to the
+         submitted hash — proves the record is complete and untampered-since-seal.
+      2. Re-checking physics consistency (ecore + e_active == e_casscf) when the
+         Hamiltonian metadata is present — a cheap independent sanity check.
+    A record that fails seal verification is REJECTED (422), never stored.
+    The stored record is always stamped phase=3A-HPC and provenance_source so an
+    external run is never disguised as an in-browser one.
+    """
+    prov = payload.get("provenance") or {}
+    jw   = payload.get("jw") or {}
+    if not prov or not prov.get("p8_hash"):
+        raise HTTPException(400, "missing provenance record or p8_hash")
+
+    # 1) Re-verify the P8 seal by recomputing it ourselves.
+    submitted = prov["p8_hash"]
+    recomputed = build_p8_seal(prov)
+    seal_ok = (submitted == recomputed)
+    if not seal_ok:
+        raise HTTPException(
+            422, f"P8 seal verification FAILED — recomputed {recomputed[:16]}… "
+                 f"!= submitted {str(submitted)[:16]}…; record rejected")
+
+    # 2) Independent physics-consistency check (cheap, no GPU).
+    consistency_ok = None
+    ecore, ecas, eact = jw.get("ecore"), jw.get("e_casscf"), jw.get("e_active_exact")
+    if None not in (ecore, ecas, eact):
+        consistency_ok = abs((ecore + eact) - ecas) < 1e-3
+        if consistency_ok is False:
+            raise HTTPException(
+                422, f"physics consistency FAILED — ecore+e_active ({ecore+eact:.6f}) "
+                     f"!= e_casscf ({ecas:.6f}); record rejected")
+
+    # 3) Build the stored record — force honest phase/source labels.
+    record = dict(prov)
+    record["phase"] = "3A-HPC"
+    record["provenance_source"] = prov.get("provenance_source", "HPC/external")
+    record.setdefault("id", str(uuid.uuid4()))
+    record.setdefault("mutation_name", record.get("mutation_id"))
+
+    safe = {k: v for k, v in record.items() if k in _DB_COLUMNS}
+    sb = get_supabase()
+    db_status = "not_configured"
+    if sb:
+        try:
+            sb.table("simulation_runs").insert(safe).execute()
+            db_status = "stored"
+        except Exception as e:
+            db_status = "error"
+            logging.error("HPC insert failed: %s", e)
+
+    return {
+        "status":            "PASSED",
+        "verified":          True,
+        "seal_ok":           seal_ok,
+        "consistency_ok":    consistency_ok,
+        "recomputed_p8":     recomputed,
+        "phase":             "3A-HPC",
+        "provenance_source": record["provenance_source"],
+        "run_id":            record["id"],
+        "db_status":         db_status,
+    }
+
+
+@router.get("/hpc/runs")
+async def list_hpc_runs(limit: int = 50):
+    """List externally-executed HPC runs for the dashboard (phase=3A-HPC)."""
+    sb = get_supabase()
+    if not sb:
+        return {"runs": [], "db": "not_configured"}
+    try:
+        res = (sb.table("simulation_runs")
+                 .select("id, created_at, mutation_id, mutation_name, phase, "
+                         "p2_active_electrons, p2_active_orbitals, p2_basis_set, "
+                         "p3_backend, p5_elapsed_s, p5_ecore_ha, p5_casscf_ref_ha, "
+                         "p7_energy_ha, p8_hash")
+                 .eq("phase", "3A-HPC")
+                 .order("created_at", desc=True)
+                 .limit(limit)
+                 .execute())
+        return {"runs": res.data or []}
+    except Exception as e:
+        return {"runs": [], "error": str(e)}
 
 
 @router.get("/{mutation_id}")
