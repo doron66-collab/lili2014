@@ -129,10 +129,34 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0):
         print(f"  WARNING: CASSCF did not fully converge for {compound} "
               f"CAS({nelecas},{ncas})/{basis} (JW terms still valid)", file=sys.stderr)
 
+    if not mc.converged:
+        # A non-converged CASSCF yields integrals inconsistent with e_casscf —
+        # exactly the ARID2 failure. Retry with the second-order (Newton) solver.
+        print(f"  CASSCF slow to converge — retrying with second-order (Newton) solver...",
+              file=sys.stderr)
+        mc = mcscf.CASSCF(mf, ncas=ncas, nelecas=nelecas).newton()
+        mc.max_cycle_macro = 300
+        e_casscf = mc.kernel()[0]
+    if not mc.converged:
+        raise RuntimeError(
+            f"CASSCF failed to converge for {compound}/{basis} CAS({nelecas},{ncas}) "
+            f"even with the Newton solver — refusing to emit an inconsistent Hamiltonian.")
+
     h1e, ecore = mc.get_h1eff()
     h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
+
+    # Consistency gate: active-space FCI of (h1e,h2e) must equal e_casscf - ecore.
+    from pyscf import fci
+    na = nelecas // 2
+    e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelecas - na), ecore=0.0)[0]
+    if abs((ecore + e_fci) - e_casscf) > 1e-3:
+        raise RuntimeError(
+            f"{compound}: active-space FCI ({ecore + e_fci:.6f} Ha) != e_casscf "
+            f"({e_casscf:.6f} Ha) — Hamiltonian inconsistent, refusing to emit.")
+
     return {
         "e_rhf": float(e_rhf), "e_casscf": float(e_casscf), "ecore": float(ecore),
+        "e_fci_active": float(e_fci),
         "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelecas),
         "n_ao": int(n_ao), "converged": bool(mc.converged),
     }
@@ -426,7 +450,8 @@ def main():
         "residue_note":   args.residue,
         "ecore":          cas["ecore"],
         "e_casscf":       cas["e_casscf"],
-        "e_active_exact": e_active_exact if e_active_exact is not None else cas["e_casscf"],
+        "e_active_exact": cas.get("e_fci_active",
+                                  e_active_exact if e_active_exact is not None else cas["e_casscf"]),
         "e_active_rhf":   float(e_active_rhf),
         "n_paulis":       len(terms),
         "terms":          terms,

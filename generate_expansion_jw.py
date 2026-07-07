@@ -497,25 +497,53 @@ def run_casscf(compound_name, verbose=0):
     if not mf.converged:
         raise RuntimeError(f"RHF did not converge for {compound_name}")
 
-    mc = mcscf.CASSCF(mf, ncas=2, nelecas=2)
-    mc.conv_tol       = 1e-9
-    mc.conv_tol_grad  = 1e-5
-    mc.max_cycle_macro = 150
-    e_casscf = mc.kernel()[0]
+    def _run(second_order):
+        mc = mcscf.CASSCF(mf, ncas=2, nelecas=2)
+        if second_order:
+            mc = mc.newton()            # augmented-Hessian / Newton CASSCF
+        mc.fix_spin_(ss=0)              # enforce singlet
+        mc.conv_tol        = 1e-9
+        mc.conv_tol_grad   = 1e-5
+        mc.max_cycle_macro = 300
+        mc.max_cycle_micro = 8
+        e = mc.kernel()[0]
+        return mc, e
+
+    # Standard CASSCF first; if it does not converge, retry with the
+    # second-order (Newton) solver — the standard fix for stubborn CAS(2,2)
+    # cases such as acetamide, which USED to silently emit an INCONSISTENT
+    # Hamiltonian (live VQE total != e_casscf, the ARID2 bug) before this guard.
+    mc, e_casscf = _run(second_order=False)
     if not mc.converged:
-        print(f"  WARNING: CASSCF did not fully converge for {compound_name}", file=sys.stderr)
+        print(f"  CASSCF slow to converge for {compound_name} — retrying with "
+              f"second-order (Newton) solver...", file=sys.stderr)
+        mc, e_casscf = _run(second_order=True)
+    if not mc.converged:
+        raise RuntimeError(
+            f"CASSCF failed to converge for {compound_name} even with the Newton "
+            f"solver — refusing to emit an inconsistent Hamiltonian.")
 
     h1e, ecore = mc.get_h1eff()
-    h2e_compressed = mc.get_h2eff()
-    h2e = ao2mo.restore(1, h2e_compressed, mc.ncas)
+    h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
+
+    # Consistency gate: the 2-electron active-space FCI of (h1e, h2e) MUST equal
+    # e_casscf - ecore. If it does not, the integrals are inconsistent with the
+    # reported energy (exactly the ARID2 failure) — fail loudly, never ship it.
+    from pyscf import fci
+    e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, mc.ncas, (1, 1), ecore=0.0)[0]
+    if abs((ecore + e_fci) - e_casscf) > 1e-3:
+        raise RuntimeError(
+            f"{compound_name}: active-space FCI ({ecore + e_fci:.6f} Ha) != "
+            f"e_casscf ({e_casscf:.6f} Ha) — Hamiltonian inconsistent, refusing to emit.")
 
     return {
-        'e_rhf':    e_rhf,
-        'e_casscf': e_casscf,
-        'ecore':    float(ecore),
-        'h1e':      h1e,
-        'h2e':      h2e,
-        'converged': bool(mc.converged),
+        'e_rhf':        e_rhf,
+        'e_casscf':     e_casscf,
+        'ecore':        float(ecore),
+        'e_fci_active': float(e_fci),   # 2e-sector FCI (matches the live VQE)
+        'h1e':          h1e,
+        'h2e':          h2e,
+        'converged':    bool(mc.converged),
     }
 
 
@@ -593,7 +621,14 @@ def compute_jw_entry(compound_name, residue_note, cached_casscf=None, verbose=0)
     else:
         r = run_casscf(compound_name, verbose=verbose)
 
-    terms, e_active_exact, e_active_rhf = build_jw_terms(r['h1e'], r['h2e'], r['ecore'])
+    terms, _eigsh_global, e_active_rhf = build_jw_terms(r['h1e'], r['h2e'], r['ecore'])
+
+    # Store the 2-electron-sector FCI as e_active_exact — this is what the live
+    # VQE (restricted to 2 electrons via HF |1100>) actually converges to, so
+    # ecore + e_active_exact == e_casscf. For well-behaved compounds this equals
+    # the openfermion global minimum; for stubborn ones (acetamide) the global
+    # minimum sits in a different particle sector and must NOT be used.
+    e_active_exact = r.get('e_fci_active', _eigsh_global)
 
     return {
         'compound':       compound_name,
