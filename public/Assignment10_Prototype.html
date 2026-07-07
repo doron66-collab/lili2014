@@ -818,13 +818,18 @@
     window.solangeRenderDispatchMuts=function(variants){
       if(!variants||!variants.length){placeholder();return;}
       var m='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Class</th>'+
-        '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th><th style="'+TH+'">Full site</th>'+
+        '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th>'+
+        '<th style="'+TH+'" title="Active electrons in the full site — classical exact wall ≈ 18e">Active e⁻</th>'+
+        '<th style="'+TH+'">Full site</th>'+
         '<th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
       variants.forEach(function(v){
         var q=(v.gm&&v.gm.full_qubits)||null; var r=routeBackend(q||4);
+        var ae=(v.gm&&v.gm.active_electrons)||null;
+        var aeCol=ae==null?'—':(ae+'e'+(ae>18?' <span style="color:var(--gold);font-size:9px" title="beyond the ~18e exact-classical wall">↑wall</span>':''));
         m+='<tr><td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
            '<td style="'+C+';font-weight:700;color:'+((v.gm&&v.gm.color)||'var(--white)')+'">'+v.gene+'</td>'+
            '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
+           '<td style="'+C+'">'+aeCol+'</td>'+
            '<td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
            '<td style="'+C+'">'+badge(r.t,r.c)+' <span style="color:var(--gray);font-size:10px">· '+r.w+'</span></td>'+
            '<td style="'+C+'">Phase '+r.p+'</td></tr>';
