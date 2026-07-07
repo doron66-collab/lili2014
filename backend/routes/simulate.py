@@ -565,18 +565,32 @@ async def submit_hpc_run(payload: dict = Body(...)):
     record["phase"] = "3A-HPC"
     record["provenance_source"] = prov.get("provenance_source", "HPC/external")
     record.setdefault("id", str(uuid.uuid4()))
-    record.setdefault("mutation_name", record.get("mutation_id"))
+    # Fold the side into mutation_id so native/mutant of the same gene are distinct
+    # rows (and readable in the panel), e.g. "ARID2_LOF (native)".
+    side = prov.get("side", "native")
+    base_id = record.get("mutation_id") or "unknown"
+    record["mutation_id"]   = f"{base_id} ({side})"
+    record["mutation_name"] = f"{base_id} ({side})"
 
     safe = {k: v for k, v in record.items() if k in _DB_COLUMNS}
     sb = get_supabase()
     db_status = "not_configured"
     if sb:
         try:
+            # Upsert semantics: a re-run of the same target+side+active space REPLACES
+            # the prior row (no duplicates in the panel). The append-only local
+            # runs_log.jsonl on the cluster keeps the full archive of every run.
+            (sb.table("simulation_runs").delete()
+               .eq("phase", "3A-HPC")
+               .in_("mutation_id", [base_id, record["mutation_id"]])  # incl. legacy pre-side rows
+               .eq("p2_active_electrons", safe.get("p2_active_electrons"))
+               .eq("p2_active_orbitals", safe.get("p2_active_orbitals"))
+               .execute())
             sb.table("simulation_runs").insert(safe).execute()
             db_status = "stored"
         except Exception as e:
             db_status = "error"
-            logging.error("HPC insert failed: %s", e)
+            logging.error("HPC upsert failed: %s", e)
 
     return {
         "status":            "PASSED",
