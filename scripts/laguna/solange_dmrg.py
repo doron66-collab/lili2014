@@ -48,6 +48,10 @@ sys.path.insert(0, str(_HERE.parents[2]))      # repo root, for generate_expansi
 CHEM_ACC_MHA = 1.6          # 1 kcal/mol
 PRACTICAL_M  = 2000         # bond dimension beyond which DMRG is deemed impractical here
 EXACT_WALL_E = 18           # active electrons up to which exact classical (FCI) is fine
+S_HARD       = 1.5          # max bipartite entanglement entropy above which the DMRG
+                            # bond dimension (~e^S) blows up at the full site -> DMRG-hard.
+                            # Calibration: N2 equilibrium S_max=0.42 (easy) vs N2 stretched
+                            # S_max=2.86 (strongly correlated). 1.5 sits between them.
 
 
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg"):
@@ -70,30 +74,74 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg"):
 
 
 def classify(active_electrons, energies, s_max):
-    """Map DMRG behaviour to an A/B/C class with an explicit rationale."""
+    """Map DMRG behaviour to an A/B/C class with an explicit rationale.
+
+    Two signals:
+      • ΔE across the last two bond dims — direct evidence DMRG has (not) converged
+        at a practical M. Only bites at large active spaces; small ones are exact.
+      • S_max (max bipartite entanglement) — predicts the bond dimension the FULL
+        site needs (M ~ e^S). This is the leading indicator, since a small model
+        space is always DMRG-exact yet still reveals the correlation strength.
+    """
     dE_final = abs(energies[-1][1] - energies[-2][1]) * 1000 if len(energies) >= 2 else None
     converged = (dE_final is not None) and (dE_final < CHEM_ACC_MHA) \
                 and (energies[-1][0] <= PRACTICAL_M)
+    strong = (s_max is not None) and (s_max > S_HARD)
+    smx = "n/a" if s_max is None else f"{s_max:.2f}"
 
     if active_electrons <= EXACT_WALL_E:
         return "C", (f"{active_electrons}e ≤ {EXACT_WALL_E}e exact-classical wall — "
-                     f"CCSD(T)/FCI reaches chemical accuracy; classical sufficient.")
-    if converged:
-        return "B", (f"DMRG converged to <{CHEM_ACC_MHA} mHa by M={energies[-1][0]} "
-                     f"(ΔE={dE_final:.2f} mHa, S_max={s_max}); classical (DMRG) reaches "
-                     f"chemical accuracy — quantum-advantaged, not necessary.")
-    return "A", (f"DMRG NOT converged to chemical accuracy at practical M="
-                 f"{energies[-1][0]} (ΔE={dE_final if dE_final is None else round(dE_final,2)} mHa"
-                 f", S_max={s_max}) — no classical route delivers the needed accuracy; "
-                 f"quantum-necessary.")
+                     f"CCSD(T)/FCI reaches chemical accuracy; classical sufficient. "
+                     f"(S_max={smx})")
+    if converged and not strong:
+        return "B", (f"DMRG reaches chemical accuracy at practical M={energies[-1][0]} "
+                     f"(ΔE={dE_final:.2f} mHa) and entanglement is low (S_max={smx} < "
+                     f"{S_HARD}) — classical (DMRG) delivers; quantum-advantaged, not necessary.")
+    reasons = []
+    if strong:
+        reasons.append(f"S_max={smx} > {S_HARD} (strong correlation; DMRG bond dim ~e^S "
+                       f"blows up at the full {active_electrons}e site)")
+    if not converged:
+        reasons.append(f"DMRG not at chemical accuracy by practical M={energies[-1][0]} "
+                       f"(ΔE={'n/a' if dE_final is None else round(dE_final,2)} mHa)")
+    return "A", "quantum-necessary — " + "; ".join(reasons) + "."
+
+
+def integrals_from_geometry(xyz_path, basis, avas_aos):
+    """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
+    atomic orbitals, AVAS selects the active space automatically. Returns a dict
+    shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
+    H-capping) is the chemist's input — that step is NOT auto-generated here."""
+    from pyscf import gto, scf, ao2mo, fci
+    from pyscf.mcscf import avas
+    geom = Path(xyz_path).read_text()
+    # accept a raw xyz (skip the 2 header lines if present)
+    lines = [l for l in geom.splitlines() if l.strip()]
+    if lines and lines[0].strip().isdigit():
+        lines = lines[2:]
+    mol = gto.M(atom="\n".join(lines), basis=basis, verbose=0)
+    mf = scf.RHF(mol).run()
+    ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")])
+    from pyscf import mcscf
+    mc = mcscf.CASSCF(mf, ncas, nelec)
+    mc.fix_spin_(ss=0)
+    e_casscf = mc.kernel(mo)[0]
+    h1e, ecore = mc.get_h1eff()
+    h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
+    na = nelec // 2
+    e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelec - na), ecore=0.0)[0]
+    return {"e_casscf": float(e_casscf), "ecore": float(ecore), "e_fci_active": float(e_fci),
+            "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec)}
 
 
 def main():
     ap = argparse.ArgumentParser(description="SOLANGE DMRG A/B/C classifier (Laguna largemem).")
-    ap.add_argument("--compound", required=True)
+    ap.add_argument("--compound", help="model compound (key in GEOM) — demo mode")
+    ap.add_argument("--geometry", help="path to a QM-cluster .xyz (real functional site)")
+    ap.add_argument("--avas", help="comma-separated AVAS target AOs, e.g. 'Zn 3d,S 3p'")
     ap.add_argument("--basis", default="6-31g")
-    ap.add_argument("--ncas", type=int, required=True)
-    ap.add_argument("--nelecas", type=int, required=True)
+    ap.add_argument("--ncas", type=int)
+    ap.add_argument("--nelecas", type=int)
     ap.add_argument("--key", required=True, help="target key, e.g. ARID2_LOF")
     ap.add_argument("--bond-dims", default="250,500,1000,2000",
                     help="comma-separated increasing bond dimensions")
@@ -103,11 +151,22 @@ def main():
     Path(args.out).mkdir(parents=True, exist_ok=True)
     bond_dims = [int(x) for x in args.bond_dims.split(",")]
 
-    from solange_hpc import run_casscf
     print("=" * 68)
-    print(f"SOLANGE DMRG classifier · {args.key} · {args.compound}/{args.basis} "
-          f"· CAS({args.nelecas},{args.ncas})")
-    cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose)
+    if args.geometry:
+        if not args.avas:
+            ap.error("--geometry requires --avas (target AOs for active-space selection)")
+        print(f"SOLANGE DMRG classifier · {args.key} · geometry={args.geometry} "
+              f"· AVAS[{args.avas}]/{args.basis}")
+        cas = integrals_from_geometry(args.geometry, args.basis, args.avas)
+        args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
+        print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
+    else:
+        if not (args.compound and args.ncas and args.nelecas):
+            ap.error("provide either --geometry+--avas, or --compound+--ncas+--nelecas")
+        from solange_hpc import run_casscf
+        print(f"SOLANGE DMRG classifier · {args.key} · {args.compound}/{args.basis} "
+              f"· CAS({args.nelecas},{args.ncas})")
+        cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose)
     print(f"CASSCF E = {cas['e_casscf']:.8f} Ha")
 
     t0 = time.time()
