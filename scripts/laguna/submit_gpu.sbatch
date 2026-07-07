@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=solange_hpc
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100:1
+#SBATCH --constraint=a100-80gb
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -10,11 +11,14 @@
 #SBATCH --output=solange_%j.out
 #SBATCH --error=solange_%j.err
 
-# ── SOLANGE HPC job for the Laguna cluster ──────────────────────────────────
-# Adjust --partition / --gres to match Laguna's actual GPU partition name and
-# GPU type once `sinfo -s` / `nvidia-smi` are known. `gpu` matches the status
-# page you sent (118 nodes). For the full-site DMRG runs of CDKN2A/ARID2 use
-# --partition=largemem (and drop --gres) instead.
+# ── SOLANGE HPC job for USC Discovery (CARC) ────────────────────────────────
+# Cluster = USC Discovery. GPU inventory: A100 80GB/40GB, L40S 48GB, A40 48GB,
+# V100 32GB, P100 16GB. We target A100-80GB: best FP64 throughput (matters for
+# quantum-sim numerics) and the largest statevector ceiling (~30 qubits with
+# VQE gradients). If the a100-80gb constraint is unavailable, drop it and take
+# whatever A100 you get (40GB → ~29-qubit ceiling; the script auto-caps to fit).
+# For the full-site DMRG runs of CDKN2A/ARID2 use --partition=largemem
+# (1.5 TB RAM, drop --gres) — statevector cannot reach 40q+, DMRG can.
 
 set -euo pipefail
 echo "Job $SLURM_JOB_ID on $(hostname)  $(date)"
