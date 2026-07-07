@@ -873,6 +873,15 @@
     }).catch(function(){
       box.innerHTML='<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>';
     });
+
+    // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
+    // HPC records are NOT deleted (they are a verified archive) — they reappear on
+    // page reload; Reset only returns the on-screen panel to a clean state.
+    window.solangeResetDispatch=function(){
+      if(mutsBox) placeholder();
+      if(box) box.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+        'Cleared on reset. Archived HPC runs remain stored & verified in SOLANGE — reload the page to view them.</div>';
+    };
   })();
   </script>
 
@@ -3283,6 +3292,10 @@ function resetPlatform() {
   renderEnergyChart();
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';
+
+  // Clear the Compute Dispatcher view (per-mutation routing + HPC ladder). Server
+  // HPC records are archived and untouched — they reappear on reload.
+  if (typeof window.solangeResetDispatch === 'function') window.solangeResetDispatch();
 
   // ── Results tab — reset charts to reference state ─────────────────────
   const vbv = document.getElementById('vqe-bar-val');
