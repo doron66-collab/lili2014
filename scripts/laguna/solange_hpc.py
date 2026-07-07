@@ -282,10 +282,18 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
     tail = energies[-20:] if len(energies) >= 20 else energies
     variance = float(np.var(tail))
 
-    specs = qml.specs(circuit)(params)
-    resources = specs.get("resources", None)
-    gate_count = int(getattr(resources, "num_gates", 0)) if resources else 0
-    depth = int(getattr(resources, "depth", 0)) if resources else 0
+    # Circuit-size metadata for P1 provenance. qml.specs() returns different
+    # shapes across PennyLane versions (dict vs Specs/CircuitSpecs object) — keep
+    # it best-effort so a metadata quirk never aborts a completed VQE run.
+    gate_count, depth = 0, 0
+    try:
+        specs = qml.specs(circuit)(params)
+        res = specs["resources"] if isinstance(specs, dict) else getattr(specs, "resources", None)
+        if res is not None:
+            gate_count = int(getattr(res, "num_gates", 0))
+            depth = int(getattr(res, "depth", 0))
+    except Exception:
+        pass
 
     return {
         "energy_ha": float(energies[-1]), "variance": variance,
