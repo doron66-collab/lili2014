@@ -563,8 +563,11 @@ TP53~C275F, STK11~F354L, STK11~D194N, KEAP1~G333C, and KEAP1~R320Q have no
 binding pocket accessible by classical structure-based methods, no prior computational
 characterisation at chemical accuracy, and active-space sizes at which DFT introduces
 systematic errors of 2--4~kcal/mol---sufficient to invert the sign of a binding
-prediction.  Quantum simulation is therefore not an enhancement but a
-\emph{necessity}: it is the only computational path to a physically grounded
+prediction.  Quantum simulation is therefore not an enhancement but the
+approach this artifact targets for that regime: once exact classical treatments
+(CCSD(T)/CASSCF) become intractable at these active-space sizes and lower-cost
+methods introduce sign-inverting error, it is the computational path this work is
+built to govern and orchestrate toward a physically grounded
 $\Delta E$ estimate.  The three-condition escalation rule in Table~\ref{tab:escalation}
 encodes this distinction as a routing decision; the Vakili et al.\ KRAS workflow would
 not satisfy C1 (active-space ceiling not exceeded by classical methods) and would
