@@ -805,15 +805,33 @@
     document.getElementById('dispatch-tiers').innerHTML=h+'</table>';
 
     // 2) per-mutation routing (full active site)
-    var muts=[['TP53','p.Cys275Phe',88],['KEAP1','p.Cys196Leufs*',310],
-      ['CDKN2A','Homozygous deletion',40],['ARID2','p.Gln1118*',56],['STK11','Loss-of-function',304]];
-    var m='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Gene</th>'+
-      '<th style="'+TH+'">Mutation</th><th style="'+TH+'">Full site</th><th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
-    muts.forEach(function(x){var r=routeBackend(x[2]);
-      m+='<tr><td style="'+C+';font-weight:700">'+x[0]+'</td><td style="'+C+';color:var(--gray)">'+x[1]+'</td>'+
-         '<td style="'+C+'">'+x[2]+'q</td><td style="'+C+'">'+badge(r.t,r.c)+' <span style="color:var(--gray);font-size:10px">· '+r.w+'</span></td>'+
-         '<td style="'+C+'">Phase '+r.p+'</td></tr>';});
-    document.getElementById('dispatch-muts').innerHTML=m+'</table>';
+    // DATA-DRIVEN: no hardcoded mutations. Per-mutation routing is populated ONLY
+    // from the report that is actually loaded (loadNGSReport calls the hook below).
+    // Before a report is loaded, nothing patient-specific is shown.
+    var mutsBox=document.getElementById('dispatch-muts');
+    function placeholder(){
+      mutsBox.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+        'Load an NGS report to see per-mutation routing. Each detected variant is routed '+
+        'by its qubit count using the rule above — nothing is shown until a report is loaded.</div>';
+    }
+    // window hook: loadNGSReport(...) passes the actual loaded variants here.
+    window.solangeRenderDispatchMuts=function(variants){
+      if(!variants||!variants.length){placeholder();return;}
+      var m='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Class</th>'+
+        '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th><th style="'+TH+'">Full site</th>'+
+        '<th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
+      variants.forEach(function(v){
+        var q=(v.gm&&v.gm.full_qubits)||null; var r=routeBackend(q||4);
+        m+='<tr><td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
+           '<td style="'+C+';font-weight:700;color:'+((v.gm&&v.gm.color)||'var(--white)')+'">'+v.gene+'</td>'+
+           '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
+           '<td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
+           '<td style="'+C+'">'+badge(r.t,r.c)+' <span style="color:var(--gray);font-size:10px">· '+r.w+'</span></td>'+
+           '<td style="'+C+'">Phase '+r.p+'</td></tr>';
+      });
+      mutsBox.innerHTML=m+'</table>';
+    };
+    placeholder();   // nothing patient-specific before a report is loaded
 
     // 3) HPC ladder — DYNAMIC: fetched live from the backend (phase=3A-HPC runs
     //    submitted by solange_hpc.py --submit and re-verified server-side). No hardcode.
@@ -2933,6 +2951,12 @@ function loadNGSReport(ngs) {
   allVariants.forEach(av => {
     window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}` };
   });
+
+  // Populate the Orchestration Compute Dispatcher per-mutation routing from the
+  // ACTUAL loaded report (not hardcoded) — only appears once a report is loaded.
+  if (typeof window.solangeRenderDispatchMuts === 'function') {
+    window.solangeRenderDispatchMuts(allVariants);
+  }
 
   const allTargets    = allVariants.map(av => av.simId);
   const hasAnyTargets = allTargets.length > 0;
