@@ -777,8 +777,12 @@
     <div id="dispatch-muts" style="margin:6px 0 16px;overflow-x:auto"></div>
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span>Phase 3A-HPC Ladder · Laguna (USC CARC)</span>
-      <button onclick="clearHpcRuns()" title="Delete stored HPC runs from SOLANGE (they can be re-submitted from the cluster)"
-        style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🗑 Clear HPC runs</button>
+      <span style="display:flex;gap:6px">
+        <button onclick="exportHpcCsv()" title="Download the HPC ladder as CSV (dissertation appendix)"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+        <button onclick="clearHpcRuns()" title="Delete stored HPC runs from SOLANGE (they can be re-submitted from the cluster)"
+          style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🗑 Clear HPC runs</button>
+      </span>
     </div>
     <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
       Real runs dispatched to the Laguna cluster — <strong>not</strong> executed in-browser.
@@ -857,9 +861,12 @@
           '<code>solange_hpc.py --submit</code> posts them — the backend re-verifies each P8 seal before it is shown.</div>';
         return;
       }
+      window.__hpcRuns = runs;   // cached for CSV export
+      var rt=function(s){return (s==null)?'—':(s<60?Number(s).toFixed(1)+'s':Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s');};
       var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Active space</th>'+
         '<th style="'+TH+'">Qubits</th><th style="'+TH+'">Exact (Ha)</th><th style="'+TH+'">VQE-UCCSD (Ha)</th>'+
-        '<th style="'+TH+'">ΔE</th><th style="'+TH+'">Backend</th><th style="'+TH+'">P8</th></tr>';
+        '<th style="'+TH+'">ΔE</th><th style="'+TH+'" title="Total compute time — the classical-wall cost">Runtime</th>'+
+        '<th style="'+TH+'">Backend</th><th style="'+TH+'">P8</th><th style="'+TH+'"></th></tr>';
       runs.forEach(function(x){
         var orb=x.p2_active_orbitals, el=x.p2_active_electrons;
         var q=orb?2*orb:null;
@@ -878,13 +885,16 @@
           de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
         }
         var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):(x.mutation_id||'—');
+        var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
         hh+='<tr><td style="'+C+';font-weight:600">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
-            '<td style="'+C+'">'+de+'</td><td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
-            '<td style="'+C+'"><span style="color:var(--green)" title="'+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td></tr>';
+            '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
+            '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
+            '<td style="'+C+'"><span style="color:var(--green)" title="'+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
+            '<td style="'+C+'">'+vbtn+'</td></tr>';
       });
       box.innerHTML=hh+'</table>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified server-side · phase 3A-HPC · dispatched to Laguna, not run in-browser.</div>';
+        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>';
     }).catch(function(){
       box.innerHTML='<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>';
     });
@@ -3294,6 +3304,45 @@ function updatePQAfterRun(mutationId) {
 }
 
 // ── Reset platform ─────────────────────────────────────────────────────────
+async function verifyHpcRun(runId, btn) {
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`${API}/api/provenance/runs/${runId}/verify`);
+    const out = await res.json();
+    const pass = out.integrity === 'PASS';
+    if (btn) {
+      btn.textContent = pass ? '✓ verified' : '✗ FAIL';
+      btn.style.color = pass ? 'var(--green)' : '#f87171';
+      btn.style.borderColor = pass ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)';
+      btn.disabled = false;
+    }
+    alert(pass
+      ? `Integrity: PASS ✓\nSOLANGE recomputed the P8 seal and it matches the stored one.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`
+      : `Integrity: FAIL ✗\nRecomputed seal does not match — the record may have been altered.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`);
+  } catch (e) {
+    if (btn) { btn.textContent = orig; btn.disabled = false; }
+    alert('Verify failed: ' + e.message);
+  }
+}
+
+function exportHpcCsv() {
+  const runs = window.__hpcRuns || [];
+  if (!runs.length) { alert('No HPC runs to export.'); return; }
+  const cols = ['mutation_id','p2_active_electrons','p2_active_orbitals','p5_casscf_ref_ha','p7_energy_ha','p7_method','p5_elapsed_s','p3_backend','p8_hash','created_at'];
+  const head = ['target','active_electrons','active_orbitals','exact_ha','vqe_ha','method','runtime_s','backend','p8_seal','created_at'];
+  const esc = v => { v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const rows = runs.map(r => cols.map(c => esc(r[c])).join(','));
+  const csv = head.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'solange_hpc_ladder.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 async function clearHpcRuns() {
   if (!confirm('Delete all stored HPC runs from SOLANGE?\n\nThis removes them from the panel/database. Your local cluster archive (runs_log.jsonl) is untouched, and any run can be re-submitted from Laguna.')) return;
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
