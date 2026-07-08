@@ -336,7 +336,8 @@ def build_p8_seal(record: dict) -> str:
     return hashlib.sha256(seal_payload.encode()).hexdigest()
 
 
-def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb):
+def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb,
+                     elapsed_total=None):
     now = datetime.now(timezone.utc).isoformat()
     n_qubits = 2 * cas["ncas"]
     # p7 must be a TOTAL energy (ecore + active) to match e_casscf (total) and the
@@ -373,6 +374,7 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
 
         # P2 — compilation
         "p2_compiler":         "PySCF + openfermion",
+        "p2_compiler_version": None,
         "p2_encoding":         f"Jordan-Wigner (CASSCF({cas['nelecas']},{cas['ncas']}) "
                                f"-> {len(jw_terms)} Pauli terms)",
         "p2_basis_set":        f"{args.basis} (CASSCF({cas['nelecas']},{cas['ncas']}))",
@@ -382,12 +384,15 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
 
         # P3 — backend (transparent about where it ran)
         "p3_backend":           backend,
+        "p3_backend_version":   None,
         "p3_calibration_epoch": now,
         "p3_simulator":         True,
 
         # P4 — noise (exact statevector -> none)
         "p4_gate_error_rate":    0.0,
         "p4_readout_error_rate": 0.0,
+        "p4_t1_us":              None,
+        "p4_t2_us":              None,
         "p4_note":               "Exact statevector on HPC GPU — noiseless; "
                                  "Phase 3B records real IBM Heron r3 calibration.",
 
@@ -396,8 +401,9 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
         "p5_raw_energy":       energy,
         "p5_energy_variance":  vqe["variance"] if vqe else 0.0,
         "p5_opt_steps":        vqe["steps"] if vqe else 0,
-        "p5_elapsed_s":        vqe["elapsed_s"] if vqe else None,
+        "p5_elapsed_s":        elapsed_total,   # TOTAL compute time = the classical-wall cost
         "p5_ecore_ha":         cas["ecore"],
+        "p5_active_energy_ha": None,
         "p5_casscf_ref_ha":    cas["e_casscf"],
 
         # P6 — mitigation
@@ -406,6 +412,8 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
 
         # P7 — result
         "p7_energy_ha":  energy,
+        "p7_ci_lower":   None,
+        "p7_ci_upper":   None,
         "p7_method":     method,
         "p7_confidence": 0.95,
 
@@ -544,7 +552,9 @@ def main():
     print(f"WROTE {jw_path}")
 
     # ── Artifact 2: signed P1-P9 provenance ──
-    prov = build_provenance(args, cas, terms, e_active_exact, vqe, gpu_name, vram_mb)
+    compute_s = round(casscf_s + (jw_s or 0) + (vqe["elapsed_s"] if vqe else 0), 2)
+    prov = build_provenance(args, cas, terms, e_active_exact, vqe, gpu_name, vram_mb,
+                            elapsed_total=compute_s)
     prov_path = Path(args.out) / f"provenance_{stem}.json"
     prov_path.write_text(json.dumps(prov, indent=2, default=str))
     print(f"WROTE {prov_path}")
