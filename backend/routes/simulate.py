@@ -433,11 +433,19 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
     }
 
 
+# Fields excluded from the P8 seal because they do NOT survive a DB round-trip
+# byte-identically (e.g. timestamptz is reformatted by Postgres), which would make
+# a re-verification from the stored row spuriously FAIL. They are metadata, not
+# result-integrity data, so excluding them keeps the seal robust and re-verifiable.
+_SEAL_EXCLUDE = {"p3_calibration_epoch"}
+
+
 def build_p8_seal(record: dict) -> str:
     """SHA-256 hash of P1–P7 + P9 fields — P8 cryptographic seal."""
     seal_payload = json.dumps({k: v for k, v in record.items()
                                 if k.startswith(("p1_", "p2_", "p3_", "p4_",
-                                                  "p5_", "p6_", "p7_", "p9_"))},
+                                                  "p5_", "p6_", "p7_", "p9_"))
+                                and k not in _SEAL_EXCLUDE},
                                sort_keys=True, default=str)
     return hashlib.sha256(seal_payload.encode()).hexdigest()
 

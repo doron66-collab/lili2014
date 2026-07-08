@@ -71,9 +71,13 @@ async def verify_seal(run_id: str):
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     record = res.data[0]
 
+    # Exclude fields that do not survive a DB round-trip byte-identically
+    # (timestamptz is reformatted by Postgres) — else re-verification spuriously FAILs.
+    _SEAL_EXCLUDE = {"p3_calibration_epoch"}
     seal_payload = json.dumps(
         {k: v for k, v in record.items()
-         if k.startswith(("p1_", "p2_", "p3_", "p4_", "p5_", "p6_", "p7_", "p9_"))},
+         if k.startswith(("p1_", "p2_", "p3_", "p4_", "p5_", "p6_", "p7_", "p9_"))
+         and k not in _SEAL_EXCLUDE},
         sort_keys=True, default=str
     )
     recomputed = hashlib.sha256(seal_payload.encode()).hexdigest()

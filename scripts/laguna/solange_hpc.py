@@ -328,10 +328,14 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
 # ── P1-P9 provenance (seal matches SOLANGE backend build_p8_seal) ────────────
 
 def build_p8_seal(record: dict) -> str:
+    # Exclude fields that don't survive a DB round-trip byte-identically (timestamptz
+    # is reformatted by Postgres) so the seal re-verifies from the stored row.
+    _exclude = {"p3_calibration_epoch"}
     seal_payload = json.dumps(
         {k: v for k, v in record.items()
          if k.startswith(("p1_", "p2_", "p3_", "p4_",
-                          "p5_", "p6_", "p7_", "p9_"))},
+                          "p5_", "p6_", "p7_", "p9_"))
+         and k not in _exclude},
         sort_keys=True, default=str)
     return hashlib.sha256(seal_payload.encode()).hexdigest()
 
