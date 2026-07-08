@@ -825,16 +825,20 @@
     // window hook: loadNGSReport(...) passes the actual loaded variants here.
     window.solangeRenderDispatchMuts=function(variants){
       if(!variants||!variants.length){placeholder();return;}
-      var m='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Class</th>'+
+      window.__dispatchVariants = variants;   // for dispatchSelectedToHpc()
+      var m='<table style="width:100%;border-collapse:collapse"><tr>'+
+        '<th style="'+TH+'"><input type="checkbox" id="hpc-chk-all" onclick="document.querySelectorAll(\'.hpc-chk\').forEach(function(c){c.checked=this.checked}.bind(this))"></th>'+
+        '<th style="'+TH+'">Class</th>'+
         '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th>'+
         '<th style="'+TH+'" title="Active electrons in the full site — classical exact wall ≈ 18e">Active e⁻</th>'+
         '<th style="'+TH+'">Full site</th>'+
         '<th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
-      variants.forEach(function(v){
+      variants.forEach(function(v,i){
         var q=(v.gm&&v.gm.full_qubits)||null; var r=routeBackend(q||4);
         var ae=(v.gm&&v.gm.active_electrons)||null;
         var aeCol=ae==null?'—':(ae+'e'+(ae>18?' <span style="color:var(--gold);font-size:9px" title="beyond the ~18e exact-classical wall">↑wall</span>':''));
-        m+='<tr><td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
+        m+='<tr><td style="'+C+'"><input type="checkbox" class="hpc-chk" data-i="'+i+'"></td>'+
+           '<td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
            '<td style="'+C+';font-weight:700;color:'+((v.gm&&v.gm.color)||'var(--white)')+'">'+v.gene+'</td>'+
            '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
            '<td style="'+C+'">'+aeCol+'</td>'+
@@ -842,7 +846,16 @@
            '<td style="'+C+'">'+badge(r.t,r.c)+' <span style="color:var(--gray);font-size:10px">· '+r.w+'</span></td>'+
            '<td style="'+C+'">Phase '+r.p+'</td></tr>';
       });
-      mutsBox.innerHTML=m+'</table>';
+      var controls='<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:11px">'+
+        '<span style="color:var(--gray)">Dispatch selected as</span>'+
+        '<select id="hpc-cas" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
+          '<option value="6">CAS(6,6) · 12q</option><option value="8" selected>CAS(8,8) · 16q</option>'+
+          '<option value="10">CAS(10,10) · 20q</option><option value="12">CAS(12,12) · 24q</option></select>'+
+        '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
+        '<button onclick="dispatchSelectedToHpc()" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
+        '<span id="hpc-dispatch-msg" style="color:var(--gray)"></span></div>'+
+        '<div style="color:var(--gray);font-size:10px;margin-top:4px">Queued jobs run when your Laguna agent (<code>solange_hpc.py --agent</code>) is active; results return to the ladder below.</div>';
+      mutsBox.innerHTML=m+'</table>'+controls;
     };
     placeholder();   // nothing patient-specific before a report is loaded
 
@@ -3304,6 +3317,38 @@ function updatePQAfterRun(mutationId) {
 }
 
 // ── Reset platform ─────────────────────────────────────────────────────────
+async function dispatchSelectedToHpc() {
+  const vars = window.__dispatchVariants || [];
+  const checked = Array.from(document.querySelectorAll('.hpc-chk')).filter(c => c.checked);
+  const msg = document.getElementById('hpc-dispatch-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!checked.length) { setMsg('<span style="color:#f87171">Select at least one mutation.</span>'); return; }
+  const ncas = parseInt(document.getElementById('hpc-cas').value, 10);
+  const runVqe = document.getElementById('hpc-vqe').checked;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` };
+  setMsg('queuing…');
+  let ok = 0, fail = 0;
+  for (const c of checked) {
+    const v = vars[parseInt(c.dataset.i, 10)];
+    if (!v) continue;
+    try {
+      const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ key: v.simId, side: 'native', ncas, nelecas: ncas,
+                               basis: '6-31g', run_vqe: runVqe, residue: v.mutation || '' })
+      });
+      const out = await res.json();
+      out.queued ? ok++ : fail++;
+    } catch (e) { fail++; }
+  }
+  setMsg(`<span style="color:var(--green)">✓ queued ${ok}</span>` +
+         (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
+         ' — a Laguna agent will run them.');
+}
+
 async function verifyHpcRun(runId, btn) {
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const orig = btn ? btn.textContent : '';
