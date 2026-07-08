@@ -529,7 +529,7 @@ def main():
     ap.add_argument("--basis", default="6-31g", help="sto-3g | 6-31g | cc-pvdz | ...")
     ap.add_argument("--ncas", type=int, default=None, help="active orbitals (auto if omitted)")
     ap.add_argument("--nelecas", type=int, default=None, help="active electrons (defaults to 2*ncas//... )")
-    ap.add_argument("--key", required=True, help="jw_hamiltonians key, e.g. ARID2_LOF")
+    ap.add_argument("--key", default=None, help="jw_hamiltonians key, e.g. ARID2_LOF")
     ap.add_argument("--side", default="native", choices=["native", "mutant"])
     ap.add_argument("--residue", default="", help="residue_note for the JW entry")
     ap.add_argument("--vqe", action="store_true", help="also run statevector VQE (GPU)")
@@ -562,8 +562,8 @@ def main():
         run_agent(args.api, args.poll, token, args.out)
         return
 
-    if not args.compound:
-        ap.error("--compound is required (or use --agent). Available: run with --help")
+    if not args.compound or not args.key:
+        ap.error("--compound and --key are required for a direct run (or use --agent)")
 
     gpu_name, vram_mb, max_qubits = detect_gpu()
     print("=" * 68)
