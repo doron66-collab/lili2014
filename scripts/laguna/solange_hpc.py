@@ -471,19 +471,33 @@ def main():
     print(f"Active space: CAS({args.nelecas},{args.ncas}) → {n_qubits} qubits")
     print("-" * 68)
 
+    def _fmt(s):
+        return f"{s:.1f}s" if s < 60 else f"{int(s//60)}m{s%60:04.1f}s"
+
+    # Built-in real-time stage timing — no need for `time` or --verbose. Each stage
+    # prints how long it took the moment it finishes; totals are archived (the
+    # per-size runtime IS the classical-wall evidence for the dissertation).
+    t_run = time.time()
+    t0 = time.time()
     cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose)
+    casscf_s = time.time() - t0
     print(f"RHF     E = {cas['e_rhf']:.8f} Ha  ({cas['n_ao']} AOs)")
-    print(f"CASSCF  E = {cas['e_casscf']:.8f} Ha  (ecore {cas['ecore']:.8f})")
+    print(f"CASSCF  E = {cas['e_casscf']:.8f} Ha  (ecore {cas['ecore']:.8f})  "
+          f"[done in {_fmt(casscf_s)}]")
 
     # The JW Pauli Hamiltonian is only needed to RUN the VQE. For an exact-reference
     # run (no --vqe) it is wasted work — the reference comes straight from PySCF
     # (cas['e_fci_active']) — and building ~O(ncas^4) terms dominates the runtime at
     # large sizes (e.g. ~30k terms / ~2 min at CAS(12,12)). So build it only when needed.
+    jw_s = None
     if args.vqe:
+        t0 = time.time()
         terms, e_active_exact, _ = build_jw_terms(cas["h1e"], cas["h2e"], args.ncas,
                                                   exact=(n_qubits <= 16))
+        jw_s = time.time() - t0
         print(f"JW: {len(terms)} Pauli terms on {n_qubits} qubits"
-              + (f" · exact active E = {e_active_exact:.8f} Ha" if e_active_exact is not None else ""))
+              + (f" · exact active E = {e_active_exact:.8f} Ha" if e_active_exact is not None else "")
+              + f"  [built in {_fmt(jw_s)}]")
     else:
         terms, e_active_exact = [], None
         print(f"Exact-reference run (no VQE) — skipping JW Hamiltonian build "
@@ -539,6 +553,7 @@ def main():
 
     # ── Master run log (append-only): one line per run, the local archive index ──
     exact_ref = e_active_exact if e_active_exact is not None else cas.get("e_fci_active")
+    total_s = time.time() - t_run
     log_row = {
         "timestamp": stamp, "key": args.key, "side": args.side,
         "compound": args.compound, "basis": args.basis,
@@ -548,7 +563,11 @@ def main():
         "delta_mha": ((vqe["energy_ha"] - exact_ref) * 1000
                       if (vqe and exact_ref is not None) else None),
         "device": (vqe["device"] if vqe else None),
-        "elapsed_s": (vqe["elapsed_s"] if vqe else None),
+        # stage timings — the per-size runtime is the classical-wall evidence
+        "casscf_s": round(casscf_s, 2),
+        "jw_build_s": (round(jw_s, 2) if jw_s is not None else None),
+        "vqe_s": (vqe["elapsed_s"] if vqe else None),
+        "total_s": round(total_s, 2),
         "n_paulis": len(terms), "p8_hash": prov["p8_hash"],
         "jw_file": jw_path.name, "provenance_file": prov_path.name,
     }
@@ -556,6 +575,10 @@ def main():
     with open(log_path, "a") as lf:
         lf.write(json.dumps(log_row, default=str) + "\n")
     print(f"LOGGED → {log_path}  (append-only archive of every run)")
+    print(f"TOTAL run time: {_fmt(total_s)}  "
+          f"(CASSCF {_fmt(casscf_s)}"
+          + (f" · JW {_fmt(jw_s)}" if jw_s is not None else "")
+          + (f" · VQE {vqe['elapsed_s']}s" if vqe else "") + ")")
     print("=" * 68)
 
     if args.submit:
