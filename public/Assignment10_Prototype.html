@@ -775,7 +775,11 @@
     <div id="dispatch-tiers" style="margin-bottom:16px;overflow-x:auto"></div>
     <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
     <div id="dispatch-muts" style="margin:6px 0 16px;overflow-x:auto"></div>
-    <div class="card-title" style="font-size:13px">Phase 3A-HPC Ladder · Laguna (USC CARC)</div>
+    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
+      <span>Phase 3A-HPC Ladder · Laguna (USC CARC)</span>
+      <button onclick="clearHpcRuns()" title="Delete stored HPC runs from SOLANGE (they can be re-submitted from the cluster)"
+        style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🗑 Clear HPC runs</button>
+    </div>
     <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
       Real runs dispatched to the Laguna cluster — <strong>not</strong> executed in-browser.
       <span style="color:var(--teal)">exact</span> = reference ground state · VQE-UCCSD = near-term-device demonstration.
@@ -843,6 +847,7 @@
     var box=document.getElementById('dispatch-hpc');
     var API=(window.QCAIHPC_API_BASE||'https://qcaihpc-simulation-api.onrender.com');
     var f=function(v){return (v==null||isNaN(v))?'—':Number(v).toFixed(6);};
+    window.solangeLoadHpc=function(){
     box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading HPC runs…</div>';
     fetch(API+'/api/simulate/hpc/runs').then(function(r){return r.json();}).then(function(d){
       var runs=(d&&d.runs)||[];
@@ -883,6 +888,8 @@
     }).catch(function(){
       box.innerHTML='<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>';
     });
+    };            // end solangeLoadHpc
+    window.solangeLoadHpc();   // initial load
 
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
@@ -3287,6 +3294,26 @@ function updatePQAfterRun(mutationId) {
 }
 
 // ── Reset platform ─────────────────────────────────────────────────────────
+async function clearHpcRuns() {
+  if (!confirm('Delete all stored HPC runs from SOLANGE?\n\nThis removes them from the panel/database. Your local cluster archive (runs_log.jsonl) is untouched, and any run can be re-submitted from Laguna.')) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (!session?.access_token) { alert('Please log in first.'); return; }
+    const res = await fetch(`${API}/api/simulate/hpc/clear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({})
+    });
+    const out = await res.json();
+    if (!res.ok) { alert('Clear failed: ' + (out.detail || res.status)); return; }
+    if (typeof window.solangeLoadHpc === 'function') window.solangeLoadHpc();
+    alert(`Cleared ${out.deleted ?? 0} HPC run(s).`);
+  } catch (e) {
+    alert('Clear failed: ' + e.message);
+  }
+}
+
 function resetPlatform() {
   if (!confirm('Reset all simulation data and NGS report? This clears the current session — it does not delete Supabase records.')) return;
 

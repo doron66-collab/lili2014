@@ -605,6 +605,41 @@ async def submit_hpc_run(payload: dict = Body(...)):
     }
 
 
+@router.post("/hpc/clear")
+async def clear_hpc_runs(payload: dict = Body(default={}),
+                         authorization: str | None = Header(None)):
+    """Delete HPC runs (phase=3A-HPC). Requires an authenticated session (Bearer
+    token). Optional 'mutation_id' scopes the delete to one target; omitted = all.
+    Destructive but recoverable — the runs can be re-submitted from the cluster."""
+    sb = get_supabase()
+    if not sb:
+        return {"deleted": 0, "db": "not_configured"}
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    import base64 as _b64, json as _json
+    try:
+        pb = authorization[7:].split(".")[1]
+        pb += "=" * (-len(pb) % 4)
+        uid = _json.loads(_b64.urlsafe_b64decode(pb)).get("sub")
+        if not uid:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    try:
+        q = sb.table("simulation_runs").delete().eq("phase", "3A-HPC")
+        mid = (payload or {}).get("mutation_id")
+        if mid:
+            q = q.eq("mutation_id", mid)
+        res = q.execute()
+        n = len(res.data) if getattr(res, "data", None) else 0
+        return {"deleted": n, "status": "cleared", "scope": mid or "all HPC runs"}
+    except Exception as e:
+        logging.error("HPC clear failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"clear failed: {e}")
+
+
 @router.get("/hpc/runs")
 async def list_hpc_runs(limit: int = 50):
     """List externally-executed HPC runs for the dashboard (phase=3A-HPC)."""
