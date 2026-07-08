@@ -605,6 +605,115 @@ async def submit_hpc_run(payload: dict = Body(...)):
     }
 
 
+def _uid_from_auth(authorization: str | None) -> str:
+    """Extract the user id (sub) from a Bearer JWT; raise 401 if absent/invalid."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    import base64 as _b64, json as _json
+    try:
+        pb = authorization[7:].split(".")[1]
+        pb += "=" * (-len(pb) % 4)
+        uid = _json.loads(_b64.urlsafe_b64decode(pb)).get("sub")
+        if not uid:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return uid
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+# ── Outbound dispatch queue: SOLANGE → (pull agent on the cluster) → SOLANGE ──
+# Laguna security (Duo 2FA, no external SSH) blocks SOLANGE from pushing jobs. So
+# SOLANGE only QUEUES a job here; a lightweight agent running INSIDE the user's
+# Laguna session (solange_hpc.py --agent) pulls it, runs it, and --submits results
+# back — completing the loop without breaching cluster security.
+
+@router.post("/hpc/dispatch")
+async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = Header(None)):
+    """Queue an HPC job from SOLANGE. The cluster agent picks it up and runs it."""
+    uid = _uid_from_auth(authorization)
+    sb = get_supabase()
+    if not sb:
+        return {"queued": False, "db": "not_configured"}
+    row = {
+        "requested_by": uid,
+        "status":   "queued",
+        "key":      payload.get("key", "ARID2_LOF"),
+        "side":     payload.get("side", "native"),
+        "compound": payload.get("compound", "acetamide"),
+        "basis":    payload.get("basis", "6-31g"),
+        "ncas":     int(payload.get("ncas", 8)),
+        "nelecas":  int(payload.get("nelecas", 8)),
+        "run_vqe":  bool(payload.get("run_vqe", False)),
+        "residue":  payload.get("residue", ""),
+    }
+    try:
+        res = sb.table("hpc_dispatch").insert(row).execute()
+        did = (res.data or [{}])[0].get("id")
+        return {"queued": True, "dispatch_id": did, "job": row}
+    except Exception as e:
+        return {"queued": False, "error": str(e),
+                "hint": "run backend/migrations to create table hpc_dispatch"}
+
+
+@router.get("/hpc/dispatch/list")
+async def list_dispatch(limit: int = 20):
+    """List recent dispatch jobs + their status (for the SOLANGE queue view)."""
+    sb = get_supabase()
+    if not sb:
+        return {"jobs": [], "db": "not_configured"}
+    try:
+        res = (sb.table("hpc_dispatch")
+                 .select("id, created_at, status, key, side, compound, basis, "
+                         "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"jobs": res.data or []}
+    except Exception as e:
+        return {"jobs": [], "error": str(e)}
+
+
+@router.get("/hpc/dispatch/next")
+async def next_dispatch(authorization: str | None = Header(None)):
+    """Cluster agent pulls the oldest queued job and claims it (status→running)."""
+    _uid_from_auth(authorization)
+    sb = get_supabase()
+    if not sb:
+        return {"job": None, "db": "not_configured"}
+    try:
+        res = (sb.table("hpc_dispatch").select("*")
+                 .eq("status", "queued").order("created_at").limit(1).execute())
+        if not res.data:
+            return {"job": None}
+        job = res.data[0]
+        (sb.table("hpc_dispatch").update(
+            {"status": "running", "claimed_at": datetime.now(timezone.utc).isoformat()})
+           .eq("id", job["id"]).eq("status", "queued").execute())
+        return {"job": job}
+    except Exception as e:
+        return {"job": None, "error": str(e)}
+
+
+@router.post("/hpc/dispatch/{dispatch_id}/status")
+async def update_dispatch(dispatch_id: str, payload: dict = Body(...),
+                          authorization: str | None = Header(None)):
+    """Cluster agent reports progress: status = running | done | failed."""
+    _uid_from_auth(authorization)
+    sb = get_supabase()
+    if not sb:
+        return {"updated": False, "db": "not_configured"}
+    upd = {"status": payload.get("status", "done")}
+    if payload.get("note"):    upd["note"] = payload["note"]
+    if payload.get("run_id"):  upd["run_id"] = payload["run_id"]
+    if upd["status"] in ("done", "failed"):
+        upd["finished_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        sb.table("hpc_dispatch").update(upd).eq("id", dispatch_id).execute()
+        return {"updated": True, "status": upd["status"]}
+    except Exception as e:
+        return {"updated": False, "error": str(e)}
+
+
 @router.post("/hpc/clear")
 async def clear_hpc_runs(payload: dict = Body(default={}),
                          authorization: str | None = Header(None)):
