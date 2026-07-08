@@ -684,6 +684,30 @@ async def list_dispatch(limit: int = 20):
         return {"jobs": [], "error": str(e)}
 
 
+@router.post("/hpc/dispatch/clear")
+async def clear_dispatch(payload: dict = Body(default={}),
+                         authorization: str | None = Header(None)):
+    """Clear the dispatch queue. Default: pending jobs (queued+running) so a
+    stopped agent won't re-run them. Pass {"all": true} to wipe the whole history."""
+    _uid_from_auth(authorization)
+    sb = get_supabase()
+    if not sb:
+        return {"deleted": 0, "db": "not_configured"}
+    try:
+        q = sb.table("hpc_dispatch").delete()
+        if (payload or {}).get("all"):
+            q = q.neq("id", "00000000-0000-0000-0000-000000000000")  # match every row
+            scope = "all"
+        else:
+            q = q.in_("status", ["queued", "running"])
+            scope = "pending (queued+running)"
+        res = q.execute()
+        n = len(res.data) if getattr(res, "data", None) else 0
+        return {"deleted": n, "status": "cleared", "scope": scope}
+    except Exception as e:
+        return {"deleted": 0, "error": str(e)}
+
+
 @router.get("/hpc/dispatch/next")
 async def next_dispatch(authorization: str | None = Header(None)):
     """Cluster agent pulls the oldest queued job and claims it (status→running)."""

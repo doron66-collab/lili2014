@@ -853,6 +853,7 @@
           '<option value="10">CAS(10,10) · 20q</option><option value="12">CAS(12,12) · 24q</option></select>'+
         '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
         '<button onclick="dispatchSelectedToHpc()" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
+        '<button onclick="clearHpcQueue()" title="Cancel pending queued jobs so a stopped agent won\'t re-run them" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Clear queue</button>'+
         '<span id="hpc-dispatch-msg" style="color:var(--gray)"></span></div>'+
         '<div style="color:var(--gray);font-size:10px;margin-top:4px">Queued jobs run when your Laguna agent (<code>solange_hpc.py --agent</code>) is active; results return to the ladder below.</div>';
       mutsBox.innerHTML=m+'</table>'+controls;
@@ -3317,6 +3318,25 @@ function updatePQAfterRun(mutationId) {
 }
 
 // ── Reset platform ─────────────────────────────────────────────────────────
+async function clearHpcQueue() {
+  if (!confirm('Cancel all pending (queued/running) HPC jobs?\n\nStops them from being run by an agent. Completed results are untouched.')) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const msg = document.getElementById('hpc-dispatch-msg');
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (!session?.access_token) { alert('Please log in first.'); return; }
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch/clear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({})
+    });
+    const out = await res.json();
+    if (msg) msg.innerHTML = `<span style="color:var(--green)">✓ cleared ${out.deleted ?? 0} pending job(s)</span>`;
+  } catch (e) {
+    if (msg) msg.innerHTML = `<span style="color:#f87171">clear failed: ${e.message}</span>`;
+  }
+}
+
 async function dispatchSelectedToHpc() {
   const vars = window.__dispatchVariants || [];
   const checked = Array.from(document.querySelectorAll('.hpc-chk')).filter(c => c.checked);
