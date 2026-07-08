@@ -649,7 +649,10 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         "status":   "queued",
         "key":      payload.get("key", "ARID2_LOF"),
         "side":     payload.get("side", "native"),
-        "compound": payload.get("compound", "acetamide"),
+        # Do NOT default the compound — leave it null so the cluster agent resolves
+        # the correct model compound PER GENE from the key (defaulting to acetamide
+        # made every gene run acetamide, giving them all the same wrong energy).
+        "compound": payload.get("compound"),
         "basis":    payload.get("basis", "6-31g"),
         "ncas":     int(payload.get("ncas", 8)),
         "nelecas":  int(payload.get("nelecas", 8)),
