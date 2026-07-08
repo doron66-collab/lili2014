@@ -475,10 +475,19 @@ def main():
     print(f"RHF     E = {cas['e_rhf']:.8f} Ha  ({cas['n_ao']} AOs)")
     print(f"CASSCF  E = {cas['e_casscf']:.8f} Ha  (ecore {cas['ecore']:.8f})")
 
-    terms, e_active_exact, _ = build_jw_terms(cas["h1e"], cas["h2e"], args.ncas,
-                                              exact=(n_qubits <= 16))
-    print(f"JW: {len(terms)} Pauli terms on {n_qubits} qubits"
-          + (f" · exact active E = {e_active_exact:.8f} Ha" if e_active_exact is not None else ""))
+    # The JW Pauli Hamiltonian is only needed to RUN the VQE. For an exact-reference
+    # run (no --vqe) it is wasted work — the reference comes straight from PySCF
+    # (cas['e_fci_active']) — and building ~O(ncas^4) terms dominates the runtime at
+    # large sizes (e.g. ~30k terms / ~2 min at CAS(12,12)). So build it only when needed.
+    if args.vqe:
+        terms, e_active_exact, _ = build_jw_terms(cas["h1e"], cas["h2e"], args.ncas,
+                                                  exact=(n_qubits <= 16))
+        print(f"JW: {len(terms)} Pauli terms on {n_qubits} qubits"
+              + (f" · exact active E = {e_active_exact:.8f} Ha" if e_active_exact is not None else ""))
+    else:
+        terms, e_active_exact = [], None
+        print(f"Exact-reference run (no VQE) — skipping JW Hamiltonian build "
+              f"(reference from PySCF FCI = {cas.get('e_fci_active'):.8f} Ha)")
 
     vqe = None
     if args.vqe:
