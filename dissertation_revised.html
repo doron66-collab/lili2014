@@ -1273,6 +1273,10 @@
           <span class="toc-num">06.iii</span>
           <span class="toc-title">FDA 21 CFR Part 11 Compliance Framework for Probabilistic Quantum Simulation</span>
         </a>
+        <a href="#sec-6-iv" class="toc-entry toc-minor">
+          <span class="toc-num">06.iv</span>
+          <span class="toc-title">Design Contribution: Principles &amp; Evaluation</span>
+        </a>
 
         <a href="#preliminary" class="toc-entry toc-major">
           <span class="toc-num">§ 07</span>
@@ -2397,6 +2401,63 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== 6.iv · Design Contribution: Principles & Evaluation ===== -->
+      <h3 id="sec-6-iv" style="margin-top:3rem">06.iv · Design Contribution: Principles &amp; Evaluation</h3>
+      <p>The three claims above are, in Design Science Research terms, the <em>instantiation</em> (Hevner et al., 2004; Gregor &amp; Hevner, 2013): SOLANGE is the running artifact that proves they are realizable together. The transferable contribution to Information Systems, however, is not the platform but the smaller set of <strong>design principles</strong> the platform embodies — knowledge that generalizes to the wider class of <em>governed scientific-computing pipelines that must cross organizational, security, and hardware boundaries while remaining auditable</em>. This subsection states those principles explicitly, positions them against the precedent systems of §3.4, and — in keeping with the honesty commitments of §08 — separates what the proof-of-concept has already <em>demonstrated</em> from what remains for formal <em>evaluation</em> in DSR Phase 4.</p>
+
+      <h4>Four Design Principles (DP1–DP4)</h4>
+      <p>Each principle is stated as generalizable design knowledge, paired with its concrete mechanism in SOLANGE and the reasoning that justifies it. The principles are deliberately artifact-independent: a different platform in a different scientific domain could satisfy all four without sharing a line of SOLANGE's code.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Design principle</th><th>Mechanism in SOLANGE (instantiation)</th><th>Grounding / rationale</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>DP1</strong></td><td><em>Verify, don't trust.</em> A result crossing a trust boundary is an unverified claim until reproducible cryptographic proof re-establishes its integrity — never trusted on the strength of its origin.</td><td><strong>LEON</strong> recomputes the P8 seal and re-checks physics-consistency at ingestion and again on demand; failing records are rejected, not stored (§06.ii).</td><td>Applies the zero-trust security stance to scientific provenance; makes the P1–P9 chain self-enforcing rather than declarative.</td></tr>
+            <tr><td><strong>DP2</strong></td><td><em>Cross a security boundary without weakening it.</em> Where a resource sits behind interactive 2FA with no inbound path, control is inverted so the platform never reaches in and stores no credential outside the boundary.</td><td>Pull-based dispatch: a bounded agent inside the authenticated session polls an <em>outbound</em> queue, executes, and returns results — <em>queued→claimed→executed→returned</em> (§06.ii).</td><td>Adapts the self-hosted-runner / queue-worker pattern to governed HPC; preserves the human 2FA that gates the session.</td></tr>
+            <tr><td><strong>DP3</strong></td><td><em>Provenance is a first-class, execution-time artifact.</em> Audit records are emitted at the moment device state is recoverable, never reconstructed afterward.</td><td>The nine-element P1–P9 record is produced during execution and sealed at source; calibration epoch and error budget are captured in-band (§06.iii).</td><td>Retrospective provenance is non-physical for probabilistic quantum runs; governance must live in the orchestration, not be bolted onto outputs.</td></tr>
+            <tr><td><strong>DP4</strong></td><td><em>Governance is workload-agnostic.</em> The orchestration and notarization layers are indifferent to the scientific payload they carry.</td><td>The CASSCF/VQE chemistry is one interchangeable workload; the dispatch, provenance, and LEON layers make no assumption about it and would carry any heavy compute unchanged.</td><td>This is what makes the contribution an <em>Information Systems</em> one rather than a computational-chemistry one — the governed pattern transfers beyond the biology.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Positioning Against Precedent Systems — the White Space</h4>
+      <p>The four properties that matter jointly are: cross-vendor/heterogeneous orchestration; <em>signed, independently re-verifiable</em> provenance (not merely a run log); the ability to cross a hard security boundary (interactive 2FA, no inbound) without weakening it; and an explicit regulatory-records mapping (21 CFR Part 11). No precedent system reviewed in §3.4 occupies the intersection of all four; that intersection is the defensible contribution.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>System</th><th>Heterogeneous orchestration</th><th>Signed, re-verifiable provenance</th><th>Crosses hard security boundary (2FA)</th><th>Part-11 regulatory mapping</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Airflow / Parsl / Covalent (workflow orchestrators)</td><td>✓</td><td>✗ (run logs, not sealed)</td><td>✗</td><td>✗</td></tr>
+            <tr><td>Qiskit Runtime / Orquestra (quantum orchestration)</td><td>◑ (single/allied vendor)</td><td>✗</td><td>✗</td><td>✗</td></tr>
+            <tr><td>W3C-PROV / scientific-provenance frameworks</td><td>n/a (schema, not orchestrator)</td><td>◑ (lineage; sealing optional)</td><td>✗</td><td>✗</td></tr>
+            <tr><td>Cleveland Clinic–IBM QCSC workflow (Mar 2026)</td><td>✓ (HPC↔QPU)</td><td>✗</td><td>✗</td><td>✗</td></tr>
+            <tr><td><strong>SOLANGE (this work)</strong></td><td><strong>✓</strong></td><td><strong>✓ (LEON)</strong></td><td><strong>✓ (pull-based)</strong></td><td><strong>✓ (P1–P9)</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.9rem;color:var(--ink-soft)">✓ present · ◑ partial · ✗ absent. The claim is deliberately narrow: not "the first orchestrator," nor "the first provenance schema," but the first architecture to hold all four columns at once for oncology-mutation simulation under a regulatory mapping (§3.4, §06.ii).</p>
+
+      <h4>Evaluation Map — Demonstrated vs. Pending</h4>
+      <p>DSR treats demonstration as a legitimate but preliminary evaluation episode; a doctoral contribution requires evaluation beyond it. The table below is deliberately candid about which is which — the pending rows are the Phase 4 work, pre-registered on OSF before evaluation begins so acceptance thresholds cannot be retrofitted (§05).</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Evaluation dimension</th><th>Status</th><th>Evidence / remaining gap</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Feasibility</td><td><strong>✓ demonstrated</strong></td><td>End-to-end loop runs: NGS-driven queue → pull-agent → in-cluster execution → LEON notarization → display, on USC CARC Laguna.</td></tr>
+            <tr><td>Correctness / integrity</td><td><strong>✓ demonstrated</strong></td><td>Independent verification gates (cluster-side FCI vs CASSCF, Jordan-Wigner diagonalization, server-side seal + consistency re-check); no hard-coded results; monotonic energies across CAS sizes.</td></tr>
+            <tr><td>Comparison against baselines</td><td>◑ partial</td><td>Positioning argued qualitatively (table above); head-to-head evaluation against a push-based and an unsigned-provenance baseline is pending.</td></tr>
+            <tr><td>Utility with stakeholders</td><td>✗ pending</td><td>DSR Phase 4: structured evaluation with domain researchers and a regulatory-informed reviewer; OSF-preregistered acceptance criteria.</td></tr>
+            <tr><td>Generalization</td><td>◑ partial</td><td>Principles DP1–DP4 stated artifact-independently; a second-domain / second-workload instantiation to evidence transfer is designated future work.</td></tr>
+            <tr><td>Theoretical grounding</td><td><strong>✓</strong></td><td>Design Science Research paradigm (Hevner et al., 2004; Gregor &amp; Hevner, 2013); provenance and zero-trust literatures.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The honest reading is that the artifact has crossed the feasibility and integrity thresholds convincingly, and that the remaining contribution work is <em>evaluation</em>, not construction. This is the expected posture at proposal stage under DSR: the design principles and their instantiation are established; their rigorous, stakeholder-facing evaluation is the dissertation's Phase 4 deliverable.</p>
     </section>
 
     <!-- ========== 7. PRELIMINARY ========== -->
