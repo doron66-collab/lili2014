@@ -46,7 +46,7 @@ _DB_COLUMNS = frozenset({
     "p5_ecore_ha", "p5_active_energy_ha", "p5_casscf_ref_ha",
     "p6_method", "p6_note",
     "p7_energy_ha", "p7_ci_lower", "p7_ci_upper", "p7_confidence", "p7_method",
-    "p8_hash", "p8_algorithm", "p8_sealed_at",
+    "p8_hash", "p8_algorithm", "p8_sealed_at", "p8_seal_payload",
     "p9_applicable", "p9_note",
 })
 
@@ -440,14 +440,18 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
 _SEAL_EXCLUDE = {"p3_calibration_epoch"}
 
 
+def build_p8_payload(record: dict) -> str:
+    """The exact canonical JSON string that the P8 seal hashes over (P1–P7 + P9)."""
+    return json.dumps({k: v for k, v in record.items()
+                       if k.startswith(("p1_", "p2_", "p3_", "p4_",
+                                        "p5_", "p6_", "p7_", "p9_"))
+                       and k not in _SEAL_EXCLUDE},
+                      sort_keys=True, default=str)
+
+
 def build_p8_seal(record: dict) -> str:
     """SHA-256 hash of P1–P7 + P9 fields — P8 cryptographic seal."""
-    seal_payload = json.dumps({k: v for k, v in record.items()
-                                if k.startswith(("p1_", "p2_", "p3_", "p4_",
-                                                  "p5_", "p6_", "p7_", "p9_"))
-                                and k not in _SEAL_EXCLUDE},
-                               sort_keys=True, default=str)
-    return hashlib.sha256(seal_payload.encode()).hexdigest()
+    return hashlib.sha256(build_p8_payload(record).encode()).hexdigest()
 
 
 # ── API endpoint ───────────────────────────────────────────────────────────────
@@ -903,7 +907,8 @@ def _assemble_and_persist(mutation_id: str, config: dict, vqe: dict, authorizati
     }
 
     # P8 — Cryptographic seal
-    record["p8_hash"]      = build_p8_seal(record)
+    record["p8_seal_payload"] = build_p8_payload(record)   # exact hashed input, for robust re-verify
+    record["p8_hash"]      = hashlib.sha256(record["p8_seal_payload"].encode()).hexdigest()
     record["p8_algorithm"] = "SHA-256"
     record["p8_sealed_at"] = datetime.now(timezone.utc).isoformat()
 

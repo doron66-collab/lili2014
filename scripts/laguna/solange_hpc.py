@@ -327,17 +327,21 @@ def run_vqe(terms, n_qubits, nelec, steps=80):
 
 # ── P1-P9 provenance (seal matches SOLANGE backend build_p8_seal) ────────────
 
-def build_p8_seal(record: dict) -> str:
-    # Exclude fields that don't survive a DB round-trip byte-identically (timestamptz
-    # is reformatted by Postgres) so the seal re-verifies from the stored row.
-    _exclude = {"p3_calibration_epoch"}
-    seal_payload = json.dumps(
+_SEAL_EXCLUDE = {"p3_calibration_epoch"}   # not round-trip-safe in the DB (timestamptz)
+
+
+def build_p8_payload(record: dict) -> str:
+    """The exact canonical JSON string the P8 seal hashes over (P1–P7 + P9)."""
+    return json.dumps(
         {k: v for k, v in record.items()
          if k.startswith(("p1_", "p2_", "p3_", "p4_",
                           "p5_", "p6_", "p7_", "p9_"))
-         and k not in _exclude},
+         and k not in _SEAL_EXCLUDE},
         sort_keys=True, default=str)
-    return hashlib.sha256(seal_payload.encode()).hexdigest()
+
+
+def build_p8_seal(record: dict) -> str:
+    return hashlib.sha256(build_p8_payload(record).encode()).hexdigest()
 
 
 def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb,
@@ -425,7 +429,8 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
         "p9_applicable": False,
         "p9_note":       "P9 applies when the QEC decoder is active (Phase 3B hardware).",
     }
-    record["p8_hash"]      = build_p8_seal(record)
+    record["p8_seal_payload"] = build_p8_payload(record)   # stored verbatim for robust re-verify
+    record["p8_hash"]      = hashlib.sha256(record["p8_seal_payload"].encode()).hexdigest()
     record["p8_algorithm"] = "SHA-256 over P1-P7,P9 (sort_keys, default=str)"
     record["p8_sealed_at"] = now
     return record
