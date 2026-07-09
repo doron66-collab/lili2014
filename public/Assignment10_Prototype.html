@@ -915,6 +915,38 @@
     };            // end solangeLoadHpc
     window.solangeLoadHpc();   // initial load
 
+    // ── Live auto-refresh ────────────────────────────────────────────────────
+    // No manual F5: while the dispatch queue has active jobs (queued/running),
+    // poll the ladder so a Laguna result lands in the panel the moment the agent
+    // submits it. Self-stopping — after the queue drains it does one final refresh
+    // and clears the timer, so it never polls the backend forever.
+    window.__hpcPoll = window.__hpcPoll || null;
+    window.solangeStartHpcAutoRefresh = function(){
+      if (window.__hpcPoll) return;                       // already live
+      var idle = 0;
+      window.__hpcPoll = setInterval(function(){
+        fetch(API+'/api/simulate/hpc/dispatch/list?limit=50')
+          .then(function(r){return r.json();})
+          .then(function(d){
+            var jobs = (d&&d.jobs)||[];
+            var active = jobs.filter(function(j){
+              return j.status==='queued' || j.status==='running'; }).length;
+            window.solangeLoadHpc();                       // refresh the ladder each tick
+            if(active===0){
+              if(++idle>=2){                               // two idle ticks → stand down
+                clearInterval(window.__hpcPoll); window.__hpcPoll=null;
+                window.solangeLoadHpc();                   // final catch-up refresh
+              }
+            } else { idle=0; }
+          })
+          .catch(function(){ /* transient — keep trying next tick */ });
+      }, 6000);
+    };
+    window.solangeStopHpcAutoRefresh = function(){
+      if(window.__hpcPoll){ clearInterval(window.__hpcPoll); window.__hpcPoll=null; }
+    };
+    window.solangeStartHpcAutoRefresh();   // start now so a run finishing while the page is open lands on its own
+
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
     // page reload; Reset only returns the on-screen panel to a clean state.
@@ -3366,7 +3398,9 @@ async function dispatchSelectedToHpc() {
   }
   setMsg(`<span style="color:var(--green)">✓ queued ${ok}</span>` +
          (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
-         ' — a Laguna agent will run them.');
+         ' — a Laguna agent will run them; results appear below automatically.');
+  // Go live immediately: poll the ladder until the agent drains the queue.
+  if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
 }
 
 async function verifyHpcRun(runId, btn) {
