@@ -1,6 +1,12 @@
 """
 Provenance endpoints — CRUD for P1-P9 simulation run records stored in Supabase.
 All write operations require a valid Supabase JWT in the Authorization header.
+
+The seal-verification path is named LEON (Lineage-Evidence Orchestration &
+Notarization): the guardian that recomputes the P8 seal at every ingestion and
+re-verification, and refuses any record whose lineage does not check out.
+Principle: verify, don't trust — trust is derived from cryptographic proof, not
+from the identity of the submitter.
 """
 import hashlib
 import json
@@ -91,7 +97,7 @@ async def verify_seal(run_id: str):
             pass
         ok = seal_ok and tamper_ok
         return {
-            "run_id": run_id, "method": "sealed-payload",
+            "run_id": run_id, "method": "sealed-payload", "notary": "LEON",
             "integrity": "PASS" if ok else "FAIL",
             "seal_ok": seal_ok, "tamper_ok": tamper_ok, "note": tamper_note,
             "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256",
@@ -108,7 +114,7 @@ async def verify_seal(run_id: str):
     recomputed = hashlib.sha256(seal_payload.encode()).hexdigest()
     ok = (recomputed == stored)
     return {
-        "run_id": run_id, "method": "legacy-reconstruction",
+        "run_id": run_id, "method": "legacy-reconstruction", "notary": "LEON",
         "integrity": "PASS" if ok else "LEGACY-UNVERIFIABLE",
         "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256",
         "note": None if ok else "Pre-payload record; re-run to get a robustly verifiable seal.",

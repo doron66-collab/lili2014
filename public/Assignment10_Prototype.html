@@ -916,11 +916,11 @@
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
-            '<td style="'+C+'"><span style="color:var(--green)" title="'+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
+            '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
             '<td style="'+C+'">'+vbtn+'</td></tr>';
       });
       paint(hh+'</table>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>');
+        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified &amp; notarized by <strong style="color:var(--green)" title="Lineage-Evidence Orchestration &amp; Notarization — the guardian of provenance integrity">LEON</strong> at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>');
     }).catch(function(){
       paint('<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>');
     });
@@ -3442,8 +3442,9 @@ async function verifyHpcRun(runId, btn) {
       btn.style.borderColor = pass ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)';
       btn.disabled = false;
     }
+    const by = out.notary === 'LEON' ? 'LEON (Lineage-Evidence Orchestration & Notarization)' : 'SOLANGE';
     alert(pass
-      ? `Integrity: PASS ✓\nSOLANGE recomputed the P8 seal and it matches the stored one.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`
+      ? `Integrity: PASS ✓\n${by} recomputed the P8 seal and it matches the stored one.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`
       : `Integrity: FAIL ✗\nRecomputed seal does not match — the record may have been altered.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`);
   } catch (e) {
     if (btn) { btn.textContent = orig; btn.disabled = false; }
