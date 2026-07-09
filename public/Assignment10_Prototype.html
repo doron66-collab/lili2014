@@ -870,8 +870,11 @@
     var box=document.getElementById('dispatch-hpc');
     var API=(window.QCAIHPC_API_BASE||'https://qcaihpc-simulation-api.onrender.com');
     var f=function(v){return (v==null||isNaN(v))?'—':Number(v).toFixed(6);};
-    window.solangeLoadHpc=function(){
-    box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading HPC runs…</div>';
+    window.solangeLoadHpc=function(silent){
+    // silent=true (background auto-refresh) skips the "Loading…" placeholder so the
+    // panel doesn't flicker empty→message every poll tick; the DOM is only rewritten
+    // once fresh data arrives.
+    if(!silent) box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading HPC runs…</div>';
     fetch(API+'/api/simulate/hpc/runs').then(function(r){return r.json();}).then(function(d){
       var runs=(d&&d.runs)||[];
       if(!runs.length){
@@ -938,14 +941,13 @@
             var jobs = (d&&d.jobs)||[];
             var active = jobs.filter(function(j){
               return j.status==='queued' || j.status==='running'; }).length;
-            window.solangeLoadHpc();                       // refresh the ladder each tick
-            if(active===0){
-              if(++idle>=2){                               // two idle ticks → stand down
-                clearInterval(window.__hpcPoll); window.__hpcPoll=null;
-                _hpcLive(false);
-                window.solangeLoadHpc();                   // final catch-up refresh
-              }
-            } else { idle=0; }
+            if(active>0){                                   // work in flight → refresh silently (no flicker)
+              idle=0; window.solangeLoadHpc(true);
+            } else if(++idle>=2){                            // queue drained → one last refresh, then stand down
+              clearInterval(window.__hpcPoll); window.__hpcPoll=null;
+              _hpcLive(false);
+              window.solangeLoadHpc(true);
+            }
           })
           .catch(function(){ /* transient — keep trying next tick */ });
       }, 6000);
@@ -954,7 +956,15 @@
       if(window.__hpcPoll){ clearInterval(window.__hpcPoll); window.__hpcPoll=null; }
       _hpcLive(false);
     };
-    window.solangeStartHpcAutoRefresh();   // start now so a run finishing while the page is open lands on its own
+    // On load, only go live if there's actually something to watch — an empty/idle
+    // queue must NOT poll (that was causing the panel to flicker every few seconds).
+    fetch(API+'/api/simulate/hpc/dispatch/list?limit=50')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var jobs=(d&&d.jobs)||[];
+        if(jobs.some(function(j){return j.status==='queued'||j.status==='running';}))
+          window.solangeStartHpcAutoRefresh();
+      }).catch(function(){});
 
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
