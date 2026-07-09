@@ -598,8 +598,18 @@ async def submit_hpc_run(payload: dict = Body(...)):
                .eq("p2_active_electrons", safe.get("p2_active_electrons"))
                .eq("p2_active_orbitals", safe.get("p2_active_orbitals"))
                .execute())
-            sb.table("simulation_runs").insert(safe).execute()
-            db_status = "stored"
+            try:
+                sb.table("simulation_runs").insert(safe).execute()
+                db_status = "stored"
+            except Exception as e_ins:
+                # Resilient to the p8_seal_payload migration not being run yet: retry
+                # without it so the run still stores (Verify is just LEGACY until migrated).
+                if "p8_seal_payload" in str(e_ins):
+                    safe2 = {k: v for k, v in safe.items() if k != "p8_seal_payload"}
+                    sb.table("simulation_runs").insert(safe2).execute()
+                    db_status = "stored_no_payload"
+                else:
+                    raise
         except Exception as e:
             db_status = "error"
             logging.error("HPC upsert failed: %s", e)

@@ -477,6 +477,14 @@ def _resolve_compound(key, side):
     raise ValueError(f"cannot resolve model compound for {key}/{side}")
 
 
+def _db_status_from(stdout):
+    """Pull the db=<status> token the --submit subprocess prints, for diagnostics."""
+    for tok in stdout.split():
+        if tok.startswith("db="):
+            return tok[3:]
+    return "?"
+
+
 def _post_status(api, hdr, did, status, note=None, run_id=None):
     import urllib.request
     body = {"status": status}
@@ -521,10 +529,19 @@ def run_agent(api, poll_s, token, out_dir):
             if job.get("run_vqe"):
                 cmd += ["--vqe", "--vqe-steps", "200"]
             res = subprocess.run(cmd, capture_output=True, text=True)
-            ok = (res.returncode == 0 and "status=PASSED" in res.stdout)
-            _post_status(api, hdr, did, "done" if ok else "failed",
-                         note=("ok" if ok else (res.stderr[-300:] or res.stdout[-300:])))
-            print(f"[agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}")
+            # Don't mark DONE unless the backend actually STORED the run — otherwise a
+            # run can pass verification yet never appear in SOLANGE (e.g. the
+            # p8_seal_payload migration not run). "stored" or "stored_no_payload" both count.
+            passed = "status=PASSED" in res.stdout
+            stored = ("db=stored" in res.stdout or "db=stored_no_payload" in res.stdout)
+            ok = (res.returncode == 0 and passed and stored)
+            if passed and not stored:
+                note = "verified but NOT stored (db=%s)" % _db_status_from(res.stdout)
+            else:
+                note = "ok" if ok else (res.stderr[-300:] or res.stdout[-300:])
+            _post_status(api, hdr, did, "done" if ok else "failed", note=note)
+            print(f"[agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}"
+                  + ("" if ok else f"  ({note[:80]})"))
         except KeyboardInterrupt:
             raise
         except Exception as e:
