@@ -875,12 +875,16 @@
     // panel doesn't flicker empty→message every poll tick; the DOM is only rewritten
     // once fresh data arrives.
     if(!silent) box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading HPC runs…</div>';
+    // paint(html): only touch the DOM when the content actually changed, so a
+    // background poll on unchanged data does NOT rewrite the table (which reads as
+    // a visible "tick" every few seconds even when nothing is different).
+    var paint=function(html){ if(box.__lastHtml===html) return; box.__lastHtml=html; box.innerHTML=html; };
     fetch(API+'/api/simulate/hpc/runs').then(function(r){return r.json();}).then(function(d){
       var runs=(d&&d.runs)||[];
       if(!runs.length){
-        box.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+        paint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
           'No HPC runs submitted yet. Runs dispatched to Laguna appear here automatically once '+
-          '<code>solange_hpc.py --submit</code> posts them — the backend re-verifies each P8 seal before it is shown.</div>';
+          '<code>solange_hpc.py --submit</code> posts them — the backend re-verifies each P8 seal before it is shown.</div>');
         return;
       }
       window.__hpcRuns = runs;   // cached for CSV export
@@ -915,10 +919,10 @@
             '<td style="'+C+'"><span style="color:var(--green)" title="'+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
             '<td style="'+C+'">'+vbtn+'</td></tr>';
       });
-      box.innerHTML=hh+'</table>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>';
+      paint(hh+'</table>'+
+        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>');
     }).catch(function(){
-      box.innerHTML='<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>';
+      paint('<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>');
     });
     };            // end solangeLoadHpc
     window.solangeLoadHpc();   // initial load
@@ -928,7 +932,9 @@
     // poll the ladder so a Laguna result lands in the panel the moment the agent
     // submits it. Self-stopping — after the queue drains it does one final refresh
     // and clears the timer, so it never polls the backend forever.
-    window.__hpcPoll = window.__hpcPoll || null;
+    // Guard: if this block ever re-initialises, kill any orphaned poller so we never
+    // end up with two timers hammering the panel (a stale one would keep "ticking").
+    if(window.__hpcPoll){ clearInterval(window.__hpcPoll); window.__hpcPoll=null; }
     var _hpcLive = function(on){ var el=document.getElementById('hpc-live'); if(el) el.style.display = on?'inline-flex':'none'; };
     window.solangeStartHpcAutoRefresh = function(){
       if (window.__hpcPoll) return;                       // already live
