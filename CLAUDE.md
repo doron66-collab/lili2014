@@ -30,6 +30,13 @@
 - Contact: Michal Rosen-Zvi (ROSEN@il.ibm.com) — leaving IBM, referred to Ella (quantum partnerships)
 - Ella: leads quantum partnerships at IBM Research Israel
 
+## LEON
+- **LEON** = Lineage-Evidence Orchestration & Notarization — the single notarization authority
+- Canonical module: `backend/routes/leon.py` (owns the P8 seal: build_p8_payload / build_p8_seal / notarize / reverify)
+- `simulate.py` (/hpc/submit) and `provenance.py` (/runs/{id}/verify) BOTH delegate to leon — one source of truth, seal never drifts
+- Principle: "verify, don't trust" (DP1, §06.iv). Named in memory of Doron's father, Leon
+- UI: results show "notarized by LEON"; dissertation has dedication + §06.ii LEON paragraph + §06.iv + glossary entry
+
 ## Compliance
 - Standard: FDA 21 CFR §11.10(e)
 - Provenance: P1–P9 records

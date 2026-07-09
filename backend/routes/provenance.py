@@ -15,6 +15,8 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Header
 from supabase import create_client
 
+from routes import leon  # LEON — the single notarization authority (verify, don't trust)
+
 router = APIRouter()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
@@ -75,50 +77,10 @@ async def verify_seal(run_id: str):
     res = sb.table("simulation_runs").select("*").eq("id", run_id).execute()
     if not res.data:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
-    record = res.data[0]
-    stored = record.get("p8_hash", "")
-    payload = record.get("p8_seal_payload")
-
-    if payload:
-        # Robust path: the exact hashed JSON was stored verbatim (text survives the DB
-        # round-trip byte-identically, unlike floats/timestamps). Re-hash it, then
-        # tamper-check the key result fields in the payload against the live columns.
-        recomputed = hashlib.sha256(payload.encode()).hexdigest()
-        seal_ok = (recomputed == stored)
-        tamper_ok, tamper_note = True, None
-        try:
-            pj = json.loads(payload)
-            for f in ("p7_energy_ha", "p5_casscf_ref_ha", "p5_raw_energy"):
-                pv, cv = pj.get(f), record.get(f)
-                if pv is not None and cv is not None and abs(float(pv) - float(cv)) > 1e-6:
-                    tamper_ok = False
-                    tamper_note = f"{f}: sealed {pv} != stored {cv}"
-        except Exception:
-            pass
-        ok = seal_ok and tamper_ok
-        return {
-            "run_id": run_id, "method": "sealed-payload", "notary": "LEON",
-            "integrity": "PASS" if ok else "FAIL",
-            "seal_ok": seal_ok, "tamper_ok": tamper_ok, "note": tamper_note,
-            "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256",
-        }
-
-    # Legacy records (sealed before p8_seal_payload existed): reconstruction from the
-    # stored fields is unreliable across the DB round-trip, so report it as such.
-    _SEAL_EXCLUDE = {"p3_calibration_epoch"}
-    seal_payload = json.dumps(
-        {k: v for k, v in record.items()
-         if k.startswith(("p1_", "p2_", "p3_", "p4_", "p5_", "p6_", "p7_", "p9_"))
-         and k not in _SEAL_EXCLUDE},
-        sort_keys=True, default=str)
-    recomputed = hashlib.sha256(seal_payload.encode()).hexdigest()
-    ok = (recomputed == stored)
-    return {
-        "run_id": run_id, "method": "legacy-reconstruction", "notary": "LEON",
-        "integrity": "PASS" if ok else "LEGACY-UNVERIFIABLE",
-        "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256",
-        "note": None if ok else "Pre-payload record; re-run to get a robustly verifiable seal.",
-    }
+    # LEON re-attests the stored record on demand — the same notary that sealed it
+    # at ingestion, so integrity is re-verifiable long after the fact rather than
+    # asserted once and trusted thereafter.
+    return {"run_id": run_id, **leon.reverify(res.data[0])}
 
 
 @router.get("/summary")

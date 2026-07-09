@@ -437,21 +437,13 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
 # byte-identically (e.g. timestamptz is reformatted by Postgres), which would make
 # a re-verification from the stored row spuriously FAIL. They are metadata, not
 # result-integrity data, so excluding them keeps the seal robust and re-verifiable.
-_SEAL_EXCLUDE = {"p3_calibration_epoch"}
+# The P8 seal is owned by LEON (routes.leon) — the single notarization authority.
+# Import the canonical helpers so the seal can never drift between ingestion here
+# and query-time re-verification in routes.provenance.
+from routes import leon
+from routes.leon import build_p8_payload, build_p8_seal
 
-
-def build_p8_payload(record: dict) -> str:
-    """The exact canonical JSON string that the P8 seal hashes over (P1–P7 + P9)."""
-    return json.dumps({k: v for k, v in record.items()
-                       if k.startswith(("p1_", "p2_", "p3_", "p4_",
-                                        "p5_", "p6_", "p7_", "p9_"))
-                       and k not in _SEAL_EXCLUDE},
-                      sort_keys=True, default=str)
-
-
-def build_p8_seal(record: dict) -> str:
-    """SHA-256 hash of P1–P7 + P9 fields — P8 cryptographic seal."""
-    return hashlib.sha256(build_p8_payload(record).encode()).hexdigest()
+_SEAL_EXCLUDE = leon._SEAL_EXCLUDE
 
 
 # ── API endpoint ───────────────────────────────────────────────────────────────
@@ -553,24 +545,22 @@ async def submit_hpc_run(payload: dict = Body(...)):
     if not prov or not prov.get("p8_hash"):
         raise HTTPException(400, "missing provenance record or p8_hash")
 
-    # 1) Re-verify the P8 seal by recomputing it ourselves.
-    submitted = prov["p8_hash"]
-    recomputed = build_p8_seal(prov)
-    seal_ok = (submitted == recomputed)
+    # LEON notarizes the incoming run: it recomputes the P8 seal and re-checks the
+    # physics-consistency invariant. Nothing is trusted on the strength of its
+    # origin — a record that fails either check is REJECTED (422), never stored.
+    verdict = leon.notarize(prov, jw)
+    recomputed = verdict["recomputed_hash"]
+    seal_ok = verdict["seal_ok"]
+    consistency_ok = verdict["consistency_ok"]
     if not seal_ok:
         raise HTTPException(
-            422, f"P8 seal verification FAILED — recomputed {recomputed[:16]}… "
-                 f"!= submitted {str(submitted)[:16]}…; record rejected")
-
-    # 2) Independent physics-consistency check (cheap, no GPU).
-    consistency_ok = None
-    ecore, ecas, eact = jw.get("ecore"), jw.get("e_casscf"), jw.get("e_active_exact")
-    if None not in (ecore, ecas, eact):
-        consistency_ok = abs((ecore + eact) - ecas) < 1e-3
-        if consistency_ok is False:
-            raise HTTPException(
-                422, f"physics consistency FAILED — ecore+e_active ({ecore+eact:.6f}) "
-                     f"!= e_casscf ({ecas:.6f}); record rejected")
+            422, f"LEON: P8 seal verification FAILED — recomputed {recomputed[:16]}… "
+                 f"!= submitted {str(verdict['submitted_hash'])[:16]}…; record rejected")
+    if consistency_ok is False:
+        ecore, eact, ecas = jw.get("ecore"), jw.get("e_active_exact"), jw.get("e_casscf")
+        raise HTTPException(
+            422, f"LEON: physics consistency FAILED — ecore+e_active ({ecore+eact:.6f}) "
+                 f"!= e_casscf ({ecas:.6f}); record rejected")
 
     # 3) Build the stored record — force honest phase/source labels.
     record = dict(prov)
