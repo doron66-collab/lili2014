@@ -10,7 +10,7 @@ import logging
 import os
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pennylane as qml
@@ -657,6 +657,69 @@ def _uid_from_auth(authorization: str | None) -> str:
 # Laguna session (solange_hpc.py --agent) pulls it, runs it, and --submits results
 # back — completing the loop without breaching cluster security.
 
+# A job claimed by an agent that then dies would sit in "running" forever, keeping
+# the panel's live indicator on and blocking a clean queue. The reaper marks such
+# orphans failed. The timeout is generous (longer than any observed run) so it never
+# kills a legitimately long execution — it only clears truly abandoned jobs.
+_STALE_MINUTES = 45
+
+
+def _reap_stale_dispatch(sb):
+    """Mark jobs stuck in 'running' past the stale timeout as failed (best-effort)."""
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=_STALE_MINUTES)).isoformat()
+        (sb.table("hpc_dispatch").update(
+            {"status": "failed",
+             "finished_at": datetime.now(timezone.utc).isoformat(),
+             "note": f"stale — no completion within {_STALE_MINUTES}m (agent likely lost)"})
+           .eq("status", "running").lt("claimed_at", cutoff).execute())
+    except Exception as e:
+        logging.warning("dispatch reaper skipped: %s", e)
+
+
+@router.post("/hpc/agent/heartbeat")
+async def agent_heartbeat(payload: dict = Body(default={}),
+                          authorization: str | None = Header(None)):
+    """Cluster agent liveness ping — upserts a single last-seen row so SOLANGE can
+    show whether an agent is currently active."""
+    _uid_from_auth(authorization)
+    sb = get_supabase()
+    if not sb:
+        return {"ok": False, "db": "not_configured"}
+    row = {"id": "default", "last_seen": datetime.now(timezone.utc).isoformat(),
+           "agent": (payload or {}).get("agent", "laguna"),
+           "note": (payload or {}).get("note")}
+    try:
+        sb.table("agent_heartbeat").upsert(row).execute()
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@router.get("/hpc/agent/status")
+async def agent_status():
+    """Return whether an agent has pinged recently (online within 90s)."""
+    sb = get_supabase()
+    if not sb:
+        return {"online": False, "db": "not_configured"}
+    try:
+        res = sb.table("agent_heartbeat").select("*").eq("id", "default").execute()
+        if not res.data:
+            return {"online": False, "last_seen": None}
+        last = res.data[0].get("last_seen")
+        secs = None
+        try:
+            dt = datetime.fromisoformat(str(last).replace("Z", "+00:00"))
+            secs = (datetime.now(timezone.utc) - dt).total_seconds()
+        except Exception:
+            pass
+        return {"online": (secs is not None and secs < 90),
+                "last_seen": last, "seconds_ago": None if secs is None else round(secs),
+                "agent": res.data[0].get("agent")}
+    except Exception as e:
+        return {"online": False, "error": str(e)}
+
+
 @router.post("/hpc/dispatch")
 async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = Header(None)):
     """Queue an HPC job from SOLANGE. The cluster agent picks it up and runs it."""
@@ -694,6 +757,7 @@ async def list_dispatch(limit: int = 20):
     sb = get_supabase()
     if not sb:
         return {"jobs": [], "db": "not_configured"}
+    _reap_stale_dispatch(sb)   # clear orphaned 'running' jobs before reporting state
     try:
         res = (sb.table("hpc_dispatch")
                  .select("id, created_at, status, key, side, compound, basis, "
@@ -735,6 +799,7 @@ async def next_dispatch(authorization: str | None = Header(None)):
     sb = get_supabase()
     if not sb:
         return {"job": None, "db": "not_configured"}
+    _reap_stale_dispatch(sb)   # clear orphaned 'running' jobs before claiming the next
     try:
         res = (sb.table("hpc_dispatch").select("*")
                  .eq("status", "queued").order("created_at").limit(1).execute())

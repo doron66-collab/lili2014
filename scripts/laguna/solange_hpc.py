@@ -500,11 +500,25 @@ def _post_status(api, hdr, did, status, note=None, run_id=None):
         print(f"[agent] status post failed: {e}", file=sys.stderr)
 
 
+def _post_heartbeat(api, hdr):
+    """Tell SOLANGE this agent is alive (best-effort; never blocks the loop)."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            api.rstrip("/") + "/api/simulate/hpc/agent/heartbeat",
+            data=json.dumps({"agent": "laguna"}).encode(), method="POST",
+            headers={**hdr, "Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=15).read()
+    except Exception:
+        pass
+
+
 def run_agent(api, poll_s, token, out_dir):
     import urllib.request
     hdr = {"Authorization": "Bearer " + token}
     print(f"[agent] up · polling {api} every {poll_s}s · Ctrl+C to stop")
     while True:
+        _post_heartbeat(api, hdr)   # liveness ping so SOLANGE shows the agent online
         try:
             req = urllib.request.Request(
                 api.rstrip("/") + "/api/simulate/hpc/dispatch/next", headers=hdr)

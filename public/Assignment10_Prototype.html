@@ -793,6 +793,7 @@
       Real runs dispatched to the Laguna cluster — <strong>not</strong> executed in-browser.
       <span style="color:var(--teal)">exact</span> = reference ground state · VQE-UCCSD = near-term-device demonstration.
     </p>
+    <div id="hpc-queue-status" style="display:none;margin:4px 0 10px;font-size:11px;line-height:1.6"></div>
     <div id="dispatch-hpc" style="overflow-x:auto"></div>
   </div>
   <script>
@@ -936,6 +937,30 @@
     // end up with two timers hammering the panel (a stale one would keep "ticking").
     if(window.__hpcPoll){ clearInterval(window.__hpcPoll); window.__hpcPoll=null; }
     var _hpcLive = function(on){ var el=document.getElementById('hpc-live'); if(el) el.style.display = on?'inline-flex':'none'; };
+    // Queue status strip: agent online/offline + queued/running/failed counts + the
+    // most recent failure note, so a failed job is visible in SOLANGE (not only in
+    // the agent terminal). Silent when there is nothing to report.
+    var _renderQueueStatus = function(jobs){
+      var el=document.getElementById('hpc-queue-status'); if(!el) return;
+      var n=function(s){return jobs.filter(function(j){return j.status===s;}).length;};
+      var q=n('queued'), r=n('running'), f=n('failed');
+      var lastFail=jobs.filter(function(j){return j.status==='failed'&&j.note;})[0];
+      fetch(API+'/api/simulate/hpc/agent/status').then(function(x){return x.json();}).then(function(s){
+        var online=!!(s&&s.online);
+        if(!q&&!r&&!f&&!online){ el.style.display='none'; return; }
+        var dot=function(c){return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:4px;vertical-align:middle"></span>';};
+        var agent=online?(dot('var(--green)')+'<span style="color:var(--green)">agent online</span>')
+                        :(dot('#f87171')+'<span style="color:var(--gray)">agent offline</span>');
+        var counts=[];
+        if(q) counts.push('<span style="color:var(--gray)">'+q+' queued</span>');
+        if(r) counts.push('<span style="color:var(--teal)">'+r+' running</span>');
+        if(f) counts.push('<span style="color:#f87171">'+f+' failed</span>');
+        var line=agent+(counts.length?' · '+counts.join(' · '):'');
+        if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
+          String(lastFail.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
+        el.innerHTML=line; el.style.display='block';
+      }).catch(function(){ el.style.display='none'; });
+    };
     window.solangeStartHpcAutoRefresh = function(){
       if (window.__hpcPoll) return;                       // already live
       _hpcLive(true);
@@ -945,6 +970,7 @@
           .then(function(r){return r.json();})
           .then(function(d){
             var jobs = (d&&d.jobs)||[];
+            _renderQueueStatus(jobs);
             var active = jobs.filter(function(j){
               return j.status==='queued' || j.status==='running'; }).length;
             if(active>0){                                   // work in flight → refresh silently (no flicker)
@@ -968,6 +994,7 @@
       .then(function(r){return r.json();})
       .then(function(d){
         var jobs=(d&&d.jobs)||[];
+        _renderQueueStatus(jobs);   // show agent status / any failures even when idle
         if(jobs.some(function(j){return j.status==='queued'||j.status==='running';}))
           window.solangeStartHpcAutoRefresh();
       }).catch(function(){});
