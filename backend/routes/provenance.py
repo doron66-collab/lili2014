@@ -79,8 +79,27 @@ async def verify_seal(run_id: str):
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     # LEON re-attests the stored record on demand — the same notary that sealed it
     # at ingestion, so integrity is re-verifiable long after the fact rather than
-    # asserted once and trusted thereafter.
-    return {"run_id": run_id, **leon.reverify(res.data[0])}
+    # asserted once and trusted thereafter. The re-verification is itself audited.
+    verdict = leon.reverify(res.data[0])
+    leon.write_audit(sb, "reverify", run_id, verdict,
+                     actor=res.data[0].get("provenance_source"))
+    return {"run_id": run_id, **verdict}
+
+
+@router.get("/leon-audit")
+async def leon_audit(limit: int = 50, run_id: str = None):
+    """LEON's append-only audit trail — every notarization, re-verification, and
+    rejection, time-stamped (21 CFR §11.10(e)). Public read; never mutable."""
+    sb = get_supabase()
+    try:
+        q = (sb.table("leon_audit").select("*")
+               .order("created_at", desc=True).limit(limit))
+        if run_id:
+            q = q.eq("run_id", run_id)
+        res = q.execute()
+        return {"notary": "LEON", "data": res.data, "count": len(res.data)}
+    except Exception as e:
+        return {"notary": "LEON", "data": [], "count": 0, "note": f"audit trail unavailable: {e}"}
 
 
 @router.get("/summary")

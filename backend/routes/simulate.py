@@ -552,12 +552,19 @@ async def submit_hpc_run(payload: dict = Body(...)):
     recomputed = verdict["recomputed_hash"]
     seal_ok = verdict["seal_ok"]
     consistency_ok = verdict["consistency_ok"]
+    _audit_sb = get_supabase()
+    _actor = prov.get("provenance_source") or prov.get("residue") or "HPC/external"
+    _run_id = prov.get("id")
     if not seal_ok:
+        leon.write_audit(_audit_sb, "reject", _run_id, verdict, actor=_actor,
+                         note="P8 seal mismatch — record rejected at ingestion")
         raise HTTPException(
             422, f"LEON: P8 seal verification FAILED — recomputed {recomputed[:16]}… "
                  f"!= submitted {str(verdict['submitted_hash'])[:16]}…; record rejected")
     if consistency_ok is False:
         ecore, eact, ecas = jw.get("ecore"), jw.get("e_active_exact"), jw.get("e_casscf")
+        leon.write_audit(_audit_sb, "reject", _run_id, verdict, actor=_actor,
+                         note="physics consistency mismatch — record rejected at ingestion")
         raise HTTPException(
             422, f"LEON: physics consistency FAILED — ecore+e_active ({ecore+eact:.6f}) "
                  f"!= e_casscf ({ecas:.6f}); record rejected")
@@ -608,6 +615,10 @@ async def submit_hpc_run(payload: dict = Body(...)):
     # and notarized the record. Nothing enters SOLANGE without passing this guard.
     logging.info("LEON notarized run %s — seal_ok=%s consistency_ok=%s db=%s",
                  record["id"], seal_ok, consistency_ok, db_status)
+    leon.write_audit(_audit_sb, "notarize", record["id"],
+                     {**verdict, "integrity": "PASS", "method": "ingestion"},
+                     actor=record["provenance_source"],
+                     note=f"notarized & stored (db={db_status})")
     return {
         "status":            "PASSED",
         "verified":          True,

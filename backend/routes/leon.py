@@ -18,6 +18,7 @@ drift between "sealed at ingestion" and "re-verified later".
 """
 import hashlib
 import json
+import logging
 
 NAME = "LEON"
 FULL_NAME = "Lineage-Evidence Orchestration & Notarization"
@@ -123,3 +124,31 @@ def reverify(record: dict) -> dict:
         "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256",
         "note": None if ok else "Pre-payload record; re-run to get a robustly verifiable seal.",
     }
+
+
+def write_audit(sb, event: str, run_id, verdict: dict, actor: str = None, note: str = None):
+    """Append one immutable record to LEON's audit trail (21 CFR §11.10(e)).
+
+    Best-effort and non-fatal: an audit-write failure (e.g. the leon_audit migration
+    not yet run) must never break the request it is auditing. The trail is
+    append-only by table policy — LEON records what it saw, it does not rewrite it.
+    """
+    if sb is None:
+        return
+    row = {
+        "event": event,
+        "run_id": str(run_id) if run_id is not None else None,
+        "integrity": verdict.get("integrity")
+                     or ("PASS" if verdict.get("ok") else "REJECTED"),
+        "seal_ok": verdict.get("seal_ok"),
+        "consistency_ok": verdict.get("consistency_ok"),
+        "method": verdict.get("method", "ingestion"),
+        "stored_hash": verdict.get("stored_hash") or verdict.get("submitted_hash"),
+        "recomputed_hash": verdict.get("recomputed_hash"),
+        "actor": actor,
+        "note": note or verdict.get("note"),
+    }
+    try:
+        sb.table("leon_audit").insert(row).execute()
+    except Exception as e:
+        logging.warning("LEON audit-write skipped (%s): %s", event, e)
