@@ -985,6 +985,17 @@
     </p>
     <div id="hpc-queue-status" style="display:none;margin:4px 0 10px;font-size:11px;line-height:1.6"></div>
     <div id="dispatch-hpc" style="overflow-x:auto"></div>
+
+    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+      <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)</span>
+      <button onclick="window.solangeLoadDmrg && window.solangeLoadDmrg()" title="Reload from SOLANGE"
+        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+    </div>
+    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
+      Whether classical DMRG reaches chemical accuracy, per target — the evidence behind each A/B/C class.
+      Sealed at source and notarized by LEON on submission (independent of Laguna connectivity afterward).
+    </p>
+    <div id="dmrg-classifications" style="overflow-x:auto"></div>
   </div>
   <script>
   (function(){
@@ -1190,6 +1201,43 @@
           window.solangeStartHpcAutoRefresh();
       }).catch(function(){});
 
+    // ── DMRG A/B/C classifications — read-only, LEON-notarized on submission ──
+    var dmrgBox = document.getElementById('dmrg-classifications');
+    window.solangeLoadDmrg = function(){
+      if (!dmrgBox) return;
+      dmrgBox.innerHTML = '<div style="color:var(--gray);font-size:11px">Loading…</div>';
+      fetch(API+'/api/simulate/hpc/dmrg/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.classifications) || [];
+        if (!rows.length) {
+          dmrgBox.innerHTML = '<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+            'No DMRG classifications submitted yet. Runs from <code>solange_dmrg.py --submit</code> '+
+            'appear here automatically — the backend re-verifies each LEON seal before showing it.</div>';
+          return;
+        }
+        var classColor = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
+        var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
+          '<th style="'+TH+'">Target</th><th style="'+TH+'">CAS</th>'+
+          '<th style="'+TH+'">S_max</th><th style="'+TH+'">Class</th>'+
+          '<th style="'+TH+'">Rationale</th><th style="'+TH+'">LEON</th></tr>';
+        rows.forEach(function(x){
+          var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
+          var provisional = x.time_budget_hit ? ' <span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
+                '<td style="'+C+'">'+cas+'</td>'+
+                '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
+                '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray);max-width:280px;white-space:normal">'+(x.class_rationale||'—')+'</td>'+
+                '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,8):'—')+'…</span></td></tr>';
+        });
+        dmrgBox.innerHTML = hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = quantum-necessary (even DMRG fails) · B = DMRG suffices · C = exact classical suffices. '+
+          'S_max is the physical evidence — the entanglement threshold, not a size assumption.</div>';
+      }).catch(function(){
+        dmrgBox.innerHTML = '<div style="color:var(--gray);font-size:11px">DMRG classifications unavailable (backend unreachable).</div>';
+      });
+    };
+    window.solangeLoadDmrg();
+
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
     // page reload; Reset only returns the on-screen panel to a clean state.
@@ -1197,6 +1245,8 @@
       if(mutsBox) placeholder();
       if(box) box.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
         'Cleared on reset. Archived HPC runs remain stored & verified in SOLANGE — reload the page to view them.</div>';
+      if(dmrgBox) dmrgBox.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+        'Cleared on reset. Archived DMRG classifications remain stored & verified in SOLANGE — reload the page to view them.</div>';
     };
   })();
   </script>

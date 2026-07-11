@@ -893,6 +893,90 @@ async def list_hpc_runs(limit: int = 50):
         return {"runs": [], "error": str(e)}
 
 
+# ── DMRG A/B/C classification ingestion ────────────────────────────────────────
+# Sealed and notarized the same way as an HPC/CASSCF run (routes.leon), but the
+# record shape is different (a classification + entanglement diagnostic, not a
+# P1-P9 energy record), so it uses LEON's generic seal path (notarize_generic)
+# rather than the P8/physics-consistency path. This closes the same "stuck only on
+# Laguna" gap that HPC results already avoid: a DMRG classification is safe in
+# SOLANGE the moment it's submitted, independent of any later cluster connectivity.
+_DMRG_DB_COLUMNS = frozenset({
+    "id", "created_at", "key", "compound", "basis", "ncas", "nelecas",
+    "e_casscf", "dmrg_energies", "s_max", "bqp_class", "class_rationale",
+    "time_budget_hit", "bond_dims_requested", "method",
+    "dmrg_seal_payload", "dmrg_hash", "provenance_source",
+})
+
+
+@router.post("/hpc/dmrg/submit")
+async def submit_dmrg_classification(payload: dict = Body(...)):
+    """Ingest a DMRG A/B/C classification from solange_dmrg.py --submit.
+
+    LEON re-verifies the seal the script computed at source before this record is
+    trusted — a mismatch means the record was altered or incomplete in transit and
+    is REJECTED (422), never stored.
+    """
+    if not payload.get("dmrg_hash"):
+        raise HTTPException(400, "missing dmrg_hash — record was not sealed at source")
+
+    record = dict(payload)
+    record.setdefault("id", str(uuid.uuid4()))
+    record["provenance_source"] = record.get("provenance_source", "HPC/external (DMRG)")
+
+    # exclude dmrg_seal_payload too — the client (solange_dmrg.py) hashed the record
+    # BEFORE either field existed, so the server must exclude both to recompute the
+    # identical hash. Excluding hash_field alone here would hash the payload STRING
+    # into itself and never match the client's seal.
+    verdict = leon.notarize_generic(record, hash_field="dmrg_hash", exclude={"dmrg_seal_payload"})
+    sb = get_supabase()
+    actor = record.get("provenance_source")
+    if not verdict["ok"]:
+        leon.write_audit(sb, "reject", record["id"], verdict, actor=actor,
+                         note="DMRG record seal mismatch — rejected at ingestion")
+        raise HTTPException(
+            422, f"LEON: DMRG seal verification FAILED — recomputed "
+                 f"{verdict['recomputed_hash'][:16]}… != submitted "
+                 f"{str(verdict['submitted_hash'])[:16]}…; record rejected")
+
+    safe = {k: v for k, v in record.items() if k in _DMRG_DB_COLUMNS}
+    db_status = "not_configured"
+    if sb:
+        try:
+            sb.table("dmrg_classifications").insert(safe).execute()
+            db_status = "stored"
+        except Exception as e:
+            db_status = "error"
+            logging.error("DMRG classification insert failed: %s", e)
+
+    logging.info("LEON notarized DMRG classification %s (%s) — class=%s db=%s",
+                 record["id"], record.get("key"), record.get("bqp_class"), db_status)
+    leon.write_audit(sb, "notarize", record["id"],
+                     {**verdict, "integrity": "PASS", "method": "generic-ingestion"},
+                     actor=actor, note=f"DMRG class={record.get('bqp_class')} (db={db_status})")
+
+    return {
+        "status": "PASSED", "verified": True, "notary": "LEON",
+        "seal_ok": verdict["seal_ok"], "run_id": record["id"], "db_status": db_status,
+    }
+
+
+@router.get("/hpc/dmrg/list")
+async def list_dmrg_classifications(limit: int = 50):
+    """List LEON-notarized DMRG A/B/C classifications for the dashboard."""
+    sb = get_supabase()
+    if not sb:
+        return {"classifications": [], "db": "not_configured"}
+    try:
+        res = (sb.table("dmrg_classifications")
+                 .select("id, created_at, key, compound, basis, ncas, nelecas, "
+                         "e_casscf, s_max, bqp_class, class_rationale, "
+                         "time_budget_hit, dmrg_hash")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"classifications": res.data or []}
+    except Exception as e:
+        return {"classifications": [], "error": str(e)}
+
+
 @router.get("/{mutation_id}")
 async def run_simulation(mutation_id: str, authorization: str | None = Header(None)):
     try:

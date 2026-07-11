@@ -126,6 +126,38 @@ def reverify(record: dict) -> dict:
     }
 
 
+def build_generic_payload(record: dict, exclude=frozenset()) -> str:
+    """Canonical JSON for a NON-P1–P9 record (e.g. a DMRG A/B/C classification) —
+    the whole dict, sorted keys, minus any self-referential seal fields. Used where
+    a result doesn't fit the provenance schema but still needs LEON's guarantee:
+    sealed at the source, rejected at ingestion if the seal doesn't recompute."""
+    return json.dumps({k: v for k, v in record.items() if k not in exclude},
+                      sort_keys=True, default=str)
+
+
+def build_generic_seal(record: dict, exclude=frozenset()) -> str:
+    return hashlib.sha256(build_generic_payload(record, exclude).encode()).hexdigest()
+
+
+def notarize_generic(record: dict, hash_field: str, exclude=frozenset()) -> dict:
+    """Notarize an incoming record that isn't a P1-P9 provenance record. Same
+    verify-don't-trust contract as notarize(): recompute the seal from every field
+    except the hash field itself, compare to what was submitted, and let the caller
+    reject on mismatch. No physics-consistency check here — that's schema-specific
+    to CASSCF/JW runs; generic records are sealed on completeness+non-tampering only.
+    """
+    submitted = record.get(hash_field)
+    recomputed = build_generic_seal(record, exclude=exclude | {hash_field})
+    seal_ok = (submitted == recomputed)
+    return {
+        "notary": NAME,
+        "ok": seal_ok,
+        "seal_ok": seal_ok,
+        "submitted_hash": submitted,
+        "recomputed_hash": recomputed,
+    }
+
+
 def write_audit(sb, event: str, run_id, verdict: dict, actor: str = None, note: str = None):
     """Append one immutable record to LEON's audit trail (21 CFR §11.10(e)).
 

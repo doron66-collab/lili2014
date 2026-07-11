@@ -34,9 +34,11 @@ On the tiny model compounds it demonstrates the diagnostic, not a full-site verd
 """
 
 import argparse
+import hashlib
 import json
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import numpy as np
@@ -156,6 +158,38 @@ def integrals_from_geometry(xyz_path, basis, avas_aos):
             "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec)}
 
 
+# ── LEON seal (self-contained — mirrors backend/routes/leon.py's generic seal
+# bit-for-bit, deliberately duplicated rather than imported: this script must run
+# standalone on the Laguna cluster with no dependency on the SOLANGE backend
+# package). LEON re-verifies this at ingestion; a mismatch is REJECTED, not stored.
+def _seal_payload(record, exclude):
+    return json.dumps({k: v for k, v in record.items() if k not in exclude},
+                      sort_keys=True, default=str)
+
+
+def _seal_hash(record, exclude):
+    return hashlib.sha256(_seal_payload(record, exclude).encode()).hexdigest()
+
+
+def _submit_dmrg(api, out):
+    """POST the sealed DMRG classification to SOLANGE. Best-effort: prints the
+    outcome but never raises — a submit failure must not discard the local JSON
+    already written to --out."""
+    import urllib.request
+    try:
+        url = api.rstrip("/") + "/api/simulate/hpc/dmrg/submit"
+        body = json.dumps(out, default=str).encode()
+        req = urllib.request.Request(url, data=body, method="POST",
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            resp = json.loads(r.read().decode())
+        print(f"SUBMITTED → {url}")
+        print(f"  status={resp.get('status')}  seal_ok={resp.get('seal_ok')}  "
+              f"db={resp.get('db_status')}  run_id={resp.get('run_id')}")
+    except Exception as e:
+        print(f"  SUBMIT FAILED (result is still safe locally in --out): {e}", file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser(description="SOLANGE DMRG A/B/C classifier (Laguna largemem).")
     ap.add_argument("--compound", help="model compound (key in GEOM) — demo mode")
@@ -181,6 +215,11 @@ def main():
                          "is exceeded, and return/save whatever completed so far — for "
                          "fixed-walltime HPC allocations (e.g. a 2-hour ticket) where getting "
                          "killed mid-sweep would lose everything.")
+    ap.add_argument("--submit", nargs="?", const="https://qcaihpc-simulation-api.onrender.com",
+                    help="POST the sealed classification to SOLANGE so it's LEON-notarized and "
+                         "stored immediately — safe even if this Laguna session later becomes "
+                         "unreachable. Bare flag uses the default SOLANGE API URL; pass a value "
+                         "to override.")
     args = ap.parse_args()
     Path(args.out).mkdir(parents=True, exist_ok=True)
     bond_dims = [int(x) for x in args.bond_dims.split(",")]
@@ -224,6 +263,7 @@ def main():
     print(f"elapsed {round(time.time()-t0,1)}s")
 
     out = {
+        "id": str(uuid.uuid4()),
         "key": args.key, "compound": args.compound, "basis": args.basis,
         "ncas": args.ncas, "nelecas": args.nelecas,
         "e_casscf": cas["e_casscf"],
@@ -231,10 +271,20 @@ def main():
         "bqp_class": cls, "class_rationale": rationale,
         "time_budget_hit": time_budget_hit, "bond_dims_requested": bond_dims,
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
+        "provenance_source": "HPC/Laguna (DMRG classifier)",
     }
+    # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
+    # trusted). dmrg_seal_payload is stored verbatim so re-verification later is
+    # exact-string, not float-reconstruction (the same robustness fix the P8 seal
+    # got after floats/timestamps proved to reformat across a DB round-trip).
+    out["dmrg_seal_payload"] = _seal_payload(out, exclude={"dmrg_hash", "dmrg_seal_payload"})
+    out["dmrg_hash"] = hashlib.sha256(out["dmrg_seal_payload"].encode()).hexdigest()
+
     p = Path(args.out) / f"dmrg_class_{args.key}.json"
     p.write_text(json.dumps(out, indent=2))
     print(f"WROTE {p}")
+    if args.submit:
+        _submit_dmrg(args.submit, out)
     print("=" * 68)
     print("NOTE: DMRG is classical (CPU/largemem or GPU-accelerated), NOT quantum.")
     print("Full-site classification needs the target's active space built from PDB first.")
