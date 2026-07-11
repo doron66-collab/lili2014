@@ -719,8 +719,15 @@
       var solid = pts.filter(function(p){ return curve.breaksAt == null || p[0] <= curve.breaksAt; });
       var rest  = pts.filter(function(p){ return curve.breaksAt != null && p[0] >= curve.breaksAt; });
       var toPoly = function(arr){ return arr.map(function(p){ return xPix(p[0]) + ',' + yPixTheory(p[1]); }).join(' '); };
+      // curve.dash marks a method that is ALWAYS conceptual/impractical (FCI: brute-force,
+      // never actually used past a handful of electrons) — dashed for its whole domain,
+      // not just past a break point. Without this, FCI (which never "breaks", it's
+      // exponential from N=4) rendered as one long solid diagonal — the straight-line
+      // signature of pure O(2^N) growth on a linear-x/log-y plot — which read as the
+      // "main" curve instead of the conceptual reference it is meant to be.
+      var solidDash = curve.dash ? ' stroke-dasharray="' + curve.dash + '"' : '';
       var out = '<polyline points="' + toPoly(solid) + '" fill="none" stroke="' + curve.color +
-                '" stroke-width="2.25" stroke-linecap="round"/>';
+                '" stroke-width="2.25" stroke-linecap="round"' + solidDash + '/>';
       if (rest.length > 1) {
         out += '<polyline points="' + toPoly(rest) + '" fill="none" stroke="' + curve.color +
                '" stroke-width="1.75" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.45"/>';
