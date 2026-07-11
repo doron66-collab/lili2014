@@ -689,19 +689,30 @@
     var S_HARD = 1.5, S0 = 0.20, S_SLOPE = 0.045;
     function sOf(N){ return S0 + S_SLOPE * (N - N0); }
     function dmrgBreakN(){ return N0 + (S_HARD - S0) / S_SLOPE; }
+    // OFFSET_k: each curve is anchored below FCI at N0, respecting the one fact that
+    // IS well-established regardless of any timed measurement — FCI (exact, no terms
+    // dropped) costs more than any approximation of it (CCSD(T), DMRG) at every N;
+    // sqDRIFT is the projected quantum alternative, cheapest by design intent.
+    // Without this, normalizing every curve to the SAME value at N0 (as an earlier
+    // version of this chart did) let CCSD(T)'s N⁷ term visually outrun FCI's 2ᴺ term
+    // for a stretch near N0 — a normalization artifact that read as "CCSD(T) costs
+    // more than exact FCI", which is backwards. These offsets are illustrative
+    // orders-of-magnitude, not measured ratios — verified below to keep FCI strictly
+    // highest across the whole N=4..48 domain.
+    var OFFSET = { fci: 1, ccsdt: 0.1, dmrg: 0.05, sqdrift: 0.01 };
     var CURVES = {
       ccsdt:  { label: 'CCSD(T) · O(N⁷)',        color: 'rgba(239,68,68,0.95)',
-                f: function(N){ return Math.pow(N / N0, 7); },
+                f: function(N){ return OFFSET.ccsdt * Math.pow(N / N0, 7); },
                 breaksAt: 18, note: 'exact classical wall — breaks down past ~18 active electrons' },
       fci:    { label: 'FCI · O(2ᴺ)',             color: 'rgba(241,245,249,0.75)', dash: '4,3',
-                f: function(N){ return Math.pow(2, N - N0); },
-                breaksAt: null, note: 'brute-force exact — exponential from the start' },
+                f: function(N){ return OFFSET.fci * Math.pow(2, N - N0); },
+                breaksAt: null, note: 'brute-force exact — the most expensive method at every N; exponential from the start' },
       dmrg:   { label: 'DMRG · O(poly·eˢ) — illustrative', color: 'rgba(255,196,0,0.9)',
-                f: function(N){ return Math.pow(N / N0, 3) * Math.exp(sOf(N) - sOf(N0)); },
+                f: function(N){ return OFFSET.dmrg * Math.pow(N / N0, 3) * Math.exp(sOf(N) - sOf(N0)); },
                 breaksAt: dmrgBreakN(),
                 note: 'classical tensor-network shortcut — breaks when entanglement (S) crosses the threshold where its own bond dimension blows up (S>' + S_HARD + '); illustrative growth model, not fitted to timed data' },
       sqdrift:{ label: 'sqDRIFT · O(poly N) — projected', color: 'rgba(0,168,214,0.95)',
-                f: function(N){ return Math.pow(N / N0, 2); },
+                f: function(N){ return OFFSET.sqdrift * Math.pow(N / N0, 2); },
                 breaksAt: null, note: 'quantum sampling — Phase 3B target, projected (not yet executed)' },
     };
 
@@ -745,9 +756,16 @@
                   '" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>');
         svg.push('<text x="' + (PAD_L - 4) + '" y="' + (gy + 3) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">10^' + d + '</text>');
       }
-      svg.push('<text x="' + (PAD_L - 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Relative cost ↑</text>');
+      svg.push('<text x="' + (PAD_L - 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Relative cost ↑ (log)</text>');
       svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>');
       svg.push('<line x1="' + PAD_L + '" y1="' + (H - PAD_B) + '" x2="' + (W - PAD_R) + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>');
+      // Permanent, unmissable log-axis warning: a STRAIGHT line here means EXPONENTIAL
+      // growth (cost multiplies each step), not linear growth (cost adding a fixed
+      // amount) — the whole point of a log axis is to make exponential curves readable
+      // as straight lines, which can otherwise look deceptively "calm".
+      svg.push('<text x="' + (W - PAD_R) + '" y="' + (PAD_T - 2) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="700" text-anchor="end">' +
+               '⚠ log axis: a straight line = exponential (×2 each step), not linear (+fixed)' +
+               '<title>This chart\'s y-axis is logarithmic. A straight diagonal line (like FCI) is the visual signature of pure exponential growth O(2^N) — the cost DOUBLES with each added electron, it does not add a fixed amount. On a normal (linear) axis this would shoot up almost vertically instead.</title></text>');
       // x ticks
       [8,16,24,32,40,48].forEach(function(N){
         svg.push('<text x="' + xPix(N) + '" y="' + (H - PAD_B + 11) + '" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">' + N + 'e</text>');
@@ -802,9 +820,11 @@
         ? '<span style="color:rgba(120,220,150,0.9)" title="Real wall-clock runtimes from LEON-verified HPC runs (own axis, seconds — not the theoretical relative-cost axis)">● measured (LEON)</span>'
         : '');
 
-      footEl.innerHTML = 'Curves are computed from each method\'s complexity order, not hand-drawn — normalized to N=4 so growth RATES are comparable on one log axis. ' +
+      footEl.innerHTML = '<strong>Log axis:</strong> a straight diagonal line (FCI, white) means cost DOUBLES with every added electron, not that it grows by a fixed amount — ' +
+        'exponential growth looks "calm" on a log axis precisely because that\'s what a log axis is for (comparing methods across many orders of magnitude on one chart); on an ordinary axis FCI would shoot up almost vertically. ' +
+        'Curves are computed from each method\'s complexity order, not hand-drawn. Each curve is anchored below FCI at N=4 (illustrative orders-of-magnitude, not measured) so the one well-established fact — <strong>exact FCI costs more than any approximation of it (CCSD(T), DMRG) at every N</strong> — always holds; only each curve\'s own SLOPE (growth rate) is a quantitative claim. ' +
         '<strong>Analogy:</strong> DMRG is a shortcut that works when electrons mostly "talk to their neighbors" (like a bank queue) — cheap. It breaks when they all interact at once ' +
-        '(like a room of dancers all reacting to each other) — the shortcut\'s core assumption fails and cost jumps back to exponential. That break point (illustrative model, S&gt;' + S_HARD + ') is shown at ~' +
+        '(like a room of dancers all reacting to each other) — the shortcut\'s core assumption fails and cost jumps back toward the FCI ceiling. That break point (illustrative model, S&gt;' + S_HARD + ') is shown at ~' +
         Math.round(CURVES.dmrg.breaksAt) + 'e, past the classical exact wall (~18e). sqDRIFT is a Phase-3B projection, not yet executed. ' +
         (measured && measured.length
           ? 'Green points are <strong>real, LEON-verified</strong> classical (Phase 3A) runtimes from the HPC ladder — on their own seconds axis (right), never mixed with the theoretical relative-cost axis (left).'
