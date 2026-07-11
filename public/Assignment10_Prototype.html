@@ -693,7 +693,7 @@
       ccsdt:  { label: 'CCSD(T) · O(N⁷)',        color: 'rgba(239,68,68,0.95)',
                 f: function(N){ return Math.pow(N / N0, 7); },
                 breaksAt: 18, note: 'exact classical wall — breaks down past ~18 active electrons' },
-      fci:    { label: 'FCI · O(2ᴺ)',             color: 'rgba(239,68,68,0.45)', dash: '4,3',
+      fci:    { label: 'FCI · O(2ᴺ)',             color: 'rgba(241,245,249,0.75)', dash: '4,3',
                 f: function(N){ return Math.pow(2, N - N0); },
                 breaksAt: null, note: 'brute-force exact — exponential from the start' },
       dmrg:   { label: 'DMRG · O(poly·eˢ) — illustrative', color: 'rgba(255,196,0,0.9)',
