@@ -54,18 +54,40 @@ S_HARD       = 1.5          # max bipartite entanglement entropy above which the
                             # S_max=2.86 (strongly correlated). 1.5 sits between them.
 
 
-def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg"):
-    """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max."""
+def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
+             n_threads=4, max_minutes=None):
+    """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max.
+
+    HPC-ticket-aware: prints live per-M timing (so `tail -f` shows real progress,
+    letting you judge whether to Ctrl+C before a fixed-walltime allocation ends),
+    and honors max_minutes — once the cumulative wall-clock budget is exceeded, it
+    stops requesting new (larger) bond dimensions and returns whatever it has
+    rather than being killed mid-sweep with nothing recorded. Reusing the same
+    `scratch` directory across separate job submissions lets block2 resume the MPS
+    from where a prior run left off instead of restarting from bond_dims[0].
+    """
     from pyblock2.driver.core import DMRGDriver, SymmetryTypes
-    drv = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=4)
+    drv = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads)
     drv.initialize_system(n_sites=ncas, n_elec=nelecas, spin=0)
     mpo = drv.get_qc_mpo(h1e=h1e, g2e=h2e, ecore=ecore, iprint=0)
     ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)
     energies = []
+    t_start = time.time()
     for M in bond_dims:
+        elapsed_before = time.time() - t_start
+        if max_minutes is not None and elapsed_before > max_minutes * 60 and energies:
+            print(f"  [time budget] {elapsed_before/60:.1f}m elapsed > --max-minutes "
+                  f"{max_minutes} — stopping before M={M}; returning {len(energies)} "
+                  f"completed bond dim(s). Re-run with the same --scratch to resume.",
+                  file=sys.stderr)
+            break
+        t0 = time.time()
         e = drv.dmrg(mpo, ket, n_sweeps=10, bond_dims=[M],
                      noises=[1e-5, 1e-6, 0], thrds=[1e-9] * 3, iprint=0)
+        dt = time.time() - t0
         energies.append((M, float(e)))
+        print(f"  DMRG M={M:5d}  E={float(e):.8f} Ha  [{dt:.1f}s this M, "
+              f"{(time.time()-t_start)/60:.1f}m total]", file=sys.stderr)
     try:
         s_max = float(np.max(drv.get_bipartite_entanglement(ket)))
     except Exception:
@@ -147,6 +169,18 @@ def main():
                     help="comma-separated increasing bond dimensions")
     ap.add_argument("--out", default="./out")
     ap.add_argument("--verbose", type=int, default=0)
+    ap.add_argument("--threads", type=int, default=4,
+                    help="CPU threads for block2 (was hard-coded to 4; raise this to use "
+                         "more of a largemem node's cores and finish faster)")
+    ap.add_argument("--scratch", default="./tmp_dmrg",
+                    help="block2 scratch dir. Reuse the SAME path across separate HPC-ticket "
+                         "submissions to resume an interrupted MPS instead of restarting from "
+                         "bond_dims[0] each time.")
+    ap.add_argument("--max-minutes", type=float, default=None,
+                    help="stop requesting larger bond dimensions once this wall-clock budget "
+                         "is exceeded, and return/save whatever completed so far — for "
+                         "fixed-walltime HPC allocations (e.g. a 2-hour ticket) where getting "
+                         "killed mid-sweep would lose everything.")
     args = ap.parse_args()
     Path(args.out).mkdir(parents=True, exist_ok=True)
     bond_dims = [int(x) for x in args.bond_dims.split(",")]
@@ -171,14 +205,21 @@ def main():
 
     t0 = time.time()
     energies, s_max = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
-                               args.ncas, args.nelecas, bond_dims)
-    for M, e in energies:
-        print(f"  DMRG M={M:5d}  E={e:.8f} Ha")
+                               args.ncas, args.nelecas, bond_dims,
+                               scratch=args.scratch, n_threads=args.threads,
+                               max_minutes=args.max_minutes)
+    # (per-M timing is already printed live inside run_dmrg, as each M finishes —
+    # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
+    time_budget_hit = len(energies) < len(bond_dims)
+    if time_budget_hit:
+        print(f"NOTE: stopped early at {len(energies)}/{len(bond_dims)} bond dimensions "
+              f"(--max-minutes {args.max_minutes}). The class below is PROVISIONAL — "
+              f"re-run with --scratch {args.scratch} to resume toward the full bond-dim list.")
 
     cls, rationale = classify(args.nelecas, energies, s_max)
     print("-" * 68)
-    print(f"CLASS {cls}")
+    print(f"CLASS {cls}{' (PROVISIONAL — time budget hit)' if time_budget_hit else ''}")
     print(f"  {rationale}")
     print(f"elapsed {round(time.time()-t0,1)}s")
 
@@ -188,6 +229,7 @@ def main():
         "e_casscf": cas["e_casscf"],
         "dmrg_energies": energies, "s_max": s_max,
         "bqp_class": cls, "class_rationale": rationale,
+        "time_budget_hit": time_budget_hit, "bond_dims_requested": bond_dims,
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
     }
     p = Path(args.out) / f"dmrg_class_{args.key}.json"
