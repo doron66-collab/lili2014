@@ -649,52 +649,174 @@
     <div id="ngs-pipeline-rows" style="display:none"></div>
   </div>
 
-  <!-- Quantum Advantage Scaling Chart -->
+  <!-- Quantum Advantage Scaling Chart — DYNAMIC: curves computed from the actual
+       complexity formulas (not hand-drawn), overlaid with real measured runtimes
+       pulled live from /hpc/runs (LEON-verified). See renderScalingChart() below. -->
   <div class="card" style="margin-bottom:16px;margin-top:16px">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px">
       <div class="card-title" style="margin-bottom:0">Computational Cost Scaling vs. System Size</div>
-      <div style="display:flex;gap:16px;font-size:10px">
-        <span style="color:rgba(239,68,68,0.9)">━ CCSD(T) · O(N⁷)</span>
-        <span style="color:rgba(239,68,68,0.5)">╌ FCI · O(2ᴺ)</span>
-        <span style="color:rgba(0,168,214,0.9)">━ sqDRIFT · O(poly N)</span>
-      </div>
+      <div id="scaling-legend" style="display:flex;gap:14px;font-size:10px;flex-wrap:wrap"></div>
     </div>
-    <svg width="100%" viewBox="0 0 500 130" preserveAspectRatio="xMidYMid meet" style="display:block">
-      <line x1="32" y1="10" x2="498" y2="10" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="40" x2="498" y2="40" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="70" x2="498" y2="70" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="100" x2="498" y2="100" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-      <line x1="32" y1="8" x2="32" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-      <text x="30" y="14" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Cost ↑</text>
-      <line x1="32" y1="110" x2="498" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-      <text x="32"  y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">8e</text>
-      <text x="117" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">16e</text>
-      <text x="202" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">24e</text>
-      <text x="287" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">32e</text>
-      <text x="372" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">40e</text>
-      <text x="457" y="122" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">48e</text>
-      <polyline points="32,108 80,102 117,92 155,76 180,55 200,34 215,18"
-        fill="none" stroke="rgba(239,68,68,0.45)" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-      <polyline points="32,108 80,104 117,97 155,88 175,83"
-        fill="none" stroke="rgba(239,68,68,0.95)" stroke-width="2.5" stroke-linecap="round"/>
-      <polyline points="175,83 220,68 265,50 300,32 320,20"
-        fill="none" stroke="rgba(239,68,68,0.2)" stroke-width="2" stroke-dasharray="5,3" stroke-linecap="round"/>
-      <polyline points="32,108 117,102 202,96 287,91 372,86 457,82 498,80"
-        fill="none" stroke="rgba(0,168,214,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="175" y1="8" x2="175" y2="110" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="3,3"/>
-      <text x="175" y="22" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">Classical</text>
-      <text x="175" y="31" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">wall ~18e</text>
-      <circle cx="175" cy="83" r="3.5" fill="rgba(239,68,68,0.9)"/>
-      <line x1="414" y1="8" x2="414" y2="110" stroke="rgba(255,221,34,0.5)" stroke-width="1.2" stroke-dasharray="4,3"/>
-      <text x="414" y="22" fill="rgba(255,221,34,0.9)" font-size="7" font-weight="700" text-anchor="middle">C275F</text>
-      <text x="414" y="31" fill="rgba(255,221,34,0.9)" font-size="7" font-weight="700" text-anchor="middle">44e · 88q</text>
-      <!-- IBM hardware limit at 94q = 47e -->
-      <line x1="446" y1="8" x2="446" y2="110" stroke="rgba(100,200,100,0.3)" stroke-width="1" stroke-dasharray="2,4"/>
-      <text x="446" y="18" fill="rgba(100,200,100,0.6)" font-size="6" text-anchor="middle">IBM 94q</text>
-      <text x="310" y="77" fill="rgba(0,168,214,0.9)" font-size="7.5" font-weight="600">sqDRIFT</text>
-    </svg>
-    <div class="footnote" style="margin-top:4px">CCSD(T) breaks down past ~18e. sqDRIFT on quantum hardware scales polynomially — placing C275F (44e / 88q) firmly in the quantum-required zone. 94q demonstrated on IBM Heron r2 (Merz et al. 2026); C275F's 88q Phase-3B target is within that ceiling. Core BQP necessity argument for this dissertation.</div>
+    <div id="scaling-chart"></div>
+    <div class="footnote" id="scaling-footnote" style="margin-top:4px"></div>
   </div>
+  <script>
+  (function(){
+    // ── Computational Cost Scaling — DYNAMIC ────────────────────────────────
+    // Left axis: relative cost of each METHOD, computed from its actual complexity
+    // formula (not hand-drawn pixels) — CCSD(T) O(N^7), FCI O(2^N), DMRG
+    // O(poly(N)·e^S), sqDRIFT O(poly(N)). All four are normalized to 1 at N=4 so
+    // their GROWTH RATES are visually comparable on one log axis; this is an
+    // asymptotic-order illustration, not a fit to timed data.
+    // Right axis (only where data exists): REAL measured wall-clock runtimes from
+    // LEON-verified HPC runs (/hpc/runs) — kept on its own axis/units so a
+    // theoretical order-of-growth curve is never conflated with a timed second.
+    var chartEl = document.getElementById('scaling-chart');
+    var legendEl = document.getElementById('scaling-legend');
+    var footEl = document.getElementById('scaling-footnote');
+    if (!chartEl) return;
+    var API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+
+    var N_MIN = 4, N_MAX = 48, N0 = 4;
+    var W = 500, H = 150, PAD_L = 34, PAD_R = 34, PAD_T = 14, PAD_B = 24;
+    var plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+
+    // Complexity models (order-of-growth, relative to N0=4). DMRG's S(N) is an
+    // ILLUSTRATIVE linear entanglement-growth model calibrated only so the "DMRG
+    // breaking point" (S crosses the code's own S_HARD=1.5 threshold, see
+    // scripts/laguna/solange_dmrg.py) lands past the classical exact wall — it is
+    // not fitted to any measurement, and the chart says so explicitly below.
+    var S_HARD = 1.5, S0 = 0.20, S_SLOPE = 0.045;
+    function sOf(N){ return S0 + S_SLOPE * (N - N0); }
+    function dmrgBreakN(){ return N0 + (S_HARD - S0) / S_SLOPE; }
+    var CURVES = {
+      ccsdt:  { label: 'CCSD(T) · O(N⁷)',        color: 'rgba(239,68,68,0.95)',
+                f: function(N){ return Math.pow(N / N0, 7); },
+                breaksAt: 18, note: 'exact classical wall — breaks down past ~18 active electrons' },
+      fci:    { label: 'FCI · O(2ᴺ)',             color: 'rgba(239,68,68,0.45)', dash: '4,3',
+                f: function(N){ return Math.pow(2, N - N0); },
+                breaksAt: null, note: 'brute-force exact — exponential from the start' },
+      dmrg:   { label: 'DMRG · O(poly·eˢ) — illustrative', color: 'rgba(255,196,0,0.9)',
+                f: function(N){ return Math.pow(N / N0, 3) * Math.exp(sOf(N) - sOf(N0)); },
+                breaksAt: dmrgBreakN(),
+                note: 'classical tensor-network shortcut — breaks when entanglement (S) crosses the threshold where its own bond dimension blows up (S>' + S_HARD + '); illustrative growth model, not fitted to timed data' },
+      sqdrift:{ label: 'sqDRIFT · O(poly N) — projected', color: 'rgba(0,168,214,0.95)',
+                f: function(N){ return Math.pow(N / N0, 2); },
+                breaksAt: null, note: 'quantum sampling — Phase 3B target, projected (not yet executed)' },
+    };
+
+    function xPix(N){ return PAD_L + (N - N_MIN) / (N_MAX - N_MIN) * plotW; }
+    // theoretical curves share one log-relative-cost axis, 0..15 decades
+    var Y_DECADES = 15;
+    function yPixTheory(relCost){
+      var logv = Math.max(0, Math.log10(Math.max(relCost, 1)));
+      return PAD_T + plotH - Math.min(logv, Y_DECADES) / Y_DECADES * plotH;
+    }
+
+    function curvePath(curve){
+      var pts = [];
+      for (var N = N_MIN; N <= N_MAX; N += 1) pts.push([N, curve.f(N)]);
+      var solid = pts.filter(function(p){ return curve.breaksAt == null || p[0] <= curve.breaksAt; });
+      var rest  = pts.filter(function(p){ return curve.breaksAt != null && p[0] >= curve.breaksAt; });
+      var toPoly = function(arr){ return arr.map(function(p){ return xPix(p[0]) + ',' + yPixTheory(p[1]); }).join(' '); };
+      var out = '<polyline points="' + toPoly(solid) + '" fill="none" stroke="' + curve.color +
+                '" stroke-width="2.25" stroke-linecap="round"/>';
+      if (rest.length > 1) {
+        out += '<polyline points="' + toPoly(rest) + '" fill="none" stroke="' + curve.color +
+               '" stroke-width="1.75" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.45"/>';
+      }
+      return out;
+    }
+
+    function render(measured){
+      var svg = [];
+      svg.push('<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="display:block">');
+      // gridlines + left axis (theoretical, log decades)
+      for (var d = 0; d <= Y_DECADES; d += 5) {
+        var gy = PAD_T + plotH - d / Y_DECADES * plotH;
+        svg.push('<line x1="' + PAD_L + '" y1="' + gy + '" x2="' + (W - PAD_R) + '" y2="' + gy +
+                  '" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>');
+        svg.push('<text x="' + (PAD_L - 4) + '" y="' + (gy + 3) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">10^' + d + '</text>');
+      }
+      svg.push('<text x="' + (PAD_L - 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Relative cost ↑</text>');
+      svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>');
+      svg.push('<line x1="' + PAD_L + '" y1="' + (H - PAD_B) + '" x2="' + (W - PAD_R) + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>');
+      // x ticks
+      [8,16,24,32,40,48].forEach(function(N){
+        svg.push('<text x="' + xPix(N) + '" y="' + (H - PAD_B + 11) + '" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">' + N + 'e</text>');
+      });
+      // theoretical curves
+      Object.keys(CURVES).forEach(function(k){ svg.push(curvePath(CURVES[k])); });
+      // classical exact wall marker
+      var wallX = xPix(18);
+      svg.push('<line x1="' + wallX + '" y1="' + PAD_T + '" x2="' + wallX + '" y2="' + (H - PAD_B) + '" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="3,3"/>');
+      svg.push('<text x="' + wallX + '" y="' + (PAD_T + 8) + '" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">exact wall ~18e</text>');
+      // DMRG breaking point marker
+      var dmrgX = xPix(Math.min(CURVES.dmrg.breaksAt, N_MAX));
+      svg.push('<line x1="' + dmrgX + '" y1="' + PAD_T + '" x2="' + dmrgX + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,196,0,0.4)" stroke-width="1" stroke-dasharray="3,3"/>');
+      svg.push('<text x="' + dmrgX + '" y="' + (PAD_T + 17) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="600" text-anchor="middle">DMRG breaks ~' + Math.round(CURVES.dmrg.breaksAt) + 'e</text>');
+      // C275F marker — projected class (not yet full-site classified, per solange_dmrg.py scope note)
+      var c275x = xPix(Math.min(44, N_MAX));
+      svg.push('<line x1="' + c275x + '" y1="' + PAD_T + '" x2="' + c275x + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,221,34,0.55)" stroke-width="1.2" stroke-dasharray="4,3"/>');
+      svg.push('<text x="' + c275x + '" y="' + (PAD_T + 8) + '" fill="rgba(255,221,34,0.95)" font-size="7" font-weight="700" text-anchor="middle">C275F 44e·88q</text>');
+      svg.push('<text x="' + c275x + '" y="' + (PAD_T + 17) + '" fill="rgba(255,221,34,0.7)" font-size="6.5" text-anchor="middle">(projected class)</text>');
+
+      // ── Measured overlay: real LEON-verified runtimes, own right-axis/units ──
+      if (measured && measured.length) {
+        var secs = measured.map(function(m){ return m.s; });
+        var minS = Math.max(0.1, Math.min.apply(null, secs));
+        var maxS = Math.max.apply(null, secs) * 1.4;
+        var logMin = Math.log10(minS), logMax = Math.max(Math.log10(maxS), logMin + 0.5);
+        var yMeas = function(s){
+          var l = Math.log10(Math.max(s, minS));
+          var frac = (l - logMin) / (logMax - logMin);
+          return PAD_T + plotH - frac * plotH;
+        };
+        var sorted = measured.slice().sort(function(a,b){ return a.n - b.n; });
+        var poly = sorted.map(function(m){ return xPix(m.n) + ',' + yMeas(m.s); }).join(' ');
+        svg.push('<polyline points="' + poly + '" fill="none" stroke="rgba(120,220,150,0.9)" stroke-width="1.5" stroke-dasharray="1,3" stroke-linecap="round"/>');
+        sorted.forEach(function(m){
+          svg.push('<circle cx="' + xPix(m.n) + '" cy="' + yMeas(m.s) + '" r="3.2" fill="rgba(120,220,150,0.95)" stroke="#0B1E3D" stroke-width="1">' +
+                    '<title>measured (LEON-verified): ' + m.n + 'e active, ' + m.s.toFixed(1) + 's runtime — ' + (m.label||'') + '</title></circle>');
+        });
+        // right-axis ticks for measured seconds (2 nice values spanning the data)
+        [minS, maxS/1.4].forEach(function(s){
+          svg.push('<text x="' + (W - PAD_R + 4) + '" y="' + (yMeas(s) + 3) + '" fill="rgba(120,220,150,0.7)" font-size="7" text-anchor="start">' + (s<60? s.toFixed(0)+'s' : (s/60).toFixed(1)+'m') + '</text>');
+        });
+        svg.push('<text x="' + (W - PAD_R + 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(120,220,150,0.7)" font-size="7" text-anchor="start">measured →</text>');
+      }
+      svg.push('</svg>');
+      chartEl.innerHTML = svg.join('');
+
+      legendEl.innerHTML = Object.keys(CURVES).map(function(k){
+        var c = CURVES[k];
+        return '<span style="color:' + c.color + '" title="' + c.note.replace(/"/g,'&quot;') + '">━ ' + c.label + '</span>';
+      }).join('') + (measured && measured.length
+        ? '<span style="color:rgba(120,220,150,0.9)" title="Real wall-clock runtimes from LEON-verified HPC runs (own axis, seconds — not the theoretical relative-cost axis)">● measured (LEON)</span>'
+        : '');
+
+      footEl.innerHTML = 'Curves are computed from each method\'s complexity order, not hand-drawn — normalized to N=4 so growth RATES are comparable on one log axis. ' +
+        '<strong>Analogy:</strong> DMRG is a shortcut that works when electrons mostly "talk to their neighbors" (like a bank queue) — cheap. It breaks when they all interact at once ' +
+        '(like a room of dancers all reacting to each other) — the shortcut\'s core assumption fails and cost jumps back to exponential. That break point (illustrative model, S&gt;' + S_HARD + ') is shown at ~' +
+        Math.round(CURVES.dmrg.breaksAt) + 'e, past the classical exact wall (~18e). sqDRIFT is a Phase-3B projection, not yet executed. ' +
+        (measured && measured.length
+          ? 'Green points are <strong>real, LEON-verified</strong> classical (Phase 3A) runtimes from the HPC ladder — on their own seconds axis (right), never mixed with the theoretical relative-cost axis (left).'
+          : 'No HPC runs yet — dispatch and run one to see real measured runtimes overlaid here.');
+    }
+
+    function loadMeasured(){
+      fetch(API + '/api/simulate/hpc/runs?limit=200').then(function(r){ return r.json(); }).then(function(d){
+        var runs = (d && d.runs) || [];
+        var measured = runs
+          .filter(function(r){ return r.p2_active_electrons != null && r.p5_elapsed_s != null; })
+          .map(function(r){ return { n: r.p2_active_electrons, s: r.p5_elapsed_s, label: r.mutation_id || '' }; });
+        render(measured);
+      }).catch(function(){ render([]); });
+    }
+    loadMeasured();
+    window.solangeRefreshScalingChart = loadMeasured;   // called after a dispatch/reset so new runs show up
+  })();
+  </script>
 
   <div style="text-align:center;margin-top:20px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
     <button onclick="window.open('https://solange-platform.bio/3d','_blank')" style="background:linear-gradient(135deg,#1a3a6e,#0d2244);color:#44ddff;border:1.5px solid #44ddff;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.5px;box-shadow:0 0 12px rgba(68,221,255,0.25)">
@@ -979,6 +1101,7 @@
               clearInterval(window.__hpcPoll); window.__hpcPoll=null;
               _hpcLive(false);
               window.solangeLoadHpc(true);
+              if (typeof window.solangeRefreshScalingChart === 'function') window.solangeRefreshScalingChart();
             }
           })
           .catch(function(){ /* transient — keep trying next tick */ });
