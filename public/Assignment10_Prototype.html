@@ -717,11 +717,17 @@
     };
 
     function xPix(N){ return PAD_L + (N - N_MIN) / (N_MAX - N_MIN) * plotW; }
-    // theoretical curves share one log-relative-cost axis, 0..15 decades
-    var Y_DECADES = 15;
+    // Theoretical curves share one log-relative-cost axis, spanning decades
+    // Y_MIN_DEC..Y_MAX_DEC. Y_MIN_DEC is negative (not 0) specifically so the
+    // fractional starting OFFSETs (ccsdt=0.1, dmrg=0.05, sqdrift=0.01 — see OFFSET
+    // above) render at their OWN distinct heights at N=4 instead of all being
+    // clamped to the same floor and overlapping right at the origin.
+    var Y_MIN_DEC = -2.3, Y_MAX_DEC = 14;
     function yPixTheory(relCost){
-      var logv = Math.max(0, Math.log10(Math.max(relCost, 1)));
-      return PAD_T + plotH - Math.min(logv, Y_DECADES) / Y_DECADES * plotH;
+      var logv = Math.log10(Math.max(relCost, 1e-6));
+      logv = Math.max(Y_MIN_DEC, Math.min(Y_MAX_DEC, logv));
+      var frac = (logv - Y_MIN_DEC) / (Y_MAX_DEC - Y_MIN_DEC);
+      return PAD_T + plotH - frac * plotH;
     }
 
     function curvePath(curve){
@@ -750,15 +756,17 @@
       var svg = [];
       svg.push('<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="display:block">');
       // gridlines + left axis (theoretical, log decades)
-      for (var d = 0; d <= Y_DECADES; d += 5) {
-        var gy = PAD_T + plotH - d / Y_DECADES * plotH;
+      for (var d = Math.ceil(Y_MIN_DEC); d <= Y_MAX_DEC; d += 4) {
+        var gy = yPixTheory(Math.pow(10, d));
         svg.push('<line x1="' + PAD_L + '" y1="' + gy + '" x2="' + (W - PAD_R) + '" y2="' + gy +
-                  '" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>');
-        svg.push('<text x="' + (PAD_L - 4) + '" y="' + (gy + 3) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">10^' + d + '</text>');
+                  '" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>');
+        svg.push('<text x="' + (PAD_L - 4) + '" y="' + (gy + 3) + '" fill="rgba(136,153,187,0.55)" font-size="7" text-anchor="end">10^' + d + '</text>');
       }
       svg.push('<text x="' + (PAD_L - 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Relative cost ↑ (log)</text>');
-      svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>');
-      svg.push('<line x1="' + PAD_L + '" y1="' + (H - PAD_B) + '" x2="' + (W - PAD_R) + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>');
+      // Axis lines — deliberately more opaque than the faint gridlines above so the
+      // plot boundary (and the x-axis in particular) stays visible at any zoom level.
+      svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.3)" stroke-width="1.25"/>');
+      svg.push('<line x1="' + PAD_L + '" y1="' + (H - PAD_B) + '" x2="' + (W - PAD_R) + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.3)" stroke-width="1.25"/>');
       // Permanent, unmissable log-axis warning: a STRAIGHT line here means EXPONENTIAL
       // growth (cost multiplies each step), not linear growth (cost adding a fixed
       // amount) — the whole point of a log axis is to make exponential curves readable
