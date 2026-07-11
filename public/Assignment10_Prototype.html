@@ -1162,6 +1162,17 @@
         el.innerHTML=line; el.style.display='block';
       }).catch(function(){ el.style.display='none'; });
     };
+    // Exposed globally so actions OUTSIDE this closure (like clearHpcQueue's success
+    // handler, defined later in the file) can force the strip to reflect reality
+    // immediately, instead of waiting for the next poll tick (which may never come
+    // if the queue is now empty — exactly the "cleared but still shows 6 failed"
+    // staleness this was written to fix).
+    window.solangeRefreshQueueStatus = function(){
+      fetch(API+'/api/simulate/hpc/dispatch/list?limit=50')
+        .then(function(r){return r.json();})
+        .then(function(d){ _renderQueueStatus((d&&d.jobs)||[]); })
+        .catch(function(){});
+    };
     window.solangeStartHpcAutoRefresh = function(){
       if (window.__hpcPoll) return;                       // already live
       _hpcLive(true);
@@ -3657,6 +3668,10 @@ async function clearHpcQueue() {
     });
     const out = await res.json();
     if (msg) msg.innerHTML = `<span style="color:var(--green)">✓ cleared ${out.deleted ?? 0} pending job(s)</span>`;
+    // The queue-status strip (agent online/offline · queued/running/failed counts)
+    // only updates on page load or an active poll tick — with the queue now empty,
+    // no tick is coming, so force a refresh now or it keeps showing the pre-clear count.
+    if (typeof window.solangeRefreshQueueStatus === 'function') window.solangeRefreshQueueStatus();
   } catch (e) {
     if (msg) msg.innerHTML = `<span style="color:#f87171">clear failed: ${e.message}</span>`;
   }
