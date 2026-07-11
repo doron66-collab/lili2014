@@ -710,7 +710,7 @@
       dmrg:   { label: 'DMRG · O(poly·eˢ) — illustrative', color: 'rgba(255,196,0,0.9)',
                 f: function(N){ return OFFSET.dmrg * Math.pow(N / N0, 3) * Math.exp(sOf(N) - sOf(N0)); },
                 breaksAt: dmrgBreakN(),
-                note: 'classical tensor-network shortcut — breaks when entanglement (S) crosses the threshold where its own bond dimension blows up (S>' + S_HARD + '); illustrative growth model, not fitted to timed data' },
+                note: 'classical tensor-network shortcut — breaks when entanglement (S) crosses the threshold where its own bond dimension blows up (S>' + S_HARD + '). The break point shown is a function of N ONLY for this illustrative chart; in reality it depends on the specific molecule\'s entanglement, not its electron count — run solange_dmrg.py per target to measure it.' },
       sqdrift:{ label: 'sqDRIFT · O(poly N) — projected', color: 'rgba(0,168,214,0.95)',
                 f: function(N){ return OFFSET.sqdrift * Math.pow(N / N0, 2); },
                 // breaksAt here does NOT mean the method breaks (unlike CCSD(T)/DMRG) —
@@ -792,10 +792,17 @@
       var wallX = xPix(18);
       svg.push('<line x1="' + wallX + '" y1="' + PAD_T + '" x2="' + wallX + '" y2="' + (H - PAD_B) + '" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="3,3"/>');
       svg.push('<text x="' + wallX + '" y="' + (PAD_T + 8) + '" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">exact wall ~18e</text>');
-      // DMRG breaking point marker — a genuine breakdown (its own math assumption fails)
+      // DMRG breaking point marker — illustrative only. The real breaking point is NOT
+      // a function of electron count N; it depends entirely on the entanglement (S) of
+      // the SPECIFIC molecule (see scripts/laguna/solange_dmrg.py: the S_HARD=1.5 gate
+      // is measured per-target, never assumed from size). A "hard" 30-electron system
+      // can break DMRG; a "easy" 60-electron one may not. This N-indexed line exists
+      // only so the chart's narrative (DMRG extends, then also breaks) is visible —
+      // it is not a claim about any specific molecule, including C275F or IBM's C₁₃Cl₂.
       var dmrgX = xPix(Math.min(CURVES.dmrg.breaksAt, N_MAX));
       svg.push('<line x1="' + dmrgX + '" y1="' + PAD_T + '" x2="' + dmrgX + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,196,0,0.4)" stroke-width="1" stroke-dasharray="3,3"/>');
-      svg.push('<text x="' + dmrgX + '" y="' + (PAD_T + 17) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="600" text-anchor="middle">DMRG breaks ~' + Math.round(CURVES.dmrg.breaksAt) + 'e</text>');
+      svg.push('<text x="' + dmrgX + '" y="' + (PAD_T + 17) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="600" text-anchor="middle">DMRG breaks ~' + Math.round(CURVES.dmrg.breaksAt) + 'e (illustrative)' +
+               '<title>Illustrative only — DMRG breaking depends on entanglement (S), not electron count. Run solange_dmrg.py on a specific target to measure its real S_max and A/B/C class.</title></text>');
       // sqDRIFT evidence boundary — NOT a breakdown; this is where direct measurement
       // ends. Staggered to a third label row since it lands numerically close to the
       // (unrelated, illustrative) DMRG break point and would otherwise collide with it.
