@@ -779,7 +779,7 @@
       // growth (cost multiplies each step), not linear growth (cost adding a fixed
       // amount) — the whole point of a log axis is to make exponential curves readable
       // as straight lines, which can otherwise look deceptively "calm".
-      svg.push('<text x="' + (W - PAD_R) + '" y="' + (PAD_T - 2) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="700" text-anchor="end">' +
+      svg.push('<text x="' + PAD_L + '" y="' + (PAD_T - 2) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="700" text-anchor="start">' +
                '⚠ log axis: a straight line = exponential (×2 each step), not linear (+fixed)' +
                '<title>This chart\'s y-axis is logarithmic. A straight diagonal line (like FCI) is the visual signature of pure exponential growth O(2^N) — the cost DOUBLES with each added electron, it does not add a fixed amount. On a normal (linear) axis this would shoot up almost vertically instead.</title></text>');
       // x ticks
