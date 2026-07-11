@@ -771,8 +771,11 @@ async def list_dispatch(limit: int = 20):
 @router.post("/hpc/dispatch/clear")
 async def clear_dispatch(payload: dict = Body(default={}),
                          authorization: str | None = Header(None)):
-    """Clear the dispatch queue. Default: pending jobs (queued+running) so a
-    stopped agent won't re-run them. Pass {"all": true} to wipe the whole history."""
+    """Clear the dispatch queue. hpc_dispatch is a WORKING QUEUE, not a provenance
+    record — the immutable audit ledger is leon_audit (§06.iii), untouched here.
+    Default: queued + running + failed, so a stopped/reaped agent's stale jobs
+    (including ones the reaper marked failed, see _reap_stale_dispatch) don't
+    linger in the status strip forever. Pass {"all": true} to also wipe 'done'."""
     _uid_from_auth(authorization)
     sb = get_supabase()
     if not sb:
@@ -783,8 +786,8 @@ async def clear_dispatch(payload: dict = Body(default={}),
             q = q.neq("id", "00000000-0000-0000-0000-000000000000")  # match every row
             scope = "all"
         else:
-            q = q.in_("status", ["queued", "running"])
-            scope = "pending (queued+running)"
+            q = q.in_("status", ["queued", "running", "failed"])
+            scope = "pending + failed (queued+running+failed)"
         res = q.execute()
         n = len(res.data) if getattr(res, "data", None) else 0
         return {"deleted": n, "status": "cleared", "scope": scope}
