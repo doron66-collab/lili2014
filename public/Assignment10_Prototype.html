@@ -741,6 +741,16 @@
     function curvePath(curve){
       var pts = [];
       for (var N = N_MIN; N <= N_MAX; N += 1) pts.push([N, curve.f(N)]);
+      // DMRG's breaksAt (~32.9, from S(N) crossing S_HARD) falls BETWEEN integer
+      // samples — without inserting the exact break point, the solid segment stops at
+      // N=32 and the dashed segment starts at N=33, leaving a visible gap that doesn't
+      // reach the vertical break-marker line at all. Insert the precise breakpoint into
+      // the sample set so both segments share it and the line is continuous, changing
+      // style exactly where the marker says it breaks.
+      if (curve.breaksAt != null && curve.breaksAt > N_MIN && curve.breaksAt < N_MAX) {
+        pts.push([curve.breaksAt, curve.f(curve.breaksAt)]);
+        pts.sort(function(a, b){ return a[0] - b[0]; });
+      }
       var solid = pts.filter(function(p){ return curve.breaksAt == null || p[0] <= curve.breaksAt; });
       var rest  = pts.filter(function(p){ return curve.breaksAt != null && p[0] >= curve.breaksAt; });
       var toPoly = function(arr){ return arr.map(function(p){ return xPix(p[0]) + ',' + yPixTheory(p[1]); }).join(' '); };
