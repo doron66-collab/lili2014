@@ -1137,12 +1137,16 @@
         var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):'—';
         var target=x.mutation_id||x.mutation_name||'—';
         var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
+        // Full source Hamiltonian (every Pauli term + coefficient — P2 "compilation
+        // lineage") is now part of the LEON-notarized record itself (p2_jw_terms),
+        // not just a local file on the cluster — downloadable straight from here.
+        var hbtn=x.id?('<button onclick="downloadHamiltonian(\''+x.id+'\',\''+target.replace(/'/g,"\\'")+'\',this)" title="Download the full source Hamiltonian (Pauli terms) for this run" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JW</button>'):'';
         hh+='<tr><td style="'+C+';font-weight:600">'+target+'</td><td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
             '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
-            '<td style="'+C+'">'+vbtn+'</td></tr>';
+            '<td style="'+C+'">'+vbtn+hbtn+'</td></tr>';
       });
       paint(hh+'</table>'+
         '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified &amp; notarized by <strong style="color:var(--green)" title="Lineage-Evidence Orchestration &amp; Notarization — the guardian of provenance integrity">LEON</strong> at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>');
@@ -3773,6 +3777,34 @@ function exportHpcCsv() {
   a.download = 'solange_hpc_ladder.csv';
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+async function downloadHamiltonian(runId, target, btn) {
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`${API}/api/provenance/runs/${runId}`);
+    const rec = await res.json();
+    const terms = rec.p2_jw_terms;
+    if (!terms) {
+      alert('No Hamiltonian stored for this run — it predates the p2_jw_terms field ' +
+            '(older runs only have the local jw_*.json on the cluster). Re-run to capture it.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify({ mutation_id: rec.mutation_id, run_id: runId,
+      p8_hash: rec.p8_hash, n_terms: terms.length, terms }, null, 2)],
+      { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `jw_hamiltonian_${(target||rec.mutation_id||runId).replace(/[^\w.-]+/g,'_')}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    alert('Download failed: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = orig; btn.disabled = false; }
+  }
 }
 
 async function clearHpcRuns() {

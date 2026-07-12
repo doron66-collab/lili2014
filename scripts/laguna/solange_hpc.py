@@ -389,6 +389,11 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
         "p2_active_electrons": cas["nelecas"],
         "p2_active_orbitals":  cas["ncas"],
         "p2_model_compound":   args.compound,
+        # The full source Hamiltonian — every Pauli term + coefficient. P2's own
+        # definition ("compilation lineage") already names this; it used to be
+        # written only to the local jw_*.json file and never sent to SOLANGE.
+        # Named with the p2_ prefix so LEON's existing P8 seal covers it too.
+        "p2_jw_terms": jw_terms,
 
         # P3 — backend (transparent about where it ran)
         "p3_backend":           backend,

@@ -39,7 +39,7 @@ _DB_COLUMNS = frozenset({
     "id", "created_at", "user_id", "mutation_id", "mutation_name", "pdb_id", "phase",
     "p1_circuit_hash", "p1_gate_count", "p1_depth", "p1_qubit_count", "p1_ansatz",
     "p2_compiler", "p2_compiler_version", "p2_encoding", "p2_basis_set",
-    "p2_active_electrons", "p2_active_orbitals", "p2_model_compound",
+    "p2_active_electrons", "p2_active_orbitals", "p2_model_compound", "p2_jw_terms",
     "p3_backend", "p3_backend_version", "p3_calibration_epoch", "p3_simulator",
     "p4_gate_error_rate", "p4_readout_error_rate", "p4_t1_us", "p4_t2_us", "p4_note",
     "p5_shots", "p5_raw_energy", "p5_energy_variance", "p5_opt_steps", "p5_elapsed_s",
