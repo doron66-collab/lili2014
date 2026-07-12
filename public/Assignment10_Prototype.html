@@ -1107,7 +1107,7 @@
       }
       window.__hpcRuns = runs;   // cached for CSV export
       var rt=function(s){return (s==null)?'—':(s<60?Number(s).toFixed(1)+'s':Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s');};
-      var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Active space</th>'+
+      var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Target</th><th style="'+TH+'">Active space</th>'+
         '<th style="'+TH+'">Qubits</th><th style="'+TH+'">Exact (Ha)</th><th style="'+TH+'">VQE-UCCSD (Ha)</th>'+
         '<th style="'+TH+'">ΔE</th><th style="'+TH+'" title="Total compute time — the classical-wall cost">Runtime</th>'+
         '<th style="'+TH+'">Backend</th><th style="'+TH+'">P8</th><th style="'+TH+'"></th></tr>';
@@ -1128,9 +1128,14 @@
           var dmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
           de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
         }
-        var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):(x.mutation_id||'—');
+        // CAS(N,N) is a SIZE, not an identity — with multiple targets on the ladder
+        // (e.g. ARID2 + TP53 C275F, or native/mutant of the same gene), rows with
+        // similar CAS sizes were indistinguishable without this column, exactly the
+        // ambiguity that caused confusion when reading the table by CAS size alone.
+        var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):'—';
+        var target=x.mutation_id||x.mutation_name||'—';
         var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
-        hh+='<tr><td style="'+C+';font-weight:600">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
+        hh+='<tr><td style="'+C+';font-weight:600">'+target+'</td><td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
