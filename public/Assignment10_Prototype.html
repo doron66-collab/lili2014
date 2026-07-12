@@ -1074,6 +1074,8 @@
         '<select id="hpc-cas" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
           '<option value="6">CAS(6,6) · 12q</option><option value="8" selected>CAS(8,8) · 16q</option>'+
           '<option value="10">CAS(10,10) · 20q</option><option value="12">CAS(12,12) · 24q</option></select>'+
+        '<select id="hpc-side" title="Which allele to run — native (wild-type) or mutant" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
+          '<option value="native" selected>native</option><option value="mutant">mutant</option></select>'+
         '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
         '<button onclick="dispatchSelectedToHpc()" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
         '<button onclick="clearHpcQueue()" title="Cancel pending queued/running jobs and clear stale-failed ones (e.g. reaped after an agent was lost)" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Clear queue</button>'+
@@ -3705,6 +3707,7 @@ async function dispatchSelectedToHpc() {
   const setMsg = h => { if (msg) msg.innerHTML = h; };
   if (!checked.length) { setMsg('<span style="color:#f87171">Select at least one mutation.</span>'); return; }
   const ncas = parseInt(document.getElementById('hpc-cas').value, 10);
+  const side = document.getElementById('hpc-side').value;   // native | mutant
   const runVqe = document.getElementById('hpc-vqe').checked;
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const { data: { session } } = await supa.auth.getSession();
@@ -3718,7 +3721,7 @@ async function dispatchSelectedToHpc() {
     try {
       const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
         method: 'POST', headers,
-        body: JSON.stringify({ key: v.simId, side: 'native', ncas, nelecas: ncas,
+        body: JSON.stringify({ key: v.simId, side, ncas, nelecas: ncas,
                                basis: '6-31g', run_vqe: runVqe, residue: v.mutation || '' })
       });
       const out = await res.json();
