@@ -485,6 +485,13 @@ def _db_status_from(stdout):
     return "?"
 
 
+def _ts():
+    """Wall-clock timestamp for agent log lines — lets you read elapsed time
+    directly off a running JupyterLab/terminal session (or a tail -f'd log file)
+    without cross-referencing OS timestamps."""
+    return datetime.now().strftime("%H:%M:%S")
+
+
 def _post_status(api, hdr, did, status, note=None, run_id=None):
     import urllib.request
     body = {"status": status}
@@ -497,7 +504,7 @@ def _post_status(api, hdr, did, status, note=None, run_id=None):
     try:
         urllib.request.urlopen(req, timeout=30).read()
     except Exception as e:
-        print(f"[agent] status post failed: {e}", file=sys.stderr)
+        print(f"[{_ts()}] [agent] status post failed: {e}", file=sys.stderr)
 
 
 def _post_heartbeat(api, hdr):
@@ -516,7 +523,7 @@ def _post_heartbeat(api, hdr):
 def run_agent(api, poll_s, token, out_dir):
     import urllib.request
     hdr = {"Authorization": "Bearer " + token}
-    print(f"[agent] up · polling {api} every {poll_s}s · Ctrl+C to stop")
+    print(f"[{_ts()}] [agent] up · polling {api} every {poll_s}s · Ctrl+C to stop")
     while True:
         _post_heartbeat(api, hdr)   # liveness ping so SOLANGE shows the agent online
         try:
@@ -525,12 +532,13 @@ def run_agent(api, poll_s, token, out_dir):
             with urllib.request.urlopen(req, timeout=30) as r:
                 job = json.loads(r.read().decode()).get("job")
         except Exception as e:
-            print(f"[agent] poll error: {e}", file=sys.stderr)
+            print(f"[{_ts()}] [agent] poll error: {e}", file=sys.stderr)
             time.sleep(poll_s); continue
         if not job:
             time.sleep(poll_s); continue
         did = job["id"]
-        print(f"[agent] job {did[:8]} · {job['key']}/{job.get('side','native')} "
+        t_job_start = time.time()
+        print(f"[{_ts()}] [agent] job {did[:8]} · {job['key']}/{job.get('side','native')} "
               f"CAS({job['nelecas']},{job['ncas']}) vqe={job.get('run_vqe')}")
         try:
             compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
@@ -554,13 +562,15 @@ def run_agent(api, poll_s, token, out_dir):
             else:
                 note = "ok" if ok else (res.stderr[-300:] or res.stdout[-300:])
             _post_status(api, hdr, did, "done" if ok else "failed", note=note)
-            print(f"[agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}"
+            job_elapsed = time.time() - t_job_start
+            print(f"[{_ts()}] [agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}"
+                  f"  [{job_elapsed/60:.1f}m]"
                   + ("" if ok else f"  ({note[:80]})"))
         except KeyboardInterrupt:
             raise
         except Exception as e:
             _post_status(api, hdr, did, "failed", note=str(e))
-            print(f"[agent] job {did[:8]} error: {e}", file=sys.stderr)
+            print(f"[{_ts()}] [agent] job {did[:8]} error: {e}", file=sys.stderr)
 
 
 def main():
@@ -597,7 +607,7 @@ def main():
     if args.agent:
         token = args.token
         if not token:
-            print(f"[agent] logging in as {args.email} …")
+            print(f"[{_ts()}] [agent] logging in as {args.email} …")
             token = _supabase_login(args.email, args.password)
         run_agent(args.api, args.poll, token, args.out)
         return
