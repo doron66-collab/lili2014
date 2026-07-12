@@ -468,10 +468,22 @@ def _resolve_compound(key, side):
     """Map a mutation key (+side) to its model compound (a GEOM key)."""
     try:
         from generate_expansion_jw import EXPANSION_MODELS
-        if key in EXPANSION_MODELS:
-            return EXPANSION_MODELS[key][side]["compound"]
     except Exception:
-        pass
+        EXPANSION_MODELS = {}
+    if key in EXPANSION_MODELS:
+        entry = EXPANSION_MODELS[key]
+        if side in entry:
+            return entry[side]["compound"]
+        # The key IS a known target — this is a DIFFERENT failure than "unknown
+        # gene": the requested side was deliberately left unassigned (e.g. a
+        # generic LOF target's mutant compound is scientifically ambiguous), not
+        # forgotten. Say so, instead of the same generic error as a typo'd key.
+        raise ValueError(
+            f"{key} is a known expansion target, but its '{side}' side has no "
+            f"model compound defined (only {sorted(set(entry) & {'native', 'mutant'})} "
+            f"available) — a generic LOF target often models only the native/"
+            f"wild-type residue; a specific point mutation (like TP53_C275F) is "
+            f"needed for a scientifically grounded mutant compound.")
     core = {  # core report genes not in EXPANSION_MODELS
         "TP53_C275F": {"native": "methanethiol", "mutant": "toluene"},
         "KEAP1_LOF":  {"native": "formamide",    "mutant": "methanethiol"},

@@ -191,6 +191,26 @@ GEOM = {
 #           (specific substitution if known, otherwise loss of functional group)
 # note    = biochemical justification
 EXPANSION_MODELS = {
+    # ── Structural tumor suppressor (generic LOF) ────────────────────────────
+
+    "TP53_LOF": {
+        "gene": "TP53", "full_electrons": 44, "full_qubits": 88,
+        # Generic structural LOF anchor at Arg248 (DNA-binding domain "hotspot"
+        # residue) — distinct from the specific point mutation TP53_C275F (the
+        # dissertation's primary anchor). Native only: the real, common TP53
+        # DNA-binding-domain hotspot mutations at this position (R248Q, R248W,
+        # ...) are heterogeneous, not a single well-established R248H-style
+        # substitution the way IDH1 R132H / IDH2 R172H are — a mutant model
+        # compound is deliberately NOT assigned here rather than guessed.
+        # Native compound mirrors backend/routes/simulate.py's
+        # _EXPANSION_GENE_CONFIGS entry for TP53 (previously defined there only,
+        # never synced here — the exact gap this entry closes).
+        # Ref: Muller PA & Vousden KH (2014) Cancer Cell 25:304 (TP53 DBD hotspots)
+        "native": {"compound": "guanidine", "residue": "Arg248",
+                   "note": "Arg248 DNA-binding-domain hotspot; electrostatic DNA-phosphate contact"},
+        "pdb": "2OCJ",
+    },
+
     # ── Neuroendocrine / glioma ──────────────────────────────────────────────
 
     "IDH1_LOF": {
