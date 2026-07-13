@@ -589,12 +589,25 @@ async def submit_hpc_run(payload: dict = Body(...)):
             # Upsert semantics: a re-run of the same target+side+active space REPLACES
             # the prior row (no duplicates in the panel). The append-only local
             # runs_log.jsonl on the cluster keeps the full archive of every run.
+            #
+            # Two SEPARATE .eq() deletes rather than one .in_() delete on
+            # [base_id, folded_id]: folded ids look like "ATRX_LOF (mutant)" —
+            # parentheses and a space inside a value going into an IN-list is
+            # exactly the kind of value that can be mis-encoded by REST filter
+            # builders. A native ATRX_LOF row was observed deleted by a LATER
+            # mutant-side submission at the same CAS size despite the filter
+            # apparently excluding it — consistent with that failure mode. Two
+            # plain equality deletes carry no such risk.
+            cas_e, cas_o = safe.get("p2_active_electrons"), safe.get("p2_active_orbitals")
             (sb.table("simulation_runs").delete()
-               .eq("phase", "3A-HPC")
-               .in_("mutation_id", [base_id, record["mutation_id"]])  # incl. legacy pre-side rows
-               .eq("p2_active_electrons", safe.get("p2_active_electrons"))
-               .eq("p2_active_orbitals", safe.get("p2_active_orbitals"))
+               .eq("phase", "3A-HPC").eq("mutation_id", record["mutation_id"])
+               .eq("p2_active_electrons", cas_e).eq("p2_active_orbitals", cas_o)
                .execute())
+            if base_id != record["mutation_id"]:
+                (sb.table("simulation_runs").delete()   # legacy pre-side-fold rows only
+                   .eq("phase", "3A-HPC").eq("mutation_id", base_id)
+                   .eq("p2_active_electrons", cas_e).eq("p2_active_orbitals", cas_o)
+                   .execute())
             try:
                 sb.table("simulation_runs").insert(safe).execute()
                 db_status = "stored"
