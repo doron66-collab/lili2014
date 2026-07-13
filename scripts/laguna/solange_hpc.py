@@ -502,6 +502,27 @@ def _db_status_from(stdout):
     return "?"
 
 
+def _run_id_from(stdout):
+    """Pull the run_id=<uuid> token the --submit subprocess prints, so the agent can
+    report it back to /hpc/dispatch/{id}/status — this is what links a dispatch
+    queue entry to its resulting simulation_runs row (hpc_dispatch.run_id)."""
+    for tok in stdout.split():
+        if tok.startswith("run_id="):
+            return tok[len("run_id="):]
+    return None
+
+
+def _p8_prefix_from(stdout):
+    """Pull the P8 hash prefix the --submit subprocess prints (the '  P8 = xxxx…'
+    line), so it can be echoed in the DONE line — lets you cross-reference this
+    exact terminal run against the SOLANGE HPC Ladder's P8 column by eye."""
+    for line in stdout.splitlines():
+        line = line.strip()
+        if line.startswith("P8 = "):
+            return line[len("P8 = "):].split("…")[0].strip()
+    return None
+
+
 def _ts():
     """Wall-clock timestamp for agent log lines — lets you read elapsed time
     directly off a running JupyterLab/terminal session (or a tail -f'd log file)
@@ -578,10 +599,16 @@ def run_agent(api, poll_s, token, out_dir):
                 note = "verified but NOT stored (db=%s)" % _db_status_from(res.stdout)
             else:
                 note = "ok" if ok else (res.stderr[-300:] or res.stdout[-300:])
-            _post_status(api, hdr, did, "done" if ok else "failed", note=note)
+            run_id = _run_id_from(res.stdout) if ok else None
+            p8 = _p8_prefix_from(res.stdout) if ok else None
+            _post_status(api, hdr, did, "done" if ok else "failed", note=note, run_id=run_id)
             job_elapsed = time.time() - t_job_start
+            # Cross-reference this run against the SOLANGE HPC Ladder: the P8 prefix
+            # printed here is the SAME hash shown (truncated) in the ladder's P8
+            # column — match them by eye, no need to dig through raw logs.
             print(f"[{_ts()}] [agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}"
                   f"  [{job_elapsed/60:.1f}m]"
+                  + (f"  P8={p8}" if ok and p8 else "")
                   + ("" if ok else f"  ({note[:80]})"))
         except KeyboardInterrupt:
             raise
@@ -785,8 +812,12 @@ def main():
                 resp = json.loads(r.read().decode())
             print(f"SUBMITTED → {url}")
             print(f"  status={resp.get('status')}  seal_ok={resp.get('seal_ok')}  "
-                  f"consistency_ok={resp.get('consistency_ok')}  db={resp.get('db_status')}")
-            print(f"  SOLANGE recomputed P8 = {str(resp.get('recomputed_p8'))[:16]}… "
+                  f"consistency_ok={resp.get('consistency_ok')}  db={resp.get('db_status')}  "
+                  f"run_id={resp.get('run_id')}")
+            # Printed explicitly (not just embedded above) so run_agent() can extract it
+            # and so you can cross-reference this exact terminal run against the SOLANGE
+            # HPC Ladder's P8 column by eye — same 8-char prefix, same hash.
+            print(f"  P8 = {str(resp.get('recomputed_p8'))[:16]}… "
                   f"({'matched → verified' if resp.get('seal_ok') else 'MISMATCH'})")
             print("  → now visible in SOLANGE · phase=3A-HPC · provenance_source=HPC/Laguna")
         except Exception as e:
