@@ -72,6 +72,69 @@
       "text": "SOLANGE focuses on non-druggable NSCLC tumor-suppressor mutations in TP53, STK11, and KEAP1. A key case is TP53 C275F, whose full electronic problem involves 44 electrons / 88 qubits, well beyond the classical CCSD(T) limit. In the Phase 3A classical proxy, the Phe275 sidechain is modeled by a toluene proxy in a CAS(2e,2o)/STO-3G active space giving a 4-qubit Hamiltonian, with a CASSCF energy near -266.49 Ha.",
       "source": "SOLANGE platform documentation (targets and Phase 3A proxies).",
       "tags": ["TP53", "C275F", "STK11", "KEAP1", "non-druggable", "toluene proxy", "qubits"]
+    },
+    {
+      "id": "tp53-mutp53-gof-2022",
+      "title": "Mutant p53 gain-of-function and therapeutic modulation",
+      "text": "TP53 is the most commonly mutated gene in human cancer. Beyond losing tumor-suppressor activity, mutant p53 often acquires novel oncogenic 'gain-of-function' properties associated with advanced malignancy, invasion, and drug resistance. Therapeutic strategies under investigation include restoring wild-type conformation to mutant p53, depleting mutant p53, and blocking its gain-of-function partners — reflecting how difficult direct targeting of the protein itself remains.",
+      "source": "Chen et al., Cell Death Dis 2022. PubMed. DOI: 10.1038/s41419-022-05408-1",
+      "tags": ["TP53", "mutant p53", "gain-of-function", "therapy", "resistance"]
+    },
+    {
+      "id": "tp53-mdm2-reactivation-2023",
+      "title": "Reactivating p53 indirectly by inhibiting its negative regulator MDM2",
+      "text": "MDM2 negatively regulates p53 by binding and promoting its degradation, and many tumors overproduce MDM2 to switch off p53. Blocking the MDM2-p53 interaction (the mechanism of nutlin-class inhibitors) can reactivate p53 in tumors that retain a wild-type copy. This is an indirect strategy: rather than drugging p53 itself, it drugs the regulator that suppresses it.",
+      "source": "Mehri et al., Chem Biol Drug Des 2023. PubMed. DOI: 10.1111/cbdd.14399",
+      "tags": ["TP53", "MDM2", "nutlin", "p53 reactivation", "indirect target"]
+    },
+    {
+      "id": "tp53-rewire-apoptosis-2023",
+      "title": "Rewiring cancer drivers to activate apoptosis (a novel modality)",
+      "text": "A newer approach to hard-to-drug cancer drivers uses chemically induced proximity to redirect a driver transcription factor toward activating cell-death (apoptosis) genes instead of proliferation genes. This illustrates that 'undruggable' transcription-factor biology can sometimes be addressed by novel modalities that change protein function or interactions rather than blocking a classical active site.",
+      "source": "Gourisankar et al., Nature 2023. PubMed. DOI: 10.1038/s41586-023-06348-2",
+      "tags": ["transcription factor", "apoptosis", "chemical induced proximity", "novel modality", "undruggable"]
+    },
+    {
+      "id": "undruggable-protac-2022",
+      "title": "PROTAC targeted protein degradation reaches historically undruggable proteins",
+      "text": "Targeted protein degradation (TPD) is an emerging modality that can eliminate disease-causing proteins historically hard to target with conventional occupancy-based small molecules. A PROTAC recruits the ubiquitin-proteasome system to destroy the target, so it does not require a deep catalytic pocket — expanding the range of druggable proteins beyond classical binding sites.",
+      "source": "Békés et al., Nat Rev Drug Discov 2022. PubMed. DOI: 10.1038/s41573-021-00371-6",
+      "tags": ["undruggable", "PROTAC", "protein degradation", "ubiquitin-proteasome", "modality"]
+    },
+    {
+      "id": "undruggable-tpd-2021",
+      "title": "Why many cancer proteins are hard to drug — and how degraders help",
+      "text": "Of the roughly 20,000 human proteins, more than 600 are important across cancers, including nearly 400 non-enzyme proteins that are difficult to target with traditional occupancy-driven pharmacology because they lack a well-defined catalytic pocket. Small-molecule degraders and other event-driven modalities aim to expand the druggable proteome to include these targets.",
+      "source": "Dale et al., Nat Rev Cancer 2021. PubMed. DOI: 10.1038/s41568-021-00365-x",
+      "tags": ["undruggable", "degrader", "non-enzyme", "druggable proteome", "pocket"]
+    },
+    {
+      "id": "stk11-lkb1-kinase-2011",
+      "title": "LKB1 (STK11) is a serine/threonine-kinase tumor suppressor frequently lost in lung cancer",
+      "text": "Liver kinase B1 (LKB1), encoded by STK11, is a serine/threonine kinase and tumor suppressor that is frequently mutated or lost in lung cancer, where its loss contributes to initiation, progression, and metastasis. As a lost tumor suppressor rather than an activated oncoprotein, STK11 cannot be restored by a small-molecule inhibitor, which is why therapy targets its downstream consequences instead.",
+      "source": "Gao et al., Protein Cell 2011. PubMed. DOI: 10.1007/s13238-011-1021-6",
+      "tags": ["STK11", "LKB1", "kinase", "tumor suppressor", "lung cancer"]
+    },
+    {
+      "id": "stk11-cps1-metabolic-2017",
+      "title": "A metabolic synthetic-lethal vulnerability in KRAS/LKB1-mutant lung cancer",
+      "text": "Concurrent oncogenic KRAS and loss of LKB1 (STK11) specify an aggressive NSCLC subtype with rewired metabolism. These cells become dependent on the enzyme CPS1 to maintain pyrimidine pools for DNA synthesis, creating a synthetic-lethal metabolic vulnerability that can be exploited therapeutically even though the STK11 loss itself is not directly druggable.",
+      "source": "Kim et al., Nature 2017. PubMed. DOI: 10.1038/nature22359",
+      "tags": ["STK11", "LKB1", "KRAS", "CPS1", "metabolism", "synthetic lethality"]
+    },
+    {
+      "id": "kras-g12c-resistance-2024",
+      "title": "KRAS G12C inhibitors work but face resistance, motivating combinations",
+      "text": "The KRAS G12C inhibitors sotorasib and adagrasib are approved for KRAS G12C-mutant NSCLC, proving a formerly undruggable target can be drugged. However, single-agent efficacy is limited by multiple resistance mechanisms (for example WEE1-mediated resistance), so combination strategies are being developed — a reminder that druggability is necessary but not sufficient for durable response.",
+      "source": "Yamamoto et al., Cancer Lett 2024. PubMed. DOI: 10.1016/j.canlet.2024.217414",
+      "tags": ["KRAS", "G12C", "sotorasib", "adagrasib", "resistance", "combination"]
+    },
+    {
+      "id": "nsclc-tmb-durvalumab-2023",
+      "title": "Biomarkers for immunotherapy response in locally advanced NSCLC",
+      "text": "In locally advanced NSCLC, adding consolidative durvalumab (a PD-L1 inhibitor) after chemoradiation improves disease control and survival, but biomarkers such as tumor mutational burden are needed to predict who benefits and to personalize therapy. This motivates molecular profiling of tumor-suppressor status (including TP53, STK11, and KEAP1) to guide treatment.",
+      "source": "Lebow et al., JAMA Netw Open 2023. PubMed. DOI: 10.1001/jamanetworkopen.2022.49591",
+      "tags": ["NSCLC", "durvalumab", "PD-L1", "tumor mutational burden", "biomarker", "immunotherapy"]
     }
   ]
 }
