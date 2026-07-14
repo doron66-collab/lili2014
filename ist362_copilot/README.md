@@ -61,14 +61,31 @@ Install Ollama to switch on real local models.
 
 ## Quick start
 
-### 1. Install Python deps
+### Easiest path — no installation at all (recommended)
+
+The server has a **zero-dependency** version built only on the Python standard
+library. Nothing to `pip install`, nothing to compile — ideal on very new Python
+versions (e.g. 3.14) where prebuilt packages may not exist yet.
+
+```bash
+cd ist362_copilot/backend
+python3 serve.py
+```
+Then open **<http://localhost:8000/app>**. Stop with `Ctrl+C`.
+Change the port with `PORT=8010 python3 serve.py`.
+
+That's it — skip to *Install Ollama* below to switch on real local models. The
+rest of this section (FastAPI, pip) is an optional alternative.
+
+### Optional — the FastAPI version
 ```bash
 cd ist362_copilot
-python3 -m venv .venv && source .venv/bin/activate   # optional
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cd backend && uvicorn app:app --reload --port 8000
 ```
 
-### 2. (Recommended) Install Ollama and pull models
+### Install Ollama and pull models
 Download Ollama from <https://ollama.com/download>, then:
 ```bash
 ollama pull llama3.2:latest      # 3B, general
