@@ -72,8 +72,10 @@
 
   <!-- Mode A -->
   <section id="panel-explain" class="card">
-    <p class="sub">Paste a SOLANGE P1–P9 provenance record (or use the bundled sample). A local
+    <p class="sub">Paste a SOLANGE P1–P9 provenance record (or load an example below). A local
        model turns it into an auditable plain-English narrative — no data leaves your machine.</p>
+    <label>Load an example run (increasing scale)</label>
+    <select id="sampleSelect"></select>
     <label>Provenance record (JSON)</label>
     <textarea id="runJson" style="min-height:200px"></textarea>
     <div class="row">
@@ -148,9 +150,22 @@ async function loadHealth(){
 
 async function loadSample(){
   try{
-    const run = await fetch(API + "/api/sample-run").then(r=>r.json());
-    $("#runJson").value = JSON.stringify(run, null, 2);
-  }catch(e){}
+    const data = await fetch(API + "/api/sample-runs").then(r=>r.json());
+    const sel = $("#sampleSelect"); sel.innerHTML = "";
+    data.runs.forEach((r, i)=>{
+      const o = document.createElement("option");
+      o.value = i; o.textContent = r.label; sel.appendChild(o);
+    });
+    const setFromIndex = i => { $("#runJson").value = JSON.stringify(data.runs[i].record, null, 2); };
+    sel.onchange = () => setFromIndex(sel.value);
+    setFromIndex(0);   // default to the 4-qubit run
+  }catch(e){
+    // fallback to the single bundled sample
+    try{
+      const run = await fetch(API + "/api/sample-run").then(r=>r.json());
+      $("#runJson").value = JSON.stringify(run, null, 2);
+    }catch(_){}
+  }
 }
 
 // tab switching

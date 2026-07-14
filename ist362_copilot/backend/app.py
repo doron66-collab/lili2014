@@ -106,6 +106,12 @@ def sample_run():
     return json.loads((_DATA_DIR / "sample_run.json").read_text(encoding="utf-8"))
 
 
+@app.get("/api/sample-runs")
+def sample_runs():
+    """A set of example provenance records at increasing scale (4 -> 12 -> 88 qubits)."""
+    return json.loads((_DATA_DIR / "sample_runs.json").read_text(encoding="utf-8"))
+
+
 # ── Mode A: explain a provenance run ─────────────────────────────────────────
 @app.post("/api/explain-run")
 def explain_run(req: ExplainRunRequest):

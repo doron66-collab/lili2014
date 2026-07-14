@@ -1,0 +1,133 @@
+{
+  "note": "A set of representative SOLANGE P1-P9 provenance records at increasing scale, so the copilot can be demonstrated beyond the 4-qubit proxy. The 4-qubit record mirrors sample_run.json (the evaluation answer key) and uses real-ish Phase 3A values. The 12-qubit (HPC cluster) and 88-qubit (IBM hardware) records are ILLUSTRATIVE EXAMPLES: their P7 result values are placeholders to be replaced with real run outputs. The copilot's job is to explain whatever record it is given, at any scale.",
+  "runs": [
+    {
+      "label": "4 qubits — laptop simulator (Phase 3A proxy)",
+      "record": {
+        "run_id": "run_c275f_20260514_A1",
+        "mutation_id": "TP53_C275F",
+        "mutation_name": "TP53 C275F (p.Cys275Phe)",
+        "gene": "TP53",
+        "phase": "3A",
+        "data_status": "reference Phase 3A proxy values",
+        "p1_inputs": {
+          "model_molecule": "toluene (Phe275 sidechain proxy)",
+          "basis": "STO-3G",
+          "active_space": "CAS(2e,2o)",
+          "jw_qubits": 4
+        },
+        "p2_method": {
+          "electronic_structure": "RHF -> CASSCF(2,2)",
+          "quantum_algorithm": "VQE",
+          "hamiltonian": "Jordan-Wigner, 4 qubits",
+          "software": "PySCF + PennyLane"
+        },
+        "p3_environment": {
+          "backend": "PennyLane default.qubit simulator",
+          "hardware": "single laptop CPU"
+        },
+        "p7_results": {
+          "e_rhf_ha": -266.47420350984964,
+          "e_casscf_ha": -266.4907503178864,
+          "e_vqe_ha": -266.4907499,
+          "correlation_ha": -0.01654680803676456,
+          "converged": true
+        },
+        "p8_seal": {
+          "algorithm": "SHA-256",
+          "hash": "9f2c7b41a0e58d63d1c4a2f7e6b8093a5c4d1e2f3a6b7c8d9e0f1a2b3c4d5e6f",
+          "hash_truncated": "9f2c7b41a0e58d63",
+          "notarized_by": "LEON"
+        },
+        "p9_compliance": {"standard": "FDA 21 CFR 11.10(e)", "storage": "Supabase"}
+      }
+    },
+    {
+      "label": "12 qubits — HPC cluster (larger active space)",
+      "record": {
+        "run_id": "run_c275f_hpc_20260514_B2",
+        "mutation_id": "TP53_C275F",
+        "mutation_name": "TP53 C275F (p.Cys275Phe)",
+        "gene": "TP53",
+        "phase": "3A-HPC",
+        "data_status": "ILLUSTRATIVE EXAMPLE — replace P7 values with real cluster output",
+        "p1_inputs": {
+          "model_molecule": "toluene (Phe275 sidechain proxy), extended active space",
+          "basis": "6-31G",
+          "active_space": "CAS(6e,6o)",
+          "jw_qubits": 12
+        },
+        "p2_method": {
+          "electronic_structure": "RHF -> CASSCF(6,6)",
+          "quantum_algorithm": "VQE (UCCSD ansatz)",
+          "hamiltonian": "Jordan-Wigner, 12 qubits",
+          "software": "PySCF + PennyLane-Lightning (GPU statevector)"
+        },
+        "p3_environment": {
+          "backend": "lightning.gpu statevector simulator",
+          "hardware": "HPC cluster — 1 node, 4x NVIDIA A100 GPUs",
+          "wall_time_min": 47
+        },
+        "p7_results": {
+          "e_rhf_ha": -266.9421,
+          "e_casscf_ha": -266.9887,
+          "e_vqe_ha": -266.9881,
+          "correlation_ha": -0.0466,
+          "converged": true,
+          "value_note": "illustrative placeholder values"
+        },
+        "p8_seal": {
+          "algorithm": "SHA-256",
+          "hash": "3b7e1c92f0a4d6558e2b9c17d4a0f6e3b1c8a95d2e4f70168b3c9d0e1f2a4b6c",
+          "hash_truncated": "3b7e1c92f0a4d655",
+          "notarized_by": "LEON"
+        },
+        "p9_compliance": {"standard": "FDA 21 CFR 11.10(e)", "storage": "Supabase"}
+      }
+    },
+    {
+      "label": "88 qubits — IBM Heron r3 quantum hardware (Phase 3B)",
+      "record": {
+        "run_id": "run_c275f_heron_20260514_C3",
+        "mutation_id": "TP53_C275F",
+        "mutation_name": "TP53 C275F (p.Cys275Phe)",
+        "gene": "TP53",
+        "phase": "3B",
+        "data_status": "ILLUSTRATIVE EXAMPLE — replace P7 values with real hardware output",
+        "p1_inputs": {
+          "model_molecule": "TP53 C275F full electronic model (44 active electrons)",
+          "basis": "STO-3G",
+          "active_space": "CAS(44e,44o)",
+          "jw_qubits": 88
+        },
+        "p2_method": {
+          "electronic_structure": "CASSCF orbitals -> sample-based quantum diagonalization",
+          "quantum_algorithm": "sqDRIFT (quantum sampling + classical diagonalization)",
+          "hamiltonian": "Jordan-Wigner, 88 qubits",
+          "software": "Qiskit + IBM Quantum Runtime",
+          "note": "Beyond the classical CCSD(T) limit (~18 correlated electrons)"
+        },
+        "p3_environment": {
+          "backend": "IBM Heron r3",
+          "hardware": "superconducting quantum processor (94+ qubits)",
+          "shots": 100000,
+          "error_mitigation": "readout + gate twirling"
+        },
+        "p7_results": {
+          "e_ground_ha": -1483.612,
+          "e_ground_uncertainty_ha": 0.021,
+          "method_note": "sqDRIFT ground-state estimate with statistical uncertainty",
+          "converged": true,
+          "value_note": "illustrative placeholder values"
+        },
+        "p8_seal": {
+          "algorithm": "SHA-256",
+          "hash": "c4d5e6f70819a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f50617",
+          "hash_truncated": "c4d5e6f70819a2b3",
+          "notarized_by": "LEON"
+        },
+        "p9_compliance": {"standard": "FDA 21 CFR 11.10(e)", "storage": "Supabase"}
+      }
+    }
+  ]
+}

@@ -68,6 +68,10 @@ def h_sample_run():
     return json.loads((_DATA_DIR / "sample_run.json").read_text("utf-8"))
 
 
+def h_sample_runs():
+    return json.loads((_DATA_DIR / "sample_runs.json").read_text("utf-8"))
+
+
 def h_explain_run(body: dict):
     run = body.get("run") or json.loads((_DATA_DIR / "sample_run.json").read_text("utf-8"))
     prompt = prompts.explain_run_prompt(json.dumps(run, indent=2), body.get("question"))
@@ -135,6 +139,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(h_models())
             if route == "/api/sample-run":
                 return self._send_json(h_sample_run())
+            if route == "/api/sample-runs":
+                return self._send_json(h_sample_runs())
             if route == "/app" or route == "/app/":
                 return self._send_file(_FRONTEND_DIR / "index.html")
             if route.startswith("/app/"):
