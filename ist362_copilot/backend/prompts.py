@@ -21,6 +21,28 @@ SYSTEM_PROMPT = (
 )
 
 
+# Interpretation rules so the model explains what the numbers *mean* and checks
+# internal consistency, instead of merely echoing field values.
+_CONSISTENCY_GUIDE = (
+    "When you describe the method, interpret the numbers — do not just repeat "
+    "them — and check the record for internal consistency:\n"
+    "- If the method is an exact or classical diagonalisation (ansatz is 'none' "
+    "or similar), there is NO quantum circuit, so a gate count of 0 and a "
+    "circuit depth of 0 are EXPECTED and consistent — say so explicitly rather "
+    "than presenting 0 as surprising.\n"
+    "- If the method uses a quantum circuit (e.g. VQE with an ansatz, or "
+    "sample-based / sqDRIFT sampling), then gate count and circuit depth should "
+    "be greater than 0; flag it as an inconsistency if they are 0.\n"
+    "- If both a qubit count and an active space or encoding are given, note "
+    "whether they agree (under Jordan-Wigner, qubits = 2 x number of spatial "
+    "orbitals; e.g. CASSCF(12,12) uses 12 orbitals -> 24 qubits).\n"
+    "- State whether the result carries a notarization seal (a hash) and who "
+    "sealed it, and whether required fields for the stated phase are present.\n"
+    "Conclude with a one-line verdict: consistent, or list the specific fields "
+    "that conflict."
+)
+
+
 def explain_run_prompt(run_json: str, question: str | None = None) -> str:
     """Mode A — turn a P1-P9 provenance record into a plain-English narrative."""
     task = (question or
@@ -32,6 +54,7 @@ def explain_run_prompt(run_json: str, question: str | None = None) -> str:
         "CONTEXT — SOLANGE provenance record (JSON):\n"
         f"{run_json}\n\n"
         f"TASK: {task}\n\n"
+        f"{_CONSISTENCY_GUIDE}\n\n"
         "Answer using only the fields above. Quote exact numeric values with "
         "their units (Ha for energies). If a field is absent, say so."
     )
