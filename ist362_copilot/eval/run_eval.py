@@ -101,6 +101,74 @@ def _mean(xs):
     return round(sum(xs) / len(xs), 3) if xs else 0.0
 
 
+_CITE_RE = __import__("re").compile(r"\[\d+\]")
+
+
+def eval_mutation(backend, model, mutation, probes):
+    """Mode B for ONE mutation: how well does each model explain *this* mutation?"""
+    retriever = get_retriever()
+    hits = retriever.search(mutation + " undruggable non-druggable therapy", top_k=4)
+    prompt = prompts.druggability_prompt(mutation, retriever.context_block(hits))
+    res = backend.generate(prompt, model=model, system=prompts.SYSTEM_PROMPT)
+    covered = [p["fact"] for p in probes if contains_any(res.text, p["expect_any"])]
+    facts_score = len(covered) / len(probes)
+    cited = bool(_CITE_RE.search(res.text))
+    return {
+        "model": model or "(default)",
+        "backend": backend.name,
+        "facts_covered": round(facts_score, 3),
+        "facts_detail": f"{len(covered)}/{len(probes)}",
+        "cited_sources": cited,
+        "latency_s": round(res.latency_s, 3),
+        "answer": res.text,
+    }
+
+
+_MUT_COLS = [
+    ("Model", lambda r: r["model"]),
+    ("Facts covered", lambda r: f"{r['facts_covered']:.2f} ({r['facts_detail']})"),
+    ("Cited sources", lambda r: "yes" if r["cited_sources"] else "no"),
+    ("Latency (s)", lambda r: f"{r['latency_s']:.2f}"),
+]
+
+
+def _aligned(cols, results):
+    headers = [c[0] for c in cols]
+    rows = [[get(r) for _, get in cols] for r in results]
+    widths = [max(len(headers[i]), *(len(row[i]) for row in rows)) if rows
+              else len(headers[i]) for i in range(len(headers))]
+
+    def line(l, m, rr):
+        return l + m.join("─" * (w + 2) for w in widths) + rr
+
+    def fmt(cells):
+        return "│ " + " │ ".join(c.center(widths[i]) for i, c in enumerate(cells)) + " │"
+
+    out = [line("┌", "┬", "┐"), fmt(headers), line("├", "┼", "┤")]
+    out += [fmt(row) for row in rows]
+    out.append(line("└", "┴", "┘"))
+    return "\n".join(out)
+
+
+def run_mutation_eval(backend, models, mutation, dataset):
+    probes = dataset["mutation_probes"].get(mutation)
+    if probes is None:
+        avail = ", ".join(dataset["mutation_probes"].keys() - {"description"})
+        raise SystemExit(f"No probes defined for '{mutation}'. Available: {avail}")
+    print(f"\n=== Druggability (Mode B) evaluation for: {mutation} "
+          f"on backend '{backend.name}' ===")
+    results = [eval_mutation(backend, m, mutation, probes) for m in models]
+    table = _aligned(_MUT_COLS, results)
+    print("\n" + table + "\n")
+    out = {"mutation": mutation, "backend": backend.name,
+           "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "results": results}
+    slug = mutation.replace(" ", "_").replace("/", "-")
+    Path(_HERE / f"results_{slug}.json").write_text(json.dumps(out, indent=2), "utf-8")
+    Path(_HERE / f"results_{slug}.txt").write_text(table, "utf-8")
+    print(f"Saved: {_HERE / ('results_' + slug + '.json')}")
+    print(f"Saved: {_HERE / ('results_' + slug + '.txt')}")
+
+
 def run_for_model(backend, model, dataset, run_record):
     print(f"\n=== Evaluating model: {model or '(default)'} on backend '{backend.name}' ===")
     ext = eval_extraction(backend, model, dataset, run_record)
@@ -159,12 +227,20 @@ def main():
     ap = argparse.ArgumentParser(description="Evaluate the SOLANGE Copilot.")
     ap.add_argument("--models", nargs="*", default=[None],
                     help="model names to compare (default: backend default)")
+    ap.add_argument("--mutation", default=None,
+                    help="run the per-mutation Druggability eval for this mutation "
+                         "(e.g. 'TP53 C275F') instead of the full benchmark")
     ap.add_argument("--out", default=str(_HERE / "results.json"))
     args = ap.parse_args()
 
     dataset = json.loads((_HERE / "eval_dataset.json").read_text("utf-8"))
     run_record = json.loads((_DATA / "sample_run.json").read_text("utf-8"))
     backend = get_backend()
+
+    # Mutation-focused mode: one mutation, all models, Mode B only.
+    if args.mutation:
+        run_mutation_eval(backend, args.models, args.mutation, dataset)
+        return
 
     results = [run_for_model(backend, m, dataset, run_record) for m in args.models]
 

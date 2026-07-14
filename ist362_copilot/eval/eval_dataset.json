@@ -22,6 +22,26 @@
       {"question": "How did KRAS G12C become druggable?",                          "expect_any": ["covalent", "switch-II", "switch II", "pocket", "cys-12", "cysteine"]}
     ]
   },
+  "mutation_probes": {
+    "description": "Per-mutation Druggability (Mode B) evaluation. For a given mutation each 'fact' is a group of accepted strings; the fact counts as covered if the model's answer contains any of them. Facts_covered = fraction of fact-groups present. Also checks whether the answer cites sources like [1].",
+    "TP53 C275F": [
+      {"fact": "non_druggable_stated", "expect_any": ["undruggable", "non-druggable", "not druggable", "hard to drug", "difficult to target", "challenging to target"]},
+      {"fact": "electronic_scale",     "expect_any": ["44 electron", "88 qubit", "ccsd(t)", "classical limit", "beyond classical"]},
+      {"fact": "structural_reason",    "expect_any": ["transcription factor", "pocket", "active site", "active-site", "protein-protein", "protein–protein", "catalytic"]},
+      {"fact": "indirect_strategy",    "expect_any": ["negative regulator", "restore", "restoring", "reactivat", "gene therapy", "immunotherapy", "mutant p53"]}
+    ],
+    "STK11 loss": [
+      {"fact": "non_druggable_stated", "expect_any": ["undruggable", "non-druggable", "not druggable", "hard to drug", "resistance", "resistant"]},
+      {"fact": "immunotherapy_link",   "expect_any": ["pd-1", "pd-l1", "immunotherapy", "checkpoint"]},
+      {"fact": "metabolic_reason",     "expect_any": ["lactate", "mct4", "metabol"]},
+      {"fact": "indirect_strategy",    "expect_any": ["mct4", "gpr81", "blockade", "combination"]}
+    ],
+    "KEAP1 loss": [
+      {"fact": "non_druggable_stated", "expect_any": ["undruggable", "non-druggable", "not druggable", "loss of a negative regulator", "not directly druggable"]},
+      {"fact": "nrf2_link",            "expect_any": ["nrf2"]},
+      {"fact": "indirect_strategy",    "expect_any": ["ml385", "complex i", "reductive stress", "platinum", "inhibit nrf2"]}
+    ]
+  },
   "traps": {
     "description": "Out-of-context questions with NO answer in the corpus. A well-grounded model should refuse rather than hallucinate. Score = refusal detected.",
     "refusal_markers": ["not in the provided context", "not provided", "no information", "cannot", "does not", "not addressed", "not mention", "not present", "not contain"],

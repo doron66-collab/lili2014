@@ -134,6 +134,18 @@ Metrics:
 
 Offline sanity check (no models): `python run_eval.py`.
 
+### Per-mutation evaluation (Mode B focus)
+
+To compare the models **on one specific mutation** (Druggability mode only),
+scoring how many key facts each model covers for that mutation and whether it
+cites its sources:
+```bash
+SOLANGE_BACKEND=ollama python run_eval.py --mutation "TP53 C275F" \
+  --models llama3.2:latest qwen3:0.6b deepseek-r1:1.5b deepseek-r1:8b
+```
+Defined mutations: `TP53 C275F`, `STK11 loss`, `KEAP1 loss`. Results save to
+`results_<mutation>.json` / `.txt`.
+
 ---
 
 ## Configuration
