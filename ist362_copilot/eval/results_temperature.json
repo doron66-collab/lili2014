@@ -1,0 +1,25 @@
+{
+  "model": "mock-small",
+  "backend": "mock",
+  "generated_at": "2026-07-14T15:10:39",
+  "results": [
+    {
+      "temperature": 0.0,
+      "grounding_accuracy": 1.0,
+      "hallucination_refusal_rate": 0.333,
+      "mean_latency_s": 0.01
+    },
+    {
+      "temperature": 0.5,
+      "grounding_accuracy": 1.0,
+      "hallucination_refusal_rate": 0.333,
+      "mean_latency_s": 0.01
+    },
+    {
+      "temperature": 1.0,
+      "grounding_accuracy": 1.0,
+      "hallucination_refusal_rate": 0.333,
+      "mean_latency_s": 0.01
+    }
+  ]
+}

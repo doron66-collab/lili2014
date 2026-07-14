@@ -64,14 +64,15 @@ def eval_extraction(backend, model, dataset, run_record):
     return {"accuracy": correct / n, "n": n, "mean_latency_s": _mean(lat), "rows": rows}
 
 
-def eval_grounding(backend, model, dataset):
+def eval_grounding(backend, model, dataset, temperature=0.2):
     """Mode B / chat: questions answerable from the corpus."""
     retriever = get_retriever()
     rows, correct, lat = [], 0, []
     for item in dataset["grounding"]["items"]:
         hits = retriever.search(item["question"], top_k=4)
         prompt = prompts.chat_prompt(retriever.context_block(hits), item["question"])
-        res = backend.generate(prompt, model=model, system=prompts.SYSTEM_PROMPT)
+        res = backend.generate(prompt, model=model, system=prompts.SYSTEM_PROMPT,
+                               temperature=temperature)
         ok = contains_any(res.text, item["expect_any"])
         correct += ok
         lat.append(res.latency_s)
@@ -80,7 +81,7 @@ def eval_grounding(backend, model, dataset):
     return {"accuracy": correct / n, "n": n, "mean_latency_s": _mean(lat), "rows": rows}
 
 
-def eval_traps(backend, model, dataset):
+def eval_traps(backend, model, dataset, temperature=0.2):
     """Out-of-context questions: correct behavior is to refuse."""
     retriever = get_retriever()
     markers = dataset["traps"]["refusal_markers"]
@@ -88,7 +89,8 @@ def eval_traps(backend, model, dataset):
     for item in dataset["traps"]["items"]:
         hits = retriever.search(item["question"], top_k=4)
         prompt = prompts.chat_prompt(retriever.context_block(hits), item["question"])
-        res = backend.generate(prompt, model=model, system=prompts.SYSTEM_PROMPT)
+        res = backend.generate(prompt, model=model, system=prompts.SYSTEM_PROMPT,
+                               temperature=temperature)
         ok = contains_any(res.text, markers)
         refused += ok
         lat.append(res.latency_s)
@@ -148,6 +150,48 @@ def _aligned(cols, results):
     out += [fmt(row) for row in rows]
     out.append(line("└", "┴", "┘"))
     return "\n".join(out)
+
+
+_TEMP_COLS = [
+    ("Temperature", lambda r: f"{r['temperature']:.1f}"),
+    ("Grounding acc.", lambda r: f"{r['grounding_accuracy']:.2f}"),
+    ("Hallucination refusal", lambda r: f"{r['hallucination_refusal_rate']:.2f}"),
+    ("Mean latency (s)", lambda r: f"{r['mean_latency_s']:.2f}"),
+]
+
+
+def run_temperature_eval(backend, model, dataset, temps):
+    """
+    Randomness study (Topic 1): sampling temperature IS the randomness knob in a
+    language model. Higher temperature = more random token choices. We measure how
+    that randomness affects faithfulness — grounding accuracy on answerable
+    questions, and refusal rate on out-of-context 'trap' questions.
+    """
+    model = model or None
+    print(f"\n=== Randomness (temperature) study — model '{model or '(default)'}' "
+          f"on backend '{backend.name}' ===")
+    print("    (higher temperature = more randomness in the model's sampling)")
+    results = []
+    for t in temps:
+        grd = eval_grounding(backend, model, dataset, temperature=t)
+        trp = eval_traps(backend, model, dataset, temperature=t)
+        results.append({
+            "temperature": t,
+            "grounding_accuracy": round(grd["accuracy"], 3),
+            "hallucination_refusal_rate": round(trp["refusal_rate"], 3),
+            "mean_latency_s": round((grd["mean_latency_s"] + trp["mean_latency_s"]) / 2, 3),
+        })
+    table = _aligned(_TEMP_COLS, results)
+    print("\n" + table + "\n")
+    out = {"model": model or "(default)", "backend": backend.name,
+           "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "results": results}
+    Path(_HERE / "results_temperature.json").write_text(json.dumps(out, indent=2), "utf-8")
+    Path(_HERE / "results_temperature.txt").write_text(table, "utf-8")
+    print(f"Saved: {_HERE / 'results_temperature.json'}")
+    print(f"Saved: {_HERE / 'results_temperature.txt'}")
+    if backend.name == "mock":
+        print("\nNote: the mock backend is deterministic, so temperature has no "
+              "effect here. Run with SOLANGE_BACKEND=ollama for real variation.")
 
 
 def run_mutation_eval(backend, models, mutation, dataset):
@@ -230,12 +274,22 @@ def main():
     ap.add_argument("--mutation", default=None,
                     help="run the per-mutation Druggability eval for this mutation "
                          "(e.g. 'TP53 C275F') instead of the full benchmark")
+    ap.add_argument("--temperature-sweep", action="store_true",
+                    help="run the randomness study: sweep sampling temperature "
+                         "and measure its effect on grounding & hallucination")
+    ap.add_argument("--temps", nargs="*", type=float, default=[0.0, 0.5, 1.0],
+                    help="temperatures for --temperature-sweep (default: 0.0 0.5 1.0)")
     ap.add_argument("--out", default=str(_HERE / "results.json"))
     args = ap.parse_args()
 
     dataset = json.loads((_HERE / "eval_dataset.json").read_text("utf-8"))
     run_record = json.loads((_DATA / "sample_run.json").read_text("utf-8"))
     backend = get_backend()
+
+    # Randomness study: one model, several temperatures.
+    if args.temperature_sweep:
+        run_temperature_eval(backend, args.models[0], dataset, args.temps)
+        return
 
     # Mutation-focused mode: one mutation, all models, Mode B only.
     if args.mutation:

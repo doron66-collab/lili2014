@@ -146,6 +146,21 @@ SOLANGE_BACKEND=ollama python run_eval.py --mutation "TP53 C275F" \
 Defined mutations: `TP53 C275F`, `STK11 loss`, `KEAP1 loss`. Results save to
 `results_<mutation>.json` / `.txt`.
 
+### Randomness study (effect of sampling temperature)
+
+Sampling **temperature** is the randomness knob of a language model: higher
+temperature = more random token choices. This study measures how that randomness
+affects faithfulness — grounding accuracy on answerable questions and refusal
+rate on out-of-context questions:
+```bash
+SOLANGE_BACKEND=ollama python run_eval.py --temperature-sweep \
+  --models llama3.2:latest --temps 0.0 0.5 1.0
+```
+Saves `results_temperature.json` / `.txt`. Expected trend: lower temperature →
+more faithful, better-grounded, more consistent answers; higher temperature →
+more variability and more hallucination. (The mock backend is deterministic, so
+run this against Ollama to see the effect.)
+
 ---
 
 ## Configuration
