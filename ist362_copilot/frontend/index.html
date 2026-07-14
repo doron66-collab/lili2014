@@ -166,7 +166,7 @@ document.querySelectorAll(".tab").forEach(t=>{
 });
 
 // example chips
-const muts = ["TP53 C275F","TP53 Y220C","STK11 loss","KEAP1 loss / NRF2 activation"];
+const muts = ["TP53 C275F","STK11 loss","KEAP1 loss / NRF2 activation"];
 muts.forEach(mt=>{const c=document.createElement("span");c.className="chip";c.textContent=mt;
   c.onclick=()=>$("#mutation").value=mt;$("#mutChips").appendChild(c);});
 const qs = ["What basis set and active space does SOLANGE use?","How is a run notarized?","Why is KRAS G12C druggable but TP53 is not?"];
