@@ -1,0 +1,7 @@
+# SOLANGE Copilot — backend dependencies (Python 3.10+)
+# The LLM adapter and retriever use only the Python standard library, so the
+# app can run and be evaluated with no models installed. These packages are
+# just the web server.
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.1

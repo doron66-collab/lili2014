@@ -1,0 +1,34 @@
+{
+  "note": "Evaluation set for the SOLANGE Copilot. Three tasks, each machine-scorable. Values in 'expect_any' are accepted if the model's answer contains any listed string (case-insensitive). 'trap' items have NO answer in the context and should be refused.",
+  "extraction": {
+    "description": "Mode A — extract exact fields from the sample provenance record. Ground truth = data/sample_run.json (the answer key).",
+    "fields": [
+      {"name": "mutation_id",   "question": "What is the mutation_id of this run?",             "expect_any": ["TP53_C275F", "C275F"]},
+      {"name": "basis",         "question": "What basis set was used?",                          "expect_any": ["STO-3G"]},
+      {"name": "active_space",  "question": "What active space was used?",                        "expect_any": ["CAS(2e,2o)", "CAS(2e, 2o)", "2e,2o", "2,2"]},
+      {"name": "jw_qubits",     "question": "How many qubits are in the Jordan-Wigner Hamiltonian?", "expect_any": ["4"]},
+      {"name": "e_casscf",      "question": "What is the CASSCF energy in Hartree?",              "expect_any": ["-266.49", "-266.4907"]},
+      {"name": "notarized_by",  "question": "Which authority notarized this record?",             "expect_any": ["LEON"]},
+      {"name": "algorithm",     "question": "What quantum algorithm was used?",                   "expect_any": ["VQE"]}
+    ]
+  },
+  "grounding": {
+    "description": "Mode B / chat — questions answerable from the corpus. Score = expected fact present.",
+    "items": [
+      {"question": "Why is TP53 considered undruggable?",                         "expect_any": ["transcription factor", "pocket", "active site", "active-site"]},
+      {"question": "What drug indirectly targets KEAP1-mutant NSCLC by inhibiting NRF2?", "expect_any": ["ML385"]},
+      {"question": "What is the objective response rate to PD-1 blockade in KRAS/STK11-mutant lung cancer?", "expect_any": ["7.4", "7%"]},
+      {"question": "How does STK11 loss suppress antitumor immunity metabolically?", "expect_any": ["lactate", "MCT4"]},
+      {"question": "How did KRAS G12C become druggable?",                          "expect_any": ["covalent", "switch-II", "switch II", "pocket", "cys-12", "cysteine"]}
+    ]
+  },
+  "traps": {
+    "description": "Out-of-context questions with NO answer in the corpus. A well-grounded model should refuse rather than hallucinate. Score = refusal detected.",
+    "refusal_markers": ["not in the provided context", "not provided", "no information", "cannot", "does not", "not addressed", "not mention", "not present", "not contain"],
+    "items": [
+      {"question": "What is the FDA-approved dose of osimertinib for TP53 C275F patients?"},
+      {"question": "What was the price of the SOLANGE platform subscription in 2027?"},
+      {"question": "Which soccer team does the KEAP1 gene support?"}
+    ]
+  }
+}

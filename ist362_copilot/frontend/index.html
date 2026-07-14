@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOLANGE Copilot — local-LLM provenance & druggability assistant</title>
+<style>
+  :root{
+    --white:#f1f5f9; --gray:#cbd5e1; --navy:#0B1E3D; --navy2:#12294f;
+    --teal:#06b6d4; --green:#22c55e; --amber:#f59e0b; --line:#1e3a5f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:linear-gradient(160deg,var(--navy),#071528);color:var(--white);min-height:100vh}
+  header{padding:22px 26px;border-bottom:1px solid var(--line);display:flex;
+         align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  h1{font-size:20px;margin:0;letter-spacing:.3px}
+  h1 span{color:var(--teal)}
+  .sub{color:var(--gray);font-size:13px;margin-top:4px}
+  .badge{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);
+         background:var(--navy2);color:var(--gray)}
+  .badge b{color:var(--green)}
+  .badge.mock b{color:var(--amber)}
+  main{max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:var(--navy2);
+       color:var(--gray);cursor:pointer;font-size:14px}
+  .tab.active{background:var(--teal);color:var(--navy);border-color:var(--teal);font-weight:600}
+  .card{background:rgba(18,41,79,.55);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  label{display:block;font-size:13px;color:var(--gray);margin:10px 0 6px}
+  input,select,textarea{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);
+       background:#0a1c37;color:var(--white);font-size:14px;font-family:inherit}
+  textarea{min-height:90px;resize:vertical}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:180px}
+  button.run{margin-top:14px;background:var(--teal);color:var(--navy);border:none;padding:11px 20px;
+       border-radius:10px;font-weight:600;font-size:14px;cursor:pointer}
+  button.run:disabled{opacity:.5;cursor:wait}
+  .answer{white-space:pre-wrap;line-height:1.55;font-size:14.5px}
+  .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--gray);
+        margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .meta b{color:var(--white)}
+  .sources{margin-top:14px}
+  .src{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-top:8px;background:#0a1c37}
+  .src .t{font-size:13px;color:var(--teal);font-weight:600}
+  .src .s{font-size:12px;color:var(--gray);margin-top:3px}
+  .src .snip{font-size:12.5px;color:var(--white);margin-top:6px;opacity:.85}
+  .hint{font-size:12px;color:var(--amber);margin-top:8px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .chip{font-size:12px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);
+        background:var(--navy2);color:var(--gray);cursor:pointer}
+  .chip:hover{border-color:var(--teal);color:var(--white)}
+  pre{overflow:auto;background:#08182f;border:1px solid var(--line);border-radius:9px;padding:12px;font-size:12px}
+  footer{text-align:center;color:var(--gray);font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><span>SOLANGE</span> Copilot</h1>
+    <div class="sub">Privacy-preserving local-LLM assistant · runs entirely on your machine · IST 362</div>
+  </div>
+  <div id="backendBadge" class="badge">backend: <b>…</b></div>
+</header>
+
+<main>
+  <div class="tabs">
+    <div class="tab active" data-mode="explain">A · Explain a run</div>
+    <div class="tab" data-mode="drug">B · Druggability</div>
+    <div class="tab" data-mode="chat">Ask the literature</div>
+  </div>
+
+  <!-- Mode A -->
+  <section id="panel-explain" class="card">
+    <p class="sub">Paste a SOLANGE P1–P9 provenance record (or use the bundled sample). A local
+       model turns it into an auditable plain-English narrative — no data leaves your machine.</p>
+    <label>Provenance record (JSON)</label>
+    <textarea id="runJson" style="min-height:200px"></textarea>
+    <div class="row">
+      <div>
+        <label>Model</label>
+        <select id="model-explain"></select>
+      </div>
+      <div>
+        <label>Question (optional)</label>
+        <input id="q-explain" placeholder="e.g. Is this record internally consistent?" />
+      </div>
+    </div>
+    <button class="run" data-mode="explain">Explain run</button>
+  </section>
+
+  <!-- Mode B -->
+  <section id="panel-drug" class="card" hidden>
+    <p class="sub">Ask why a tumor-suppressor mutation is non-druggable. The answer is grounded in
+       retrieved literature passages (real PubMed-sourced references) and cites them.</p>
+    <label>Mutation / alteration</label>
+    <input id="mutation" placeholder="e.g. TP53 C275F" value="TP53 C275F" />
+    <div class="chips" id="mutChips"></div>
+    <div class="row">
+      <div><label>Model</label><select id="model-drug"></select></div>
+      <div><label>Question (optional)</label><input id="q-drug" placeholder="override the default question" /></div>
+    </div>
+    <button class="run" data-mode="drug">Explain druggability</button>
+  </section>
+
+  <!-- Chat -->
+  <section id="panel-chat" class="card" hidden>
+    <p class="sub">Grounded Q&amp;A over the SOLANGE literature corpus. Answers cite the passages used.</p>
+    <label>Question</label>
+    <input id="q-chat" placeholder="e.g. What basis set and active space does SOLANGE use?" />
+    <div class="chips" id="chatChips"></div>
+    <label>Model</label>
+    <select id="model-chat"></select>
+    <button class="run" data-mode="chat">Ask</button>
+  </section>
+
+  <!-- Output -->
+  <section id="output" class="card" hidden>
+    <div class="answer" id="answer"></div>
+    <div class="sources" id="sources"></div>
+    <div class="meta" id="meta"></div>
+  </section>
+</main>
+
+<footer>SOLANGE Copilot · local models via Ollama · falls back to a deterministic mock when no model is running</footer>
+
+<script>
+const API = (location.port === "5173" || location.protocol === "file:")
+  ? "http://localhost:8000" : "";   // dev vs served-from-backend
+const $ = s => document.querySelector(s);
+
+async function loadHealth(){
+  try{
+    const h = await fetch(API + "/api/health").then(r=>r.json());
+    const badge = $("#backendBadge");
+    badge.innerHTML = "backend: <b>"+h.backend+"</b>";
+    badge.classList.toggle("mock", h.backend === "mock");
+    const models = h.models && h.models.length ? h.models : ["(default)"];
+    ["explain","drug","chat"].forEach(m=>{
+      const sel = $("#model-"+m); sel.innerHTML = "";
+      models.forEach(mn=>{const o=document.createElement("option");o.value=mn;o.textContent=mn;sel.appendChild(o);});
+    });
+    if(h.backend === "mock"){
+      $("#answer").innerHTML = "";
+    }
+  }catch(e){ $("#backendBadge").innerHTML = "backend: <b style='color:#f59e0b'>offline</b>"; }
+}
+
+async function loadSample(){
+  try{
+    const run = await fetch(API + "/api/sample-run").then(r=>r.json());
+    $("#runJson").value = JSON.stringify(run, null, 2);
+  }catch(e){}
+}
+
+// tab switching
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const m = t.dataset.mode;
+    $("#panel-explain").hidden = m!=="explain";
+    $("#panel-drug").hidden = m!=="drug";
+    $("#panel-chat").hidden = m!=="chat";
+  };
+});
+
+// example chips
+const muts = ["TP53 C275F","TP53 Y220C","STK11 loss","KEAP1 loss / NRF2 activation"];
+muts.forEach(mt=>{const c=document.createElement("span");c.className="chip";c.textContent=mt;
+  c.onclick=()=>$("#mutation").value=mt;$("#mutChips").appendChild(c);});
+const qs = ["What basis set and active space does SOLANGE use?","How is a run notarized?","Why is KRAS G12C druggable but TP53 is not?"];
+qs.forEach(q=>{const c=document.createElement("span");c.className="chip";c.textContent=q;
+  c.onclick=()=>$("#q-chat").value=q;$("#chatChips").appendChild(c);});
+
+// run handlers
+document.querySelectorAll("button.run").forEach(btn=>{
+  btn.onclick = async ()=>{
+    const mode = btn.dataset.mode;
+    let url, body;
+    if(mode==="explain"){
+      url="/api/explain-run";
+      let run=null; try{run=JSON.parse($("#runJson").value||"null");}catch(e){alert("Invalid JSON in the run field.");return;}
+      body={run, question:$("#q-explain").value||null, model:$("#model-explain").value};
+    }else if(mode==="drug"){
+      url="/api/druggability";
+      body={mutation:$("#mutation").value, question:$("#q-drug").value||null, model:$("#model-drug").value};
+    }else{
+      url="/api/chat";
+      body={question:$("#q-chat").value, model:$("#model-chat").value};
+    }
+    btn.disabled=true; const old=btn.textContent; btn.textContent="Running locally…";
+    $("#output").hidden=false; $("#answer").textContent="Thinking on your machine…";
+    $("#sources").innerHTML=""; $("#meta").innerHTML="";
+    try{
+      const res = await fetch(API+url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.json());
+      $("#answer").textContent = res.answer || "(no answer)";
+      if(res.sources && res.sources.length){
+        $("#sources").innerHTML = "<div class='sub'>Grounded in "+res.sources.length+" source(s):</div>" +
+          res.sources.map(s=>`<div class="src"><div class="t">${s.title}</div><div class="s">${s.source} · relevance ${s.score}</div><div class="snip">${s.snippet}</div></div>`).join("");
+      }
+      $("#meta").innerHTML = `<span>backend <b>${res.backend}</b></span><span>model <b>${res.model}</b></span><span>latency <b>${res.latency_s}s</b></span>`;
+    }catch(e){ $("#answer").textContent = "Error: "+e; }
+    btn.disabled=false; btn.textContent=old;
+  };
+});
+
+loadHealth(); loadSample();
+</script>
+</body>
+</html>

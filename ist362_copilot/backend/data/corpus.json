@@ -1,0 +1,77 @@
+{
+  "title": "SOLANGE Copilot literature corpus — non-druggable NSCLC tumor-suppressor targets",
+  "note": "Passages summarizing peer-reviewed sources (retrieved via PubMed) plus SOLANGE method facts. Used for retrieval-augmented grounding. DOIs are included so every generated claim can be traced to a real source.",
+  "attribution": "Biomedical passages summarized from articles indexed in PubMed; DOIs in each 'source' field.",
+  "documents": [
+    {
+      "id": "tp53-undruggable-2022",
+      "title": "p53 has long been considered an 'undruggable' target",
+      "text": "TP53 is the most frequently mutated gene in human cancer. Because p53 is a nuclear transcription factor rather than an enzyme with a well-defined active-site pocket, it lacks typical small-molecule drug-target features and was for decades considered undruggable. Emerging strategies aim to protect p53 from negative regulators or to restore the function of specific mutant p53 proteins, but as of publication no p53-targeted therapeutic had been approved in the US or Europe.",
+      "source": "Hassin & Oren, Nat Rev Drug Discov 2022. PubMed. DOI: 10.1038/s41573-022-00571-8",
+      "tags": ["TP53", "p53", "undruggable", "transcription factor", "mutant reactivation"]
+    },
+    {
+      "id": "tp53-pathways-2023",
+      "title": "Why TP53 mutations are hard to target: mechanism and structure",
+      "text": "p53, the 'guardian of the genome', regulates cell cycle, apoptosis, and genomic stability. Mutations in TP53 both impair its tumor-suppressor function and can confer gain-of-function oncogenic properties. Because it acts through protein-DNA and protein-protein interactions rather than a compact catalytic site, restoring or inhibiting p53 with small molecules is structurally difficult, which is the central challenge for p53-targeted therapy.",
+      "source": "Wang et al., Signal Transduct Target Ther 2023. PubMed. DOI: 10.1038/s41392-023-01347-1",
+      "tags": ["TP53", "p53", "structure", "gain-of-function", "apoptosis"]
+    },
+    {
+      "id": "stk11-pd1-resistance-2018",
+      "title": "STK11/LKB1 loss drives resistance to PD-1 immunotherapy in lung adenocarcinoma",
+      "text": "In KRAS-mutant lung adenocarcinoma, co-mutation of STK11/LKB1 defines a subgroup with markedly lower response to PD-1 blockade: objective response rates were 7.4% in KRAS/STK11-mutant tumors versus 35.7% in KRAS/TP53-mutant tumors. STK11 alterations were the genomic feature most associated with PD-L1 negativity and primary resistance to PD-1/PD-L1 inhibitors, making STK11-mutant disease both non-druggable directly and resistant to standard immunotherapy.",
+      "source": "Skoulidis et al., Cancer Discov 2018. PubMed. DOI: 10.1158/2159-8290.CD-18-0099",
+      "tags": ["STK11", "LKB1", "immunotherapy", "PD-1", "resistance", "KRAS"]
+    },
+    {
+      "id": "stk11-lactate-2023",
+      "title": "A metabolic vulnerability behind STK11/LKB1-driven immune evasion",
+      "text": "STK11/LKB1 loss enhances lactate production and secretion via the MCT4 transporter, promoting M2 macrophage polarization and hypofunctional T cells and thereby suppressing antitumor immunity. Blocking the lactate axis (MCT4 knockdown or GPR81 receptor blockade) reversed PD-1 resistance in models, pointing to an indirect, metabolism-based therapeutic strategy for a directly non-druggable tumor-suppressor loss.",
+      "source": "Qian et al., Cancer Cell 2023. PubMed. DOI: 10.1016/j.ccell.2023.05.015",
+      "tags": ["STK11", "LKB1", "lactate", "MCT4", "metabolism", "immune evasion"]
+    },
+    {
+      "id": "keap1-ml385-2016",
+      "title": "KEAP1 loss activates NRF2; the NRF2 inhibitor ML385 targets it indirectly",
+      "text": "Loss-of-function KEAP1 mutations (or gain-of-function NRF2 mutations) are common in NSCLC and cause constitutive NRF2 activation associated with therapeutic resistance. Because the driver is loss of a negative regulator, KEAP1 itself is not directly druggable; instead the small molecule ML385 binds NRF2 and blocks its transcriptional output, selectively sensitizing KEAP1-mutant NSCLC cells to platinum chemotherapy.",
+      "source": "Singh et al., ACS Chem Biol 2016. PubMed. DOI: 10.1021/acschembio.6b00651",
+      "tags": ["KEAP1", "NRF2", "ML385", "NSCLC", "resistance", "indirect target"]
+    },
+    {
+      "id": "keap1-reductive-stress-2023",
+      "title": "NRF2 activation creates a reductive-stress vulnerability in KEAP1-mutant lung cancer",
+      "text": "Sustained NRF2 activation (via KEAP1 mutation) upregulates the NAD-consuming enzyme ALDH3A1 and induces NADH-reductive stress. This makes KEAP1-mutant or NRF2-activated NSCLC selectively vulnerable to mitochondrial Complex I inhibition, identifying a metabolic dependency that can be exploited even though the KEAP1 loss itself cannot be reversed pharmacologically.",
+      "source": "Weiss-Sadan et al., Cell Metab 2023. PubMed. DOI: 10.1016/j.cmet.2023.01.012",
+      "tags": ["KEAP1", "NRF2", "reductive stress", "Complex I", "metabolic vulnerability"]
+    },
+    {
+      "id": "kras-g12c-druggable-2018",
+      "title": "Contrast case: how KRAS G12C became druggable via a covalent pocket",
+      "text": "KRAS was itself long deemed undruggable until an allele-specific covalent strategy targeting Cys-12 in an inducible allosteric switch-II pocket proved feasible. ARS-1620 achieves selective covalent inhibition of KRAS G12C in vivo. This illustrates the general principle: 'undruggable' usually means no known small-molecule binding pocket, a limitation that can sometimes be overcome by discovering or inducing a cryptic pocket — motivating deeper electronic-structure study of these targets.",
+      "source": "Janes et al., Cell 2018. PubMed. DOI: 10.1016/j.cell.2018.01.006",
+      "tags": ["KRAS", "G12C", "covalent", "druggable pocket", "allosteric"]
+    },
+    {
+      "id": "solange-method-vqe",
+      "title": "SOLANGE method: VQE ground-state energies from a Jordan-Wigner Hamiltonian",
+      "text": "SOLANGE Phase 3A computes molecular ground-state energies for NSCLC tumor-suppressor mutation proxies using the Variational Quantum Eigensolver (VQE) on a 4-qubit Jordan-Wigner Hamiltonian, built from a PySCF CASSCF(2e,2o) active space in the STO-3G basis. Energies are reported in Hartree (Ha). The active space captures the HOMO-LUMO pair most relevant to the mutation's electronic character. Classical CCSD(T) accuracy degrades past roughly 18 correlated electrons, which motivates the quantum approach for larger active spaces in Phase 3B.",
+      "source": "SOLANGE platform documentation (Phase 3A classical proxy).",
+      "tags": ["VQE", "CASSCF", "Jordan-Wigner", "qubit", "STO-3G", "Hartree", "ground state", "PySCF"]
+    },
+    {
+      "id": "solange-method-provenance",
+      "title": "SOLANGE provenance: P1-P9 records notarized by LEON",
+      "text": "Every SOLANGE simulation produces a provenance record with nine parts (P1-P9) covering inputs, method, environment, results, and a cryptographic seal. The P8 field is a SHA-256 seal over the record; the LEON notarization authority recomputes this seal at ingestion and at every re-verification and rejects any record whose lineage does not check out. This 'verify, don't trust' design targets FDA 21 CFR 11.10(e) compliance for electronic records.",
+      "source": "SOLANGE platform documentation (LEON / provenance).",
+      "tags": ["provenance", "P8", "seal", "SHA-256", "LEON", "notarization", "21 CFR 11", "audit"]
+    },
+    {
+      "id": "solange-target-c275f",
+      "title": "SOLANGE key mutation TP53 C275F and the non-druggable target set",
+      "text": "SOLANGE focuses on non-druggable NSCLC tumor-suppressor mutations in TP53, STK11, and KEAP1. A key case is TP53 C275F, whose full electronic problem involves 44 electrons / 88 qubits, well beyond the classical CCSD(T) limit. In the Phase 3A classical proxy, the Phe275 sidechain is modeled by a toluene proxy in a CAS(2e,2o)/STO-3G active space giving a 4-qubit Hamiltonian, with a CASSCF energy near -266.49 Ha.",
+      "source": "SOLANGE platform documentation (targets and Phase 3A proxies).",
+      "tags": ["TP53", "C275F", "STK11", "KEAP1", "non-druggable", "toluene proxy", "qubits"]
+    }
+  ]
+}

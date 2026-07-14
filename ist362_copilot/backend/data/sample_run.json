@@ -1,0 +1,41 @@
+{
+  "note": "A representative SOLANGE P1-P9 provenance record (Phase 3A classical proxy). Field values here are the ground-truth 'answer key' the evaluation harness checks the LLM's extraction against.",
+  "run_id": "run_c275f_20260514_A1",
+  "mutation_id": "TP53_C275F",
+  "mutation_name": "TP53 C275F (p.Cys275Phe)",
+  "gene": "TP53",
+  "phase": "3A",
+  "p1_inputs": {
+    "model_molecule": "toluene (Phe275 sidechain proxy)",
+    "basis": "STO-3G",
+    "active_space": "CAS(2e,2o)",
+    "jw_qubits": 4
+  },
+  "p2_method": {
+    "electronic_structure": "RHF -> CASSCF(2,2)",
+    "quantum_algorithm": "VQE",
+    "hamiltonian": "Jordan-Wigner, 4 qubits",
+    "software": "PySCF + PennyLane"
+  },
+  "p3_environment": {
+    "backend": "PennyLane default.qubit simulator",
+    "hardware": "classical CPU (Phase 3A proxy)"
+  },
+  "p7_results": {
+    "e_rhf_ha": -266.47420350984964,
+    "e_casscf_ha": -266.4907503178864,
+    "e_vqe_ha": -266.4907499,
+    "correlation_ha": -0.01654680803676456,
+    "converged": true
+  },
+  "p8_seal": {
+    "algorithm": "SHA-256",
+    "hash": "9f2c7b41a0e58d63d1c4a2f7e6b8093a5c4d1e2f3a6b7c8d9e0f1a2b3c4d5e6f",
+    "hash_truncated": "9f2c7b41a0e58d63",
+    "notarized_by": "LEON"
+  },
+  "p9_compliance": {
+    "standard": "FDA 21 CFR 11.10(e)",
+    "storage": "Supabase"
+  }
+}
