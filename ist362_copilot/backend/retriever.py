@@ -56,6 +56,7 @@ class Hit:
             "title": self.doc.title,
             "source": self.doc.source,
             "score": round(self.score, 4),
+            "text": self.doc.text,   # full passage — the UI shows it in full
             "snippet": self.doc.text[:280] + ("…" if len(self.doc.text) > 280 else ""),
         }
 

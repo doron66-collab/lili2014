@@ -44,7 +44,8 @@
   .src{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-top:8px;background:#0a1c37}
   .src .t{font-size:13px;color:var(--teal);font-weight:600}
   .src .s{font-size:12px;color:var(--gray);margin-top:3px}
-  .src .snip{font-size:12.5px;color:var(--white);margin-top:6px;opacity:.85}
+  .src .snip{font-size:12.5px;color:var(--white);margin-top:6px;opacity:.9;line-height:1.5;
+             max-height:220px;overflow:auto;white-space:pre-wrap}
   .hint{font-size:12px;color:var(--amber);margin-top:8px}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .chip{font-size:12px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);
@@ -212,7 +213,7 @@ document.querySelectorAll("button.run").forEach(btn=>{
       $("#answer").textContent = res.answer || "(no answer)";
       if(res.sources && res.sources.length){
         $("#sources").innerHTML = "<div class='sub'>Grounded in "+res.sources.length+" source(s):</div>" +
-          res.sources.map(s=>`<div class="src"><div class="t">${s.title}</div><div class="s">${s.source} · relevance ${s.score}</div><div class="snip">${s.snippet}</div></div>`).join("");
+          res.sources.map(s=>`<div class="src"><div class="t">${s.title}</div><div class="s">${s.source} · relevance ${s.score}</div><div class="snip">${s.text || s.snippet}</div></div>`).join("");
       }
       $("#meta").innerHTML = `<span>backend <b>${res.backend}</b></span><span>model <b>${res.model}</b></span><span>latency <b>${res.latency_s}s</b></span>`;
     }catch(e){ $("#answer").textContent = "Error: "+e; }
