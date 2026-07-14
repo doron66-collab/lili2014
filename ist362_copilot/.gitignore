@@ -1,5 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
+# generated evaluation artifacts — never commit run outputs
 eval/results.json
 eval/results_table.md
+eval/results_table.txt
+eval/results_*.json
+eval/results_*.txt
