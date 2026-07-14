@@ -1,32 +1,69 @@
 {
-  "note": "SOLANGE P1-P9 provenance records at increasing scale, so the copilot can be demonstrated beyond the 4-qubit proxy. The 4-qubit record uses real Phase 3A CASSCF values from the repo. The 24-qubit record is a REAL HPC run (HPC/Laguna, exact statevector on an NVIDIA L40S GPU), included verbatim. The 88-qubit record is a Phase 3B PLAN (IBM Heron r3): its final energy is intentionally null because that run has not been executed yet. The copilot explains whatever record it is given, at any scale.",
+  "note": "SOLANGE provenance records at increasing scale, so the copilot can be demonstrated beyond the 4-qubit proxy. The 4-qubit record is a REAL Phase 3A run (CASSCF(2,2), full 27-term Jordan-Wigner Hamiltonian, real LEON seal), included verbatim. The 24-qubit record is a REAL HPC run (HPC/Laguna, exact statevector on an NVIDIA L40S GPU), included verbatim. The 88-qubit record is a Phase 3B PLAN (IBM Heron r3): its final energy is intentionally null because that run has not been executed yet. The copilot explains whatever record it is given, at any scale.",
   "runs": [
     {
-      "label": "4 qubits — CASSCF(2,2), Phase 3A proxy (toluene)",
+      "label": "4 qubits — CASSCF(2,2), 27-term JW Hamiltonian (REAL run)",
       "record": {
+        "title": "SOLANGE™ — TP53 p.Cys275Phe Phase 3A CASSCF(2,2) Hamiltonian",
+        "generated_at": "2026-07-14T17:19:05.635Z",
         "mutation_id": "TP53_C275F",
-        "side": "mutant (Phe275 sidechain model)",
-        "provenance_source": "Phase 3A reference (PySCF)",
-        "data_status": "real CASSCF reference values (repo c275f_casscf_phase3a.json)",
-        "p1_qubit_count": 4,
-        "p1_ansatz": "VQE (approximating CASSCF(2,2))",
-        "p2_encoding": "Jordan-Wigner (CASSCF(2,2))",
-        "p2_basis_set": "STO-3G",
-        "p2_active_electrons": 2,
-        "p2_active_orbitals": 2,
-        "p2_model_compound": "toluene (Phe275 sidechain proxy)",
-        "p3_backend": "PennyLane default.qubit simulator",
-        "p3_simulator": true,
-        "p5_ecore_ha": -265.5800230962897,
-        "p5_casscf_ref_ha": -266.4907503178864,
-        "p5_raw_energy": -266.4907499,
-        "p7_energy_ha": -266.4907499,
-        "p7_method": "VQE ground state (4-qubit Jordan-Wigner)",
-        "p7_confidence": 0.95,
-        "p8_hash": null,
-        "p8_algorithm": "SHA-256 over P1-P7,P9",
-        "p8_note": "seal recomputed by LEON at ingest",
-        "p9_applicable": false
+        "run_id": "25f3fd50-a7ef-4c16-aa5e-806ccf33f063",
+        "provenance": {
+          "script": "pyscf_mutations.py",
+          "model": "toluene (sidechain proxy)",
+          "basis": "STO-3G (PySCF CASSCF(2,2))",
+          "active_space": "CAS(2e, 2o) — HOMO/LUMO pair",
+          "encoding": "Jordan-Wigner (PySCF CAS(2e,2o) → openfermion → 27 Pauli terms)",
+          "jw_qubits": 4,
+          "p8_seal": "d0a01f45e39269114427384bce10cb9216e8fe11f788a12d230f210d5379fc20"
+        },
+        "energies": {
+          "e_rhf_Ha": -266.4742065436,
+          "e_casscf_Ha": -266.49075175,
+          "e_active_Ha": -0.9107424,
+          "ecore_Ha": -265.57999848,
+          "e_total_Ha": -266.49074089,
+          "correlation_Ha": -0.0165452064,
+          "units": "Hartree (Ha)"
+        },
+        "jw_hamiltonian": {
+          "description": "Jordan-Wigner Pauli decomposition — H = Σ_i c_i · P_i, P_i ∈ {I,X,Y,Z}^⊗4",
+          "n_terms": 27,
+          "terms": [
+            {"coeff": -0.47487769409345987, "pauli": "I"},
+            {"coeff": 0.07202957352695938, "pauli": "Z0"},
+            {"coeff": 0.07202957352695938, "pauli": "Z1"},
+            {"coeff": 0.0008027851414943773, "pauli": "Y0 Z1 Y2"},
+            {"coeff": 0.0008027851414943773, "pauli": "X0 Z1 X2"},
+            {"coeff": 0.0008027851414943773, "pauli": "Y1 Z2 Y3"},
+            {"coeff": 0.0008027851414943773, "pauli": "X1 Z2 X3"},
+            {"coeff": -0.07509250865428913, "pauli": "Z2"},
+            {"coeff": -0.07509250865428913, "pauli": "Z3"},
+            {"coeff": 0.08834661428465132, "pauli": "Z0 Z1"},
+            {"coeff": -0.0004592734718799141, "pauli": "Z0 Y1 Z2 Y3"},
+            {"coeff": -0.0004592734718799141, "pauli": "Z0 X1 Z2 X3"},
+            {"coeff": -0.0004592734718799141, "pauli": "Y0 Y2"},
+            {"coeff": -0.0004592734718799141, "pauli": "X0 X2"},
+            {"coeff": 0.06253549703585774, "pauli": "Z0 Z2"},
+            {"coeff": 0.08863096158476985, "pauli": "Z0 Z3"},
+            {"coeff": 0.08863096158476985, "pauli": "Z1 Z2"},
+            {"coeff": 0.06253549703585774, "pauli": "Z1 Z3"},
+            {"coeff": 0.026095464548912116, "pauli": "Y0 X1 X2 Y3"},
+            {"coeff": -0.026095464548912116, "pauli": "Y0 Y1 X2 X3"},
+            {"coeff": -0.026095464548912116, "pauli": "X0 X1 Y2 Y3"},
+            {"coeff": 0.026095464548912116, "pauli": "X0 Y1 Y2 X3"},
+            {"coeff": -0.0013737053563272943, "pauli": "Y0 Z1 Y2 Z3"},
+            {"coeff": -0.0013737053563272943, "pauli": "X0 Z1 X2 Z3"},
+            {"coeff": -0.0013737053563272943, "pauli": "Y1 Y3"},
+            {"coeff": -0.0013737053563272943, "pauli": "X1 X3"},
+            {"coeff": 0.09032403282221271, "pauli": "Z2 Z3"}
+          ]
+        },
+        "references": [
+          "Sun Q et al. (2020) J Chem Phys 153:024109 — PySCF 2.0",
+          "Jordan P & Wigner E (1928) Z Phys 47:631 — Jordan-Wigner transform",
+          "McClean JR et al. (2020) Quantum Sci Technol 5:034014 — OpenFermion"
+        ]
       }
     },
     {
