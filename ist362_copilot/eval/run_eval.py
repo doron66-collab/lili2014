@@ -118,16 +118,41 @@ def run_for_model(backend, model, dataset, run_record):
     }
 
 
+_COLS = [
+    ("Model", lambda r: r["model"]),
+    ("Backend", lambda r: r["backend"]),
+    ("Extraction acc.", lambda r: f"{r['extraction_accuracy']:.2f}"),
+    ("Grounding acc.", lambda r: f"{r['grounding_accuracy']:.2f}"),
+    ("Hallucination refusal", lambda r: f"{r['hallucination_refusal_rate']:.2f}"),
+    ("Mean latency (s)", lambda r: f"{r['mean_latency_s']:.2f}"),
+]
+
+
 def markdown_table(results: list[dict]) -> str:
-    hdr = ("| Model | Backend | Extraction acc. | Grounding acc. | "
-           "Hallucination refusal | Mean latency (s) |\n"
-           "|---|---|---|---|---|---|\n")
-    rows = ""
-    for r in results:
-        rows += (f"| {r['model']} | {r['backend']} | {r['extraction_accuracy']:.2f} | "
-                 f"{r['grounding_accuracy']:.2f} | {r['hallucination_refusal_rate']:.2f} | "
-                 f"{r['mean_latency_s']:.2f} |\n")
-    return hdr + rows
+    hdr = "| " + " | ".join(c[0] for c in _COLS) + " |\n"
+    sep = "|" + "|".join("---" for _ in _COLS) + "|\n"
+    rows = "".join("| " + " | ".join(get(r) for _, get in _COLS) + " |\n"
+                   for r in results)
+    return hdr + sep + rows
+
+
+def aligned_table(results: list[dict]) -> str:
+    """Fixed-width, box-drawn table — readable directly in the terminal."""
+    headers = [c[0] for c in _COLS]
+    rows = [[get(r) for _, get in _COLS] for r in results]
+    widths = [max(len(headers[i]), *(len(row[i]) for row in rows)) if rows
+              else len(headers[i]) for i in range(len(headers))]
+
+    def line(left, mid, right):
+        return left + mid.join("─" * (w + 2) for w in widths) + right
+
+    def fmt(cells):
+        return "│ " + " │ ".join(c.center(widths[i]) for i, c in enumerate(cells)) + " │"
+
+    out = [line("┌", "┬", "┐"), fmt(headers), line("├", "┼", "┤")]
+    out += [fmt(row) for row in rows]
+    out.append(line("└", "┴", "┘"))
+    return "\n".join(out)
 
 
 def main():
@@ -143,14 +168,18 @@ def main():
 
     results = [run_for_model(backend, m, dataset, run_record) for m in args.models]
 
-    table = markdown_table(results)
-    print("\n" + table)
+    table_md = markdown_table(results)
+    table_txt = aligned_table(results)
+    print("\n" + table_txt + "\n")            # readable in the terminal
     out = {"generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-           "backend": backend.name, "results": results, "table_markdown": table}
+           "backend": backend.name, "results": results,
+           "table_markdown": table_md, "table_aligned": table_txt}
     Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
-    Path(_HERE / "results_table.md").write_text(table, encoding="utf-8")
-    print(f"\nSaved: {args.out}")
-    print(f"Saved: {_HERE / 'results_table.md'}")
+    Path(_HERE / "results_table.md").write_text(table_md, encoding="utf-8")
+    Path(_HERE / "results_table.txt").write_text(table_txt, encoding="utf-8")
+    print(f"Saved: {args.out}")
+    print(f"Saved: {_HERE / 'results_table.md'}  (paste into the paper)")
+    print(f"Saved: {_HERE / 'results_table.txt'}  (aligned, for the terminal)")
 
 
 if __name__ == "__main__":
