@@ -1,132 +1,110 @@
 {
-  "note": "A set of representative SOLANGE P1-P9 provenance records at increasing scale, so the copilot can be demonstrated beyond the 4-qubit proxy. The 4-qubit record mirrors sample_run.json (the evaluation answer key) and uses real-ish Phase 3A values. The 12-qubit (HPC cluster) and 88-qubit (IBM hardware) records are ILLUSTRATIVE EXAMPLES: their P7 result values are placeholders to be replaced with real run outputs. The copilot's job is to explain whatever record it is given, at any scale.",
+  "note": "SOLANGE P1-P9 provenance records at increasing scale, so the copilot can be demonstrated beyond the 4-qubit proxy. The 4-qubit record uses real Phase 3A CASSCF values from the repo. The 24-qubit record is a REAL HPC run (HPC/Laguna, exact statevector on an NVIDIA L40S GPU), included verbatim. The 88-qubit record is a Phase 3B PLAN (IBM Heron r3): its final energy is intentionally null because that run has not been executed yet. The copilot explains whatever record it is given, at any scale.",
   "runs": [
     {
-      "label": "4 qubits — laptop simulator (Phase 3A proxy)",
+      "label": "4 qubits — CASSCF(2,2), Phase 3A proxy (toluene)",
       "record": {
-        "run_id": "run_c275f_20260514_A1",
         "mutation_id": "TP53_C275F",
-        "mutation_name": "TP53 C275F (p.Cys275Phe)",
-        "gene": "TP53",
-        "phase": "3A",
-        "data_status": "reference Phase 3A proxy values",
-        "p1_inputs": {
-          "model_molecule": "toluene (Phe275 sidechain proxy)",
-          "basis": "STO-3G",
-          "active_space": "CAS(2e,2o)",
-          "jw_qubits": 4
-        },
-        "p2_method": {
-          "electronic_structure": "RHF -> CASSCF(2,2)",
-          "quantum_algorithm": "VQE",
-          "hamiltonian": "Jordan-Wigner, 4 qubits",
-          "software": "PySCF + PennyLane"
-        },
-        "p3_environment": {
-          "backend": "PennyLane default.qubit simulator",
-          "hardware": "single laptop CPU"
-        },
-        "p7_results": {
-          "e_rhf_ha": -266.47420350984964,
-          "e_casscf_ha": -266.4907503178864,
-          "e_vqe_ha": -266.4907499,
-          "correlation_ha": -0.01654680803676456,
-          "converged": true
-        },
-        "p8_seal": {
-          "algorithm": "SHA-256",
-          "hash": "9f2c7b41a0e58d63d1c4a2f7e6b8093a5c4d1e2f3a6b7c8d9e0f1a2b3c4d5e6f",
-          "hash_truncated": "9f2c7b41a0e58d63",
-          "notarized_by": "LEON"
-        },
-        "p9_compliance": {"standard": "FDA 21 CFR 11.10(e)", "storage": "Supabase"}
+        "side": "mutant (Phe275 sidechain model)",
+        "provenance_source": "Phase 3A reference (PySCF)",
+        "data_status": "real CASSCF reference values (repo c275f_casscf_phase3a.json)",
+        "p1_qubit_count": 4,
+        "p1_ansatz": "VQE (approximating CASSCF(2,2))",
+        "p2_encoding": "Jordan-Wigner (CASSCF(2,2))",
+        "p2_basis_set": "STO-3G",
+        "p2_active_electrons": 2,
+        "p2_active_orbitals": 2,
+        "p2_model_compound": "toluene (Phe275 sidechain proxy)",
+        "p3_backend": "PennyLane default.qubit simulator",
+        "p3_simulator": true,
+        "p5_ecore_ha": -265.5800230962897,
+        "p5_casscf_ref_ha": -266.4907503178864,
+        "p5_raw_energy": -266.4907499,
+        "p7_energy_ha": -266.4907499,
+        "p7_method": "VQE ground state (4-qubit Jordan-Wigner)",
+        "p7_confidence": 0.95,
+        "p8_hash": null,
+        "p8_algorithm": "SHA-256 over P1-P7,P9",
+        "p8_note": "seal recomputed by LEON at ingest",
+        "p9_applicable": false
       }
     },
     {
-      "label": "12 qubits — HPC cluster (larger active space)",
+      "label": "24 qubits — CASSCF(12,12), exact statevector on HPC GPU (REAL run)",
       "record": {
-        "run_id": "run_c275f_hpc_20260514_B2",
         "mutation_id": "TP53_C275F",
-        "mutation_name": "TP53 C275F (p.Cys275Phe)",
-        "gene": "TP53",
-        "phase": "3A-HPC",
-        "data_status": "ILLUSTRATIVE EXAMPLE — replace P7 values with real cluster output",
-        "p1_inputs": {
-          "model_molecule": "toluene (Phe275 sidechain proxy), extended active space",
-          "basis": "6-31G",
-          "active_space": "CAS(6e,6o)",
-          "jw_qubits": 12
-        },
-        "p2_method": {
-          "electronic_structure": "RHF -> CASSCF(6,6)",
-          "quantum_algorithm": "VQE (UCCSD ansatz)",
-          "hamiltonian": "Jordan-Wigner, 12 qubits",
-          "software": "PySCF + PennyLane-Lightning (GPU statevector)"
-        },
-        "p3_environment": {
-          "backend": "lightning.gpu statevector simulator",
-          "hardware": "HPC cluster — 1 node, 4x NVIDIA A100 GPUs",
-          "wall_time_min": 47
-        },
-        "p7_results": {
-          "e_rhf_ha": -266.9421,
-          "e_casscf_ha": -266.9887,
-          "e_vqe_ha": -266.9881,
-          "correlation_ha": -0.0466,
-          "converged": true,
-          "value_note": "illustrative placeholder values"
-        },
-        "p8_seal": {
-          "algorithm": "SHA-256",
-          "hash": "3b7e1c92f0a4d6558e2b9c17d4a0f6e3b1c8a95d2e4f70168b3c9d0e1f2a4b6c",
-          "hash_truncated": "3b7e1c92f0a4d655",
-          "notarized_by": "LEON"
-        },
-        "p9_compliance": {"standard": "FDA 21 CFR 11.10(e)", "storage": "Supabase"}
+        "side": "native",
+        "provenance_source": "HPC/Laguna",
+        "created_at": "2026-07-09T17:39:06.491886+00:00",
+        "p1_qubit_count": 24,
+        "p1_gate_count": 0,
+        "p1_depth": 0,
+        "p1_ansatz": "none — exact diagonalisation",
+        "p1_circuit_hash": "117c9e88171dcc4b3e418fda77d064037f5e5f0008b854010e046f4fd5e4847c",
+        "p2_compiler": "PySCF + openfermion",
+        "p2_compiler_version": null,
+        "p2_encoding": "Jordan-Wigner (CASSCF(12,12) -> 0 Pauli terms)",
+        "p2_basis_set": "6-31g (CASSCF(12,12))",
+        "p2_active_electrons": 12,
+        "p2_active_orbitals": 12,
+        "p2_model_compound": "methanethiol",
+        "p3_backend": "NVIDIA L40S · 46068 MiB · CPU sparse",
+        "p3_backend_version": null,
+        "p3_calibration_epoch": "2026-07-09T17:39:06.491886+00:00",
+        "p3_simulator": true,
+        "p4_gate_error_rate": 0.0,
+        "p4_readout_error_rate": 0.0,
+        "p4_t1_us": null,
+        "p4_t2_us": null,
+        "p4_note": "Exact statevector on HPC GPU — noiseless; Phase 3B records real IBM Heron r3 calibration.",
+        "p5_shots": null,
+        "p5_raw_energy": -437.7612416122472,
+        "p5_energy_variance": 0.0,
+        "p5_opt_steps": 0,
+        "p5_elapsed_s": 171.87,
+        "p5_ecore_ha": -407.0083262300119,
+        "p5_active_energy_ha": null,
+        "p5_casscf_ref_ha": -437.7612416122472,
+        "p6_method": "none — exact statevector",
+        "p6_note": "Phase 3B: ZNE + Pauli Twirling on IBM Heron r3",
+        "p7_energy_ha": -437.7612416122472,
+        "p7_ci_lower": null,
+        "p7_ci_upper": null,
+        "p7_method": "exact active-space diagonalisation",
+        "p7_confidence": 0.95,
+        "p9_applicable": false,
+        "p9_note": "P9 applies when the QEC decoder is active (Phase 3B hardware).",
+        "p8_hash": "dff0adb7dd6a804121122d3416a638a616a7cf99391787f5cbe9599bbcf8556c",
+        "p8_algorithm": "SHA-256 over P1-P7,P9 (sort_keys, default=str)",
+        "p8_sealed_at": "2026-07-09T17:39:06.491886+00:00"
       }
     },
     {
-      "label": "88 qubits — IBM Heron r3 quantum hardware (Phase 3B)",
+      "label": "88 qubits — CASSCF(44,44) on IBM Heron r3 (Phase 3B — planned, not yet run)",
       "record": {
-        "run_id": "run_c275f_heron_20260514_C3",
         "mutation_id": "TP53_C275F",
-        "mutation_name": "TP53 C275F (p.Cys275Phe)",
-        "gene": "TP53",
-        "phase": "3B",
-        "data_status": "ILLUSTRATIVE EXAMPLE — replace P7 values with real hardware output",
-        "p1_inputs": {
-          "model_molecule": "TP53 C275F full electronic model (44 active electrons)",
-          "basis": "STO-3G",
-          "active_space": "CAS(44e,44o)",
-          "jw_qubits": 88
-        },
-        "p2_method": {
-          "electronic_structure": "CASSCF orbitals -> sample-based quantum diagonalization",
-          "quantum_algorithm": "sqDRIFT (quantum sampling + classical diagonalization)",
-          "hamiltonian": "Jordan-Wigner, 88 qubits",
-          "software": "Qiskit + IBM Quantum Runtime",
-          "note": "Beyond the classical CCSD(T) limit (~18 correlated electrons)"
-        },
-        "p3_environment": {
-          "backend": "IBM Heron r3",
-          "hardware": "superconducting quantum processor (94+ qubits)",
-          "shots": 100000,
-          "error_mitigation": "readout + gate twirling"
-        },
-        "p7_results": {
-          "e_ground_ha": -1483.612,
-          "e_ground_uncertainty_ha": 0.021,
-          "method_note": "sqDRIFT ground-state estimate with statistical uncertainty",
-          "converged": true,
-          "value_note": "illustrative placeholder values"
-        },
-        "p8_seal": {
-          "algorithm": "SHA-256",
-          "hash": "c4d5e6f70819a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f50617",
-          "hash_truncated": "c4d5e6f70819a2b3",
-          "notarized_by": "LEON"
-        },
-        "p9_compliance": {"standard": "FDA 21 CFR 11.10(e)", "storage": "Supabase"}
+        "side": "full electronic model",
+        "provenance_source": "Phase 3B plan (IBM Heron r3)",
+        "data_status": "PLANNED — Phase 3B not yet executed; final energy intentionally null",
+        "p1_qubit_count": 88,
+        "p1_ansatz": "sqDRIFT sampling circuits",
+        "p2_encoding": "Jordan-Wigner (CASSCF(44,44))",
+        "p2_basis_set": "STO-3G",
+        "p2_active_electrons": 44,
+        "p2_active_orbitals": 44,
+        "p2_model_compound": "TP53 C275F full sidechain model",
+        "p3_backend": "IBM Heron r3",
+        "p3_simulator": false,
+        "p4_note": "noise parameters to be taken from live IBM Heron r3 calibration at run time",
+        "p5_shots": 100000,
+        "p6_method": "sqDRIFT (sample-based quantum diagonalisation) + ZNE + Pauli twirling",
+        "p6_note": "Beyond the classical CCSD(T) limit (~18 correlated electrons)",
+        "p7_energy_ha": null,
+        "p7_method": "sqDRIFT ground-state estimate (pending)",
+        "p8_hash": null,
+        "p8_note": "seal will be computed by LEON once the run completes",
+        "p9_applicable": true,
+        "p9_note": "QEC decoder active on Phase 3B hardware"
       }
     }
   ]
