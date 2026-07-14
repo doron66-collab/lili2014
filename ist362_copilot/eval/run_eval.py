@@ -152,38 +152,61 @@ def _aligned(cols, results):
     return "\n".join(out)
 
 
+def _mean_sd(xs):
+    """Return (mean, sample_stdev). Stdev is 0 for a single sample."""
+    import statistics
+    m = statistics.mean(xs)
+    sd = statistics.stdev(xs) if len(xs) > 1 else 0.0
+    return m, sd
+
+
 _TEMP_COLS = [
     ("Temperature", lambda r: f"{r['temperature']:.1f}"),
-    ("Grounding acc.", lambda r: f"{r['grounding_accuracy']:.2f}"),
-    ("Hallucination refusal", lambda r: f"{r['hallucination_refusal_rate']:.2f}"),
-    ("Mean latency (s)", lambda r: f"{r['mean_latency_s']:.2f}"),
+    ("Grounding acc. (mean±sd)",
+     lambda r: f"{r['grounding_mean']:.2f} ± {r['grounding_sd']:.2f}"),
+    ("Hallucination refusal (mean±sd)",
+     lambda r: f"{r['refusal_mean']:.2f} ± {r['refusal_sd']:.2f}"),
+    ("Latency (s)", lambda r: f"{r['mean_latency_s']:.2f}"),
 ]
 
 
-def run_temperature_eval(backend, model, dataset, temps):
+def run_temperature_eval(backend, model, dataset, temps, repeats=5):
     """
     Randomness study (Topic 1): sampling temperature IS the randomness knob in a
-    language model. Higher temperature = more random token choices. We measure how
-    that randomness affects faithfulness — grounding accuracy on answerable
-    questions, and refusal rate on out-of-context 'trap' questions.
+    language model — higher temperature = more random token choices. Because the
+    output is itself random, a single run is noisy, so each temperature is run
+    `repeats` times and we report mean ± standard deviation. The standard
+    deviation is the point of the study: it quantifies how much randomness the
+    temperature injects into the model's faithfulness.
     """
     model = model or None
     print(f"\n=== Randomness (temperature) study — model '{model or '(default)'}' "
           f"on backend '{backend.name}' ===")
+    print(f"    {repeats} run(s) per temperature; reporting mean ± standard deviation")
     print("    (higher temperature = more randomness in the model's sampling)")
     results = []
     for t in temps:
-        grd = eval_grounding(backend, model, dataset, temperature=t)
-        trp = eval_traps(backend, model, dataset, temperature=t)
+        g_runs, r_runs, lat_runs = [], [], []
+        for i in range(repeats):
+            print(f"    temp={t:.1f}  run {i + 1}/{repeats} …")
+            grd = eval_grounding(backend, model, dataset, temperature=t)
+            trp = eval_traps(backend, model, dataset, temperature=t)
+            g_runs.append(grd["accuracy"])
+            r_runs.append(trp["refusal_rate"])
+            lat_runs.append((grd["mean_latency_s"] + trp["mean_latency_s"]) / 2)
+        g_m, g_sd = _mean_sd(g_runs)
+        r_m, r_sd = _mean_sd(r_runs)
         results.append({
-            "temperature": t,
-            "grounding_accuracy": round(grd["accuracy"], 3),
-            "hallucination_refusal_rate": round(trp["refusal_rate"], 3),
-            "mean_latency_s": round((grd["mean_latency_s"] + trp["mean_latency_s"]) / 2, 3),
+            "temperature": t, "repeats": repeats,
+            "grounding_mean": round(g_m, 3), "grounding_sd": round(g_sd, 3),
+            "grounding_runs": [round(x, 3) for x in g_runs],
+            "refusal_mean": round(r_m, 3), "refusal_sd": round(r_sd, 3),
+            "refusal_runs": [round(x, 3) for x in r_runs],
+            "mean_latency_s": round(sum(lat_runs) / len(lat_runs), 3),
         })
     table = _aligned(_TEMP_COLS, results)
     print("\n" + table + "\n")
-    out = {"model": model or "(default)", "backend": backend.name,
+    out = {"model": model or "(default)", "backend": backend.name, "repeats": repeats,
            "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "results": results}
     Path(_HERE / "results_temperature.json").write_text(json.dumps(out, indent=2), "utf-8")
     Path(_HERE / "results_temperature.txt").write_text(table, "utf-8")
@@ -191,7 +214,7 @@ def run_temperature_eval(backend, model, dataset, temps):
     print(f"Saved: {_HERE / 'results_temperature.txt'}")
     if backend.name == "mock":
         print("\nNote: the mock backend is deterministic, so temperature has no "
-              "effect here. Run with SOLANGE_BACKEND=ollama for real variation.")
+              "effect here (sd will be 0). Run with SOLANGE_BACKEND=ollama.")
 
 
 def run_mutation_eval(backend, models, mutation, dataset):
@@ -279,6 +302,8 @@ def main():
                          "and measure its effect on grounding & hallucination")
     ap.add_argument("--temps", nargs="*", type=float, default=[0.0, 0.5, 1.0],
                     help="temperatures for --temperature-sweep (default: 0.0 0.5 1.0)")
+    ap.add_argument("--repeats", type=int, default=5,
+                    help="runs per temperature for --temperature-sweep (default: 5)")
     ap.add_argument("--out", default=str(_HERE / "results.json"))
     args = ap.parse_args()
 
@@ -288,7 +313,7 @@ def main():
 
     # Randomness study: one model, several temperatures.
     if args.temperature_sweep:
-        run_temperature_eval(backend, args.models[0], dataset, args.temps)
+        run_temperature_eval(backend, args.models[0], dataset, args.temps, args.repeats)
         return
 
     # Mutation-focused mode: one mutation, all models, Mode B only.
