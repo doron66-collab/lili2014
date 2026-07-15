@@ -235,14 +235,21 @@ def measure(target, hardware, backend_name, shots, token, instance):
             {"mode": "hardware", "shots": shots, "job_id": job.job_id(), "backend": backend_name})
 
 
-def build_record(target, active_energy, backend_label, telemetry, meta):
+def build_record(target, active_energy, hf_exact_active, backend_label, telemetry, meta):
     """Assemble + seal a P1-P9 record. Energies are reported at the ACTIVE-space
     level and also as totals (ecore + active), matching the classical runs'
-    convention. Field names use p1_..p9_ so LEON's existing P8 seal covers them."""
+    convention. Field names use p1_..p9_ so LEON's existing P8 seal covers them.
+
+    hf_exact_active is the exact classical <H> on the SAME fixed HF state the QPU
+    measured — the honest reference for a fixed-state run. The gap between the
+    measured value and THIS (not the CASSCF ground state) is the actual hardware
+    noise; stored as p7_ref_hf_ha so the ladder can show that honestly instead of
+    conflating hardware noise with the intended HF-vs-ground gap."""
     now = datetime.now(timezone.utc).isoformat()
     is_hw = meta.get("mode") == "hardware"
     ecore = target.get("ecore") or 0.0
     total_energy = ecore + active_energy
+    total_hf_ref = ecore + hf_exact_active
     rec = {
         "id": str(uuid.uuid4()), "created_at": now,
         "mutation_id": target["mutation_id"],
@@ -280,10 +287,13 @@ def build_record(target, active_energy, backend_label, telemetry, meta):
         "p6_method": "none (raw estimator)", "p6_note": "hardware smoke test — no error mitigation",
 
         "p7_energy_ha": total_energy,
+        "p7_ref_hf_ha": total_hf_ref,   # exact <H> on the SAME fixed HF state — the
+                                        # honest reference; |measured - this| = hardware noise
         "p7_method": ("QPU EstimatorV2 <H> on HF ref (total = ecore + active)" if is_hw
                       else "dry-run EstimatorV2 <H> on HF ref"),
-        "p7_note": ("Fixed-state expectation, NOT a ground-state search — Δ to exact "
-                    "is expected. CAS(2,2) minimal active space, NOT the full anchor."),
+        "p7_note": ("Fixed-state expectation, NOT a ground-state search — Δ to the CASSCF "
+                    "ground is expected. Hardware noise = |measured - exact HF| (p7_ref_hf_ha). "
+                    "CAS(2,2) minimal active space, NOT the full anchor."),
 
         "p9_applicable": False,
         "p9_note": "deterministic default decoding; not an ML-decoded run",
@@ -355,7 +365,7 @@ def main():
     energy, backend_label, telemetry, meta = measure(
         target, args.hardware, args.backend, args.shots, token, args.instance)
     hf_exact, ground = _exact(target["obs"], target["circuit"])
-    record = build_record(target, energy, backend_label, telemetry, meta)
+    record = build_record(target, energy, hf_exact, backend_label, telemetry, meta)
 
     ecore = target.get("ecore") or 0.0
     print("-" * 72)

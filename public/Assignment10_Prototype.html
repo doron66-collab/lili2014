@@ -1118,10 +1118,22 @@
         var q=orb?2*orb:null;
         var r=routeBackend(q||4);
         var ex=x.p5_casscf_ref_ha, vqe=x.p7_energy_ha;
+        var isQpu=/^3B-QPU/.test(x.phase||'');
+        var vqeCell, de;
+        if(isQpu){
+          // Real-QPU (or QPU dry-run) row: a FIXED-STATE <H> measurement, NOT VQE
+          // and NOT ground-state search. The honest reference is the exact <H> on
+          // the SAME HF state (p7_ref_hf_ha), so ΔE = |measured - exact_HF| = the
+          // actual hardware noise — never |measured - CASSCF_ground|, which would
+          // conflate real noise with the intended (deliberate) HF-vs-ground gap.
+          ex=(x.p7_ref_hf_ha!=null)?x.p7_ref_hf_ha:x.p5_casscf_ref_ha;
+          vqeCell='<span title="QPU expectation value on the fixed Hartree-Fock state — not a VQE ground-state search">'+f(vqe)+' <span style="color:var(--gray);font-size:9px">·QPU ⟨H⟩(HF)</span></span>';
+          var qmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
+          de=qmha==null?'—':'<span title="hardware noise: |measured - exact HF|, not the HF-vs-ground gap" style="color:'+(qmha<=5?'var(--green)':'var(--gold)')+'">'+qmha.toFixed(2)+' mHa <span style="color:var(--gray);font-size:9px">·noise</span></span>';
+        } else {
         // Exact-reference-only rung (VQE-UCCSD ansatz impractical at this size):
         // show it honestly — no fake ΔE=0 from comparing exact against itself.
         var exactOnly=/exact/i.test(x.p7_method||'')||/none/i.test(x.p1_ansatz||'');
-        var vqeCell, de;
         if(exactOnly){
           vqeCell='<span style="color:var(--gray)">— (UCCSD ansatz walls out)</span>';
           de='<span style="color:var(--gray)">—</span>';
@@ -1129,6 +1141,7 @@
           vqeCell=f(vqe);
           var dmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
           de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
+        }
         }
         // CAS(N,N) is a SIZE, not an identity — with multiple targets on the ladder
         // (e.g. ARID2 + TP53 C275F, or native/mutant of the same gene), rows with

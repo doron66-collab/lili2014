@@ -45,7 +45,7 @@ _DB_COLUMNS = frozenset({
     "p5_shots", "p5_raw_energy", "p5_energy_variance", "p5_opt_steps", "p5_elapsed_s",
     "p5_ecore_ha", "p5_active_energy_ha", "p5_casscf_ref_ha",
     "p6_method", "p6_note",
-    "p7_energy_ha", "p7_ci_lower", "p7_ci_upper", "p7_confidence", "p7_method",
+    "p7_energy_ha", "p7_ci_lower", "p7_ci_upper", "p7_confidence", "p7_method", "p7_ref_hf_ha",
     "p8_hash", "p8_algorithm", "p8_sealed_at", "p8_seal_payload",
     "p9_applicable", "p9_note",
 })
@@ -902,7 +902,7 @@ async def list_hpc_runs(limit: int = 50):
                  .select("id, created_at, mutation_id, mutation_name, phase, "
                          "p1_ansatz, p2_active_electrons, p2_active_orbitals, p2_basis_set, "
                          "p3_backend, p5_elapsed_s, p5_ecore_ha, p5_casscf_ref_ha, "
-                         "p7_energy_ha, p7_method, p8_hash")
+                         "p7_energy_ha, p7_ref_hf_ha, p7_method, p8_hash")
                  .in_("phase", ["3A-HPC", "3B-QPU", "3B-QPU-dryrun"])
                  .order("created_at", desc=True)
                  .limit(limit)
