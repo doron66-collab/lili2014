@@ -570,8 +570,12 @@ async def submit_hpc_run(payload: dict = Body(...)):
                  f"!= e_casscf ({ecas:.6f}); record rejected")
 
     # 3) Build the stored record — force honest phase/source labels.
+    # Phase is normally forced to 3A-HPC (a classical Laguna run). A real quantum
+    # run (solange_qpu.py) may declare 3B-QPU; accept only that allow-listed value
+    # so an external submitter still can't mislabel a run as anything it wants.
     record = dict(prov)
-    record["phase"] = "3A-HPC"
+    _submitted_phase = prov.get("phase")
+    record["phase"] = _submitted_phase if _submitted_phase in ("3B-QPU", "3B-QPU-dryrun") else "3A-HPC"
     record["provenance_source"] = prov.get("provenance_source", "HPC/external")
     record.setdefault("id", str(uuid.uuid4()))
     # Fold the side into mutation_id so native/mutant of the same gene are distinct
@@ -887,7 +891,9 @@ async def clear_hpc_runs(payload: dict = Body(default={}),
 
 @router.get("/hpc/runs")
 async def list_hpc_runs(limit: int = 50):
-    """List externally-executed HPC runs for the dashboard (phase=3A-HPC)."""
+    """List externally-executed HPC runs for the dashboard — classical Laguna
+    runs (phase 3A-HPC) plus real/dry-run QPU smoke tests (phase 3B-QPU*). The
+    p3_backend column already distinguishes them (e.g. 'ibm_marrakesh (real QPU)')."""
     sb = get_supabase()
     if not sb:
         return {"runs": [], "db": "not_configured"}
@@ -897,7 +903,7 @@ async def list_hpc_runs(limit: int = 50):
                          "p1_ansatz, p2_active_electrons, p2_active_orbitals, p2_basis_set, "
                          "p3_backend, p5_elapsed_s, p5_ecore_ha, p5_casscf_ref_ha, "
                          "p7_energy_ha, p7_method, p8_hash")
-                 .eq("phase", "3A-HPC")
+                 .in_("phase", ["3A-HPC", "3B-QPU", "3B-QPU-dryrun"])
                  .order("created_at", desc=True)
                  .limit(limit)
                  .execute())
