@@ -993,6 +993,8 @@
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         <button onclick="clearHpcRuns()" title="Delete stored HPC runs from SOLANGE (they can be re-submitted from the cluster)"
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🗑 Clear HPC runs</button>
+        <button id="del-qpu-btn" onclick="deleteSelectedQpu(this)" disabled title="Check one or more QPU rows below, then click to delete only those. QPU runs are never touched by 'Clear HPC runs'."
+          style="background:rgba(232,160,32,0.12);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
       </span>
     </div>
     <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
@@ -1154,15 +1156,20 @@
         // lineage") is now part of the LEON-notarized record itself (p2_jw_terms),
         // not just a local file on the cluster — downloadable straight from here.
         var hbtn=x.id?('<button onclick="downloadHamiltonian(\''+x.id+'\',\''+target.replace(/'/g,"\\'")+'\',this)" title="Download the full source Hamiltonian (Pauli terms) for this run" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JW</button>'):'';
+        // Per-QPU-row delete checkbox (QPU rows only — they cost real quantum time,
+        // so deletion is opt-in per row, never a bulk 'clear all' that could wipe one
+        // by accident). onchange refreshes the header button's enabled state + count.
+        var dchk=(isQpu&&x.id)?('<input type="checkbox" class="qpu-del-chk" data-id="'+x.id+'" onchange="updateQpuDelBtn()" title="Select this QPU run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'';
         hh+='<tr><td style="'+C+';font-weight:600">'+target+'</td><td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
             '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
-            '<td style="'+C+'">'+vbtn+hbtn+'</td></tr>';
+            '<td style="'+C+'">'+vbtn+hbtn+dchk+'</td></tr>';
       });
       paint(hh+'</table>'+
         '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified &amp; notarized by <strong style="color:var(--green)" title="Lineage-Evidence Orchestration &amp; Notarization — the guardian of provenance integrity">LEON</strong> at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>');
+      if (typeof window.updateQpuDelBtn === 'function') window.updateQpuDelBtn();  // reset delete-btn count after repaint
     }).catch(function(){
       paint('<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>');
     });
@@ -3844,6 +3851,45 @@ async function clearHpcRuns() {
     alert(`Cleared ${out.deleted ?? 0} HPC run(s).`);
   } catch (e) {
     alert('Clear failed: ' + e.message);
+  }
+}
+
+// Enable the header delete button only when >=1 QPU row is checked, and show the count.
+function updateQpuDelBtn() {
+  const n = document.querySelectorAll('.qpu-del-chk:checked').length;
+  const btn = document.getElementById('del-qpu-btn');
+  if (!btn) return;
+  btn.disabled = (n === 0);
+  btn.style.opacity = n === 0 ? '0.5' : '1';
+  btn.textContent = `🗑 Delete selected QPU (${n})`;
+}
+
+// Delete ONLY the checked QPU rows — never a bulk wipe. QPU runs cost real quantum
+// time, so this is deliberately opt-in per row.
+async function deleteSelectedQpu(btn) {
+  const ids = Array.from(document.querySelectorAll('.qpu-del-chk:checked')).map(c => c.dataset.id);
+  if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} selected QPU run(s) from SOLANGE?\n\nThis removes only the checked rows. Classical HPC runs and the LEON audit trail are untouched. The runs can be re-submitted from a real QPU.`)) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'deleting…'; }
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (!session?.access_token) { alert('Please log in first.'); return; }
+    const res = await fetch(`${API}/api/simulate/hpc/runs/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ ids })
+    });
+    const out = await res.json();
+    if (!res.ok) { alert('Delete failed: ' + (out.detail || res.status)); return; }
+    if (typeof window.solangeLoadHpc === 'function') window.solangeLoadHpc();
+    alert(`Deleted ${out.deleted ?? 0} QPU run(s).`);
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = orig; }
+    updateQpuDelBtn();
   }
 }
 

@@ -889,6 +889,32 @@ async def clear_hpc_runs(payload: dict = Body(default={}),
         raise HTTPException(status_code=500, detail=f"clear failed: {e}")
 
 
+@router.post("/hpc/runs/delete")
+async def delete_selected_qpu_runs(payload: dict = Body(...),
+                                   authorization: str | None = Header(None)):
+    """Delete SPECIFIC QPU runs by id (the per-row checkbox flow). Requires auth.
+    Guarded to phase 3B-QPU* on the server side too, so this endpoint can NEVER
+    delete a classical run even if a non-QPU id is passed — QPU runs cost real
+    quantum time, so their deletion is deliberately isolated and explicit."""
+    _uid_from_auth(authorization)
+    ids = (payload or {}).get("ids") or []
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(status_code=400, detail="body must include a non-empty 'ids' list")
+    sb = get_supabase()
+    if not sb:
+        return {"deleted": 0, "db": "not_configured"}
+    try:
+        res = (sb.table("simulation_runs").delete()
+                 .in_("id", [str(i) for i in ids])
+                 .like("phase", "3B-QPU%")   # safety: QPU rows only, never classical
+                 .execute())
+        n = len(res.data) if getattr(res, "data", None) else 0
+        return {"deleted": n, "status": "deleted", "requested": len(ids)}
+    except Exception as e:
+        logging.error("QPU delete failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"delete failed: {e}")
+
+
 @router.get("/hpc/runs")
 async def list_hpc_runs(limit: int = 50):
     """List externally-executed HPC runs for the dashboard — classical Laguna
