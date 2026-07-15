@@ -1006,8 +1006,12 @@
 
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:16px">
       <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)</span>
-      <button onclick="window.solangeLoadDmrg && window.solangeLoadDmrg()" title="Reload from SOLANGE"
-        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+      <span style="display:flex;gap:6px">
+        <button onclick="exportDmrgCsv()" title="Download all DMRG classifications as CSV (opens in Excel/Sheets)"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+        <button onclick="window.solangeLoadDmrg && window.solangeLoadDmrg()" title="Reload from SOLANGE"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+      </span>
     </div>
     <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
       Whether classical DMRG reaches chemical accuracy, per target — the evidence behind each A/B/C class.
@@ -1273,19 +1277,23 @@
           return;
         }
         var classColor = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
+        window.__dmrgRows = rows;   // cached for CSV export / per-row JSON download
         var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
           '<th style="'+TH+'">Target</th><th style="'+TH+'">CAS</th>'+
           '<th style="'+TH+'">S_max</th><th style="'+TH+'">Class</th>'+
-          '<th style="'+TH+'">Rationale</th><th style="'+TH+'">LEON</th></tr>';
-        rows.forEach(function(x){
+          '<th style="'+TH+'">Rationale</th><th style="'+TH+'">LEON</th><th style="'+TH+'"></th></tr>';
+        rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
           var provisional = x.time_budget_hit ? ' <span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
+          // Rationale: full text, no width cap (was clipped at 280px). LEON hash:
+          // shown longer and monospace so it can be selected/copied, full value in title.
           hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
                 '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+'</td>'+
-                '<td style="'+C+';font-size:10px;color:var(--gray);max-width:280px;white-space:normal">'+(x.class_rationale||'—')+'</td>'+
-                '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,8):'—')+'…</span></td></tr>';
+                '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.5">'+(x.class_rationale||'—')+'</td>'+
+                '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
+                '<td style="'+C+'">'+(x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">⬇ JSON</button>'):'')+'</td></tr>';
         });
         dmrgBox.innerHTML = hh+'</table>'+
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = quantum-necessary (even DMRG fails) · B = DMRG suffices · C = exact classical suffices. '+
@@ -3802,6 +3810,37 @@ function exportHpcCsv() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'solange_hpc_ladder.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Download ONE DMRG classification as full JSON — every field, including the
+// per-bond-dim energies and the full LEON seal. Solves "can't see/copy all data".
+function downloadDmrgJson(i, btn) {
+  const rows = window.__dmrgRows || [];
+  const x = rows[i];
+  if (!x) return;
+  const blob = new Blob([JSON.stringify(x, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dmrg_${(x.key||'record').replace(/[^\w.-]+/g,'_')}_${x.ncas||''}${x.nelecas?('-'+x.nelecas):''}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Export ALL DMRG classifications as CSV (flat, opens in Excel/Sheets).
+function exportDmrgCsv() {
+  const rows = window.__dmrgRows || [];
+  if (!rows.length) { alert('No DMRG classifications to export.'); return; }
+  const cols = ['key','compound','basis','nelecas','ncas','e_casscf','s_max','bqp_class','class_rationale','time_budget_hit','method','dmrg_hash','created_at'];
+  const head = ['target','compound','basis','active_electrons','active_orbitals','e_casscf_ha','s_max','class','rationale','provisional','method','leon_seal','created_at'];
+  const esc = v => { v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const body = rows.map(r => cols.map(c => esc(r[c])).join(','));
+  const csv = head.join(',') + '\n' + body.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'solange_dmrg_classifications.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
