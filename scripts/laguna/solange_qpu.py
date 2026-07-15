@@ -310,6 +310,10 @@ def main():
     ap = argparse.ArgumentParser(description="SOLANGE Phase 3B — H2 hardware smoke test.")
     ap.add_argument("--hardware", action="store_true",
                     help="send ONE job to a real QPU (spends QPU time). Omit for a free dry-run.")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="explicit free local-simulator run (this is already the default "
+                         "when --hardware is omitted; accepted for clarity). Ignored if "
+                         "--hardware is also passed.")
     ap.add_argument("--backend", default="ibm_marrakesh",
                     help="QPU name (only used with --hardware). ibm_marrakesh = Heron r2, "
                          "fewest pending jobs in the open trial instance.")
