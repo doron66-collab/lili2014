@@ -1812,10 +1812,17 @@
             <div id="pq-item-STK11_F354L"><span id="pq-dot-STK11_F354L" style="color:var(--gray)">○</span> STK11 F354L validation</div>
             <div id="pq-item-STK11_D194N"><span id="pq-dot-STK11_D194N" style="color:var(--gray)">○</span> STK11 D194N validation</div>
           </div>
-          <div><span style="color:var(--gray)">○</span> Cross-backend reproducibility <span style="color:var(--gray);font-size:10px">(Phase 3B)</span></div>
+          <div><span style="color:var(--gold)">◑</span> Cross-backend reproducibility <span style="color:var(--gray);font-size:10px">(Phase 3B)</span>
+            <div style="font-size:10px;color:var(--gray);line-height:1.5;padding-left:14px">
+              <span style="color:var(--gold)">In progress</span> — first cross-backend evidence: canonical H2 measured on a
+              classical statevector simulator and on real IBM Heron r2 hardware (<code>ibm_marrakesh</code>),
+              agreeing to Δ&nbsp;0.02&nbsp;mHa. This is a moving-parts smoke test on H2, <strong>not</strong> a
+              qualified scientific result; full PQ requires the funded runs on the actual mutation targets.
+            </div>
+          </div>
         </div>
         <div id="pq-footer" style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
-          Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3
+          Target: 2026-05-01 · Signed: pending (smoke-test evidence only; not signed) · Doc: PQ-v0.3
         </div>
       </div>
 
@@ -4569,7 +4576,10 @@ async function loadSessionHistory() {
     const p8 = document.getElementById('schema-status-p8');
     if (p8) p8.innerHTML = '<span class="green">✓ Sealed</span>';
     const p9 = document.getElementById('schema-status-p9');
-    if (p9) p9.innerHTML = '<span style="color:#ff9944">✓ Captured*</span>';
+    // P9 is ML-decoder lineage — CONDITIONAL. Runs to date use deterministic
+    // decoding (no learned decoder), so there is no ML lineage to capture yet.
+    // Report it honestly as schema-ready/not-exercised, not "Captured".
+    if (p9) p9.innerHTML = '<span style="color:#ff9944" title="P9 is conditional on ML-decoded QEC. Runs to date use deterministic decoding, so no ML-decoder lineage has been captured — the field is specified and ready, not exercised.">◑ Spec-ready (no ML decoder run)</span>';
   } catch(e) {
     console.warn('loadSessionHistory:', e);
   }
