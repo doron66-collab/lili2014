@@ -904,11 +904,19 @@ async def delete_selected_qpu_runs(payload: dict = Body(...),
     if not sb:
         return {"deleted": 0, "db": "not_configured"}
     try:
-        res = (sb.table("simulation_runs").delete()
-                 .in_("id", [str(i) for i in ids])
-                 .like("phase", "3B-QPU%")   # safety: QPU rows only, never classical
-                 .execute())
-        n = len(res.data) if getattr(res, "data", None) else 0
+        # Select-then-delete: a .delete().in_(id).like(phase,'3B-QPU%') chain threw a
+        # Supabase edge-Worker exception (Cloudflare 1101) — the '%' in a LIKE on a
+        # DELETE is the trigger. So first READ which requested ids are QPU rows
+        # (the safety guard, via a plain select), then DELETE by id only.
+        rows = (sb.table("simulation_runs").select("id, phase")
+                  .in_("id", [str(i) for i in ids]).execute())
+        qpu_ids = [r["id"] for r in (rows.data or [])
+                   if str(r.get("phase", "")).startswith("3B-QPU")]
+        if not qpu_ids:
+            return {"deleted": 0, "status": "deleted", "requested": len(ids),
+                    "note": "no matching QPU rows for the given ids"}
+        res = sb.table("simulation_runs").delete().in_("id", qpu_ids).execute()
+        n = len(res.data) if getattr(res, "data", None) else len(qpu_ids)
         return {"deleted": n, "status": "deleted", "requested": len(ids)}
     except Exception as e:
         logging.error("QPU delete failed: %s", e)
