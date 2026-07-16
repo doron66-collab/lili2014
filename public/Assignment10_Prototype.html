@@ -1289,11 +1289,60 @@
         if(r) counts.push('<span style="color:var(--teal)">'+r+' running</span>');
         if(f) counts.push('<span style="color:#f87171">'+f+' failed</span>');
         var line=agent+(counts.length?' · '+counts.join(' · '):'');
+        // When the agent is red, offer a Wake button. It does NOT reach into Laguna
+        // (that would breach the DP2 pull boundary) — it hands the user the exact
+        // launch command to paste in their own authenticated Laguna session.
+        if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
         if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
           String(lastFail.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
         el.innerHTML=line; el.style.display='block';
       }).catch(function(){ el.style.display='none'; });
     };
+    // ── "Wake agent" helper ──────────────────────────────────────────────────
+    // HONEST BY DESIGN: SOLANGE has no inbound path into Laguna (DP2 / §06.iii —
+    // the whole point of the pull architecture), so it CANNOT start a process on
+    // the cluster remotely. This does the only honest thing: it hands the user the
+    // exact one-liner to paste in their own authenticated Laguna session, and a
+    // copy button. It never claims to have started anything.
+    window.solangeWakeAgent = function(){
+      if(document.getElementById('wake-modal')) return;
+      var keepalive = 'bash scripts/laguna/agent_keepalive.sh start';
+      var raw = 'module load conda && conda activate <your-env> && cd ~/lili2014 && \\\n'
+              + 'python scripts/laguna/solange_hpc.py --agent --out ./out';
+      var esc = function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');};
+      var ov = document.createElement('div');
+      ov.id = 'wake-modal';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(3,10,22,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+      ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+      ov.innerHTML =
+        '<div style="background:var(--navy,#0B1E3D);border:1px solid var(--border);border-radius:12px;max-width:640px;width:100%;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,0.5)">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+        +   '<div style="font-size:15px;font-weight:800;color:var(--white)">▶ Wake the Laguna agent</div>'
+        +   '<button onclick="document.getElementById(\'wake-modal\').remove()" style="background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;line-height:1">×</button>'
+        + '</div>'
+        + '<p style="font-size:12px;color:var(--gray);line-height:1.7;margin:0 0 14px">'
+        +   'SOLANGE <strong>cannot</strong> start the agent for you — it has no inbound path into Laguna '
+        +   '(that is the security boundary the whole pull architecture is built on: no stored credential, '
+        +   'no bypass of Duo 2FA). Paste <em>one</em> of these into a terminal inside your authenticated '
+        +   'Laguna / JupyterLab session:'
+        + '</p>'
+        + '<div style="font-size:11px;color:var(--teal);font-weight:700;margin:0 0 4px">Recommended — keepalive (survives closing the terminal):</div>'
+        + '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:14px">'
+        +   '<code style="flex:1;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;word-break:break-all">'+esc(keepalive)+'</code>'
+        +   '<button onclick="navigator.clipboard.writeText('+JSON.stringify(keepalive)+').then(function(){this.textContent=\'✓ Copied\';}.bind(this))" style="background:var(--gold);color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
+        + '</div>'
+        + '<div style="font-size:11px;color:var(--gray);font-weight:700;margin:0 0 4px">Or the raw one-off (dies when the terminal closes):</div>'
+        + '<code style="display:block;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:11.5px;color:var(--gray);font-family:monospace;white-space:pre-wrap;word-break:break-all;margin-bottom:14px">'+esc(raw)+'</code>'
+        + '<div style="font-size:10.5px;color:var(--gray);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">'
+        +   '<strong style="color:var(--gold)">Honest limit:</strong> the keepalive frees you from the terminal '
+        +   'dying and from transient crashes — but nothing keeps the agent alive past your Laguna session itself '
+        +   '(2FA expiring, allocation ending, node reboot). That ceiling is the security guarantee, by design. '
+        +   'Once it is up, this dot turns <span style="color:var(--green)">green</span> within ~15s.'
+        + '</div>'
+        + '</div>';
+      document.body.appendChild(ov);
+    };
+
     // Exposed globally so actions OUTSIDE this closure (like clearHpcQueue's success
     // handler, defined later in the file) can force the strip to reflect reality
     // immediately, instead of waiting for the next poll tick (which may never come
