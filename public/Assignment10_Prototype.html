@@ -3818,15 +3818,18 @@ window.solangeShowRunCmd = function(kind) {
   const usingPlaceholder = keys.length === 0;
   if (usingPlaceholder) keys = ['<MUTATION_KEY>'];
 
+  // DMRG goes through run_dmrg.sh — it self-activates the env, cd's to the repo,
+  // and sets up the block2/MKL LD_PRELOAD so the packaging errors never return.
+  // QPU is a direct python call preceded by the manual terminal setup.
   const cmdFor = k => kind === 'dmrg'
-    ? `python scripts/laguna/solange_dmrg.py --key ${k} --side ${side} `
+    ? `SOLANGE_ENV=<env> bash scripts/laguna/run_dmrg.sh --key ${k} --side ${side} `
       + `--ncas ${ncas} --nelecas ${ncas} --bond-dims 250,500,1000,2000 --submit`
     : `python scripts/laguna/solange_qpu.py --key ${k} --side ${side} `
       + `--hardware --backend ibm_kingston --submit`;
-  // Prepend the terminal setup so the whole block is paste-and-run in a fresh
-  // Laguna session — replace <env> with your conda env name once.
   const setup = 'module load conda && conda activate <env> && cd ~/lili2014';
-  const cmd = setup + '\n' + keys.map(cmdFor).join('\n');
+  const cmd = (kind === 'dmrg')
+    ? keys.map(cmdFor).join('\n')            // wrapper handles activate + cd + MKL
+    : setup + '\n' + keys.map(cmdFor).join('\n');
 
   const isQpu = kind === 'qpu';
   const title = isQpu ? '⬇ Run on quantum hardware (Rung 4 · QPU)'
@@ -3862,8 +3865,10 @@ window.solangeShowRunCmd = function(kind) {
     +   '<button onclick="navigator.clipboard.writeText(' + JSON.stringify(cmd) + ').then(function(){this.textContent=\'✓ Copied\';}.bind(this))" style="background:' + accent + ';color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
     + '</div>'
     + '<div style="font-size:10.5px;color:var(--gray);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">'
-    +   'The first line activates the terminal — replace <code>&lt;env&gt;</code> with your conda env name (once). '
-    +   'On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)') + ', notarized by LEON.'
+    +   (isQpu
+        ? 'The first line activates the terminal — replace <code>&lt;env&gt;</code> with your conda env name (once).'
+        : 'Paste-and-run in a fresh terminal: <code>run_dmrg.sh</code> activates the env, cd\'s to the repo, and sets up the block2/MKL libraries automatically — replace <code>&lt;env&gt;</code> once (or export <code>SOLANGE_ENV</code>).')
+    +   ' On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)') + ', notarized by LEON.'
     + '</div>'
     + '</div>';
   document.body.appendChild(ov);
