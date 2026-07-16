@@ -17,7 +17,7 @@
 set -uo pipefail
 
 # ── EDIT these two to your environment (or export them before calling) ───────
-CONDA_ENV="${SOLANGE_ENV:-solange}"           # conda env with pyscf + pennylane + numpy
+CONDA_ENV="${SOLANGE_ENV:-base}"              # conda env with pyscf + pennylane + numpy
 REPO_DIR="${SOLANGE_REPO:-$HOME/lili2014}"    # where you cloned the repo on Laguna
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -32,8 +32,14 @@ _running() { [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>
 # with a short backoff so a hard failure (e.g. login expired) doesn't hot-loop.
 _supervisor() {
   module load conda 2>/dev/null || true
-  # shellcheck disable=SC1091
-  source activate "$CONDA_ENV" 2>/dev/null || conda activate "$CONDA_ENV" 2>/dev/null || true
+  # If pyscf already imports (you started this from an active env, e.g. base), use
+  # it as-is; only activate CONDA_ENV otherwise. Sourcing conda.sh first defines the
+  # 'conda' shell function so 'conda activate' works in this non-interactive shell.
+  if ! python -c "import pyscf" 2>/dev/null; then
+    # shellcheck disable=SC1091
+    source "$(conda info --base 2>/dev/null)/etc/profile.d/conda.sh" 2>/dev/null || true
+    conda activate "$CONDA_ENV" 2>/dev/null || source activate "$CONDA_ENV" 2>/dev/null || true
+  fi
   cd "$REPO_DIR" || { echo "[keepalive] repo not found: $REPO_DIR"; exit 1; }
   while true; do
     echo "[keepalive $(date '+%F %T')] starting agent (env=$CONDA_ENV)"
