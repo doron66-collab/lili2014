@@ -235,6 +235,41 @@ def measure(target, hardware, backend_name, shots, token, instance):
             {"mode": "hardware", "shots": shots, "job_id": job.job_id(), "backend": backend_name})
 
 
+def retrieve(job_id, backend_name, token, instance):
+    """Fetch the result of an ALREADY-COMPLETED QPU job by id and return it in the
+    same shape as measure(). Used when the local script hung on job.result() even
+    though IBM finished the job — the result lives on IBM's servers, and retrieving
+    it costs NO QPU execution time. No new circuit is run."""
+    from qiskit_ibm_runtime import QiskitRuntimeService
+    kwargs = {}
+    if token:    kwargs["token"] = token
+    if instance: kwargs["instance"] = instance
+    try:
+        service = QiskitRuntimeService(channel="ibm_quantum_platform", **kwargs)
+    except Exception:
+        service = QiskitRuntimeService(channel="ibm_quantum", **kwargs)
+    job = service.job(job_id)
+    try:
+        status = job.status()
+    except Exception:
+        status = "?"
+    print(f"  retrieving completed job {job_id} (status: {status}) — no QPU time spent …")
+    energy = float(job.result()[0].data.evs)
+    bname = backend_name
+    try:
+        b = job.backend()
+        bname = b if isinstance(b, str) else getattr(b, "name", backend_name)
+    except Exception:
+        pass
+    tel = {}
+    try:
+        tel = _backend_telemetry(service.backend(bname))
+    except Exception:
+        pass
+    return (energy, f"{bname} (real QPU)", tel,
+            {"mode": "hardware", "shots": None, "job_id": job_id, "backend": bname})
+
+
 def build_record(target, active_energy, hf_exact_active, backend_label, telemetry, meta):
     """Assemble + seal a P1-P9 record. Energies are reported at the ACTIVE-space
     level and also as totals (ecore + active), matching the classical runs'
@@ -342,6 +377,10 @@ def main():
     ap.add_argument("--submit", nargs="?", const="https://qcaihpc-simulation-api.onrender.com",
                     help="POST the sealed record to SOLANGE (LEON notarizes it).")
     ap.add_argument("--check-credentials", action="store_true")
+    ap.add_argument("--retrieve", metavar="JOB_ID",
+                    help="fetch the result of an already-COMPLETED QPU job by id (e.g. when "
+                         "the local run hung on job.result()). Costs NO QPU time. Requires "
+                         "--key/--side/--backend to rebuild and submit the record.")
     args = ap.parse_args()
     Path(args.out).mkdir(parents=True, exist_ok=True)
     token = os.environ.get("QISKIT_IBM_TOKEN")
@@ -352,18 +391,27 @@ def main():
     print(f"IBM Quantum credentials: {'AVAILABLE' if available else 'NOT AVAILABLE'} — {detail}")
     if args.check_credentials:
         print("=" * 72); sys.exit(0 if available else 1)
-    if args.hardware and not available:
+    if (args.hardware or args.retrieve) and not available:
         print("-" * 72)
-        print("REFUSING --hardware without credentials — no fabricated result. "
+        print("REFUSING hardware/retrieve without credentials — no fabricated result. "
               "Set QISKIT_IBM_TOKEN and retry.")
         print("=" * 72); sys.exit(1)
+    if args.retrieve and not args.key:
+        ap.error("--retrieve requires --key/--side to rebuild the P1-P9 record")
 
     target = jw_target(args.key, args.side, args.jw_file) if args.key else h2_target()
-    print(f"Mode: {'REAL HARDWARE · backend='+args.backend if args.hardware else 'DRY-RUN (free local simulator)'}")
+    _mode = ('RETRIEVE (fetch completed job — no QPU time)' if args.retrieve
+             else 'REAL HARDWARE · backend='+args.backend if args.hardware
+             else 'DRY-RUN (free local simulator)')
+    print(f"Mode: {_mode}")
     print(f"Target: {target['label']}  ·  {target['nq']} qubits")
 
-    energy, backend_label, telemetry, meta = measure(
-        target, args.hardware, args.backend, args.shots, token, args.instance)
+    if args.retrieve:
+        energy, backend_label, telemetry, meta = retrieve(
+            args.retrieve, args.backend, token, args.instance)
+    else:
+        energy, backend_label, telemetry, meta = measure(
+            target, args.hardware, args.backend, args.shots, token, args.instance)
     hf_exact, ground = _exact(target["obs"], target["circuit"])
     record = build_record(target, energy, hf_exact, backend_label, telemetry, meta)
 
