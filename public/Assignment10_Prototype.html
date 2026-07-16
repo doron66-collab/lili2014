@@ -991,18 +991,32 @@
       <span style="display:flex;gap:6px">
         <button onclick="exportHpcCsv()" title="Download the HPC ladder as CSV (dissertation appendix)"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
-        <button onclick="clearHpcRuns()" title="Delete stored HPC runs from SOLANGE (they can be re-submitted from the cluster)"
+        <button onclick="clearHpcRuns()" title="Delete stored classical HPC runs from SOLANGE (they can be re-submitted from the cluster). QPU runs are never touched."
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🗑 Clear HPC runs</button>
-        <button id="del-qpu-btn" onclick="deleteSelectedQpu(this)" disabled title="Check one or more QPU rows below, then click to delete only those. QPU runs are never touched by 'Clear HPC runs'."
-          style="background:rgba(232,160,32,0.12);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
       </span>
     </div>
     <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
-      Real runs dispatched to the Laguna cluster — <strong>not</strong> executed in-browser.
+      Phase 3A — real runs dispatched to the Laguna cluster (classical CASSCF/VQE), <strong>not</strong> executed in-browser.
       <span style="color:var(--teal)">exact</span> = reference ground state · VQE-UCCSD = near-term-device demonstration.
     </p>
     <div id="hpc-queue-status" style="display:none;margin:4px 0 10px;font-size:11px;line-height:1.6"></div>
     <div id="dispatch-hpc" style="overflow-x:auto"></div>
+
+    <!-- ── Phase 3B — real quantum hardware (separate from the classical 3A ladder) ── -->
+    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+      <span>Phase 3B — Quantum Hardware · IBM Heron (real QPU)</span>
+      <span style="display:flex;gap:6px">
+        <button onclick="exportQpuCsv()" title="Download the QPU runs as CSV"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+        <button id="del-qpu-btn" onclick="deleteSelectedQpu(this)" disabled title="Check one or more QPU rows, then click to delete only those."
+          style="background:rgba(232,160,32,0.12);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
+      </span>
+    </div>
+    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
+      Phase 3B — executed on <strong>real IBM Heron quantum hardware</strong>, not simulated.
+      <span style="color:var(--teal)">exact HF</span> = classical ⟨H⟩ on the same fixed state · <span style="color:var(--gray)">·noise</span> ΔE = |measured − exact HF| (hardware noise, not the HF-vs-ground gap). Fixed-state smoke test, not a VQE ground-state search.
+    </p>
+    <div id="dispatch-qpu" style="overflow-x:auto"></div>
 
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:16px">
       <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)</span>
@@ -1094,32 +1108,18 @@
     // 3) HPC ladder — DYNAMIC: fetched live from the backend (phase=3A-HPC runs
     //    submitted by solange_hpc.py --submit and re-verified server-side). No hardcode.
     var box=document.getElementById('dispatch-hpc');
+    var qpuBox=document.getElementById('dispatch-qpu');
     var API=(window.QCAIHPC_API_BASE||'https://qcaihpc-simulation-api.onrender.com');
     var f=function(v){return (v==null||isNaN(v))?'—':Number(v).toFixed(6);};
     window.solangeLoadHpc=function(silent){
-    // silent=true (background auto-refresh) skips the "Loading…" placeholder so the
-    // panel doesn't flicker empty→message every poll tick; the DOM is only rewritten
-    // once fresh data arrives.
-    if(!silent) box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading HPC runs…</div>';
-    // paint(html): only touch the DOM when the content actually changed, so a
-    // background poll on unchanged data does NOT rewrite the table (which reads as
-    // a visible "tick" every few seconds even when nothing is different).
-    var paint=function(html){ if(box.__lastHtml===html) return; box.__lastHtml=html; box.innerHTML=html; };
+    if(!silent){ box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading…</div>'; }
+    // paint(el,html): only touch the DOM when content changed (no flicker on polls).
+    var paint=function(el,html){ if(!el) return; if(el.__lastHtml===html) return; el.__lastHtml=html; el.innerHTML=html; };
     fetch(API+'/api/simulate/hpc/runs').then(function(r){return r.json();}).then(function(d){
       var runs=(d&&d.runs)||[];
-      if(!runs.length){
-        paint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
-          'No HPC runs submitted yet. Runs dispatched to Laguna appear here automatically once '+
-          '<code>solange_hpc.py --submit</code> posts them — the backend re-verifies each P8 seal before it is shown.</div>');
-        return;
-      }
-      window.__hpcRuns = runs;   // cached for CSV export
       var rt=function(s){return (s==null)?'—':(s<60?Number(s).toFixed(1)+'s':Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s');};
-      var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Target</th><th style="'+TH+'">Active space</th>'+
-        '<th style="'+TH+'">Qubits</th><th style="'+TH+'">Exact (Ha)</th><th style="'+TH+'">VQE-UCCSD (Ha)</th>'+
-        '<th style="'+TH+'">ΔE</th><th style="'+TH+'" title="Total compute time — the classical-wall cost">Runtime</th>'+
-        '<th style="'+TH+'">Backend</th><th style="'+TH+'">P8</th><th style="'+TH+'"></th></tr>';
-      runs.forEach(function(x){
+      // ── one row (<tr>) — branches classical vs QPU exactly as before ──
+      var rowHtml=function(x){
         var orb=x.p2_active_orbitals, el=x.p2_active_electrons;
         var q=orb?2*orb:null;
         var r=routeBackend(q||4);
@@ -1127,55 +1127,55 @@
         var isQpu=/^3B-QPU/.test(x.phase||'');
         var vqeCell, de;
         if(isQpu){
-          // Real-QPU (or QPU dry-run) row: a FIXED-STATE <H> measurement, NOT VQE
-          // and NOT ground-state search. The honest reference is the exact <H> on
-          // the SAME HF state (p7_ref_hf_ha), so ΔE = |measured - exact_HF| = the
-          // actual hardware noise — never |measured - CASSCF_ground|, which would
-          // conflate real noise with the intended (deliberate) HF-vs-ground gap.
+          // Fixed-state <H> on the QPU — reference is exact <H> on the SAME HF state
+          // (p7_ref_hf_ha), so ΔE = |measured - exact_HF| = the real hardware noise.
           ex=(x.p7_ref_hf_ha!=null)?x.p7_ref_hf_ha:x.p5_casscf_ref_ha;
           vqeCell='<span title="QPU expectation value on the fixed Hartree-Fock state — not a VQE ground-state search">'+f(vqe)+' <span style="color:var(--gray);font-size:9px">·QPU ⟨H⟩(HF)</span></span>';
           var qmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
           de=qmha==null?'—':'<span title="hardware noise: |measured - exact HF|, not the HF-vs-ground gap" style="color:'+(qmha<=5?'var(--green)':'var(--gold)')+'">'+qmha.toFixed(2)+' mHa <span style="color:var(--gray);font-size:9px">·noise</span></span>';
         } else {
-        // Exact-reference-only rung (VQE-UCCSD ansatz impractical at this size):
-        // show it honestly — no fake ΔE=0 from comparing exact against itself.
-        var exactOnly=/exact/i.test(x.p7_method||'')||/none/i.test(x.p1_ansatz||'');
-        if(exactOnly){
-          vqeCell='<span style="color:var(--gray)">— (UCCSD ansatz walls out)</span>';
-          de='<span style="color:var(--gray)">—</span>';
-        } else {
-          vqeCell=f(vqe);
-          var dmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
-          de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
+          var exactOnly=/exact/i.test(x.p7_method||'')||/none/i.test(x.p1_ansatz||'');
+          if(exactOnly){
+            vqeCell='<span style="color:var(--gray)">— (UCCSD ansatz walls out)</span>';
+            de='<span style="color:var(--gray)">—</span>';
+          } else {
+            vqeCell=f(vqe);
+            var dmha=(ex!=null&&vqe!=null)?Math.abs(vqe-ex)*1000:null;
+            de=dmha==null?'—':'<span style="color:'+(dmha<=1.6?'var(--green)':'var(--gold)')+'">'+dmha.toFixed(2)+' mHa</span>';
+          }
         }
-        }
-        // CAS(N,N) is a SIZE, not an identity — with multiple targets on the ladder
-        // (e.g. ARID2 + TP53 C275F, or native/mutant of the same gene), rows with
-        // similar CAS sizes were indistinguishable without this column, exactly the
-        // ambiguity that caused confusion when reading the table by CAS size alone.
         var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):'—';
         var target=x.mutation_id||x.mutation_name||'—';
         var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
-        // Full source Hamiltonian (every Pauli term + coefficient — P2 "compilation
-        // lineage") is now part of the LEON-notarized record itself (p2_jw_terms),
-        // not just a local file on the cluster — downloadable straight from here.
         var hbtn=x.id?('<button onclick="downloadHamiltonian(\''+x.id+'\',\''+target.replace(/'/g,"\\'")+'\',this)" title="Download the full source Hamiltonian (Pauli terms) for this run" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JW</button>'):'';
-        // Per-QPU-row delete checkbox (QPU rows only — they cost real quantum time,
-        // so deletion is opt-in per row, never a bulk 'clear all' that could wipe one
-        // by accident). onchange refreshes the header button's enabled state + count.
         var dchk=(isQpu&&x.id)?('<input type="checkbox" class="qpu-del-chk" data-id="'+x.id+'" onchange="updateQpuDelBtn()" title="Select this QPU run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'';
-        hh+='<tr><td style="'+C+';font-weight:600">'+target+'</td><td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
+        return '<tr><td style="'+C+';font-weight:600">'+target+'</td><td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
             '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
             '<td style="'+C+'">'+vbtn+hbtn+dchk+'</td></tr>';
-      });
-      paint(hh+'</table>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified &amp; notarized by <strong style="color:var(--green)" title="Lineage-Evidence Orchestration &amp; Notarization — the guardian of provenance integrity">LEON</strong> at ingestion · Runtime = total compute cost (the classical wall) · "Verify" re-checks the seal live · dispatched to Laguna, not run in-browser.</div>');
-      if (typeof window.updateQpuDelBtn === 'function') window.updateQpuDelBtn();  // reset delete-btn count after repaint
+      };
+      var LEONFOOT='<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified &amp; notarized by <strong style="color:var(--green)" title="Lineage-Evidence Orchestration &amp; Notarization — the guardian of provenance integrity">LEON</strong> at ingestion · "Verify" re-checks the seal live.</div>';
+      var mkTable=function(subset, exHdr, meaHdr, emptyMsg){
+        if(!subset.length) return '<div style="color:var(--gray);font-size:11px;line-height:1.6">'+emptyMsg+'</div>';
+        var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Target</th><th style="'+TH+'">Active space</th>'+
+          '<th style="'+TH+'">Qubits</th><th style="'+TH+'">'+exHdr+'</th><th style="'+TH+'">'+meaHdr+'</th>'+
+          '<th style="'+TH+'">ΔE</th><th style="'+TH+'">Runtime</th><th style="'+TH+'">Backend</th><th style="'+TH+'">P8</th><th style="'+TH+'"></th></tr>';
+        subset.forEach(function(x){ hh+=rowHtml(x); });
+        return hh+'</table>'+LEONFOOT;
+      };
+      var classical=runs.filter(function(x){return (x.phase||'')==='3A-HPC';});
+      var qpu=runs.filter(function(x){return /^3B-QPU/.test(x.phase||'');});
+      window.__hpcRuns=classical; window.__qpuRuns=qpu;   // cached per-block for CSV export
+      paint(box, mkTable(classical, 'Exact (Ha)', 'VQE-UCCSD (Ha)',
+        'No classical HPC runs yet. <code>solange_hpc.py --submit</code> posts them here (each P8 seal re-verified first).'));
+      paint(qpuBox, mkTable(qpu, 'Exact HF (Ha)', 'QPU ⟨H⟩ (Ha)',
+        'No quantum-hardware runs yet. <code>solange_qpu.py --hardware --submit</code> posts them here (LEON re-verifies each seal).'));
+      if (typeof window.updateQpuDelBtn === 'function') window.updateQpuDelBtn();
     }).catch(function(){
-      paint('<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable). They appear here once submitted and the API is reachable.</div>');
+      paint(box, '<div style="color:var(--gray);font-size:11px">HPC runs unavailable (backend unreachable).</div>');
+      paint(qpuBox, '<div style="color:var(--gray);font-size:11px">QPU runs unavailable (backend unreachable).</div>');
     });
     };            // end solangeLoadHpc
     window.solangeLoadHpc();   // initial load
@@ -1311,6 +1311,8 @@
       if(mutsBox) placeholder();
       if(box) box.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
         'Cleared on reset. Archived HPC runs remain stored & verified in SOLANGE — reload the page to view them.</div>';
+      if(qpuBox) qpuBox.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+        'Cleared on reset. Archived QPU runs remain stored & verified in SOLANGE — reload the page to view them.</div>';
       if(dmrgBox) dmrgBox.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
         'Cleared on reset. Archived DMRG classifications remain stored & verified in SOLANGE — reload the page to view them.</div>';
     };
@@ -3810,6 +3812,22 @@ function exportHpcCsv() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'solange_hpc_ladder.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportQpuCsv() {
+  const runs = window.__qpuRuns || [];
+  if (!runs.length) { alert('No QPU runs to export.'); return; }
+  const cols = ['mutation_id','p2_active_electrons','p2_active_orbitals','p7_ref_hf_ha','p7_energy_ha','p7_method','p3_backend','p3_calibration_epoch','p8_hash','created_at'];
+  const head = ['target','active_electrons','active_orbitals','exact_hf_ha','qpu_measured_ha','method','backend','calibration_epoch','p8_seal','created_at'];
+  const esc = v => { v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const rows = runs.map(r => cols.map(c => esc(r[c])).join(','));
+  const csv = head.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'solange_qpu_runs.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
