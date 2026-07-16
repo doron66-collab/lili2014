@@ -970,7 +970,67 @@
     <div id="pipe-status-line" style="font-size:11px;color:var(--gray);margin-top:6px;min-height:16px"></div>
   </div>
 
-  <!-- ── Compute Dispatcher — QC·AI·HPC backend routing ─────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ESCALATION LADDER — the blocks below climb from smallest to largest:
+         RUNG 1  Laptop / in-browser  (this VQE demo — proves the pipeline)
+         RUNG 2  HPC classical        (Laguna CASSCF/VQE — 3A-HPC ladder)
+         RUNG 3  DMRG                 (last classical resort — A/B/C classifier)
+         RUNG 4  Quantum hardware     (IBM Heron — 3B-QPU, the bottom of the ladder)
+       Small is at the top; you climb down into quantum. Each rung has its own
+       internal sub-ladder. ══════════════════════════════════════════════════ -->
+  <div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px">
+    <span style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--green);background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);border-radius:999px;padding:2px 9px">Ladder · Rung 1 — Laptop</span>
+    <span style="font-size:11px;color:var(--gray)">smallest rung: prove the whole pipeline in-browser before climbing to HPC and quantum</span>
+  </div>
+
+  <!-- RUNG 1 · Laptop — Live VQE job card (the ONE real in-browser process — the
+       Phase 3A VQE demo — animates while it runs. Former MD/DFT/AI-GNN 'Layer 2'
+       cards were removed: those pipelines were never implemented or run.) -->
+  <div class="card">
+    <div class="card-title">Quantum Kernel · Live VQE Job (Phase 3A · laptop / in-browser)</div>
+    <div class="job-card">
+      <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
+      <div class="job-info">
+        <div class="job-name" id="job-vqe-name">Phase 3A · VQE — Awaiting simulation run</div>
+        <div class="job-sub" id="job-vqe-sub">Quantum Kernel · 4-qubit JW Hamiltonian (27 Pauli terms) · PySCF CAS(2e,2o) / STO-3G · sqDRIFT targets Phase 3B</div>
+        <div style="margin-top:6px">
+          <div class="progress-wrap"><div class="progress-fill" id="job-vqe-bar" style="width:0%;background:var(--teal)"></div></div>
+        </div>
+      </div>
+      <div class="job-status" id="job-vqe-status" style="color:var(--gray)">Idle</div>
+    </div>
+  </div>
+
+  <!-- RUNG 1 · Laptop — Live VQE Runner (run button + P1–P9 sealed result) -->
+  <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
+    <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <select id="sim-target" onchange="resetJobCards(); updateSimButton();" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
+        <option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>
+      </select>
+      <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
+        ▶ Run Live Simulation
+      </button>
+      <span id="sim-status" style="font-size:11px;color:var(--gray)"></span>
+    </div>
+    <div id="sim-result" style="display:none;background:rgba(0,168,214,0.07);border:1px solid rgba(0,168,214,0.2);border-radius:8px;padding:14px;font-size:12px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Ground-State Energy (Hₐ)</div><div id="r-energy" style="color:var(--teal);font-size:18px;font-weight:800;font-family:monospace"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">95% CI</div><div id="r-ci" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Qubits / Gates / Depth</div><div id="r-circuit" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Run ID <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-runid" style="color:var(--light);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('Run ID copied!'))"></div></div>
+        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">P8 Cryptographic Seal (SHA-256) <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-seal" style="color:var(--gold);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('P8 seal copied!'))"></div></div>
+      </div>
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:10.5px;color:var(--gray)">
+        Phase 3A: PennyLane default.qubit · AllSinglesDoubles UCCSD ansatz · 80 Adam optimisation steps · 4-qubit JW Hamiltonian · P1–P9 record sealed & stored to Supabase
+      </div>
+    </div>
+    <div id="sim-error" style="display:none;color:var(--red);font-size:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.3)"></div>
+  </div>
+
+  <!-- ── Compute Dispatcher — QC·AI·HPC backend routing (RUNG 2→4 live below) ── -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing</div>
     <p style="font-size:11px;color:var(--gray);margin:4px 0 12px;line-height:1.6">
@@ -985,6 +1045,12 @@
     <div id="dispatch-tiers" style="margin-bottom:16px;overflow-x:auto"></div>
     <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
     <div id="dispatch-muts" style="margin:6px 0 16px;overflow-x:auto"></div>
+
+    <!-- ── RUNG 2 · HPC classical → RUNG 3 · DMRG → RUNG 4 · Quantum (bottom) ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0 6px;padding-top:12px;border-top:1px dashed var(--border)">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--teal);background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.4);border-radius:999px;padding:2px 9px">Ladder · Rung 2 — HPC</span>
+      <span style="font-size:11px;color:var(--gray)">classical CASSCF/VQE dispatched to the Laguna cluster — beyond the laptop's reach</span>
+    </div>
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span style="display:flex;align-items:center;gap:8px">Phase 3A-HPC Ladder · Laguna (USC CARC)
         <span id="hpc-live" title="Auto-refresh is active — Laguna results appear here without reloading"
@@ -1005,23 +1071,14 @@
     <div id="hpc-queue-status" style="display:none;margin:4px 0 10px;font-size:11px;line-height:1.6"></div>
     <div id="dispatch-hpc" style="overflow-x:auto"></div>
 
-    <!-- ── Phase 3B — real quantum hardware (separate from the classical 3A ladder) ── -->
-    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:16px">
-      <span>Phase 3B — Quantum Hardware · IBM Heron (real QPU)</span>
-      <span style="display:flex;gap:6px">
-        <button onclick="exportQpuCsv()" title="Download the QPU runs as CSV"
-          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
-        <button id="del-qpu-btn" onclick="deleteSelectedQpu(this)" disabled title="Check one or more QPU rows, then click to delete only those."
-          style="background:rgba(232,160,32,0.12);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
-      </span>
+    <!-- ── RUNG 3 · DMRG — the last classical resort before quantum. Sits ABOVE the
+         QPU block: you exhaust tensor-network DMRG first, and only a Class-A target
+         (even DMRG fails) justifies climbing to real quantum hardware. ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0 6px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#a78bfa;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.4);border-radius:999px;padding:2px 9px">Ladder · Rung 3 — DMRG</span>
+      <span style="font-size:11px;color:var(--gray)">last classical resort — the A/B/C classifier that decides whether quantum is even needed</span>
     </div>
-    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
-      Phase 3B — executed on <strong>real IBM Heron quantum hardware</strong>, not simulated.
-      <span style="color:var(--teal)">exact HF</span> = classical ⟨H⟩ on the same fixed state · <span style="color:var(--gray)">·noise</span> ΔE = |measured − exact HF| (hardware noise, not the HF-vs-ground gap). Fixed-state smoke test, not a VQE ground-state search.
-    </p>
-    <div id="dispatch-qpu" style="overflow-x:auto"></div>
-
-    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)</span>
       <span style="display:flex;gap:6px">
         <button onclick="exportDmrgCsv()" title="Download all DMRG classifications as CSV (opens in Excel/Sheets)"
@@ -1035,6 +1092,27 @@
       Sealed at source and notarized by LEON on submission (independent of Laguna connectivity afterward).
     </p>
     <div id="dmrg-classifications" style="overflow-x:auto"></div>
+
+    <!-- ── RUNG 4 · Quantum hardware — the bottom of the ladder. Reached only when the
+         classical rungs above (HPC, DMRG) run out. Separate from the classical 3A ladder. ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0 6px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:rgba(232,160,32,0.12);border:1px solid rgba(232,160,32,0.4);border-radius:999px;padding:2px 9px">Ladder · Rung 4 — Quantum</span>
+      <span style="font-size:11px;color:var(--gray)">bottom of the ladder — real IBM Heron QPU, where the classical rungs run out</span>
+    </div>
+    <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
+      <span>Phase 3B — Quantum Hardware · IBM Heron (real QPU)</span>
+      <span style="display:flex;gap:6px">
+        <button onclick="exportQpuCsv()" title="Download the QPU runs as CSV"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+        <button id="del-qpu-btn" onclick="deleteSelectedQpu(this)" disabled title="Check one or more QPU rows, then click to delete only those."
+          style="background:rgba(232,160,32,0.12);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
+      </span>
+    </div>
+    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
+      Phase 3B — executed on <strong>real IBM Heron quantum hardware</strong>, not simulated.
+      <span style="color:var(--teal)">exact HF</span> = classical ⟨H⟩ on the same fixed state · <span style="color:var(--gray)">·noise</span> ΔE = |measured − exact HF| (hardware noise, not the HF-vs-ground gap). Fixed-state smoke test, not a VQE ground-state search.
+    </p>
+    <div id="dispatch-qpu" style="overflow-x:auto"></div>
   </div>
   <script>
   (function(){
@@ -1322,63 +1400,8 @@
   })();
   </script>
 
-  <div style="margin-bottom:16px">
-    <!-- Live VQE job card. The former MD / DFT / AI-GNN 'Layer 2' cards were removed:
-         those pipelines were never implemented or run (aspirational stages shown as
-         'jobs' with progress bars). This card reflects the ONE real in-browser process
-         — the Phase 3A VQE demo — and animates while it runs. -->
-    <div class="card">
-      <div class="card-title">Quantum Kernel · Live VQE Job (Phase 3A)</div>
-
-      <div class="job-card">
-        <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
-        <div class="job-info">
-          <div class="job-name" id="job-vqe-name">Phase 3A · VQE — Awaiting simulation run</div>
-          <div class="job-sub" id="job-vqe-sub">Quantum Kernel · 4-qubit JW Hamiltonian (27 Pauli terms) · PySCF CAS(2e,2o) / STO-3G · sqDRIFT targets Phase 3B</div>
-          <div style="margin-top:6px">
-            <div class="progress-wrap"><div class="progress-fill" id="job-vqe-bar" style="width:0%;background:var(--teal)"></div></div>
-          </div>
-        </div>
-        <div class="job-status" id="job-vqe-status" style="color:var(--gray)">Idle</div>
-      </div>
-    </div>
-
-    <!-- Hardware-Agnostic Backend Selector table removed from the operational UI:
-         it was a STATIC, partly-aspirational catalog (GROMACS/ORCA/DeepChem/IonQ
-         were never run; the IBM row was stale) sitting next to live LEON-verified
-         data, which blurred "demonstrated" vs "imagined". The real backend-agnostic
-         (DP4) evidence lives in the live 3A-HPC + 3B-QPU ladders. The catalog, if
-         wanted, belongs in the dissertation's architecture chapter, not here. -->
-  </div>
-
-  <!-- Live VQE Runner -->
-  <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
-    <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="sim-target" onchange="resetJobCards(); updateSimButton();" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
-        <option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>
-      </select>
-      <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
-        ▶ Run Live Simulation
-      </button>
-      <span id="sim-status" style="font-size:11px;color:var(--gray)"></span>
-    </div>
-    <div id="sim-result" style="display:none;background:rgba(0,168,214,0.07);border:1px solid rgba(0,168,214,0.2);border-radius:8px;padding:14px;font-size:12px">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Ground-State Energy (Hₐ)</div><div id="r-energy" style="color:var(--teal);font-size:18px;font-weight:800;font-family:monospace"></div></div>
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">95% CI</div><div id="r-ci" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Qubits / Gates / Depth</div><div id="r-circuit" style="color:var(--light);font-size:13px;font-family:monospace"></div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;border-top:1px solid var(--border);padding-top:10px">
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Run ID <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-runid" style="color:var(--light);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('Run ID copied!'))"></div></div>
-        <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">P8 Cryptographic Seal (SHA-256) <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-seal" style="color:var(--gold);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('P8 seal copied!'))"></div></div>
-      </div>
-      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:10.5px;color:var(--gray)">
-        Phase 3A: PennyLane default.qubit · AllSinglesDoubles UCCSD ansatz · 80 Adam optimisation steps · 4-qubit JW Hamiltonian · P1–P9 record sealed & stored to Supabase
-      </div>
-    </div>
-    <div id="sim-error" style="display:none;color:var(--red);font-size:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.3)"></div>
-  </div>
+  <!-- ══ RUNG 1 (laptop / in-browser VQE) was moved UP to the top of the ladder,
+       directly under the Simulation Pipeline overview. See "LADDER · RUNG 1" there. ══ -->
 
   <div style="text-align:center;margin-top:20px">
     <button onclick="show('s3')" style="background:var(--gold);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">

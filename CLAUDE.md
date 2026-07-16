@@ -37,6 +37,10 @@
 - Principle: "verify, don't trust" (DP1, §06.iv). Named in memory of Doron's father, Leon
 - UI: results show "notarized by LEON"; dissertation has dedication + §06.ii LEON paragraph + §06.iv + glossary entry
 
+## Standing Tasks
+- **Dissertation sync (ALWAYS):** every change to the SOLANGE system must be reflected in the dissertation (`dissertation_revised.html` + `public/` copy — §06.ii LEON, §06.iii audit-in-running-code, §06.iv DP1–DP4). Treat this as a permanent, non-optional step of any feature/UI change.
+- **UI ladder order:** Orchestration tab blocks are ordered small→large→quantum (laptop/in-browser VQE at top → HPC classical → DMRG → QPU at bottom); keep new blocks in that ladder.
+
 ## Compliance
 - Standard: FDA 21 CFR §11.10(e)
 - Provenance: P1–P9 records
