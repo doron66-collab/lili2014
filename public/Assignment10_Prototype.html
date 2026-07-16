@@ -974,10 +974,13 @@
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing</div>
     <p style="font-size:11px;color:var(--gray);margin:4px 0 12px;line-height:1.6">
-      The orchestrator routes each active-space size to the backend that can actually solve it:
-      CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that,
-      and real quantum hardware once the problem passes the classical reach. The rule is applied
-      per problem — this is a dispatch <em>decision</em>, not in-browser execution.
+      <strong>Intended production routing policy</strong> — the rule the orchestrator applies to size each
+      problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond
+      that, and real quantum hardware once the problem passes the classical reach. This is a dispatch
+      <em>decision rule</em>, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders above for what has
+      actually run. <span style="color:var(--gray)">Note: hardware <em>validation</em> smoke tests deliberately
+      run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this
+      size-based production rule.</span>
     </p>
     <div id="dispatch-tiers" style="margin-bottom:16px;overflow-x:auto"></div>
     <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
@@ -1039,7 +1042,7 @@
       if(q<=4)   return {t:'CPU statevector',       w:'Render · live in-browser',        p:'3A',     c:'#22c55e'};
       if(q<=30)  return {t:'GPU statevector',        w:'Laguna · L40S/A100 (cuStateVec)', p:'3A-HPC', c:'#06b6d4'};
       if(q<=120) return {t:'DMRG / tensor-network',  w:'Laguna · largemem (1.5 TB)',      p:'3A-HPC', c:'#a78bfa'};
-      return               {t:'Quantum hardware',     w:'IBM Heron r3',                    p:'3B',     c:'#E8A020'};
+      return               {t:'Quantum hardware',     w:'IBM Heron r2 (r3 = full-scale target)', p:'3B', c:'#E8A020'};
     }
     window.routeBackend = routeBackend;
     var C='padding:6px 9px;border-bottom:1px solid var(--border);font-size:11px;white-space:nowrap';
