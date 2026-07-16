@@ -2050,6 +2050,17 @@ async function showPlatform(user) {
 
   // Restore runs from current session (persists across refreshes, cleared only by Reset)
   loadSessionHistory();
+
+  // Restore the loaded NGS report across refreshes (same lifetime as the runs
+  // above, cleared only by Reset). Without this the mutation list was memory-only
+  // and vanished on any re-init — the "list disappears after I run" symptom.
+  try {
+    const savedNgs = localStorage.getItem('solange_ngs_report');
+    if (savedNgs && !window.__ngsHydrated) {
+      window.__ngsHydrated = true;
+      loadNGSReport(JSON.parse(savedNgs));
+    }
+  } catch (e) { /* corrupt or absent — user can simply re-upload the report */ }
 }
 
 // ── Admin tab ──────────────────────────────────────────────────────────────
@@ -3580,6 +3591,11 @@ function loadNGSReport(ngs) {
       saved_at:    new Date().toISOString(),
       variants:    bridgeVariants,
     }));
+    // Persist the FULL report too. Patient state was memory-only, so any re-init
+    // (an F5, or the auto-refresh/navigation around a run) dropped the mutation
+    // list back to the "no report loaded" placeholder — looking as if nothing had
+    // been uploaded. Re-hydrated in showPlatform(), same lifetime as run history.
+    localStorage.setItem('solange_ngs_report', JSON.stringify(ngs));
   } catch (e) {
     // localStorage unavailable (private mode / quota) — 3D viewer falls back
     // to its built-in demo set. Non-fatal.
@@ -3950,6 +3966,10 @@ function resetPlatform() {
   sessionStorage.setItem('session_start', new Date().toISOString());
   // Clear the 3D-viewer bridge so /3d reverts to its built-in demo set.
   try { localStorage.removeItem('solange_3d_variants'); } catch (e) {}
+  // Clear the persisted NGS report + hydration flag so Reset truly returns to the
+  // "no report loaded" state (and a later refresh does not resurrect it).
+  try { localStorage.removeItem('solange_ngs_report'); } catch (e) {}
+  window.__ngsHydrated = false;
   renderEnergyChart();
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';
