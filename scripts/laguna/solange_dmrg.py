@@ -199,6 +199,9 @@ def main():
     ap.add_argument("--ncas", type=int)
     ap.add_argument("--nelecas", type=int)
     ap.add_argument("--key", required=True, help="target key, e.g. ARID2_LOF")
+    ap.add_argument("--side", default="native", choices=["native", "mutant"],
+                    help="allele — used to auto-resolve the model compound from --key "
+                         "when --compound is omitted (same mapping the HPC agent uses)")
     ap.add_argument("--bond-dims", default="250,500,1000,2000",
                     help="comma-separated increasing bond dimensions")
     ap.add_argument("--out", default="./out")
@@ -234,8 +237,19 @@ def main():
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
-        if not (args.compound and args.ncas and args.nelecas):
-            ap.error("provide either --geometry+--avas, or --compound+--ncas+--nelecas")
+        # Auto-resolve the model compound from key/side (same mapping the HPC agent
+        # uses) so a run needs only --key/--side/--ncas/--nelecas — the caller does
+        # not have to know which GEOM compound models this gene.
+        if not args.compound:
+            try:
+                from solange_hpc import _resolve_compound
+                args.compound = _resolve_compound(args.key, args.side)
+                print(f"--compound not given → resolved {args.key}/{args.side} → {args.compound}")
+            except Exception as e:
+                ap.error(f"could not resolve a model compound for {args.key}/{args.side} ({e}). "
+                         f"Pass --compound <GEOM key> explicitly, or --geometry <xyz>+--avas.")
+        if not (args.ncas and args.nelecas):
+            ap.error("provide --ncas and --nelecas (or use --geometry+--avas for AVAS selection)")
         from solange_hpc import run_casscf
         print(f"SOLANGE DMRG classifier · {args.key} · {args.compound}/{args.basis} "
               f"· CAS({args.nelecas},{args.ncas})")
@@ -264,7 +278,7 @@ def main():
 
     out = {
         "id": str(uuid.uuid4()),
-        "key": args.key, "compound": args.compound, "basis": args.basis,
+        "key": args.key, "side": args.side, "compound": args.compound, "basis": args.basis,
         "ncas": args.ncas, "nelecas": args.nelecas,
         "e_casscf": cas["e_casscf"],
         "dmrg_energies": energies, "s_max": s_max,

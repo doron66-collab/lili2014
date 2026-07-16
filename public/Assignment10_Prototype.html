@@ -1178,10 +1178,12 @@
         '<select id="hpc-side" title="Which allele to run — native (wild-type) or mutant" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
           '<option value="native" selected>native</option><option value="mutant">mutant</option></select>'+
         '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
-        '<button onclick="dispatchSelectedToHpc()" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
+        '<button onclick="dispatchSelectedToHpc()" title="Rung 2 — queue a classical HPC job; the Laguna agent runs it" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
+        '<button onclick="solangeShowRunCmd(\'dmrg\')" title="Rung 3 — copy the exact DMRG command for the selected mutation(s) to run on Laguna" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">⬇ DMRG command</button>'+
+        '<button onclick="solangeShowRunCmd(\'qpu\')" title="Rung 4 — copy the exact QPU command for the selected mutation(s). Real quantum time is spent only when YOU run it on Laguna." style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">⬇ QPU command</button>'+
         '<button onclick="clearHpcQueue()" title="Cancel pending queued/running jobs and clear stale-failed ones (e.g. reaped after an agent was lost)" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Clear queue</button>'+
         '<span id="hpc-dispatch-msg" style="color:var(--gray)"></span></div>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:4px">Queued jobs run when your Laguna agent (<code>solange_hpc.py --agent</code>) is active; results return to the ladder below.</div>';
+        '<div style="color:var(--gray);font-size:10px;margin-top:4px">HPC = queued for the agent (Rung 2). DMRG (Rung 3) &amp; QPU (Rung 4) hand you the exact command to run in your Laguna session — check the mutation(s) first, only the key changes.</div>';
       mutsBox.innerHTML=m+'</table>'+controls;
     };
     placeholder();   // nothing patient-specific before a report is loaded
@@ -3799,6 +3801,70 @@ async function dispatchSelectedToHpc() {
   // Go live immediately: poll the ladder until the agent drains the queue.
   if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
 }
+
+// ── Copy-command helper for the non-queued rungs (DMRG · QPU) ────────────────
+// HONEST BY DESIGN, same posture as "Wake agent": these rungs are NOT dispatched
+// from the browser. DMRG is a manual Laguna run; QPU spends real quantum time and
+// must stay human-in-the-loop. This builds the EXACT command for the checked
+// mutation(s) — only the key/side/CAS from the selection change — and hands it to
+// the user to paste in their authenticated Laguna session.
+window.solangeShowRunCmd = function(kind) {
+  const vars = window.__dispatchVariants || [];
+  const checked = Array.from(document.querySelectorAll('.hpc-chk')).filter(c => c.checked);
+  const ncas = parseInt((document.getElementById('hpc-cas') || {}).value || '8', 10);
+  const side = (document.getElementById('hpc-side') || {}).value || 'native';
+  // Selected mutation keys (fall back to a clear placeholder if none checked).
+  let keys = checked.map(c => (vars[parseInt(c.dataset.i, 10)] || {}).simId).filter(Boolean);
+  const usingPlaceholder = keys.length === 0;
+  if (usingPlaceholder) keys = ['<MUTATION_KEY>'];
+
+  const cmdFor = k => kind === 'dmrg'
+    ? `python scripts/laguna/solange_dmrg.py --key ${k} --side ${side} `
+      + `--ncas ${ncas} --nelecas ${ncas} --bond-dims 250,500,1000,2000 --submit`
+    : `python scripts/laguna/solange_qpu.py --key ${k} --side ${side} `
+      + `--hardware --backend ibm_kingston --submit`;
+  const cmd = keys.map(cmdFor).join('\n');
+
+  const isQpu = kind === 'qpu';
+  const title = isQpu ? '⬇ Run on quantum hardware (Rung 4 · QPU)'
+                      : '⬇ Run DMRG classifier (Rung 3)';
+  const accent = isQpu ? 'var(--gold)' : '#a78bfa';
+  const lead = isQpu
+    ? 'This does <strong>not</strong> run on the browser. Paste it into your authenticated Laguna '
+      + 'session — real quantum time is spent only when <em>you</em> run it. Change <code>--backend</code> '
+      + 'if <code>ibm_kingston</code> is busy (e.g. <code>ibm_marrakesh</code>, <code>ibm_fez</code>).'
+    : 'DMRG is a classical run on Laguna (largemem). The model compound is auto-resolved from the key — '
+      + 'only the mutation, side and active space change between runs.';
+  const note = usingPlaceholder
+    ? '<div style="font-size:10.5px;color:#f87171;margin-bottom:10px">No mutation checked — '
+      + 'the command shows <code>&lt;MUTATION_KEY&gt;</code>. Tick one or more rows first to fill it in automatically.</div>'
+    : '';
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  if (document.getElementById('runcmd-modal')) document.getElementById('runcmd-modal').remove();
+  const ov = document.createElement('div');
+  ov.id = 'runcmd-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(3,10,22,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML =
+    '<div style="background:var(--navy,#0B1E3D);border:1px solid ' + accent + ';border-radius:12px;max-width:680px;width:100%;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,0.5)">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+    +   '<div style="font-size:15px;font-weight:800;color:' + accent + '">' + title + '</div>'
+    +   '<button onclick="document.getElementById(\'runcmd-modal\').remove()" style="background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;line-height:1">×</button>'
+    + '</div>'
+    + '<p style="font-size:12px;color:var(--gray);line-height:1.7;margin:0 0 12px">' + lead + '</p>'
+    + note
+    + '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'
+    +   '<code style="flex:1;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;word-break:break-all">' + esc(cmd) + '</code>'
+    +   '<button onclick="navigator.clipboard.writeText(' + JSON.stringify(cmd) + ').then(function(){this.textContent=\'✓ Copied\';}.bind(this))" style="background:' + accent + ';color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
+    + '</div>'
+    + '<div style="font-size:10.5px;color:var(--gray);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">'
+    +   'Run from the repo root with your env active: <code>module load conda &amp;&amp; conda activate &lt;env&gt; &amp;&amp; cd ~/lili2014</code>. '
+    +   'On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)') + ', notarized by LEON.'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(ov);
+};
 
 async function verifyHpcRun(runId, btn) {
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
