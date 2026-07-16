@@ -3832,11 +3832,11 @@ window.solangeShowRunCmd = function(kind) {
   // and sets up the block2/MKL LD_PRELOAD so the packaging errors never return.
   // QPU is a direct python call preceded by the manual terminal setup.
   const cmdFor = k => kind === 'dmrg'
-    ? `SOLANGE_ENV=<env> bash scripts/laguna/run_dmrg.sh --key ${k} --side ${side} `
+    ? `bash scripts/laguna/run_dmrg.sh --key ${k} --side ${side} `
       + `--ncas ${ncas} --nelecas ${ncas} --bond-dims 250,500,1000,2000 --submit`
     : `python scripts/laguna/solange_qpu.py --key ${k} --side ${side} `
       + `--hardware --backend ibm_kingston --submit`;
-  const setup = 'module load conda && conda activate <env> && cd ~/lili2014';
+  const setup = 'module load conda && conda activate base && cd ~/lili2014';
   const cmd = (kind === 'dmrg')
     ? keys.map(cmdFor).join('\n')            // wrapper handles activate + cd + MKL
     : setup + '\n' + keys.map(cmdFor).join('\n');
@@ -3852,10 +3852,9 @@ window.solangeShowRunCmd = function(kind) {
     : 'DMRG is a classical run on Laguna (largemem). The model compound is auto-resolved from the key — '
       + 'only the mutation, side and active space change between runs.';
   const footHtml = (isQpu
-      ? 'The first line activates the terminal — replace <code>&lt;env&gt;</code> with your conda env name (once).'
-      : 'Paste-and-run in a fresh terminal: <code>run_dmrg.sh</code> activates the env, cd\'s to the repo, and '
-        + 'sets up the block2/MKL libraries automatically — replace <code>&lt;env&gt;</code> once (or export '
-        + '<code>SOLANGE_ENV</code>).')
+      ? 'The first line activates the terminal (uses the <code>base</code> env — change it if yours differs).'
+      : 'Paste-and-run as-is: <code>run_dmrg.sh</code> uses your active env (or <code>base</code>), cd\'s to '
+        + 'the repo, and sets up the block2/MKL libraries automatically — no placeholder to edit.')
     + ' On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)')
     + ', notarized by LEON.';
 

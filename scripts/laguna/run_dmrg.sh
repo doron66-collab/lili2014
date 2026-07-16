@@ -14,13 +14,21 @@
 # Set SOLANGE_ENV / SOLANGE_REPO (or edit the two lines below) to match Laguna.
 set -uo pipefail
 
-CONDA_ENV="${SOLANGE_ENV:-solange}"           # env with block2/pyblock2 + pyscf
+CONDA_ENV="${SOLANGE_ENV:-base}"              # env with block2/pyblock2 + pyscf
 REPO_DIR="${SOLANGE_REPO:-$HOME/lili2014}"    # repo checkout on Laguna
 
 module load conda 2>/dev/null || true
-# shellcheck disable=SC1091
-source activate "$CONDA_ENV" 2>/dev/null || conda activate "$CONDA_ENV" || {
-  echo "run_dmrg: could not activate conda env '$CONDA_ENV' — set SOLANGE_ENV." >&2; exit 1; }
+# If block2 already imports (you are already in the right env — e.g. the shell
+# shows "(base)"), use the current environment as-is. Only activate CONDA_ENV
+# otherwise, so this never needs a placeholder and never breaks a working session.
+if ! python -c "import block2" 2>/dev/null; then
+  # shellcheck disable=SC1091
+  source "$(conda info --base 2>/dev/null)/etc/profile.d/conda.sh" 2>/dev/null || true
+  conda activate "$CONDA_ENV" 2>/dev/null || source activate "$CONDA_ENV" 2>/dev/null || {
+    echo "run_dmrg: block2 is not importable and env '$CONDA_ENV' could not be activated." >&2
+    echo "  Activate your env first (e.g. 'conda activate base'), or set SOLANGE_ENV=<name>." >&2
+    exit 1; }
+fi
 cd "$REPO_DIR" || { echo "run_dmrg: repo not found: $REPO_DIR — set SOLANGE_REPO." >&2; exit 1; }
 
 # 1) locate block2's bundled library dir (block2.libs, created by the wheel) ────
