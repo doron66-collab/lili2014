@@ -2055,10 +2055,30 @@ async function showPlatform(user) {
   // above, cleared only by Reset). Without this the mutation list was memory-only
   // and vanished on any re-init — the "list disappears after I run" symptom.
   try {
-    const savedNgs = localStorage.getItem('solange_ngs_report');
-    if (savedNgs && !window.__ngsHydrated) {
-      window.__ngsHydrated = true;
-      loadNGSReport(JSON.parse(savedNgs));
+    if (!window.__ngsHydrated) {
+      const savedNgs = localStorage.getItem('solange_ngs_report');
+      if (savedNgs) {
+        window.__ngsHydrated = true;
+        loadNGSReport(JSON.parse(savedNgs));
+      } else {
+        // Fallback for reports loaded BEFORE full-report persistence existed: the
+        // variants were still saved in the 3D-viewer bridge all along. Reconstruct
+        // the mutation list from it so a pre-fix report is recovered without a
+        // re-upload. Biomarker fields (EGFR/TMB/MSI) stay blank until re-upload,
+        // but the per-mutation routing and HPC/QPU dispatch are fully usable.
+        const bridge = localStorage.getItem('solange_3d_variants');
+        if (bridge) {
+          const b = JSON.parse(bridge) || {};
+          const vs = (b.variants || []).filter(v => v && v.gene)
+                       .map(v => ({ gene: v.gene, mutation: v.mutation, source: v.source || 'ngs' }));
+          if (vs.length) {
+            window.__ngsHydrated = true;
+            loadNGSReport({ report_id: b.report_id || 'recovered',
+                            institution: b.institution || '', report_date: b.report_date || '',
+                            biomarkers: {}, variants: vs });
+          }
+        }
+      }
     }
   } catch (e) { /* corrupt or absent — user can simply re-upload the report */ }
 }
