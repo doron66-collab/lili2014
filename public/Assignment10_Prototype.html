@@ -1391,48 +1391,12 @@
       </div>
     </div>
 
-    <!-- Hardware Selector -->
-    <div class="card">
-      <div class="card-title">Hardware-Agnostic Backend Selector</div>
-      <div style="font-size:11.5px;color:var(--gray);margin-bottom:12px">
-        The orchestration layer abstracts backend choice. Swap hardware without changing the simulation code.
-      </div>
-
-      <table>
-        <tr><th>Backend</th><th>Type</th><th>Algorithm</th><th>Status</th></tr>
-        <tr>
-          <td style="font-weight:600">IBM Heron r3</td>
-          <td><span class="badge badge-teal">QC</span></td>
-          <td>sqDRIFT (primary algorithm)</td>
-          <td><span style="color:var(--gold);font-weight:700" title="IBM_CONNECT: set IBM_QUANTUM_TOKEN env var and swap run_vqe() in backend/routes/simulate.py">⚑ Pending Access · IBM_CONNECT</span></td>
-        </tr>
-        <tr>
-          <td style="font-weight:600">PennyLane Sim</td>
-          <td><span class="badge badge-teal">QC-SIM</span></td>
-          <td>VQE (Phase 3A live)</td>
-          <td><span id="hw-pennylane-status" style="color:var(--green)">● Active (Phase 3A)</span></td>
-        </tr>
-        <tr>
-          <td style="font-weight:600">HPC Cluster</td>
-          <td><span class="badge badge-gold">HPC</span></td>
-          <td>GROMACS / ORCA</td>
-          <td><span style="color:var(--green)">● Active</span></td>
-        </tr>
-        <tr>
-          <td style="font-weight:600">GPU Node</td>
-          <td><span class="badge badge-violet">AI</span></td>
-          <td>DeepChem GNN</td>
-          <td><span style="color:var(--gray)">○ Queued</span></td>
-        </tr>
-        <tr>
-          <td style="font-weight:600">IonQ Aria</td>
-          <td><span class="badge badge-teal">QC</span></td>
-          <td>VQE (trapped ion)</td>
-          <td><span style="color:var(--gray)">○ Available</span></td>
-        </tr>
-      </table>
-
-    </div>
+    <!-- Hardware-Agnostic Backend Selector table removed from the operational UI:
+         it was a STATIC, partly-aspirational catalog (GROMACS/ORCA/DeepChem/IonQ
+         were never run; the IBM row was stale) sitting next to live LEON-verified
+         data, which blurred "demonstrated" vs "imagined". The real backend-agnostic
+         (DP4) evidence lives in the live 3A-HPC + 3B-QPU ladders. The catalog, if
+         wanted, belongs in the dissertation's architecture chapter, not here. -->
   </div>
 
   <!-- Live VQE Runner -->
