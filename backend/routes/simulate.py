@@ -1031,6 +1031,36 @@ async def list_dmrg_classifications(limit: int = 50):
         return {"classifications": [], "error": str(e)}
 
 
+@router.post("/hpc/dmrg/delete")
+async def delete_selected_dmrg(payload: dict = Body(...),
+                               authorization: str | None = Header(None)):
+    """Delete SPECIFIC DMRG classifications by id (the per-row checkbox flow).
+    Requires auth. DMRG classifications are classical and cost no quantum time,
+    so there is no phase guard — but we still select-then-delete by id (mirroring
+    the QPU path) so the response can report exactly how many rows matched."""
+    _uid_from_auth(authorization)
+    ids = (payload or {}).get("ids") or []
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(status_code=400, detail="body must include a non-empty 'ids' list")
+    sb = get_supabase()
+    if not sb:
+        return {"deleted": 0, "db": "not_configured"}
+    try:
+        str_ids = [str(i) for i in ids]
+        rows = (sb.table("dmrg_classifications").select("id")
+                  .in_("id", str_ids).execute())
+        found = [r["id"] for r in (rows.data or [])]
+        if not found:
+            return {"deleted": 0, "status": "deleted", "requested": len(ids),
+                    "note": "no matching DMRG rows for the given ids"}
+        res = sb.table("dmrg_classifications").delete().in_("id", found).execute()
+        n = len(res.data) if getattr(res, "data", None) else len(found)
+        return {"deleted": n, "status": "deleted", "requested": len(ids)}
+    except Exception as e:
+        logging.error("DMRG delete failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"delete failed: {e}")
+
+
 @router.get("/{mutation_id}")
 async def run_simulation(mutation_id: str, authorization: str | None = Header(None)):
     try:
