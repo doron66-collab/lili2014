@@ -29,6 +29,8 @@ Two frictions motivate this project. First, provenance records and quantum resul
 
 The emerging capability we investigate is that **small language models are now good enough to run locally** — on a laptop, with no data egress — and still perform extraction, summarization, and grounded question-answering usefully. Local execution converts the classic privacy/compliance trade-off: a capability a cloud API cannot offer. This directly engages the course themes of the benefits, downsides, and risks of AI and quantum computing (the risk we confront head-on is **hallucination**, which we measure and mitigate), and of **choosing among LLMs** — including local models — by use case, cost, speed, and reliability.
 
+Two forces make this timely. First, capable open-weight models now run on commodity hardware through runtimes such as Ollama, so "local" no longer means "toy": the models we test range from 0.6 to 8 billion parameters and all run on a single laptop. Second, the *marginal cost* of a local query is essentially zero — there is no per-token API billing and no monthly minimum — and there is no cloud data-processing agreement to negotiate, because nothing leaves the machine. That combination matters most exactly where budgets and data-governance capacity are thinnest: a single researcher, a small lab, or a clinic handling regulated genomic data. The open question this project interrogates is whether the smaller models that local execution makes practical are *accurate and disciplined enough* for scientific use — a question we answer with measurement rather than assertion.
+
 ### 1.4 Thesis
 
 A quantum→AI pipeline is a chain of stochastic components. Our organizing claim is that auditability comes from treating each layer correctly:
@@ -110,6 +112,29 @@ The 4- and 24-qubit records are genuine platform outputs with real LEON seals, i
 
 Language-model sampling temperature is the one knob that injects avoidable randomness. Setting temperature = 0 makes generation deterministic — identical input yields identical output — which is a precondition for reproducible, auditable records. Section 5 measures this directly.
 
+### 3.7 A request, end to end
+
+To make the mechanics concrete, consider a Mode B query for `TP53 C275F`. Five steps run entirely against `localhost`:
+
+1. **Retrieve.** The mutation string, expanded with the terms "undruggable non-druggable therapy," is tokenized and scored against all 19 corpus passages by BM25; the top four are selected. BM25 rewards passages that contain the query's rarer terms and normalizes for passage length, so a short, on-topic passage outranks a long, loosely related one.
+2. **Assemble context.** The retrieved passages are rendered as a numbered block — each with its title, full text, and source citation (author, venue, year, DOI) — so the model sees exactly what the reader will later see.
+3. **Build the prompt.** A fixed system prompt (the grounding contract, §3.8) is combined with the numbered context and a task instruction ("explain why this alteration is non-druggable and summarize indirect strategies; cite [n]").
+4. **Generate locally.** The assembled prompt is POSTed to the local Ollama server; reasoning-model "think" traces are stripped from the final answer and kept separately.
+5. **Return with provenance.** The response carries the answer, the exact sources used (so a reader can verify each claim), and the backend, model, and latency that produced it.
+
+The same five-step pipeline serves Mode A — with the provenance record as the sole context instead of retrieved passages — and the free-form chat. Because retrieval and generation are separate stages, the retriever can be swapped (BM25 ↔ embeddings) and the model can be swapped (any Ollama model) without touching the rest of the pipeline.
+
+### 3.8 The grounding contract
+
+The system prompt encodes four rules that convert a general chatbot into an auditable assistant:
+
+1. **Use only the provided context.** The model may not draw on its pretrained knowledge. This both improves faithfulness and makes behavior *consistent across models* — a 0.6 B and an 8 B model are asked to do the same bounded task, which is what makes the head-to-head comparison fair.
+2. **Cite bracketed sources inline.** Every claim is traceable to a passage the reader can see and check.
+3. **Refuse rather than guess.** If the answer is absent, respond "that is not in the provided context" — the behavior our trap questions measure directly.
+4. **Quote exact values with units.** Critical for provenance records, where an energy in Hartree or a qubit count must be reproduced precisely, not paraphrased.
+
+For Mode A we add interpretation rules (the §3.6 consistency guide) so the model explains what values *mean* and checks them against one another rather than echoing them. This contract is the single most important design element in the system: it is what makes a sub-billion-parameter model usable for grounded scientific work, as the evaluation confirms (Section 5.3, where retrieval quality — not model size — moved the smallest model to perfect grounding).
+
 ---
 
 ## 4. Potential and Demonstrated Capabilities [Section 3]
@@ -187,9 +212,25 @@ Sampling temperature is the randomness knob of a language model. Because output 
 
 The question sets are small (5 grounding, 3 trap, 3–4 facts per mutation), so single-item flips can masquerade as trends; we mitigate by repeated runs in Section 5.5 and by treating ≤ one-question differences as noise. Keyword-containment scoring can, in principle, credit a right keyword in a wrong sentence; manual spot-checks did not surface such cases. All numbers are from one hardware/software configuration.
 
+### 5.7 Cost and accessibility
+
+Accuracy is only one axis of model choice; cost and access are others, and they are where the local design is strongest. Every query in this study cost nothing beyond electricity: there is no per-token API charge, no monthly minimum, and no cloud data-processing agreement to negotiate, because no data leaves the machine. The complete evaluation — hundreds of model calls across four models and three studies — ran on a single laptop with no cloud account. On disk and in memory the models are modest: the largest we used (`deepseek-r1:8b`) is roughly 5 GB and runs without a discrete GPU, while the sweet-spot model (`llama3.2`, 3 B) is about 2 GB. Taken together with the accuracy results, this puts a capable, private, auditable assistant within reach of a single researcher or a small lab with no cloud budget — precisely the resource-constrained scenario the course's small-business topic describes, transposed to a scientific setting. The cost of the approach is raw model capability relative to frontier cloud models, which we quantify (Table 5.2) rather than assume, and which grounding substantially offsets (Table 5.3).
+
 ---
 
-## 6. Limitations [Section 5]
+## 6. Discussion
+
+### 6.1 Determinism where reducible, notarization where irreducible
+
+The evaluation makes the organizing thesis concrete. A quantum→AI pipeline chains several stochastic layers, and each is handled by the mechanism appropriate to it. At the **language-model layer**, randomness is optional: setting temperature to 0 makes generation bit-for-bit reproducible (Section 5.5, standard deviation exactly 0.00) with no measured cost to grounding or refusal — so we remove it. At the **quantum layer**, randomness is physical: quantum sampling cannot be "turned off," so instead of eliminating it we *pin* a specific result with a SHA-256 seal that a notary (LEON) recomputes on every read. A third, orthogonal mechanism — **retrieval grounding** — handles factual correctness. Separating these concerns is what lets one tool be private, reproducible, and auditable at once.
+
+The distinction we are careful *not* to blur is that determinism buys **reproducibility, not truth**. Temperature 0 guarantees the same output for the same input; it does not make a wrong answer right. Correctness rests on grounding and, ultimately, on human peer review of the underlying science. Framed against FDA 21 CFR §11.10(e), reproducibility supports the "consistent intended performance" and record-integrity expectations, but is not by itself a claim of regulatory compliance — a boundary we state plainly rather than overselling.
+
+### 6.2 Relationship to the four suggested topics
+
+Although self-proposed, the project engages all four topics offered in the assignment. It explores the benefits, downsides, and risks of AI and quantum computing as **emerging technologies (Topic 2)**: the benefit is privacy and near-zero marginal cost, the risk is hallucination — which we measure and mitigate through the grounding contract — and quantum computing is the substrate the copilot serves. It provides a concrete framework for **choosing among LLMs, including local models (Topic 3)**, ranking four models by extraction accuracy, grounding, hallucination-resistance, speed, and cost; our recommendation of a 3 B general model over a larger reasoning model is a worked example of that selection. It demonstrates the utility of **randomness in deep learning (Topic 1)** through the repeated-run temperature study, showing that sampling randomness trades reproducibility for no accuracy gain on this task. And it targets **efficiency and effectiveness in a healthcare-research setting (Topic 4)** — faster, auditable review of oncology simulation results. The unifying contribution is methodological: a discipline for making a stochastic scientific pipeline trustworthy enough to explain and audit on a private, local machine.
+
+## 7. Limitations [Section 5]
 
 1. **Small local models are weaker than frontier cloud models.** `qwen3:0.6b` misses ~1 in 7 extraction fields; `deepseek-r1:1.5b` is weakest overall. The tool mitigates but does not eliminate this via grounding and refusal discipline.
 2. **Determinism ≠ correctness.** Temperature 0 gives reproducibility, which supports (but does not by itself satisfy) 21 CFR §11 controls; factual correctness rests on the retrieval grounding, and regulatory validation is out of scope.
@@ -199,7 +240,7 @@ The question sets are small (5 grounding, 3 trap, 3–4 facts per mutation), so 
 
 ---
 
-## 7. Future Work [Section 6]
+## 8. Future Work [Section 6]
 
 1. **Live seal verification.** Real records carry a `p8_seal_payload`; the copilot can recompute the SHA-256 and confirm it matches — turning "verify, don't trust" from slogan into a working in-app check (LEON, locally).
 2. **Semantic retrieval.** Enable the `nomic-embed-text` path and compare lexical vs. semantic grounding as an added evaluation axis.
@@ -210,7 +251,7 @@ The question sets are small (5 grounding, 3 trap, 3–4 facts per mutation), so 
 
 ---
 
-## 8. Conclusion
+## 9. Conclusion
 
 The SOLANGE Copilot shows that capable, grounded, auditable scientific assistance can run **entirely on a laptop**, with no data leaving the machine — the privacy dividend of local models. Empirically, a 3-billion-parameter model was the sweet spot, retrieval enrichment lifted a sub-billion model to perfect grounding, and sampling randomness cost consistency without buying accuracy. These results support a simple engineering doctrine for stochastic quantum→AI pipelines: **remove randomness where you can, notarize it where you can't, and ground every claim in a citable source.**
 
