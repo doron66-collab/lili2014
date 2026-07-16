@@ -1331,7 +1331,7 @@
         + '<div style="font-size:11px;color:var(--teal);font-weight:700;margin:0 0 4px">Recommended — keepalive (survives closing the terminal):</div>'
         + '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:14px">'
         +   '<code style="flex:1;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;word-break:break-all">'+esc(keepalive)+'</code>'
-        +   '<button onclick="navigator.clipboard.writeText('+JSON.stringify(keepalive)+').then(function(){this.textContent=\'✓ Copied\';}.bind(this))" style="background:var(--gold);color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
+        +   '<button id="wake-copy-btn" style="background:var(--gold);color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
         + '</div>'
         + '<div style="font-size:11px;color:var(--gray);font-weight:700;margin:0 0 4px">Or the raw one-off (dies when the terminal closes):</div>'
         + '<code style="display:block;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:11.5px;color:var(--gray);font-family:monospace;white-space:pre-wrap;word-break:break-all;margin-bottom:14px">'+esc(raw)+'</code>'
@@ -1343,6 +1343,12 @@
         + '</div>'
         + '</div>';
       document.body.appendChild(ov);
+      // Wire the Copy handler here (not via inline onclick) so quotes/newlines in
+      // the command can never break the button markup.
+      var cb = document.getElementById('wake-copy-btn');
+      if (cb) cb.addEventListener('click', function(){
+        navigator.clipboard.writeText(keepalive).then(function(){ cb.textContent = '✓ Copied'; });
+      });
     };
 
     // Exposed globally so actions OUTSIDE this closure (like clearHpcQueue's success
@@ -3835,42 +3841,77 @@ window.solangeShowRunCmd = function(kind) {
   const title = isQpu ? '⬇ Run on quantum hardware (Rung 4 · QPU)'
                       : '⬇ Run DMRG classifier (Rung 3)';
   const accent = isQpu ? 'var(--gold)' : '#a78bfa';
-  const lead = isQpu
+  const leadHtml = isQpu
     ? 'This does <strong>not</strong> run on the browser. Paste it into your authenticated Laguna '
       + 'session — real quantum time is spent only when <em>you</em> run it. Change <code>--backend</code> '
       + 'if <code>ibm_kingston</code> is busy (e.g. <code>ibm_marrakesh</code>, <code>ibm_fez</code>).'
     : 'DMRG is a classical run on Laguna (largemem). The model compound is auto-resolved from the key — '
       + 'only the mutation, side and active space change between runs.';
-  const note = usingPlaceholder
-    ? '<div style="font-size:10.5px;color:#f87171;margin-bottom:10px">No mutation checked — '
-      + 'the command shows <code>&lt;MUTATION_KEY&gt;</code>. Tick one or more rows first to fill it in automatically.</div>'
-    : '';
-  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const footHtml = (isQpu
+      ? 'The first line activates the terminal — replace <code>&lt;env&gt;</code> with your conda env name (once).'
+      : 'Paste-and-run in a fresh terminal: <code>run_dmrg.sh</code> activates the env, cd\'s to the repo, and '
+        + 'sets up the block2/MKL libraries automatically — replace <code>&lt;env&gt;</code> once (or export '
+        + '<code>SOLANGE_ENV</code>).')
+    + ' On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)')
+    + ', notarized by LEON.';
 
-  if (document.getElementById('runcmd-modal')) document.getElementById('runcmd-modal').remove();
+  // Build with DOM nodes (not an innerHTML string): the command goes in via
+  // textContent and the Copy handler via addEventListener, so quotes/newlines in
+  // the command can never break the markup (the bug that made this render as a
+  // tall single-column strip with the button's code leaking as text).
+  const old = document.getElementById('runcmd-modal'); if (old) old.remove();
   const ov = document.createElement('div');
   ov.id = 'runcmd-modal';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(3,10,22,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.onclick = e => { if (e.target === ov) ov.remove(); };
-  ov.innerHTML =
-    '<div style="background:var(--navy,#0B1E3D);border:1px solid ' + accent + ';border-radius:12px;max-width:680px;width:100%;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,0.5)">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-    +   '<div style="font-size:15px;font-weight:800;color:' + accent + '">' + title + '</div>'
-    +   '<button onclick="document.getElementById(\'runcmd-modal\').remove()" style="background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;line-height:1">×</button>'
-    + '</div>'
-    + '<p style="font-size:12px;color:var(--gray);line-height:1.7;margin:0 0 12px">' + lead + '</p>'
-    + note
-    + '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'
-    +   '<code style="flex:1;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;word-break:break-all">' + esc(cmd) + '</code>'
-    +   '<button onclick="navigator.clipboard.writeText(' + JSON.stringify(cmd) + ').then(function(){this.textContent=\'✓ Copied\';}.bind(this))" style="background:' + accent + ';color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
-    + '</div>'
-    + '<div style="font-size:10.5px;color:var(--gray);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">'
-    +   (isQpu
-        ? 'The first line activates the terminal — replace <code>&lt;env&gt;</code> with your conda env name (once).'
-        : 'Paste-and-run in a fresh terminal: <code>run_dmrg.sh</code> activates the env, cd\'s to the repo, and sets up the block2/MKL libraries automatically — replace <code>&lt;env&gt;</code> once (or export <code>SOLANGE_ENV</code>).')
-    +   ' On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)') + ', notarized by LEON.'
-    + '</div>'
-    + '</div>';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--navy,#0B1E3D);border:1px solid ' + accent + ';border-radius:12px;max-width:680px;width:100%;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,0.5)';
+
+  const head = document.createElement('div');
+  head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:6px';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:15px;font-weight:800;color:' + accent;
+  h.textContent = title;
+  const x = document.createElement('button');
+  x.textContent = '×';
+  x.style.cssText = 'background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;line-height:1';
+  x.addEventListener('click', () => ov.remove());
+  head.appendChild(h); head.appendChild(x);
+
+  const lead = document.createElement('p');
+  lead.style.cssText = 'font-size:12px;color:var(--gray);line-height:1.7;margin:0 0 12px';
+  lead.innerHTML = leadHtml;
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:stretch;margin-bottom:12px';
+  const code = document.createElement('code');
+  code.textContent = cmd;
+  code.style.cssText = 'flex:1;min-width:0;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere';
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = 'Copy';
+  copyBtn.style.cssText = 'flex:0 0 auto;background:' + accent + ';color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap';
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(cmd).then(() => { copyBtn.textContent = '✓ Copied'; });
+  });
+  row.appendChild(code); row.appendChild(copyBtn);
+
+  const foot = document.createElement('div');
+  foot.style.cssText = 'font-size:10.5px;color:var(--gray);line-height:1.6;border-top:1px solid var(--border);padding-top:10px';
+  foot.innerHTML = footHtml;
+
+  box.appendChild(head);
+  box.appendChild(lead);
+  if (usingPlaceholder) {
+    const noteEl = document.createElement('div');
+    noteEl.style.cssText = 'font-size:10.5px;color:#f87171;margin-bottom:10px';
+    noteEl.innerHTML = 'No mutation checked — the command shows <code>&lt;MUTATION_KEY&gt;</code>. '
+      + 'Tick one or more rows first to fill it in automatically.';
+    box.appendChild(noteEl);
+  }
+  box.appendChild(row);
+  box.appendChild(foot);
+  ov.appendChild(box);
   document.body.appendChild(ov);
 };
 
