@@ -43,7 +43,9 @@ _supervisor() {
   cd "$REPO_DIR" || { echo "[keepalive] repo not found: $REPO_DIR"; exit 1; }
   while true; do
     echo "[keepalive $(date '+%F %T')] starting agent (env=$CONDA_ENV)"
-    python scripts/laguna/solange_hpc.py --agent --out ./out
+    # -u = unbuffered, so the agent's login/poll/heartbeat lines reach the log file
+    # live instead of sitting in a buffer (which made the log look empty/stuck).
+    python -u scripts/laguna/solange_hpc.py --agent --out ./out
     echo "[keepalive $(date '+%F %T')] agent exited (rc=$?); restarting in 10s"
     sleep 10
   done
