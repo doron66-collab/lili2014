@@ -29,9 +29,14 @@ import os, glob, importlib.util
 spec = importlib.util.find_spec('block2')
 if not spec or not spec.origin:
     print(''); raise SystemExit
-site = os.path.dirname(os.path.dirname(spec.origin))          # .../site-packages
-cands = glob.glob(os.path.join(site, 'block2.libs')) \
-      + glob.glob(os.path.join(site, 'block2', '.libs'))
+# block2 may be a single .so (origin in site-packages) OR a package
+# (origin in site-packages/block2/__init__...). Normalize to site-packages.
+sp = os.path.dirname(spec.origin)
+if os.path.basename(sp) == 'block2':
+    sp = os.path.dirname(sp)
+cands = glob.glob(os.path.join(sp, 'block2.libs')) \
+      + glob.glob(os.path.join(sp, 'block2*.libs')) \
+      + glob.glob(os.path.join(sp, 'block2', '.libs'))
 print(cands[0] if cands else '')
 PY
 )"
