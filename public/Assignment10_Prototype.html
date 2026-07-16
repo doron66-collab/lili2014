@@ -3823,7 +3823,10 @@ window.solangeShowRunCmd = function(kind) {
       + `--ncas ${ncas} --nelecas ${ncas} --bond-dims 250,500,1000,2000 --submit`
     : `python scripts/laguna/solange_qpu.py --key ${k} --side ${side} `
       + `--hardware --backend ibm_kingston --submit`;
-  const cmd = keys.map(cmdFor).join('\n');
+  // Prepend the terminal setup so the whole block is paste-and-run in a fresh
+  // Laguna session — replace <env> with your conda env name once.
+  const setup = 'module load conda && conda activate <env> && cd ~/lili2014';
+  const cmd = setup + '\n' + keys.map(cmdFor).join('\n');
 
   const isQpu = kind === 'qpu';
   const title = isQpu ? '⬇ Run on quantum hardware (Rung 4 · QPU)'
@@ -3859,7 +3862,7 @@ window.solangeShowRunCmd = function(kind) {
     +   '<button onclick="navigator.clipboard.writeText(' + JSON.stringify(cmd) + ').then(function(){this.textContent=\'✓ Copied\';}.bind(this))" style="background:' + accent + ';color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
     + '</div>'
     + '<div style="font-size:10.5px;color:var(--gray);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">'
-    +   'Run from the repo root with your env active: <code>module load conda &amp;&amp; conda activate &lt;env&gt; &amp;&amp; cd ~/lili2014</code>. '
+    +   'The first line activates the terminal — replace <code>&lt;env&gt;</code> with your conda env name (once). '
     +   'On success the row appears in ' + (isQpu ? 'Rung 4 (Phase 3B QPU)' : 'Rung 3 (DMRG A/B/C)') + ', notarized by LEON.'
     + '</div>'
     + '</div>';
