@@ -57,7 +57,7 @@ S_HARD       = 1.5          # max bipartite entanglement entropy above which the
 
 
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
-             n_threads=4, max_minutes=None):
+             n_threads=4, max_minutes=None, early_stop=True):
     """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max.
 
     HPC-ticket-aware: prints live per-M timing (so `tail -f` shows real progress,
@@ -74,6 +74,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     mpo = drv.get_qc_mpo(h1e=h1e, g2e=h2e, ecore=ecore, iprint=0)
     ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)
     energies = []
+    stop_reason = "completed"            # completed | converged | time_budget
     t_start = time.time()
     for M in bond_dims:
         elapsed_before = time.time() - t_start
@@ -82,6 +83,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
                   f"{max_minutes} — stopping before M={M}; returning {len(energies)} "
                   f"completed bond dim(s). Re-run with the same --scratch to resume.",
                   file=sys.stderr)
+            stop_reason = "time_budget"
             break
         t0 = time.time()
         e = drv.dmrg(mpo, ket, n_sweeps=10, bond_dims=[M],
@@ -90,11 +92,27 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         energies.append((M, float(e)))
         print(f"  DMRG M={M:5d}  E={float(e):.8f} Ha  [{dt:.1f}s this M, "
               f"{(time.time()-t_start)/60:.1f}m total]", file=sys.stderr)
+        # Early stop: once the energy stops improving by more than chemical accuracy
+        # between consecutive bond dims, larger M cannot change the verdict — the
+        # answer has converged. This is exactly classify()'s own convergence test,
+        # so stopping here loses no evidence (the last two points already agree),
+        # and it saves the expensive high-M sweeps on easy/weakly-correlated cases.
+        # A hard, strongly-correlated (Class-A) system keeps dropping, so it never
+        # triggers and runs the full sweep — precisely where the evidence matters.
+        if early_stop and len(energies) >= 2:
+            dE = abs(energies[-1][1] - energies[-2][1]) * 1000.0     # mHa
+            if dE < CHEM_ACC_MHA:
+                print(f"  [early stop] ΔE(M={energies[-2][0]}→{M})={dE:.3f} mHa "
+                      f"< {CHEM_ACC_MHA} (chemical accuracy) — converged; skipping "
+                      f"larger bond dims ({len(bond_dims)-len(energies)} remaining).",
+                      file=sys.stderr)
+                stop_reason = "converged"
+                break
     try:
         s_max = float(np.max(drv.get_bipartite_entanglement(ket)))
     except Exception:
         s_max = None
-    return energies, s_max
+    return energies, s_max, stop_reason
 
 
 def classify(active_electrons, energies, s_max):
@@ -202,6 +220,10 @@ def main():
     ap.add_argument("--side", default="native", choices=["native", "mutant"],
                     help="allele — used to auto-resolve the model compound from --key "
                          "when --compound is omitted (same mapping the HPC agent uses)")
+    ap.add_argument("--no-early-stop", action="store_true",
+                    help="run every requested bond dim even after the energy converges "
+                         "(default: stop once ΔE between consecutive M < chemical accuracy, "
+                         "since larger M cannot change the verdict)")
     ap.add_argument("--bond-dims", default="250,500,1000,2000",
                     help="comma-separated increasing bond dimensions")
     ap.add_argument("--out", default="./out")
@@ -257,18 +279,25 @@ def main():
     print(f"CASSCF E = {cas['e_casscf']:.8f} Ha")
 
     t0 = time.time()
-    energies, s_max = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
+    energies, s_max, stop_reason = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
                                args.ncas, args.nelecas, bond_dims,
                                scratch=args.scratch, n_threads=args.threads,
-                               max_minutes=args.max_minutes)
+                               max_minutes=args.max_minutes,
+                               early_stop=not args.no_early_stop)
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
     # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
-    time_budget_hit = len(energies) < len(bond_dims)
+    # PROVISIONAL only when the sweep was cut short by the TIME budget — a convergence
+    # early-stop is the opposite (the answer is final, we just skipped redundant high M).
+    time_budget_hit = (stop_reason == "time_budget")
     if time_budget_hit:
         print(f"NOTE: stopped early at {len(energies)}/{len(bond_dims)} bond dimensions "
               f"(--max-minutes {args.max_minutes}). The class below is PROVISIONAL — "
               f"re-run with --scratch {args.scratch} to resume toward the full bond-dim list.")
+    elif stop_reason == "converged":
+        print(f"NOTE: converged early at M={energies[-1][0]} "
+              f"({len(energies)}/{len(bond_dims)} bond dims run) — larger M cannot change "
+              f"the verdict. This is a FINAL result, not provisional.")
 
     cls, rationale = classify(args.nelecas, energies, s_max)
     print("-" * 68)
