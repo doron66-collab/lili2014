@@ -23,7 +23,13 @@ exact **sources** it used — "verify, don't trust," applied to the language mod
 record's P8 SHA-256 seal locally and compares it to the stored hash — a faithful
 reproduction of the platform's LEON notary. A valid record shows ✅ *Seal
 VERIFIED*; edit any sealed value (e.g. an energy) in the record box and re-verify
-to see ❌ *Seal MISMATCH* — live tamper detection, entirely offline.
+to see ❌ *Seal MISMATCH*, which also names the changed field — live tamper
+detection, entirely offline.
+
+**⚖️ Compare models.** The Compare tab runs one question across several local
+models at once and shows each answer, its latency, and its grounding side by
+side (flagging the fastest) — the evaluation's model-selection story, live in the
+UI and useful for the presentation.
 
 ---
 

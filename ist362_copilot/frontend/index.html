@@ -45,6 +45,16 @@
   .seal .ok-t{color:var(--green)} .seal .bad-t{color:#f87171}
   .seal code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;word-break:break-all;color:var(--gray)}
   .seal .fields{margin-top:6px;color:#f87171;font-size:13px}
+  .modelboxes{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}
+  .modelboxes label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--white);cursor:pointer}
+  .cmpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px}
+  .cmpcard{border:1px solid var(--line);border-radius:11px;padding:12px;background:#0a1c37}
+  .cmpcard.fastest{border-color:var(--green)}
+  .cmpcard .m{font-weight:700;color:var(--teal);font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .cmpcard .lat{font-size:12px;color:var(--gray);font-weight:400}
+  .cmpcard .ans{font-size:13px;line-height:1.5;margin-top:8px;white-space:pre-wrap;max-height:300px;overflow:auto}
+  .cmpcard .csrc{font-size:11.5px;color:var(--gray);margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+  .badge-fast{background:var(--green);color:var(--navy);font-size:10px;padding:2px 7px;border-radius:6px;font-weight:700}
   .answer{white-space:pre-wrap;line-height:1.55;font-size:14.5px}
   .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--gray);
         margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
@@ -78,6 +88,7 @@
     <div class="tab active" data-mode="explain">A · Explain a run</div>
     <div class="tab" data-mode="drug">B · Druggability</div>
     <div class="tab" data-mode="chat">Ask the literature</div>
+    <div class="tab" data-mode="compare">⚖️ Compare models</div>
   </div>
 
   <!-- Mode A -->
@@ -128,6 +139,18 @@
     <button class="run" data-mode="chat">Ask</button>
   </section>
 
+  <!-- Compare models -->
+  <section id="panel-compare" class="card" hidden>
+    <p class="sub">Ask one question and run it across several local models side by side — see the accuracy/speed trade-off live. Every model answers from the same retrieved sources.</p>
+    <label>Question</label>
+    <input id="q-compare" placeholder="e.g. Why is TP53 non-druggable?" />
+    <div class="chips" id="compareChips"></div>
+    <label>Models to compare</label>
+    <div id="compareModels" class="modelboxes"></div>
+    <button class="run" data-mode="compare">Run comparison</button>
+    <div id="compareGrid" class="cmpgrid"></div>
+  </section>
+
   <!-- Output -->
   <section id="output" class="card" hidden>
     <div class="answer" id="answer"></div>
@@ -153,6 +176,13 @@ async function loadHealth(){
     ["explain","drug","chat"].forEach(m=>{
       const sel = $("#model-"+m); sel.innerHTML = "";
       models.forEach(mn=>{const o=document.createElement("option");o.value=mn;o.textContent=mn;sel.appendChild(o);});
+    });
+    // compare-tab checkboxes (default-check up to the first two to bound runtime)
+    const cm = $("#compareModels"); cm.innerHTML = "";
+    models.forEach((mn,idx)=>{
+      const l = document.createElement("label");
+      l.innerHTML = `<input type="checkbox" value="${mn}" ${idx<2?"checked":""}> ${mn}`;
+      cm.appendChild(l);
     });
     if(h.backend === "mock"){
       $("#answer").innerHTML = "";
@@ -190,6 +220,8 @@ document.querySelectorAll(".tab").forEach(t=>{
     $("#panel-explain").hidden = m!=="explain";
     $("#panel-drug").hidden = m!=="drug";
     $("#panel-chat").hidden = m!=="chat";
+    $("#panel-compare").hidden = m!=="compare";
+    $("#output").hidden = true;   // hide shared output when switching tabs
   };
 });
 
@@ -200,11 +232,49 @@ muts.forEach(mt=>{const c=document.createElement("span");c.className="chip";c.te
 const qs = ["What basis set and active space does SOLANGE use?","How is a run notarized?","Why is KRAS G12C druggable but TP53 is not?"];
 qs.forEach(q=>{const c=document.createElement("span");c.className="chip";c.textContent=q;
   c.onclick=()=>$("#q-chat").value=q;$("#chatChips").appendChild(c);});
+["Why is TP53 non-druggable?","What drug targets KEAP1-mutant NSCLC?","How did KRAS G12C become druggable?"]
+  .forEach(q=>{const c=document.createElement("span");c.className="chip";c.textContent=q;
+  c.onclick=()=>$("#q-compare").value=q;$("#compareChips").appendChild(c);});
 
 // run handlers
+async function runCompare(btn){
+  const q = $("#q-compare").value.trim();
+  if(!q){ alert("Enter a question to compare."); return; }
+  const models = [...document.querySelectorAll("#compareModels input:checked")].map(x=>x.value);
+  if(!models.length){ alert("Select at least one model."); return; }
+  const grid = $("#compareGrid"); grid.innerHTML="";
+  const cards = {};
+  models.forEach(m=>{
+    const d=document.createElement("div"); d.className="cmpcard";
+    d.innerHTML=`<div class="m"><span>${m}</span><span class="lat">…running</span></div><div class="ans">waiting…</div>`;
+    grid.appendChild(d); cards[m]=d;
+  });
+  btn.disabled=true; const old=btn.textContent; btn.textContent="Running locally…";
+  const results=[];
+  for(const m of models){        // sequential: models share the CPU/GPU
+    const card=cards[m];
+    card.querySelector(".ans").textContent="thinking on your machine…";
+    try{
+      const r=await fetch(API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q,model:m})}).then(x=>x.json());
+      results.push({m, lat:r.latency_s});
+      card.querySelector(".lat").textContent = r.latency_s+"s";
+      card.querySelector(".ans").textContent = r.answer||"(no answer)";
+      const s=document.createElement("div"); s.className="csrc"; s.textContent=`grounded in ${(r.sources||[]).length} source(s) · backend ${r.backend}`;
+      card.appendChild(s);
+    }catch(e){ card.querySelector(".ans").textContent="Error: "+e; card.querySelector(".lat").textContent="failed"; }
+  }
+  if(results.length){
+    const fastest = results.reduce((a,b)=>a.lat<b.lat?a:b);
+    const fc = cards[fastest.m]; fc.classList.add("fastest");
+    fc.querySelector(".m span:first-child").insertAdjacentHTML("afterend",' <span class="badge-fast">FASTEST</span>');
+  }
+  btn.disabled=false; btn.textContent=old;
+}
+
 document.querySelectorAll("button.run").forEach(btn=>{
   btn.onclick = async ()=>{
     const mode = btn.dataset.mode;
+    if(mode==="compare"){ return runCompare(btn); }
     let url, body;
     if(mode==="explain"){
       url="/api/explain-run";

@@ -30,33 +30,114 @@
           "description": "Jordan-Wigner Pauli decomposition — H = Σ_i c_i · P_i, P_i ∈ {I,X,Y,Z}^⊗4",
           "n_terms": 27,
           "terms": [
-            {"coeff": -0.47487769409345987, "pauli": "I"},
-            {"coeff": 0.07202957352695938, "pauli": "Z0"},
-            {"coeff": 0.07202957352695938, "pauli": "Z1"},
-            {"coeff": 0.0008027851414943773, "pauli": "Y0 Z1 Y2"},
-            {"coeff": 0.0008027851414943773, "pauli": "X0 Z1 X2"},
-            {"coeff": 0.0008027851414943773, "pauli": "Y1 Z2 Y3"},
-            {"coeff": 0.0008027851414943773, "pauli": "X1 Z2 X3"},
-            {"coeff": -0.07509250865428913, "pauli": "Z2"},
-            {"coeff": -0.07509250865428913, "pauli": "Z3"},
-            {"coeff": 0.08834661428465132, "pauli": "Z0 Z1"},
-            {"coeff": -0.0004592734718799141, "pauli": "Z0 Y1 Z2 Y3"},
-            {"coeff": -0.0004592734718799141, "pauli": "Z0 X1 Z2 X3"},
-            {"coeff": -0.0004592734718799141, "pauli": "Y0 Y2"},
-            {"coeff": -0.0004592734718799141, "pauli": "X0 X2"},
-            {"coeff": 0.06253549703585774, "pauli": "Z0 Z2"},
-            {"coeff": 0.08863096158476985, "pauli": "Z0 Z3"},
-            {"coeff": 0.08863096158476985, "pauli": "Z1 Z2"},
-            {"coeff": 0.06253549703585774, "pauli": "Z1 Z3"},
-            {"coeff": 0.026095464548912116, "pauli": "Y0 X1 X2 Y3"},
-            {"coeff": -0.026095464548912116, "pauli": "Y0 Y1 X2 X3"},
-            {"coeff": -0.026095464548912116, "pauli": "X0 X1 Y2 Y3"},
-            {"coeff": 0.026095464548912116, "pauli": "X0 Y1 Y2 X3"},
-            {"coeff": -0.0013737053563272943, "pauli": "Y0 Z1 Y2 Z3"},
-            {"coeff": -0.0013737053563272943, "pauli": "X0 Z1 X2 Z3"},
-            {"coeff": -0.0013737053563272943, "pauli": "Y1 Y3"},
-            {"coeff": -0.0013737053563272943, "pauli": "X1 X3"},
-            {"coeff": 0.09032403282221271, "pauli": "Z2 Z3"}
+            {
+              "coeff": -0.47487769409345987,
+              "pauli": "I"
+            },
+            {
+              "coeff": 0.07202957352695938,
+              "pauli": "Z0"
+            },
+            {
+              "coeff": 0.07202957352695938,
+              "pauli": "Z1"
+            },
+            {
+              "coeff": 0.0008027851414943773,
+              "pauli": "Y0 Z1 Y2"
+            },
+            {
+              "coeff": 0.0008027851414943773,
+              "pauli": "X0 Z1 X2"
+            },
+            {
+              "coeff": 0.0008027851414943773,
+              "pauli": "Y1 Z2 Y3"
+            },
+            {
+              "coeff": 0.0008027851414943773,
+              "pauli": "X1 Z2 X3"
+            },
+            {
+              "coeff": -0.07509250865428913,
+              "pauli": "Z2"
+            },
+            {
+              "coeff": -0.07509250865428913,
+              "pauli": "Z3"
+            },
+            {
+              "coeff": 0.08834661428465132,
+              "pauli": "Z0 Z1"
+            },
+            {
+              "coeff": -0.0004592734718799141,
+              "pauli": "Z0 Y1 Z2 Y3"
+            },
+            {
+              "coeff": -0.0004592734718799141,
+              "pauli": "Z0 X1 Z2 X3"
+            },
+            {
+              "coeff": -0.0004592734718799141,
+              "pauli": "Y0 Y2"
+            },
+            {
+              "coeff": -0.0004592734718799141,
+              "pauli": "X0 X2"
+            },
+            {
+              "coeff": 0.06253549703585774,
+              "pauli": "Z0 Z2"
+            },
+            {
+              "coeff": 0.08863096158476985,
+              "pauli": "Z0 Z3"
+            },
+            {
+              "coeff": 0.08863096158476985,
+              "pauli": "Z1 Z2"
+            },
+            {
+              "coeff": 0.06253549703585774,
+              "pauli": "Z1 Z3"
+            },
+            {
+              "coeff": 0.026095464548912116,
+              "pauli": "Y0 X1 X2 Y3"
+            },
+            {
+              "coeff": -0.026095464548912116,
+              "pauli": "Y0 Y1 X2 X3"
+            },
+            {
+              "coeff": -0.026095464548912116,
+              "pauli": "X0 X1 Y2 Y3"
+            },
+            {
+              "coeff": 0.026095464548912116,
+              "pauli": "X0 Y1 Y2 X3"
+            },
+            {
+              "coeff": -0.0013737053563272943,
+              "pauli": "Y0 Z1 Y2 Z3"
+            },
+            {
+              "coeff": -0.0013737053563272943,
+              "pauli": "X0 Z1 X2 Z3"
+            },
+            {
+              "coeff": -0.0013737053563272943,
+              "pauli": "Y1 Y3"
+            },
+            {
+              "coeff": -0.0013737053563272943,
+              "pauli": "X1 X3"
+            },
+            {
+              "coeff": 0.09032403282221271,
+              "pauli": "Z2 Z3"
+            }
           ]
         },
         "references": [
@@ -111,6 +192,7 @@
         "p7_confidence": 0.95,
         "p9_applicable": false,
         "p9_note": "P9 applies when the QEC decoder is active (Phase 3B hardware).",
+        "p8_seal_payload": "{\"p1_ansatz\": \"none \\u2014 exact diagonalisation\", \"p1_circuit_hash\": \"117c9e88171dcc4b3e418fda77d064037f5e5f0008b854010e046f4fd5e4847c\", \"p1_depth\": 0, \"p1_gate_count\": 0, \"p1_qubit_count\": 24, \"p2_active_electrons\": 12, \"p2_active_orbitals\": 12, \"p2_basis_set\": \"6-31g (CASSCF(12,12))\", \"p2_compiler\": \"PySCF + openfermion\", \"p2_compiler_version\": null, \"p2_encoding\": \"Jordan-Wigner (CASSCF(12,12) -> 0 Pauli terms)\", \"p2_model_compound\": \"methanethiol\", \"p3_backend\": \"NVIDIA L40S \\u00b7 46068 MiB \\u00b7 CPU sparse\", \"p3_backend_version\": null, \"p3_simulator\": true, \"p4_gate_error_rate\": 0.0, \"p4_note\": \"Exact statevector on HPC GPU \\u2014 noiseless; Phase 3B records real IBM Heron r3 calibration.\", \"p4_readout_error_rate\": 0.0, \"p4_t1_us\": null, \"p4_t2_us\": null, \"p5_active_energy_ha\": null, \"p5_casscf_ref_ha\": -437.7612416122472, \"p5_ecore_ha\": -407.0083262300119, \"p5_elapsed_s\": 171.87, \"p5_energy_variance\": 0.0, \"p5_opt_steps\": 0, \"p5_raw_energy\": -437.7612416122472, \"p5_shots\": null, \"p6_method\": \"none \\u2014 exact statevector\", \"p6_note\": \"Phase 3B: ZNE + Pauli Twirling on IBM Heron r3\", \"p7_ci_lower\": null, \"p7_ci_upper\": null, \"p7_confidence\": 0.95, \"p7_energy_ha\": -437.7612416122472, \"p7_method\": \"exact active-space diagonalisation\", \"p9_applicable\": false, \"p9_note\": \"P9 applies when the QEC decoder is active (Phase 3B hardware).\"}",
         "p8_hash": "dff0adb7dd6a804121122d3416a638a616a7cf99391787f5cbe9599bbcf8556c",
         "p8_algorithm": "SHA-256 over P1-P7,P9 (sort_keys, default=str)",
         "p8_sealed_at": "2026-07-09T17:39:06.491886+00:00"
