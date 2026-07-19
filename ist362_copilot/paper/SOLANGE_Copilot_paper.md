@@ -106,7 +106,7 @@ To demonstrate the copilot beyond a toy 4-qubit proxy, Mode A includes three rea
 | Mid | CASSCF(12,12) | **24** | exact statevector diagonalisation | NVIDIA L40S GPU (HPC/Laguna) | −437.76124 Ha |
 | Large | CASSCF(44,44) | 88 | sqDRIFT (sample-based quantum diagonalisation) | IBM Heron r3 | *planned* |
 
-The 4- and 24-qubit records are genuine platform outputs with real LEON seals, included verbatim; the 88-qubit Phase 3B record is a clearly-marked plan (its final energy is intentionally null, since that run has not yet been executed). A subtle but important point the copilot handles correctly: **CASSCF(12,12) maps to 24 qubits**, not 12 — twelve spatial orbitals become 24 spin-orbitals under the Jordan-Wigner transform. Because the copilot operates on the provenance record rather than the physics, it is *scale-agnostic*: the same tool explains a 4-qubit and an 88-qubit run.
+The 24-qubit record is a genuine platform output included verbatim with its real seal; the 4-qubit record carries the real Phase 3A CASSCF values and Hamiltonian re-expressed in the current P1-P9 schema and re-sealed with the platform's own LEON code (so both verify live); the 88-qubit Phase 3B record is a clearly-marked plan (its final energy and seal are intentionally null, since that run has not yet been executed). A subtle but important point the copilot handles correctly: **CASSCF(12,12) maps to 24 qubits**, not 12 — twelve spatial orbitals become 24 spin-orbitals under the Jordan-Wigner transform. Because the copilot operates on the provenance record rather than the physics, it is *scale-agnostic*: the same tool explains a 4-qubit and an 88-qubit run.
 
 ### 3.6 Determinism
 
