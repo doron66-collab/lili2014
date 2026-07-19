@@ -141,6 +141,22 @@ Expect: `['ibm_fez', 'ibm_marrakesh', 'ibm_kingston']`.
 > ⚠ Never paste your API key/CRN into chat or commit it. Keys are shown once —
 > if a value is lost or wrong, create a new API key.
 
+### Which backend? (any of the three)
+
+Your Open instance has **three** QPUs, all IBM **Heron r2**, 156 qubits:
+**`ibm_fez`**, **`ibm_marrakesh`**, **`ibm_kingston`**. Any online one works —
+`--backend` is your choice, and the examples below use `ibm_kingston` only as a
+stand-in. Pick whichever is online and least busy (a machine can go into
+maintenance):
+
+```bash
+# list online backends + queue depth, pick the shortest — free, no quantum time
+python -c "from qiskit_ibm_runtime import QiskitRuntimeService; s=QiskitRuntimeService(); [print(b.name, 'online' if b.status().operational else 'DOWN', b.status().pending_jobs, 'queued') for b in s.backends()]"
+```
+
+Swap `--backend <name>` in any command below (or `--agent --backend <name>`) to
+whichever you chose.
+
 ### 3b. One-time — the queue migration (for the QPU agent)
 
 Run once in the **Supabase SQL editor**:
@@ -162,10 +178,11 @@ The dry-run runs the whole pipeline on a local simulator (creates a
 
 ### 3d. Option A — queue + QPU agent (like HPC)
 
-Start the QPU agent (spends real quantum time on each claimed job):
+Start the QPU agent (spends real quantum time on each claimed job). It runs
+**every** claimed job on the `--backend` you give it, so pick an online one:
 
 ```bash
-python scripts/laguna/solange_qpu.py --agent --backend ibm_kingston
+python scripts/laguna/solange_qpu.py --agent --backend ibm_kingston   # or ibm_fez / ibm_marrakesh
 ```
 
 Then in SOLANGE: tick a mutation → **▶ Queue for QPU** → confirm the
@@ -204,11 +221,11 @@ bash scripts/laguna/make_row.sh                     # or run directly
 # DMRG (Rung 3)
 bash scripts/laguna/run_dmrg.sh --key <KEY> --side native --ncas 8 --nelecas 8 --bond-dims 250,500,1000,2000 --submit
 
-# QPU (Rung 4)
+# QPU (Rung 4) — --backend is any of: ibm_fez | ibm_marrakesh | ibm_kingston
 python scripts/laguna/solange_qpu.py --check-credentials
 python scripts/laguna/solange_qpu.py --key <KEY> --side native --dry-run --submit      # free
-python scripts/laguna/solange_qpu.py --agent --backend ibm_kingston                    # agent, then queue from UI
-python scripts/laguna/solange_qpu.py --key <KEY> --side native --hardware --backend ibm_kingston --submit   # direct
+python scripts/laguna/solange_qpu.py --agent --backend <BACKEND>                        # agent, then queue from UI
+python scripts/laguna/solange_qpu.py --key <KEY> --side native --hardware --backend <BACKEND> --submit   # direct
 ```
 
 ---
