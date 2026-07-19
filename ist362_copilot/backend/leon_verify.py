@@ -46,16 +46,36 @@ def recompute_seal(record: dict) -> dict:
     """
     stored = record.get("p8_hash")
     has_flat = any(_SEAL_KEY_RE.match(k) for k in record)
+    nested = record.get("provenance")
+    nested_seal = nested.get("p8_seal") if isinstance(nested, dict) else None
 
-    if not has_flat or not stored:
-        nested = record.get("provenance")
-        nested_seal = nested.get("p8_seal") if isinstance(nested, dict) else None
-        return {
-            "verifiable": False,
-            "reason": ("No reconstructable P1-P7,P9 seal fields with a p8_hash were "
-                       "found. Live verification supports the flat P1-P9 schema."),
-            "stored_hash": stored or nested_seal,
-        }
+    # Mirror the production LEON (backend/routes/leon.py) handling of records that
+    # can't be re-attested, so the copilot's verdicts match the platform's.
+    if not stored:
+        if has_flat and "p8_hash" in record:
+            # p8_hash present but null → the run was never sealed (e.g. a planned run)
+            return {"verifiable": False,
+                    "reason": ("This run has no seal yet: p8_hash is null. It is a "
+                               "planned run that has not been executed, so there is "
+                               "nothing to re-attest."),
+                    "stored_hash": None}
+        if nested_seal:
+            # older compact export format (single provenance.p8_seal, no P1-P9 fields)
+            return {"verifiable": False,
+                    "reason": ("This record uses the compact export format (a single "
+                               "provenance.p8_seal). Like LEON's LEGACY-UNVERIFIABLE "
+                               "path, live re-attestation needs the full P1-P9 schema "
+                               "(with p8_seal_payload) — re-export the run to verify it."),
+                    "stored_hash": nested_seal}
+        return {"verifiable": False,
+                "reason": ("No P1-P9 seal fields with a p8_hash were found. Live "
+                           "verification supports the flat P1-P9 provenance schema."),
+                "stored_hash": None}
+    if not has_flat:
+        return {"verifiable": False,
+                "reason": ("A p8_hash is present but no P1-P7,P9 fields to hash — the "
+                           "record is not in the flat provenance schema."),
+                "stored_hash": stored}
 
     payload = canonical_payload(record)
     recomputed = hashlib.sha256(payload.encode("utf-8")).hexdigest()
