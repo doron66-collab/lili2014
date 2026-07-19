@@ -142,6 +142,7 @@
   <!-- Compare models -->
   <section id="panel-compare" class="card" hidden>
     <p class="sub">Ask one question and run it across several local models side by side — see the accuracy/speed trade-off live. Every model answers from the same retrieved sources.</p>
+    <p class="sub" style="font-size:12px;opacity:.8">Each model is <b>warmed up</b> (loaded into memory) before it is timed, so the reported latency reflects generation only and the fairest model wins the ⚡ badge. Models run one at a time; single-query latency is indicative — the paper's evaluation harness averages many runs.</p>
     <label>Question</label>
     <input id="q-compare" placeholder="e.g. Why is TP53 non-druggable?" />
     <div class="chips" id="compareChips"></div>
@@ -252,8 +253,12 @@ async function runCompare(btn){
   btn.disabled=true; const old=btn.textContent; btn.textContent="Running locally…";
   const results=[];
   for(const m of models){        // sequential: models share the CPU/GPU
-    const card=cards[m];
-    card.querySelector(".ans").textContent="thinking on your machine…";
+    const card=cards[m]; const lat=card.querySelector(".lat");
+    // warm-up: load the model into memory first, so the timed call below
+    // measures generation only (no one-time load penalty) — a fair comparison
+    lat.textContent="warming up…"; card.querySelector(".ans").textContent="loading model…";
+    try{ await fetch(API+"/api/warmup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:m})}); }catch(e){}
+    lat.textContent="timing…"; card.querySelector(".ans").textContent="generating…";
     try{
       const r=await fetch(API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q,model:m})}).then(x=>x.json());
       results.push({m, lat:r.latency_s});

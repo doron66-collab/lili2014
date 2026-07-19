@@ -101,6 +101,17 @@ def h_druggability(body: dict):
             "sources": [h.to_dict() for h in hits], **res.to_dict()}
 
 
+def h_warmup(body: dict):
+    """Load a model into memory with a trivial generation, so the *next* call
+    measures generation time only (fair latency comparison, no load penalty)."""
+    model = body.get("model")
+    try:
+        res = get_backend().generate("Reply with: OK", model=model, temperature=0)
+        return {"ok": True, "model": res.model, "backend": res.backend}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 def h_verify_seal(body: dict):
     # Prefer the raw record_text (parsed here in Python, which preserves float
     # formatting like 0.0); fall back to a pre-parsed record object.
@@ -187,6 +198,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(h_chat(body))
             if route == "/api/verify-seal":
                 return self._send_json(h_verify_seal(body))
+            if route == "/api/warmup":
+                return self._send_json(h_warmup(body))
             self._send_json({"error": "not found", "path": route}, status=404)
         except Exception as e:
             self._send_json({"error": str(e)}, status=500)

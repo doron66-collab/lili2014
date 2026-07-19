@@ -71,6 +71,10 @@ class VerifySealRequest(BaseModel):
     record_text: str | None = None
 
 
+class WarmupRequest(BaseModel):
+    model: str | None = None
+
+
 # ── read endpoints ───────────────────────────────────────────────────────────
 @app.get("/")
 def root():
@@ -170,6 +174,16 @@ def verify_seal(req: VerifySealRequest):
     else:
         record = req.record or {}
     return {"mode": "verify-seal", **leon_verify.recompute_seal(record)}
+
+
+@app.post("/api/warmup")
+def warmup(req: WarmupRequest):
+    """Preload a model so the next call measures generation time only."""
+    try:
+        res = get_backend().generate("Reply with: OK", model=req.model, temperature=0)
+        return {"ok": True, "model": res.model, "backend": res.backend}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 # ── grounded free-form Q&A ───────────────────────────────────────────────────
