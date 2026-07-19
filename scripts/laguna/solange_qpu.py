@@ -355,8 +355,81 @@ def submit(api, record):
             resp = json.loads(r.read().decode())
         print(f"SUBMITTED → SOLANGE  status={resp.get('status')}  seal_ok={resp.get('seal_ok')}  "
               f"db={resp.get('db_status')}  notary={resp.get('notary')}  run_id={resp.get('run_id')}")
+        return resp
     except Exception as e:
         print(f"  SUBMIT FAILED (result still saved locally): {e}", file=sys.stderr)
+        return None
+
+
+def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, api):
+    """Execute ONE real-hardware QPU job end-to-end (used by --agent): build the
+    target, measure ⟨H⟩ on hardware, seal the record, save it, and submit to SOLANGE.
+    Returns (submit_response_or_None, record)."""
+    target = jw_target(key, side, jw_file) if key else h2_target()
+    energy, backend_label, telemetry, meta = measure(target, True, backend, shots, token, instance)
+    hf_exact, _ground = _exact(target["obs"], target["circuit"])
+    record = build_record(target, energy, hf_exact, backend_label, telemetry, meta)
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    stem = f"qpu_{target['mutation_id']}_{target['side']}_hw"
+    (Path(out_dir) / f"{stem}_{record['id'][:8]}.json").write_text(
+        json.dumps(record, indent=2, default=str))
+    return submit(api, record), record
+
+
+def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, password):
+    """QPU pull-agent — the same governed model as the Laguna HPC agent, but for real
+    hardware. Runs ONLY in your authenticated session; claims ONLY jobs you queued in
+    SOLANGE (job_type=qpu). Each claimed job spends real quantum time on `backend`."""
+    import urllib.request
+    from solange_hpc import _supabase_login, _ts
+    ibm_token = os.environ.get("QISKIT_IBM_TOKEN")   # None ⇒ use the saved IBM account
+    jwt = _supabase_login(email, password)
+    hdr = {"Authorization": "Bearer " + jwt}
+
+    def _post(path, body):
+        req = urllib.request.Request(api.rstrip("/") + path,
+            data=json.dumps(body).encode(), method="POST",
+            headers={**hdr, "Content-Type": "application/json"})
+        return urllib.request.urlopen(req, timeout=30).read()
+
+    def heartbeat():
+        try: _post("/api/simulate/hpc/agent/heartbeat", {"agent": "qpu", "agent_id": "qpu"})
+        except Exception: pass
+
+    def post_status(did, status, note=None, run_id=None):
+        body = {"status": status}
+        if note:   body["note"] = str(note)[:400]
+        if run_id: body["run_id"] = run_id
+        try: _post(f"/api/simulate/hpc/dispatch/{did}/status", body)
+        except Exception as e: print(f"[{_ts()}] [qpu-agent] status post failed: {e}", file=sys.stderr)
+
+    print(f"[{_ts()}] [qpu-agent] up · backend={backend} · polling {api} every {poll_s}s · Ctrl+C to stop")
+    print(f"[{_ts()}] [qpu-agent] ⚠ each claimed job spends REAL quantum time on {backend}.")
+    while True:
+        heartbeat()
+        try:
+            req = urllib.request.Request(
+                api.rstrip("/") + "/api/simulate/hpc/dispatch/next?job_type=qpu", headers=hdr)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                job = json.loads(r.read().decode()).get("job")
+        except Exception as e:
+            print(f"[{_ts()}] [qpu-agent] poll error: {e}", file=sys.stderr); time.sleep(poll_s); continue
+        if not job:
+            time.sleep(poll_s); continue
+        did = job["id"]; key = job.get("key"); side = job.get("side", "native")
+        print(f"[{_ts()}] [qpu-agent] job {did[:8]} · {key}/{side} → REAL QPU on {backend}")
+        try:
+            resp, _record = run_one_qpu(key, side, backend, shots, ibm_token, instance, jw_file, out_dir, api)
+            stored = bool(resp) and resp.get("db_status") in ("stored", "stored_no_payload")
+            ok = bool(stored and resp.get("seal_ok"))
+            note = "ok" if ok else ("verified but not stored" if resp else "submit failed")
+            post_status(did, "done" if ok else "failed", note=note,
+                        run_id=(resp.get("run_id") if resp else None))
+            print(f"[{_ts()}] [qpu-agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}  "
+                  f"db={resp.get('db_status') if resp else '—'}")
+        except Exception as e:
+            post_status(did, "failed", note=str(e))
+            print(f"[{_ts()}] [qpu-agent] job {did[:8]} error: {e}", file=sys.stderr)
 
 
 def main():
@@ -381,6 +454,16 @@ def main():
                     help="fetch the result of an already-COMPLETED QPU job by id (e.g. when "
                          "the local run hung on job.result()). Costs NO QPU time. Requires "
                          "--key/--side/--backend to rebuild and submit the record.")
+    # ── QPU pull-agent (same governed model as the Laguna HPC agent) ──────────
+    ap.add_argument("--agent", action="store_true",
+                    help="run as the QPU pull-agent: poll SOLANGE for queued job_type=qpu "
+                         "jobs and run each on --backend. Each claimed job spends REAL "
+                         "quantum time. Runs only in your authenticated session.")
+    ap.add_argument("--api", default="https://qcaihpc-simulation-api.onrender.com",
+                    help="SOLANGE backend base URL (agent mode)")
+    ap.add_argument("--poll", type=int, default=15, help="agent poll interval seconds")
+    ap.add_argument("--email", default="guest@solange.bio", help="SOLANGE login (agent mode)")
+    ap.add_argument("--password", default="Solange2026", help="SOLANGE password (agent mode)")
     args = ap.parse_args()
     Path(args.out).mkdir(parents=True, exist_ok=True)
     token = os.environ.get("QISKIT_IBM_TOKEN")
@@ -398,6 +481,18 @@ def main():
         print("=" * 72); sys.exit(1)
     if args.retrieve and not args.key:
         ap.error("--retrieve requires --key/--side to rebuild the P1-P9 record")
+
+    if args.agent:
+        if not available:
+            print("-" * 72)
+            print("REFUSING to start the QPU agent without credentials — it would only fail "
+                  "every claimed job. Set QISKIT_IBM_TOKEN (or save an account) and retry.")
+            print("=" * 72); sys.exit(1)
+        print(f"Mode: QPU PULL-AGENT · backend={args.backend}")
+        print("=" * 72)
+        run_agent(args.api, args.backend, args.shots, args.poll, args.jw_file,
+                  args.instance, args.out, args.email, args.password)
+        return
 
     target = jw_target(args.key, args.side, args.jw_file) if args.key else h2_target()
     _mode = ('RETRIEVE (fetch completed job — no QPU time)' if args.retrieve

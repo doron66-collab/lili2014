@@ -703,7 +703,10 @@ async def agent_heartbeat(payload: dict = Body(default={}),
     sb = get_supabase()
     if not sb:
         return {"ok": False, "db": "not_configured"}
-    row = {"id": "default", "last_seen": datetime.now(timezone.utc).isoformat(),
+    # agent_id keys the heartbeat row so distinct agents track independently:
+    # the classical Laguna agent uses 'default' (unchanged), the QPU agent 'qpu'.
+    row = {"id": (payload or {}).get("agent_id", "default"),
+           "last_seen": datetime.now(timezone.utc).isoformat(),
            "agent": (payload or {}).get("agent", "laguna"),
            "note": (payload or {}).get("note")}
     try:
@@ -714,13 +717,14 @@ async def agent_heartbeat(payload: dict = Body(default={}),
 
 
 @router.get("/hpc/agent/status")
-async def agent_status():
-    """Return whether an agent has pinged recently (online within 90s)."""
+async def agent_status(agent_id: str = "default"):
+    """Return whether an agent has pinged recently (online within 90s).
+    agent_id selects which agent: 'default' (classical Laguna) or 'qpu'."""
     sb = get_supabase()
     if not sb:
         return {"online": False, "db": "not_configured"}
     try:
-        res = sb.table("agent_heartbeat").select("*").eq("id", "default").execute()
+        res = sb.table("agent_heartbeat").select("*").eq("id", agent_id).execute()
         if not res.data:
             return {"online": False, "last_seen": None}
         last = res.data[0].get("last_seen")
@@ -759,6 +763,14 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         "run_vqe":  bool(payload.get("run_vqe", False)),
         "residue":  payload.get("residue", ""),
     }
+    # job_type routes the job to the right agent: 'hpc' (default, classical Laguna)
+    # or 'qpu' (real IBM hardware, pulled by the QPU agent). Only attach it for the
+    # non-default type so classical dispatch keeps working even before the job_type
+    # column migration is applied. The QPU backend/shots are agent-level choices
+    # (set when you start the QPU agent), so the row needs only key/side + type.
+    job_type = str(payload.get("job_type", "hpc")).lower()
+    if job_type != "hpc":
+        row["job_type"] = job_type
     try:
         res = sb.table("hpc_dispatch").insert(row).execute()
         did = (res.data or [{}])[0].get("id")
@@ -813,19 +825,26 @@ async def clear_dispatch(payload: dict = Body(default={}),
 
 
 @router.get("/hpc/dispatch/next")
-async def next_dispatch(authorization: str | None = Header(None)):
-    """Cluster agent pulls the oldest queued job and claims it (status→running)."""
+async def next_dispatch(job_type: str = "hpc", authorization: str | None = Header(None)):
+    """An agent pulls the oldest queued job OF ITS TYPE and claims it (status→running).
+    job_type routes: the classical Laguna agent asks for 'hpc' (default), the QPU
+    agent asks for 'qpu'. A row with no job_type (pre-migration / classical) counts
+    as 'hpc', so this stays correct whether or not the job_type column exists yet."""
     _uid_from_auth(authorization)
+    want = str(job_type or "hpc").lower()
     sb = get_supabase()
     if not sb:
         return {"job": None, "db": "not_configured"}
     _reap_stale_dispatch(sb)   # clear orphaned 'running' jobs before claiming the next
     try:
+        # Fetch queued jobs oldest-first and pick the first matching type in Python —
+        # robust to the job_type column being absent or NULL (treated as 'hpc').
         res = (sb.table("hpc_dispatch").select("*")
-                 .eq("status", "queued").order("created_at").limit(1).execute())
-        if not res.data:
+                 .eq("status", "queued").order("created_at").limit(20).execute())
+        job = next((j for j in (res.data or [])
+                    if str(j.get("job_type") or "hpc").lower() == want), None)
+        if not job:
             return {"job": None}
-        job = res.data[0]
         (sb.table("hpc_dispatch").update(
             {"status": "running", "claimed_at": datetime.now(timezone.utc).isoformat()})
            .eq("id", job["id"]).eq("status", "queued").execute())

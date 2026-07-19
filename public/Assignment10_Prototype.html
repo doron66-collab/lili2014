@@ -1182,10 +1182,11 @@
         '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
         '<button onclick="dispatchSelectedToHpc()" title="Rung 2 — queue a classical HPC job; the Laguna agent runs it" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
         '<button onclick="solangeShowRunCmd(\'dmrg\')" title="Rung 3 — copy the exact DMRG command for the selected mutation(s) to run on Laguna" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">⬇ DMRG command</button>'+
-        '<button onclick="solangeShowRunCmd(\'qpu\')" title="Rung 4 — copy the exact QPU command for the selected mutation(s). Real quantum time is spent only when YOU run it on Laguna." style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">⬇ QPU command</button>'+
+        '<button onclick="dispatchSelectedToQpu()" title="Rung 4 — queue a REAL quantum-hardware job. Your QPU agent (solange_qpu.py --agent) pulls it and spends real quantum time. Same pull model as HPC." style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Queue for QPU</button>'+
+        '<button onclick="solangeShowRunCmd(\'qpu\')" title="Rung 4 — copy the exact QPU command to run manually instead of via the agent." style="background:rgba(232,160,32,0.08);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">⬇ cmd</button>'+
         '<button onclick="clearHpcQueue()" title="Cancel pending queued/running jobs and clear stale-failed ones (e.g. reaped after an agent was lost)" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Clear queue</button>'+
         '<span id="hpc-dispatch-msg" style="color:var(--gray)"></span></div>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:4px">HPC = queued for the agent (Rung 2). DMRG (Rung 3) &amp; QPU (Rung 4) hand you the exact command to run in your Laguna session — check the mutation(s) first, only the key changes.</div>';
+        '<div style="color:var(--gray);font-size:10px;margin-top:4px">HPC (Rung 2) &amp; QPU (Rung 4) queue for their agents. DMRG (Rung 3) hands you a copy-command. QPU spends REAL quantum time when its agent pulls the job — start it with <code>solange_qpu.py --agent</code>.</div>';
       mutsBox.innerHTML=m+'</table>'+controls;
     };
     placeholder();   // nothing patient-specific before a report is loaded
@@ -1282,24 +1283,43 @@
       var n=function(s){return jobs.filter(function(j){return j.status===s;}).length;};
       var q=n('queued'), r=n('running'), f=n('failed');
       var lastFail=jobs.filter(function(j){return j.status==='failed'&&j.note;})[0];
+      var qQpu=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='queued';}).length;
+      var rQpu=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='running';}).length;
       fetch(API+'/api/simulate/hpc/agent/status').then(function(x){return x.json();}).then(function(s){
         var online=!!(s&&s.online);
-        if(!q&&!r&&!f&&!online){ el.style.display='none'; return; }
-        var dot=function(c){return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:4px;vertical-align:middle"></span>';};
-        var agent=online?(dot('var(--green)')+'<span style="color:var(--green)">agent online</span>')
-                        :(dot('#f87171')+'<span style="color:var(--gray)">agent offline</span>');
-        var counts=[];
-        if(q) counts.push('<span style="color:var(--gray)">'+q+' queued</span>');
-        if(r) counts.push('<span style="color:var(--teal)">'+r+' running</span>');
-        if(f) counts.push('<span style="color:#f87171">'+f+' failed</span>');
-        var line=agent+(counts.length?' · '+counts.join(' · '):'');
-        // When the agent is red, offer a Wake button. It does NOT reach into Laguna
-        // (that would breach the DP2 pull boundary) — it hands the user the exact
-        // launch command to paste in their own authenticated Laguna session.
-        if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
-        if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
-          String(lastFail.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
-        el.innerHTML=line; el.style.display='block';
+        // The QPU agent is tracked on its own heartbeat row (agent_id=qpu) so its dot
+        // is independent of the classical Laguna agent. Never rejects (defaults offline).
+        fetch(API+'/api/simulate/hpc/agent/status?agent_id=qpu').then(function(y){return y.json();})
+          .catch(function(){return {online:false};}).then(function(sq){
+          var qpuOnline=!!(sq&&sq.online);
+          var qpuActivity=qQpu||rQpu||qpuOnline;
+          if(!q&&!r&&!f&&!online&&!qpuActivity){ el.style.display='none'; return; }
+          var dot=function(c){return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:4px;vertical-align:middle"></span>';};
+          var agent=online?(dot('var(--green)')+'<span style="color:var(--green)">HPC agent online</span>')
+                          :(dot('#f87171')+'<span style="color:var(--gray)">HPC agent offline</span>');
+          var counts=[];
+          if(q) counts.push('<span style="color:var(--gray)">'+q+' queued</span>');
+          if(r) counts.push('<span style="color:var(--teal)">'+r+' running</span>');
+          if(f) counts.push('<span style="color:#f87171">'+f+' failed</span>');
+          var line=agent+(counts.length?' · '+counts.join(' · '):'');
+          // When the HPC agent is red, offer a Wake button. It does NOT reach into
+          // Laguna (that would breach the DP2 pull boundary) — it hands the user the
+          // exact launch command to paste in their own authenticated Laguna session.
+          if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
+          // QPU agent line — shown only when QPU work is queued/running or its agent is up.
+          if(qpuActivity){
+            var qpuAgent=qpuOnline?(dot('var(--gold)')+'<span style="color:var(--gold)">QPU agent online</span>')
+                                   :(dot('#f87171')+'<span style="color:var(--gray)">QPU agent offline</span>');
+            var qc=[];
+            if(qQpu) qc.push('<span style="color:var(--gray)">'+qQpu+' queued</span>');
+            if(rQpu) qc.push('<span style="color:var(--gold)">'+rQpu+' running</span>');
+            line+='<div style="margin-top:2px">'+qpuAgent+(qc.length?' · '+qc.join(' · '):'')+
+              (qpuOnline?'':' <span style="color:var(--gray);font-size:10px">— start: <code>solange_qpu.py --agent</code></span>')+'</div>';
+          }
+          if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
+            String(lastFail.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
+          el.innerHTML=line; el.style.display='block';
+        });
       }).catch(function(){ el.style.display='none'; });
     };
     // ── "Wake agent" helper ──────────────────────────────────────────────────
@@ -3809,6 +3829,48 @@ async function dispatchSelectedToHpc() {
          (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
          ' — a Laguna agent will run them; results appear below automatically.');
   // Go live immediately: poll the ladder until the agent drains the queue.
+  if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+}
+
+// Queue REAL quantum-hardware job(s) for the QPU pull-agent (job_type=qpu). Same
+// governed model as HPC — but each job spends REAL quantum time when your QPU agent
+// (solange_qpu.py --agent) claims it, so this confirms explicitly first.
+async function dispatchSelectedToQpu() {
+  const vars = window.__dispatchVariants || [];
+  const checked = Array.from(document.querySelectorAll('.hpc-chk')).filter(c => c.checked);
+  const msg = document.getElementById('hpc-dispatch-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!checked.length) { setMsg('<span style="color:#f87171">Select at least one mutation.</span>'); return; }
+  const side = document.getElementById('hpc-side').value;
+  const keys = checked.map(c => (vars[parseInt(c.dataset.i, 10)] || {}).simId).filter(Boolean);
+  if (!confirm(
+      `Queue ${keys.length} REAL quantum-hardware job(s) for the QPU agent?\n\n` +
+      `${keys.join(', ')}  ·  side=${side}\n\n` +
+      `⚠ Each job spends REAL quantum time (from your ~10 min/month) the moment your ` +
+      `QPU agent picks it up. The agent must be running:\n` +
+      `    python scripts/laguna/solange_qpu.py --agent --backend ibm_kingston\n\n` +
+      `Nothing runs until that agent is alive and claims the job.`)) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` };
+  setMsg('queuing for QPU…');
+  let ok = 0, fail = 0;
+  for (const c of checked) {
+    const v = vars[parseInt(c.dataset.i, 10)];
+    if (!v) continue;
+    try {
+      const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ key: v.simId, side, job_type: 'qpu', residue: v.mutation || '' })
+      });
+      const out = await res.json();
+      out.queued ? ok++ : fail++;
+    } catch (e) { fail++; }
+  }
+  setMsg(`<span style="color:var(--gold)">✓ queued ${ok} for QPU</span>` +
+         (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
+         ' — start/keep the QPU agent alive; results appear in Rung 4.');
   if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
 }
 
