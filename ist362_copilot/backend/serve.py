@@ -29,6 +29,7 @@ from urllib.parse import urlparse
 from llm_adapter import get_backend, OllamaBackend
 from retriever import get_retriever
 import prompts
+import leon_verify
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -92,6 +93,11 @@ def h_druggability(body: dict):
                                  system=prompts.SYSTEM_PROMPT)
     return {"mode": "druggability", "mutation": mutation, "answer": res.text,
             "sources": [h.to_dict() for h in hits], **res.to_dict()}
+
+
+def h_verify_seal(body: dict):
+    record = body.get("record") or {}
+    return {"mode": "verify-seal", **leon_verify.recompute_seal(record)}
 
 
 def h_chat(body: dict):
@@ -163,6 +169,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(h_druggability(body))
             if route == "/api/chat":
                 return self._send_json(h_chat(body))
+            if route == "/api/verify-seal":
+                return self._send_json(h_verify_seal(body))
             self._send_json({"error": "not found", "path": route}, status=404)
         except Exception as e:
             self._send_json({"error": str(e)}, status=500)

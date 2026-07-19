@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from llm_adapter import get_backend, OllamaBackend
 from retriever import get_retriever
 import prompts
+import leon_verify
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -63,6 +64,10 @@ class ChatRequest(BaseModel):
     question: str
     model: str | None = None
     top_k: int = 4
+
+
+class VerifySealRequest(BaseModel):
+    record: dict
 
 
 # ── read endpoints ───────────────────────────────────────────────────────────
@@ -145,6 +150,13 @@ def druggability(req: DruggabilityRequest):
         "sources": [h.to_dict() for h in hits],
         **result.to_dict(),
     }
+
+
+# ── LEON: live seal verification ─────────────────────────────────────────────
+@app.post("/api/verify-seal")
+def verify_seal(req: VerifySealRequest):
+    """Re-attest a provenance record's P8 seal locally (verify, don't trust)."""
+    return {"mode": "verify-seal", **leon_verify.recompute_seal(req.record)}
 
 
 # ── grounded free-form Q&A ───────────────────────────────────────────────────

@@ -19,6 +19,12 @@ Two capabilities, one shared engine (local LLM + retrieval-augmented grounding):
 Every answer reports which **backend** and **model** produced it and lists the
 exact **sources** it used — "verify, don't trust," applied to the language model.
 
+**LEON seal verification.** In Mode A, the **🔐 Verify seal** button recomputes the
+record's P8 SHA-256 seal locally and compares it to the stored hash — a faithful
+reproduction of the platform's LEON notary. A valid record shows ✅ *Seal
+VERIFIED*; edit any sealed value (e.g. an energy) in the record box and re-verify
+to see ❌ *Seal MISMATCH* — live tamper detection, entirely offline.
+
 ---
 
 ## Why this project (emerging-technologies angle)
