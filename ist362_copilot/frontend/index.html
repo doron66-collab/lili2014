@@ -168,7 +168,8 @@ async function loadSample(){
       const o = document.createElement("option");
       o.value = i; o.textContent = r.label; sel.appendChild(o);
     });
-    const setFromIndex = i => { $("#runJson").value = JSON.stringify(data.runs[i].record, null, 2); };
+    // use the server's raw record_text so floats (0.0) survive for seal verification
+    const setFromIndex = i => { $("#runJson").value = data.runs[i].record_text || JSON.stringify(data.runs[i].record, null, 2); };
     sel.onchange = () => setFromIndex(sel.value);
     setFromIndex(0);   // default to the 4-qubit run
   }catch(e){
@@ -234,12 +235,13 @@ document.querySelectorAll("button.run").forEach(btn=>{
 
 // LEON — live seal verification
 $("#verifyBtn").onclick = async ()=>{
-  let record;
-  try{ record = JSON.parse($("#runJson").value||"null"); }
+  const text = $("#runJson").value || "";
+  try{ JSON.parse(text||"null"); }   // validate only; we send the raw text
   catch(e){ alert("Invalid JSON in the record field."); return; }
   const box = $("#sealResult"); box.hidden=false; box.className="seal na"; box.textContent="Recomputing SHA-256 seal locally…";
   try{
-    const r = await fetch(API+"/api/verify-seal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({record})}).then(x=>x.json());
+    // send the RAW text (not a parsed object) so Python preserves float formatting
+    const r = await fetch(API+"/api/verify-seal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({record_text:text})}).then(x=>x.json());
     if(!r.verifiable){
       box.className="seal na";
       box.innerHTML = `<div class="hd">Seal not verifiable</div><div>${r.reason||""}</div>`;

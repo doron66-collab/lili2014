@@ -67,7 +67,8 @@ class ChatRequest(BaseModel):
 
 
 class VerifySealRequest(BaseModel):
-    record: dict
+    record: dict | None = None
+    record_text: str | None = None
 
 
 # ── read endpoints ───────────────────────────────────────────────────────────
@@ -113,8 +114,12 @@ def sample_run():
 
 @app.get("/api/sample-runs")
 def sample_runs():
-    """A set of example provenance records at increasing scale (4 -> 12 -> 88 qubits)."""
-    return json.loads((_DATA_DIR / "sample_runs.json").read_text(encoding="utf-8"))
+    """A set of example provenance records at increasing scale (4 -> 24 -> 88 qubits)."""
+    data = json.loads((_DATA_DIR / "sample_runs.json").read_text(encoding="utf-8"))
+    # raw string so the browser doesn't mangle floats (0.0 -> 0) before verify
+    for run in data.get("runs", []):
+        run["record_text"] = json.dumps(run["record"], indent=2, ensure_ascii=False)
+    return data
 
 
 # ── Mode A: explain a provenance run ─────────────────────────────────────────
@@ -156,7 +161,15 @@ def druggability(req: DruggabilityRequest):
 @app.post("/api/verify-seal")
 def verify_seal(req: VerifySealRequest):
     """Re-attest a provenance record's P8 seal locally (verify, don't trust)."""
-    return {"mode": "verify-seal", **leon_verify.recompute_seal(req.record)}
+    if req.record_text is not None:
+        try:
+            record = json.loads(req.record_text)
+        except Exception as e:
+            return {"mode": "verify-seal", "verifiable": False,
+                    "reason": f"Invalid JSON in record: {e}"}
+    else:
+        record = req.record or {}
+    return {"mode": "verify-seal", **leon_verify.recompute_seal(record)}
 
 
 # ── grounded free-form Q&A ───────────────────────────────────────────────────

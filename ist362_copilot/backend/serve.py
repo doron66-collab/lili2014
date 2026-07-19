@@ -70,7 +70,13 @@ def h_sample_run():
 
 
 def h_sample_runs():
-    return json.loads((_DATA_DIR / "sample_runs.json").read_text("utf-8"))
+    data = json.loads((_DATA_DIR / "sample_runs.json").read_text("utf-8"))
+    # Also send each record as a raw Python-serialized string so the browser can
+    # display/edit it WITHOUT JSON.parse mangling floats (e.g. 0.0 -> 0), which
+    # would otherwise break seal verification.
+    for run in data.get("runs", []):
+        run["record_text"] = json.dumps(run["record"], indent=2, ensure_ascii=False)
+    return data
 
 
 def h_explain_run(body: dict):
@@ -96,7 +102,17 @@ def h_druggability(body: dict):
 
 
 def h_verify_seal(body: dict):
-    record = body.get("record") or {}
+    # Prefer the raw record_text (parsed here in Python, which preserves float
+    # formatting like 0.0); fall back to a pre-parsed record object.
+    text = body.get("record_text")
+    if text is not None:
+        try:
+            record = json.loads(text)
+        except Exception as e:
+            return {"mode": "verify-seal", "verifiable": False,
+                    "reason": f"Invalid JSON in record: {e}"}
+    else:
+        record = body.get("record") or {}
     return {"mode": "verify-seal", **leon_verify.recompute_seal(record)}
 
 
