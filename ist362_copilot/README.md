@@ -80,9 +80,11 @@ library. Nothing to `pip install`, nothing to compile — ideal on very new Pyth
 versions (e.g. 3.14) where prebuilt packages may not exist yet.
 
 ```bash
-cd ist362_copilot/backend
+cd backend
 python3 serve.py
 ```
+(All commands in this README are relative to the project root — the folder that
+contains `backend/`, `frontend/`, and `eval/`.)
 Then open **<http://localhost:8000/app>**. Stop with `Ctrl+C`.
 Change the port with `PORT=8010 python3 serve.py`.
 
@@ -91,7 +93,6 @@ rest of this section (FastAPI, pip) is an optional alternative.
 
 ### Optional — the FastAPI version
 ```bash
-cd ist362_copilot
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cd backend && uvicorn app:app --reload --port 8000
