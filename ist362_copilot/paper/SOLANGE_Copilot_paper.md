@@ -1,11 +1,12 @@
 # SOLANGE Copilot: A Privacy-Preserving Local-LLM Assistant for Auditable Quantum-Oncology Provenance
 
 **Author:** Doron Cohen
+**Instructor:** Prof. Wallace Chipidza
 **Course:** IST 362 — Emerging Technologies
 **Institution:** Claremont Graduate University, 2026
-**Repository:** `ist362_copilot/` (see Appendix A to run it)
+**Repository:** https://github.com/doron66-collab/ist362-solange-copilot (run instructions in Appendix A)
 
-> *Draft. Word count target ≤ 5,000. Evaluation numbers are from real runs on the author's machine (Apple Silicon, Ollama); tables are reproducible with the harness in Appendix A.*
+> *Evaluation numbers are from real runs on the author's machine (Apple Silicon, Ollama); tables are reproducible with the harness in Appendix A.*
 
 ---
 
@@ -287,8 +288,9 @@ Biomedical passages in the corpus are summarized from articles indexed in **PubM
 ## Appendix A — Reproducing the results
 
 ```bash
+# From the repository root:
 # 1. Run the app (no dependencies)
-cd ist362_copilot && ./start.sh            # open http://localhost:8000/app
+./start.sh                                 # open http://localhost:8000/app
 
 # 2. Main benchmark (Table 5.2)
 cd eval
