@@ -1052,6 +1052,37 @@ async def list_dmrg_classifications(limit: int = 50):
         return {"classifications": [], "error": str(e)}
 
 
+@router.get("/hpc/dmrg/{class_id}/verify")
+async def verify_dmrg_seal(class_id: str):
+    """Re-verify a DMRG classification's seal on demand — the DMRG-table equivalent
+    of /api/provenance/runs/{id}/verify. LEON recomputes SHA-256 over the record's
+    own dmrg_seal_payload (stored verbatim at ingestion, same robust pattern as the
+    P8 seal) and compares it to the stored dmrg_hash. Public read, like the P8 path."""
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(status_code=503, detail="database not configured")
+    res = (sb.table("dmrg_classifications").select("*").eq("id", class_id).execute())
+    if not res.data:
+        raise HTTPException(status_code=404, detail=f"DMRG classification {class_id} not found")
+    record = res.data[0]
+    stored = record.get("dmrg_hash", "")
+    payload = record.get("dmrg_seal_payload")
+    if payload:
+        recomputed = hashlib.sha256(payload.encode()).hexdigest()
+        integrity = "PASS" if recomputed == stored else "FAIL"
+    else:
+        # Legacy record sealed before dmrg_seal_payload existed — reconstruct from
+        # the same field set solange_dmrg.py hashes (id/created_at/hash/payload
+        # excluded), matching leon.notarize_generic's exclude set at ingestion.
+        recomputed = leon.build_generic_seal(
+            record, exclude={"id", "created_at", "dmrg_hash", "dmrg_seal_payload"})
+        integrity = "PASS" if recomputed == stored else "LEGACY-UNVERIFIABLE"
+    verdict = {"integrity": integrity, "notary": leon.NAME,
+               "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256"}
+    leon.write_audit(sb, "reverify", class_id, verdict, actor=record.get("provenance_source"))
+    return {"run_id": class_id, **verdict}
+
+
 @router.post("/hpc/dmrg/delete")
 async def delete_selected_dmrg(payload: dict = Body(...),
                                authorization: str | None = Header(None)):

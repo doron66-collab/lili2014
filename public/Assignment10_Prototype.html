@@ -1549,7 +1549,8 @@
                 '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.5">'+(x.class_rationale||'—')+'</td>'+
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
-                '<td style="'+C+'">'+(x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">⬇ JSON</button>'):'')+
+                '<td style="'+C+'">'+(x.id?('<button onclick="verifyDmrgRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
+                (x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+
                 (x.id?('<input type="checkbox" class="dmrg-del-chk" data-id="'+x.id+'" onchange="updateDmrgDelBtn()" title="Select this DMRG classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
         dmrgBox.innerHTML = hh+'</table>'+
@@ -4128,6 +4129,32 @@ async function verifyHpcRun(runId, btn) {
     const by = out.notary === 'LEON' ? 'LEON (Lineage-Evidence Orchestration & Notarization)' : 'SOLANGE';
     alert(pass
       ? `Integrity: PASS ✓\n${by} recomputed the P8 seal and it matches the stored one.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`
+      : `Integrity: FAIL ✗\nRecomputed seal does not match — the record may have been altered.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`);
+  } catch (e) {
+    if (btn) { btn.textContent = orig; btn.disabled = false; }
+    alert('Verify failed: ' + e.message);
+  }
+}
+
+// DMRG-table equivalent of verifyHpcRun — re-verifies dmrg_hash (LEON's generic
+// seal path) rather than the P8 seal, via the dedicated DMRG verify endpoint.
+async function verifyDmrgRun(classId, btn) {
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`${API}/api/simulate/hpc/dmrg/${classId}/verify`);
+    const out = await res.json();
+    const pass = out.integrity === 'PASS';
+    if (btn) {
+      btn.textContent = pass ? '✓ verified' : '✗ FAIL';
+      btn.style.color = pass ? 'var(--green)' : '#f87171';
+      btn.style.borderColor = pass ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)';
+      btn.disabled = false;
+    }
+    const by = out.notary === 'LEON' ? 'LEON (Lineage-Evidence Orchestration & Notarization)' : 'SOLANGE';
+    alert(pass
+      ? `Integrity: PASS ✓\n${by} recomputed the DMRG seal and it matches the stored one.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`
       : `Integrity: FAIL ✗\nRecomputed seal does not match — the record may have been altered.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`);
   } catch (e) {
     if (btn) { btn.textContent = orig; btn.disabled = false; }
