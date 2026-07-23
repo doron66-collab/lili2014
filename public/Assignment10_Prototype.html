@@ -125,13 +125,16 @@
 
   /* ── Info panel variant — same idea as .info-i, but for RICH-HTML content
      (dynamically built <strong>/<em> text) that attr()-based tooltips can't
-     render. The panel is a real hidden element, shown via :hover on the wrapper. */
+     render. The panel is a real hidden element, shown via :hover on the wrapper.
+     Positioning (fixed, into the page's left margin vs. absolute below the icon)
+     is set by JS just below — see the info-wrap positioner script — so the panel
+     never opens on top of the content (e.g. a chart) it is annotating. */
   .info-wrap { position: relative; display: inline-block; vertical-align: middle; margin-left: 5px; }
   .info-panel {
     display: none; position: absolute; left: 0; top: calc(100% + 7px);
     width: 420px; max-width: min(420px, 80vw);
     background: #0b1220; color: var(--gray); border: 1px solid var(--border);
-    border-radius: 8px; padding: 11px 13px;
+    border-radius: 8px; padding: 12px 14px;
     font-size: 11px; font-weight: 400; line-height: 1.6; text-align: left;
     z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
   }
@@ -912,15 +915,40 @@
         ? '<span style="color:rgba(120,220,150,0.9)" title="Real wall-clock runtimes from LEON-verified HPC runs (own axis, seconds — not the theoretical relative-cost axis)">● measured (LEON)</span>'
         : '');
 
-      footEl.innerHTML = '<strong>Log axis:</strong> a straight diagonal line (FCI, white) means cost DOUBLES with every added electron, not that it grows by a fixed amount — ' +
-        'exponential growth looks "calm" on a log axis precisely because that\'s what a log axis is for (comparing methods across many orders of magnitude on one chart); on an ordinary axis FCI would shoot up almost vertically. ' +
-        'Curves are computed from each method\'s complexity order, not hand-drawn. Each curve is anchored below FCI at N=4 (illustrative orders-of-magnitude, not measured) so the one well-established fact — <strong>exact FCI costs more than any approximation of it (CCSD(T), DMRG) at every N</strong> — always holds; only each curve\'s own SLOPE (growth rate) is a quantitative claim. ' +
-        '<strong>Analogy:</strong> DMRG is a shortcut that works when electrons mostly "talk to their neighbors" (like a bank queue) — cheap. It breaks when they all interact at once ' +
-        '(like a room of dancers all reacting to each other) — the shortcut\'s core assumption fails and cost jumps back toward the FCI ceiling. That break point (illustrative model, S&gt;' + S_HARD + ') is shown at ~' +
-        Math.round(CURVES.dmrg.breaksAt) + 'e, past the classical exact wall (~18e). ' +
-        '<strong>sqDRIFT beyond 32e — including C275F at 44e — is not measured.</strong> The only real sqDRIFT execution to date is IBM\'s 2026 demonstration at 32 electrons / 100 qubits (C₁₃Cl₂, Heron, arXiv:2603.08696); the chart shows that boundary explicitly and the sqDRIFT line turns dashed/faded past it. Its O(poly N) shape from 33e onward is <em>assumed</em> from the algorithm\'s proven complexity class (qDRIFT\'s convergence bounds), not observed — nobody has run sqDRIFT at C275F\'s scale. That is precisely why the C275F class marker on this chart, and the HPC ladder\'s own class label, both read "projected." ' +
-        (measured && measured.length
-          ? 'Green points are <strong>real, LEON-verified</strong> classical (Phase 3A) runtimes from the HPC ladder — on their own seconds axis (right), never mixed with the theoretical relative-cost axis (left). Each <strong>target</strong> (e.g. ARID2 vs TP53 C275F) gets its own connected line — different molecules at a similar electron count can have very different real runtimes, so points are never connected across targets.'
+      // Small, labeled blocks with spacing (not one long paragraph) — legible at
+      // panel width, and scannable: a reader can find the one note they want.
+      var noteBlock = function(label, html){
+        return '<div style="margin-bottom:11px"><div style="color:var(--teal);font-weight:700;' +
+          'font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">' + label +
+          '</div><div>' + html + '</div></div>';
+      };
+      footEl.innerHTML =
+        noteBlock('Log axis', 'A straight diagonal line (FCI, white) means cost <strong>doubles</strong> ' +
+          'with every added electron, not that it grows by a fixed amount — exponential growth looks ' +
+          '"calm" on a log axis precisely because that\'s what a log axis is for. On an ordinary axis, ' +
+          'FCI would shoot up almost vertically.') +
+        noteBlock('Curve basis', 'Curves are computed from each method\'s complexity order, not hand-drawn. ' +
+          'Each curve is anchored below FCI at N=4 (illustrative orders-of-magnitude, not measured) so the ' +
+          'one well-established fact — <strong>exact FCI costs more than any approximation of it</strong> ' +
+          '(CCSD(T), DMRG) at every N — always holds. Only each curve\'s own slope (growth rate) is a ' +
+          'quantitative claim.') +
+        noteBlock('DMRG analogy', 'DMRG is a shortcut that works when electrons mostly "talk to their ' +
+          'neighbors" (like a bank queue) — cheap. It breaks when they all interact at once (like a room ' +
+          'of dancers all reacting to each other) — the shortcut\'s core assumption fails and cost jumps ' +
+          'back toward the FCI ceiling. That break point (illustrative model, S&gt;' + S_HARD + ') is shown ' +
+          'at ~' + Math.round(CURVES.dmrg.breaksAt) + 'e, past the classical exact wall (~18e).') +
+        noteBlock('sqDRIFT evidence boundary', '<strong>Beyond 32e — including C275F at 44e — is not ' +
+          'measured.</strong> The only real sqDRIFT execution to date is IBM\'s 2026 demonstration at 32 ' +
+          'electrons / 100 qubits (C₁₃Cl₂, Heron, arXiv:2603.08696); the sqDRIFT line turns dashed/faded past ' +
+          'that point. Its O(poly N) shape from 33e onward is <em>assumed</em> from the algorithm\'s proven ' +
+          'complexity class, not observed — which is why the C275F marker, and the HPC ladder\'s own class ' +
+          'label, both read "projected."') +
+        noteBlock('Measured data', measured && measured.length
+          ? 'Green points are <strong>real, LEON-verified</strong> classical (Phase 3A) runtimes from the ' +
+            'HPC ladder — on their own seconds axis (right), never mixed with the theoretical relative-cost ' +
+            'axis (left). Each <strong>target</strong> gets its own connected line — different molecules at ' +
+            'a similar electron count can have very different real runtimes, so points are never connected ' +
+            'across targets.'
           : 'No HPC runs yet — dispatch and run one to see real measured runtimes overlaid here.');
     }
 
@@ -5266,6 +5294,40 @@ function exportPDF() {
   doc.save(saveName);
 }
 
+// ── .info-wrap positioner ───────────────────────────────────────────────────
+// The hover panel must open into unused page margin, never on top of the
+// content it annotates (e.g. it must not cover a chart). If there is enough
+// room in the left margin (outside the centered .screen column) the panel
+// opens there, pinned to the viewport; otherwise it falls back to opening
+// directly below the ⓘ icon, as before.
+(function(){
+  var PANEL_W = 420, GAP = 14;
+  function positionPanel(wrap){
+    var icon = wrap.querySelector('.info-i');
+    var panel = wrap.querySelector('.info-panel');
+    if (!icon || !panel) return;
+    var r = icon.getBoundingClientRect();
+    if (r.left - GAP - PANEL_W > 8) {
+      panel.style.position = 'fixed';
+      panel.style.left = (r.left - PANEL_W - GAP) + 'px';
+      panel.style.top  = Math.max(8, r.top - 6) + 'px';
+      panel.style.right = 'auto';
+    } else {
+      panel.style.position = 'absolute';
+      panel.style.left = '0'; panel.style.right = 'auto';
+      panel.style.top = 'calc(100% + 7px)';
+    }
+  }
+  document.addEventListener('mouseover', function(e){
+    var wrap = e.target.closest && e.target.closest('.info-wrap');
+    if (wrap) positionPanel(wrap);
+  });
+  window.addEventListener('resize', function(){
+    document.querySelectorAll('.info-wrap').forEach(function(w){
+      if (w.matches(':hover')) positionPanel(w);
+    });
+  });
+})();
 </script>
 </body>
 </html>
