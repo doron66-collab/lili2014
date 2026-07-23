@@ -1491,12 +1491,12 @@
               return j.status==='queued' || j.status==='running'; }).length;
             if(active>0){                                   // work in flight → refresh silently (no flicker)
               idle=0; window.solangeLoadHpc(true);
-              if (window.solangeLoadDmrg) window.solangeLoadDmrg();   // DMRG jobs land in Rung 3
+              if (window.solangeLoadDmrg) window.solangeLoadDmrg(true);   // DMRG jobs land in Rung 3
             } else if(++idle>=2){                            // queue drained → one last refresh, then stand down
               clearInterval(window.__hpcPoll); window.__hpcPoll=null;
               _hpcLive(false);
               window.solangeLoadHpc(true);
-              if (window.solangeLoadDmrg) window.solangeLoadDmrg();
+              if (window.solangeLoadDmrg) window.solangeLoadDmrg(true);
               if (typeof window.solangeRefreshScalingChart === 'function') window.solangeRefreshScalingChart();
             }
           })
@@ -1520,15 +1520,24 @@
 
     // ── DMRG A/B/C classifications — read-only, LEON-notarized on submission ──
     var dmrgBox = document.getElementById('dmrg-classifications');
-    window.solangeLoadDmrg = function(){
+    // paint(html): only touch the DOM when content changed — same pattern as
+    // solangeLoadHpc's own paint() — so polling every 6s while a DMRG job is in
+    // flight doesn't blank the table to "Loading…" and refill it each tick (that
+    // flicker read as the block "folding open and closed").
+    var dmrgPaint = function(html){
       if (!dmrgBox) return;
-      dmrgBox.innerHTML = '<div style="color:var(--gray);font-size:11px">Loading…</div>';
+      if (dmrgBox.__lastHtml === html) return;
+      dmrgBox.__lastHtml = html; dmrgBox.innerHTML = html;
+    };
+    window.solangeLoadDmrg = function(silent){
+      if (!dmrgBox) return;
+      if (!silent) dmrgPaint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
       fetch(API+'/api/simulate/hpc/dmrg/list').then(function(r){return r.json();}).then(function(d){
         var rows = (d && d.classifications) || [];
         if (!rows.length) {
-          dmrgBox.innerHTML = '<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+          dmrgPaint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
             'No DMRG classifications submitted yet. Runs from <code>solange_dmrg.py --submit</code> '+
-            'appear here automatically — the backend re-verifies each LEON seal before showing it.</div>';
+            'appear here automatically — the backend re-verifies each LEON seal before showing it.</div>');
           return;
         }
         var classColor = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
@@ -1553,12 +1562,12 @@
                 (x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+
                 (x.id?('<input type="checkbox" class="dmrg-del-chk" data-id="'+x.id+'" onchange="updateDmrgDelBtn()" title="Select this DMRG classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
-        dmrgBox.innerHTML = hh+'</table>'+
+        dmrgPaint(hh+'</table>'+
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = quantum-necessary (even DMRG fails) · B = DMRG suffices · C = exact classical suffices. '+
-          'S_max is the physical evidence — the entanglement threshold, not a size assumption.</div>';
+          'S_max is the physical evidence — the entanglement threshold, not a size assumption.</div>');
         if (typeof window.updateDmrgDelBtn === 'function') window.updateDmrgDelBtn();
       }).catch(function(){
-        dmrgBox.innerHTML = '<div style="color:var(--gray);font-size:11px">DMRG classifications unavailable (backend unreachable).</div>';
+        dmrgPaint('<div style="color:var(--gray);font-size:11px">DMRG classifications unavailable (backend unreachable).</div>');
       });
     };
     window.solangeLoadDmrg();
