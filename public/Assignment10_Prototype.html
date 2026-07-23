@@ -1311,14 +1311,14 @@
           var qpuActivity=qQpu||rQpu||qpuOnline;
           if(!q&&!r&&!f&&!online&&!qpuActivity){ el.style.display='none'; return; }
           var dot=function(c){return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:4px;vertical-align:middle"></span>';};
-          var agent=online?(dot('var(--green)')+'<span style="color:var(--green)">HPC agent online</span>')
-                          :(dot('#f87171')+'<span style="color:var(--gray)">HPC agent offline</span>');
+          var agent=online?(dot('var(--green)')+'<span style="color:var(--green)">HPC/DMRG agent online</span>')
+                          :(dot('#f87171')+'<span style="color:var(--gray)">HPC/DMRG agent offline</span>');
           var counts=[];
           if(q) counts.push('<span style="color:var(--gray)">'+q+' queued</span>');
           if(r) counts.push('<span style="color:var(--teal)">'+r+' running</span>');
           if(f) counts.push('<span style="color:#f87171">'+f+' failed</span>');
           var line=agent+(counts.length?' · '+counts.join(' · '):'');
-          // When the HPC agent is red, offer a Wake button. It does NOT reach into
+          // When the classical (HPC/DMRG) agent is red, offer a Wake button. It does NOT reach into
           // Laguna (that would breach the DP2 pull boundary) — it hands the user the
           // exact launch command to paste in their own authenticated Laguna session.
           if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
