@@ -446,9 +446,19 @@ def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, pa
                         run_id=(resp.get("run_id") if resp else None))
             print(f"[{_ts()}] [qpu-agent] job {did[:8]} → {'DONE' if ok else 'FAILED'}  "
                   f"db={resp.get('db_status') if resp else '—'}")
-        except Exception as e:
-            post_status(did, "failed", note=str(e))
-            print(f"[{_ts()}] [qpu-agent] job {did[:8]} error: {e}", file=sys.stderr)
+        except KeyboardInterrupt:
+            raise
+        except (Exception, SystemExit) as e:
+            # jw_target() raises SystemExit for a clean CLI error message on a
+            # single direct run (--key ... without --agent) — correct there, but
+            # SystemExit does NOT inherit from Exception, so a bare 'except
+            # Exception' here would let it escape uncaught and silently kill the
+            # whole agent process (looks like it "just stopped", no traceback,
+            # nothing left polling). Catch it explicitly so one bad key just fails
+            # that job and the agent keeps polling for the next one.
+            note = str(e) or repr(e)
+            post_status(did, "failed", note=note)
+            print(f"[{_ts()}] [qpu-agent] job {did[:8]} error: {note}", file=sys.stderr)
 
 
 def main():
