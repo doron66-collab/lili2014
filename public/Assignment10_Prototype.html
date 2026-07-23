@@ -123,6 +123,20 @@
   /* icons near the right edge open their tip to the left so it doesn't clip */
   .info-i.tip-left:hover::after { left: auto; right: 0; transform: none; }
 
+  /* ── Info panel variant — same idea as .info-i, but for RICH-HTML content
+     (dynamically built <strong>/<em> text) that attr()-based tooltips can't
+     render. The panel is a real hidden element, shown via :hover on the wrapper. */
+  .info-wrap { position: relative; display: inline-block; vertical-align: middle; margin-left: 5px; }
+  .info-panel {
+    display: none; position: absolute; left: 0; top: calc(100% + 7px);
+    width: 420px; max-width: min(420px, 80vw);
+    background: #0b1220; color: var(--gray); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 13px;
+    font-size: 11px; font-weight: 400; line-height: 1.6; text-align: left;
+    z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+  }
+  .info-wrap:hover .info-panel { display: block; }
+
   /* ── GRID ── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grid-2 > * { min-width: 0; }
@@ -677,11 +691,10 @@
        pulled live from /hpc/runs (LEON-verified). See renderScalingChart() below. -->
   <div class="card" style="margin-bottom:16px;margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-      <div class="card-title" style="margin-bottom:0">Computational Cost Scaling vs. System Size</div>
+      <div class="card-title" style="margin-bottom:0">Computational Cost Scaling vs. System Size<span class="info-wrap"><span class="info-i">i</span><div class="footnote info-panel" id="scaling-footnote"></div></span></div>
       <div id="scaling-legend" style="display:flex;gap:14px;font-size:10px;flex-wrap:wrap"></div>
     </div>
     <div id="scaling-chart"></div>
-    <div class="footnote" id="scaling-footnote" style="margin-top:4px"></div>
   </div>
   <script>
   (function(){
