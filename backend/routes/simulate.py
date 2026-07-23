@@ -831,7 +831,9 @@ async def next_dispatch(job_type: str = "hpc", authorization: str | None = Heade
     agent asks for 'qpu'. A row with no job_type (pre-migration / classical) counts
     as 'hpc', so this stays correct whether or not the job_type column exists yet."""
     _uid_from_auth(authorization)
-    want = str(job_type or "hpc").lower()
+    # job_type may be a comma-separated set — the classical compute-node agent asks
+    # for 'hpc,dmrg' (it can run both), the QPU agent asks for 'qpu'.
+    wants = {t.strip().lower() for t in str(job_type or "hpc").split(",") if t.strip()} or {"hpc"}
     sb = get_supabase()
     if not sb:
         return {"job": None, "db": "not_configured"}
@@ -842,7 +844,7 @@ async def next_dispatch(job_type: str = "hpc", authorization: str | None = Heade
         res = (sb.table("hpc_dispatch").select("*")
                  .eq("status", "queued").order("created_at").limit(20).execute())
         job = next((j for j in (res.data or [])
-                    if str(j.get("job_type") or "hpc").lower() == want), None)
+                    if str(j.get("job_type") or "hpc").lower() in wants), None)
         if not job:
             return {"job": None}
         (sb.table("hpc_dispatch").update(

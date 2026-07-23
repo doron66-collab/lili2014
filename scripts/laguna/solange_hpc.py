@@ -565,8 +565,10 @@ def run_agent(api, poll_s, token, out_dir):
     while True:
         _post_heartbeat(api, hdr)   # liveness ping so SOLANGE shows the agent online
         try:
+            # This classical compute-node agent claims BOTH job types it can run:
+            # hpc (CASSCF/VQE) and dmrg (the A/B/C classifier via run_dmrg.sh).
             req = urllib.request.Request(
-                api.rstrip("/") + "/api/simulate/hpc/dispatch/next", headers=hdr)
+                api.rstrip("/") + "/api/simulate/hpc/dispatch/next?job_type=hpc,dmrg", headers=hdr)
             with urllib.request.urlopen(req, timeout=30) as r:
                 job = json.loads(r.read().decode()).get("job")
         except Exception as e:
@@ -576,18 +578,31 @@ def run_agent(api, poll_s, token, out_dir):
             time.sleep(poll_s); continue
         did = job["id"]
         t_job_start = time.time()
-        print(f"[{_ts()}] [agent] job {did[:8]} · {job['key']}/{job.get('side','native')} "
-              f"CAS({job['nelecas']},{job['ncas']}) vqe={job.get('run_vqe')}")
+        job_type = str(job.get("job_type") or "hpc").lower()
+        print(f"[{_ts()}] [agent] job {did[:8]} · {job_type.upper()} · "
+              f"{job['key']}/{job.get('side','native')} CAS({job['nelecas']},{job['ncas']})"
+              + ("" if job_type == "dmrg" else f" vqe={job.get('run_vqe')}"))
         try:
-            compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
-            cmd = [sys.executable, str(_HERE),
-                   "--compound", compound, "--basis", job.get("basis", "6-31g"),
-                   "--ncas", str(job["ncas"]), "--nelecas", str(job["nelecas"]),
-                   "--key", job["key"], "--side", job.get("side", "native"),
-                   "--residue", job.get("residue") or "agent",
-                   "--out", out_dir, "--submit", api]
-            if job.get("run_vqe"):
-                cmd += ["--vqe", "--vqe-steps", "200"]
+            if job_type == "dmrg":
+                # DMRG classification — run run_dmrg.sh (handles block2/MKL) on this
+                # same compute node. It submits to /hpc/dmrg/submit and prints the same
+                # status=PASSED / db=stored tokens the detection below looks for.
+                ncas = str(job["ncas"])
+                cmd = ["bash", str(_HERE.parent / "run_dmrg.sh"),
+                       "--key", job["key"], "--side", job.get("side", "native"),
+                       "--ncas", ncas, "--nelecas", str(job.get("nelecas") or ncas),
+                       "--bond-dims", str(job.get("bond_dims") or "250,500,1000,2000"),
+                       "--submit", api]
+            else:
+                compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
+                cmd = [sys.executable, str(_HERE),
+                       "--compound", compound, "--basis", job.get("basis", "6-31g"),
+                       "--ncas", str(job["ncas"]), "--nelecas", str(job["nelecas"]),
+                       "--key", job["key"], "--side", job.get("side", "native"),
+                       "--residue", job.get("residue") or "agent",
+                       "--out", out_dir, "--submit", api]
+                if job.get("run_vqe"):
+                    cmd += ["--vqe", "--vqe-steps", "200"]
             res = subprocess.run(cmd, capture_output=True, text=True)
             # Don't mark DONE unless the backend actually STORED the run — otherwise a
             # run can pass verification yet never appear in SOLANGE (e.g. the

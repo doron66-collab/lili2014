@@ -1083,10 +1083,10 @@
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)</span>
       <span style="display:flex;gap:6px">
-        <button onclick="exportDmrgCsv()" title="Download all DMRG classifications as CSV (opens in Excel/Sheets)"
-          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         <button onclick="window.solangeLoadDmrg && window.solangeLoadDmrg()" title="Reload from SOLANGE"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+        <button onclick="exportDmrgCsv()" title="Download all DMRG classifications as CSV (opens in Excel/Sheets)"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         <button id="del-dmrg-btn" onclick="deleteSelectedDmrg(this)" disabled title="Check one or more DMRG rows, then click to delete only those."
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected DMRG (0)</button>
       </span>
@@ -1194,7 +1194,8 @@
           '<option value="native" selected>native</option><option value="mutant">mutant</option></select>'+
         '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
         '<button onclick="dispatchSelectedToHpc()" title="Rung 2 — queue a classical HPC job; the Laguna agent runs it" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
-        '<button onclick="solangeShowRunCmd(\'dmrg\')" title="Rung 3 — copy the exact DMRG command for the selected mutation(s) to run on Laguna" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">⬇ DMRG command</button>'+
+        '<button onclick="dispatchSelectedToDmrg()" title="Rung 3 — queue a DMRG classification; the same Laguna agent that runs HPC pulls it and runs run_dmrg.sh" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Queue DMRG</button>'+
+        '<button onclick="solangeShowRunCmd(\'dmrg\')" title="Rung 3 — copy the exact DMRG command to run manually instead of via the agent" style="background:rgba(167,139,250,0.08);color:#a78bfa;border:1px solid rgba(167,139,250,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">⬇ cmd</button>'+
         '<button onclick="dispatchSelectedToQpu()" title="Rung 4 — queue a REAL quantum-hardware job. Your QPU agent (solange_qpu.py --agent) pulls it and spends real quantum time. Same pull model as HPC." style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Queue for QPU</button>'+
         '<button onclick="solangeShowRunCmd(\'qpu\')" title="Rung 4 — copy the exact QPU command to run manually instead of via the agent." style="background:rgba(232,160,32,0.08);color:var(--gold);border:1px solid rgba(232,160,32,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">⬇ cmd</button>'+
         '<button onclick="clearHpcQueue()" title="Cancel pending queued/running jobs and clear stale-failed ones (e.g. reaped after an agent was lost)" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Clear queue</button>'+
@@ -1413,10 +1414,12 @@
               return j.status==='queued' || j.status==='running'; }).length;
             if(active>0){                                   // work in flight → refresh silently (no flicker)
               idle=0; window.solangeLoadHpc(true);
+              if (window.solangeLoadDmrg) window.solangeLoadDmrg();   // DMRG jobs land in Rung 3
             } else if(++idle>=2){                            // queue drained → one last refresh, then stand down
               clearInterval(window.__hpcPoll); window.__hpcPoll=null;
               _hpcLive(false);
               window.solangeLoadHpc(true);
+              if (window.solangeLoadDmrg) window.solangeLoadDmrg();
               if (typeof window.solangeRefreshScalingChart === 'function') window.solangeRefreshScalingChart();
             }
           })
@@ -3887,6 +3890,41 @@ async function dispatchSelectedToQpu() {
   setMsg(`<span style="color:var(--gold)">✓ queued ${ok} for QPU</span>` +
          (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
          ' — start/keep the QPU agent alive; results appear in Rung 4.');
+  if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+}
+
+// Queue DMRG classification job(s) for the classical Laguna agent (job_type=dmrg).
+// The SAME compute-node agent that runs HPC pulls these and runs run_dmrg.sh — no
+// separate agent needed. Results land in Rung 3 (DMRG A/B/C).
+async function dispatchSelectedToDmrg() {
+  const vars = window.__dispatchVariants || [];
+  const checked = Array.from(document.querySelectorAll('.hpc-chk')).filter(c => c.checked);
+  const msg = document.getElementById('hpc-dispatch-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!checked.length) { setMsg('<span style="color:#f87171">Select at least one mutation.</span>'); return; }
+  const ncas = parseInt(document.getElementById('hpc-cas').value, 10);
+  const side = document.getElementById('hpc-side').value;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` };
+  setMsg('queuing DMRG…');
+  let ok = 0, fail = 0;
+  for (const c of checked) {
+    const v = vars[parseInt(c.dataset.i, 10)];
+    if (!v) continue;
+    try {
+      const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ key: v.simId, side, job_type: 'dmrg', ncas, nelecas: ncas, residue: v.mutation || '' })
+      });
+      const out = await res.json();
+      out.queued ? ok++ : fail++;
+    } catch (e) { fail++; }
+  }
+  setMsg(`<span style="color:#a78bfa">✓ queued ${ok} for DMRG</span>` +
+         (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
+         ' — the HPC/classical agent runs them; results appear in Rung 3.');
   if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
 }
 
