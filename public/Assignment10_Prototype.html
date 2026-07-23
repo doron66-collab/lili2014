@@ -100,6 +100,29 @@
     text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
   }
 
+  /* ── Info tooltip (progressive disclosure) ── a small ⓘ that reveals its detail
+     only on hover, so explanatory prose stays off the screen until wanted. */
+  .info-i {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1px solid var(--gray); color: var(--gray);
+    font-size: 9px; font-weight: 700; font-style: normal; line-height: 1;
+    cursor: help; position: relative; vertical-align: middle; margin-left: 5px;
+    text-transform: none; letter-spacing: 0;
+  }
+  .info-i:hover { color: var(--teal); border-color: var(--teal); }
+  .info-i:hover::after {
+    content: attr(data-tip);
+    position: absolute; left: 50%; top: calc(100% + 7px); transform: translateX(-50%);
+    width: max-content; max-width: 360px; white-space: normal; text-align: left;
+    background: #0b1220; color: var(--gray); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 11px;
+    font-size: 11px; font-weight: 400; line-height: 1.55; letter-spacing: 0;
+    z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.55); pointer-events: none;
+  }
+  /* icons near the right edge open their tip to the left so it doesn't clip */
+  .info-i.tip-left:hover::after { left: auto; right: 0; transform: none; }
+
   /* ── GRID ── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grid-2 > * { min-width: 0; }
@@ -1032,17 +1055,8 @@
 
   <!-- ── Compute Dispatcher — QC·AI·HPC backend routing (RUNG 2→4 live below) ── -->
   <div class="card" style="margin-bottom:16px">
-    <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing</div>
-    <p style="font-size:11px;color:var(--gray);margin:4px 0 12px;line-height:1.6">
-      <strong>Intended production routing policy</strong> — the rule the orchestrator applies to size each
-      problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond
-      that, and real quantum hardware once the problem passes the classical reach. This is a dispatch
-      <em>decision rule</em>, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders above for what has
-      actually run. <span style="color:var(--gray)">Note: hardware <em>validation</em> smoke tests deliberately
-      run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this
-      size-based production rule.</span>
-    </p>
-    <div id="dispatch-tiers" style="margin-bottom:16px;overflow-x:auto"></div>
+    <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing<span class="info-i" data-tip="Intended production routing policy — the rule the orchestrator applies to size each problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that, and real quantum hardware once the problem passes the classical reach. This is a dispatch decision rule, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders for what has actually run. Note: hardware-validation smoke tests deliberately run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this size-based production rule.">i</span></div>
+    <div id="dispatch-tiers" style="margin:6px 0 16px;overflow-x:auto"></div>
     <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
     <div id="dispatch-muts" style="margin:6px 0 16px;overflow-x:auto"></div>
 
@@ -1052,7 +1066,7 @@
       <span style="font-size:11px;color:var(--gray)">classical CASSCF/VQE dispatched to the Laguna cluster — beyond the laptop's reach</span>
     </div>
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
-      <span style="display:flex;align-items:center;gap:8px">Phase 3A-HPC Ladder · Laguna (USC CARC)
+      <span style="display:flex;align-items:center;gap:8px">Phase 3A-HPC Ladder · Laguna (USC CARC)<span class="info-i" data-tip="Phase 3A — real runs dispatched to the Laguna cluster (classical CASSCF/VQE), not executed in-browser. 'exact' = reference ground state · VQE-UCCSD = near-term-device demonstration.">i</span>
         <span id="hpc-live" title="Auto-refresh is active — Laguna results appear here without reloading"
           style="display:none;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--green);background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);border-radius:999px;padding:2px 8px">
           <span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(34,197,94,0.6);animation:hpcpulse 1.6s infinite"></span>live</span>
@@ -1066,11 +1080,7 @@
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🗑 Clear HPC runs</button>
       </span>
     </div>
-    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
-      Phase 3A — real runs dispatched to the Laguna cluster (classical CASSCF/VQE), <strong>not</strong> executed in-browser.
-      <span style="color:var(--teal)">exact</span> = reference ground state · VQE-UCCSD = near-term-device demonstration.
-    </p>
-    <div id="hpc-queue-status" style="display:none;margin:4px 0 10px;font-size:11px;line-height:1.6"></div>
+    <div id="hpc-queue-status" style="display:none;margin:6px 0 10px;font-size:11px;line-height:1.6"></div>
     <div id="dispatch-hpc" style="overflow-x:auto"></div>
 
     <!-- ── RUNG 3 · DMRG — the last classical resort before quantum. Sits ABOVE the
@@ -1081,7 +1091,7 @@
       <span style="font-size:11px;color:var(--gray)">last classical resort — the A/B/C classifier that decides whether quantum is even needed</span>
     </div>
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
-      <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)</span>
+      <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)<span class="info-i" data-tip="Whether classical DMRG reaches chemical accuracy, per target — the evidence behind each A/B/C class. Sealed at source and notarized by LEON on submission (independent of Laguna connectivity afterward).">i</span></span>
       <span style="display:flex;gap:6px">
         <button onclick="window.solangeLoadDmrg && window.solangeLoadDmrg()" title="Reload from SOLANGE"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
@@ -1091,11 +1101,7 @@
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected DMRG (0)</button>
       </span>
     </div>
-    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
-      Whether classical DMRG reaches chemical accuracy, per target — the evidence behind each A/B/C class.
-      Sealed at source and notarized by LEON on submission (independent of Laguna connectivity afterward).
-    </p>
-    <div id="dmrg-classifications" style="overflow-x:auto"></div>
+    <div id="dmrg-classifications" style="margin-top:6px;overflow-x:auto"></div>
 
     <!-- ── RUNG 4 · Quantum hardware — the bottom of the ladder. Reached only when the
          classical rungs above (HPC, DMRG) run out. Separate from the classical 3A ladder. ── -->
@@ -1104,7 +1110,7 @@
       <span style="font-size:11px;color:var(--gray)">bottom of the ladder — real IBM Heron QPU, where the classical rungs run out</span>
     </div>
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
-      <span>Phase 3B — Quantum Hardware · IBM Heron (real QPU)</span>
+      <span>Phase 3B — Quantum Hardware · IBM Heron (real QPU)<span class="info-i tip-left" data-tip="Phase 3B — executed on real IBM Heron quantum hardware, not simulated. 'exact HF' = classical ⟨H⟩ on the same fixed state · ΔE ·noise = |measured − exact HF| (hardware noise, not the HF-vs-ground gap). A fixed-state smoke test, not a VQE ground-state search.">i</span></span>
       <span style="display:flex;gap:6px">
         <button onclick="window.solangeLoadHpc && window.solangeLoadHpc()" title="Reload the QPU runs from SOLANGE"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
@@ -1114,11 +1120,7 @@
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
       </span>
     </div>
-    <p style="font-size:10px;color:var(--gray);margin:2px 0 8px;line-height:1.6">
-      Phase 3B — executed on <strong>real IBM Heron quantum hardware</strong>, not simulated.
-      <span style="color:var(--teal)">exact HF</span> = classical ⟨H⟩ on the same fixed state · <span style="color:var(--gray)">·noise</span> ΔE = |measured − exact HF| (hardware noise, not the HF-vs-ground gap). Fixed-state smoke test, not a VQE ground-state search.
-    </p>
-    <div id="dispatch-qpu" style="overflow-x:auto"></div>
+    <div id="dispatch-qpu" style="margin-top:6px;overflow-x:auto"></div>
   </div>
   <script>
   (function(){
