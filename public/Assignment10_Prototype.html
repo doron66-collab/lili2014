@@ -1058,6 +1058,8 @@
           <span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(34,197,94,0.6);animation:hpcpulse 1.6s infinite"></span>live</span>
       </span>
       <span style="display:flex;gap:6px">
+        <button onclick="window.solangeLoadHpc && window.solangeLoadHpc()" title="Reload the HPC ladder from SOLANGE"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
         <button onclick="exportHpcCsv()" title="Download the HPC ladder as CSV (dissertation appendix)"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         <button onclick="clearHpcRuns()" title="Delete stored classical HPC runs from SOLANGE (they can be re-submitted from the cluster). QPU runs are never touched."
@@ -1104,6 +1106,8 @@
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span>Phase 3B — Quantum Hardware · IBM Heron (real QPU)</span>
       <span style="display:flex;gap:6px">
+        <button onclick="window.solangeLoadHpc && window.solangeLoadHpc()" title="Reload the QPU runs from SOLANGE"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
         <button onclick="exportQpuCsv()" title="Download the QPU runs as CSV"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         <button id="del-qpu-btn" onclick="deleteSelectedQpu(this)" disabled title="Check one or more QPU rows, then click to delete only those."
@@ -1128,6 +1132,15 @@
     var C='padding:6px 9px;border-bottom:1px solid var(--border);font-size:11px;white-space:nowrap';
     var TH='text-align:left;'+C+';color:var(--gray);font-weight:600';
     function badge(txt,col){return '<span style="color:'+col+';font-weight:700">'+txt+'</span>';}
+    // Timestamp for a returned run — date + time (local), from the row's created_at.
+    // Shared by the HPC/QPU ladder and the DMRG table so every run shows WHEN it ran.
+    function fmtTs(iso){
+      if(!iso) return '—';
+      var d=new Date(iso); if(isNaN(d.getTime())) return '—';
+      var p=function(n){return String(n).padStart(2,'0');};
+      return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+    }
+    window.solangeFmtTs=fmtTs;
 
     // 1) tier rule
     var tiers=[['≤ 4 qubits',4],['5 – 30 qubits',20],['31 – 120 qubits',80],['> 120 qubits',300]];
@@ -1235,7 +1248,9 @@
         var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
         var hbtn=x.id?('<button onclick="downloadHamiltonian(\''+x.id+'\',\''+target.replace(/'/g,"\\'")+'\',this)" title="Download the full source Hamiltonian (Pauli terms) for this run" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JW</button>'):'';
         var dchk=(isQpu&&x.id)?('<input type="checkbox" class="qpu-del-chk" data-id="'+x.id+'" onchange="updateQpuDelBtn()" title="Select this QPU run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'';
-        return '<tr><td style="'+C+';font-weight:600">'+target+'</td><td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
+        return '<tr><td style="'+C+';font-weight:600">'+target+'</td>'+
+            '<td style="'+C+';color:var(--gray);font-size:10px" title="When this run was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
+            '<td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
@@ -1245,7 +1260,7 @@
       var LEONFOOT='<div style="color:var(--gray);font-size:10px;margin-top:6px">✓ = P8 seal re-verified &amp; notarized by <strong style="color:var(--green)" title="Lineage-Evidence Orchestration &amp; Notarization — the guardian of provenance integrity">LEON</strong> at ingestion · "Verify" re-checks the seal live.</div>';
       var mkTable=function(subset, exHdr, meaHdr, emptyMsg){
         if(!subset.length) return '<div style="color:var(--gray);font-size:11px;line-height:1.6">'+emptyMsg+'</div>';
-        var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Target</th><th style="'+TH+'">Active space</th>'+
+        var hh='<table style="width:100%;border-collapse:collapse"><tr><th style="'+TH+'">Target</th><th style="'+TH+'">Time</th><th style="'+TH+'">Active space</th>'+
           '<th style="'+TH+'">Qubits</th><th style="'+TH+'">'+exHdr+'</th><th style="'+TH+'">'+meaHdr+'</th>'+
           '<th style="'+TH+'">ΔE</th><th style="'+TH+'">Runtime</th><th style="'+TH+'">Backend</th><th style="'+TH+'">P8</th><th style="'+TH+'"></th></tr>';
         subset.forEach(function(x){ hh+=rowHtml(x); });
@@ -1439,7 +1454,7 @@
         var classColor = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         window.__dmrgRows = rows;   // cached for CSV export / per-row JSON download
         var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
-          '<th style="'+TH+'">Target</th><th style="'+TH+'">CAS</th>'+
+          '<th style="'+TH+'">Target</th><th style="'+TH+'">Time</th><th style="'+TH+'">CAS</th>'+
           '<th style="'+TH+'">S_max</th><th style="'+TH+'">Class</th>'+
           '<th style="'+TH+'">Rationale</th><th style="'+TH+'">LEON</th><th style="'+TH+'"></th></tr>';
         rows.forEach(function(x, i){
@@ -1448,6 +1463,7 @@
           // Rationale: full text, no width cap (was clipped at 280px). LEON hash:
           // shown longer and monospace so it can be selected/copied, full value in title.
           hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
+                '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
                 '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+'</td>'+
