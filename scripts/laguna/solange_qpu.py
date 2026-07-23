@@ -220,8 +220,17 @@ def measure(target, hardware, backend_name, shots, token, instance):
     if instance: kwargs["instance"] = instance
     try:
         service = QiskitRuntimeService(channel="ibm_quantum_platform", **kwargs)
-    except Exception:
-        service = QiskitRuntimeService(channel="ibm_quantum", **kwargs)
+    except Exception as e1:
+        # The old fallback hardcoded channel="ibm_quantum" — a legacy channel
+        # rejected outright by current qiskit-ibm-runtime versions ("'channel' can
+        # only be 'ibm_cloud', or 'ibm_quantum_platform'"), so it masked whatever
+        # the REAL first error was with a confusing, unrelated one. Fall back to no
+        # explicit channel (uses the saved account's own channel) instead, and if
+        # that also fails, surface the ORIGINAL exception, not the fallback's.
+        try:
+            service = QiskitRuntimeService(**kwargs)
+        except Exception:
+            raise e1
     backend = service.backend(backend_name)
     pm = generate_preset_pass_manager(optimization_level=1, backend=backend)
     isa = pm.run(qc)
@@ -266,8 +275,17 @@ def retrieve(job_id, backend_name, token, instance):
     if instance: kwargs["instance"] = instance
     try:
         service = QiskitRuntimeService(channel="ibm_quantum_platform", **kwargs)
-    except Exception:
-        service = QiskitRuntimeService(channel="ibm_quantum", **kwargs)
+    except Exception as e1:
+        # The old fallback hardcoded channel="ibm_quantum" — a legacy channel
+        # rejected outright by current qiskit-ibm-runtime versions ("'channel' can
+        # only be 'ibm_cloud', or 'ibm_quantum_platform'"), so it masked whatever
+        # the REAL first error was with a confusing, unrelated one. Fall back to no
+        # explicit channel (uses the saved account's own channel) instead, and if
+        # that also fails, surface the ORIGINAL exception, not the fallback's.
+        try:
+            service = QiskitRuntimeService(**kwargs)
+        except Exception:
+            raise e1
     job = service.job(job_id)
     try:
         status = job.status()
