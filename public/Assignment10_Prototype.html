@@ -5366,8 +5366,19 @@ function exportPDF() {
 // room in the left margin (outside the centered .screen column) the panel
 // opens there, pinned to the viewport; otherwise it falls back to opening
 // directly below the ⓘ icon, as before.
+// Visibility is JS-managed (not pure CSS :hover): when the panel opens far from
+// its icon (into the left margin), there is a real on-screen GAP between the two
+// that the mouse must cross to reach the panel. Plain CSS :hover drops the moment
+// the pointer leaves the icon's small box while crossing that gap, so the panel
+// vanishes before the mouse arrives. A short grace-period timer on hide (cancelled
+// if the pointer lands on the icon OR the panel — both are DOM descendants of
+// .info-wrap, found via closest() regardless of where they're painted on screen)
+// fixes it: the panel survives the crossing, and only closes once the pointer is
+// truly gone from both.
 (function(){
-  var PANEL_W = 420, MIN_W = 230, GAP = 14, EDGE = 8;
+  var PANEL_W = 420, MIN_W = 230, GAP = 14, EDGE = 8, HIDE_DELAY = 300;
+  var hideTimers = new WeakMap();
+
   function positionPanel(wrap){
     var icon = wrap.querySelector('.info-i');
     var panel = wrap.querySelector('.info-panel');
@@ -5390,13 +5401,37 @@ function exportPDF() {
       panel.style.top = 'calc(100% + 7px)';
     }
   }
+  function showPanel(wrap){
+    var t = hideTimers.get(wrap);
+    if (t) { clearTimeout(t); hideTimers.delete(wrap); }
+    var panel = wrap.querySelector('.info-panel');
+    if (!panel) return;
+    if (panel.style.display !== 'block') positionPanel(wrap);
+    panel.style.display = 'block';
+  }
+  function scheduleHide(wrap){
+    if (hideTimers.has(wrap)) return;
+    hideTimers.set(wrap, setTimeout(function(){
+      var panel = wrap.querySelector('.info-panel');
+      if (panel) panel.style.display = 'none';
+      hideTimers.delete(wrap);
+    }, HIDE_DELAY));
+  }
   document.addEventListener('mouseover', function(e){
     var wrap = e.target.closest && e.target.closest('.info-wrap');
-    if (wrap) positionPanel(wrap);
+    if (wrap) showPanel(wrap);
+  });
+  document.addEventListener('mouseout', function(e){
+    var wrap = e.target.closest && e.target.closest('.info-wrap');
+    if (!wrap) return;
+    var to = e.relatedTarget;
+    if (to && wrap.contains(to)) return;   // moving between icon <-> panel — stays open
+    scheduleHide(wrap);
   });
   window.addEventListener('resize', function(){
     document.querySelectorAll('.info-wrap').forEach(function(w){
-      if (w.matches(':hover')) positionPanel(w);
+      var panel = w.querySelector('.info-panel');
+      if (panel && panel.style.display === 'block') positionPanel(w);
     });
   });
 })();
