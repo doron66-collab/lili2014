@@ -226,7 +226,26 @@ def measure(target, hardware, backend_name, shots, token, instance):
     isa = pm.run(qc)
     est = EstimatorV2(mode=backend)
     est.options.default_shots = shots
-    job = est.run([(isa, obs.apply_layout(isa.layout))])
+    # IBM's job-queueing API can return transient 5xx / connection errors even when
+    # the backend shows operational (the "Error queueing job" / "too many 500" we hit).
+    # Retry the SUBMISSION with backoff so a flaky window doesn't kill the run — a
+    # failed submit spends NO QPU time, and queue time never counts against budget.
+    pub = (isa, obs.apply_layout(isa.layout))
+    job, last_err = None, None
+    for attempt in range(1, 6):
+        try:
+            job = est.run([pub]); break
+        except Exception as e:
+            last_err = e
+            wait = min(2 ** attempt, 30)
+            print(f"  submit attempt {attempt}/5 failed ({str(e)[:80]}…) — retrying in {wait}s "
+                  f"(no QPU time spent)…", file=sys.stderr)
+            time.sleep(wait)
+    if job is None:
+        raise RuntimeError(
+            "IBM job submission failed after 5 attempts — almost certainly an IBM-side "
+            "queueing outage (us-east), not your code/network. NO QPU time was spent. "
+            f"Check quantum.cloud.ibm.com status and retry later. Last error: {last_err}")
     print(f"  submitted job {job.job_id()} to {backend_name} — waiting for result "
           f"(queue time does NOT count against QPU-execution budget) …")
     energy = float(job.result()[0].data.evs)
