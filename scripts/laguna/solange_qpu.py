@@ -192,13 +192,20 @@ def _backend_telemetry(backend):
     return tel
 
 
-def _report_job_progress(job, on_status, poll_s=5):
+def _report_job_progress(job, on_status, poll_s=5, on_tick=None):
     """Poll job.status() until IBM reports a final state, calling on_status(job_id,
     status) on every CHANGE. Purely observational — does not affect the job.result()
     call after it, which still blocks until IBM actually finishes. Lets the caller
     (the QPU agent) surface live IBM-side queue/run state in SOLANGE, so a user who
     never opens IBM's own dashboard isn't staring at silence between "queued" and
-    the eventual result."""
+    the eventual result.
+
+    on_tick(), if given, fires every poll_s regardless of status change — a QPU job
+    can sit QUEUED on IBM for many minutes with no status change at all, and this
+    loop is the only thing running during that wait (the agent's outer poll loop,
+    and its own liveness heartbeat, are blocked until this returns). Without a
+    per-tick callback the agent's heartbeat goes stale past the 90s online window
+    and SOLANGE shows it as offline even though it is actively watching a live job."""
     last = None
     while True:
         try:
@@ -213,6 +220,11 @@ def _report_job_progress(job, on_status, poll_s=5):
                 except Exception:
                     pass
             last = st
+        if on_tick:
+            try:
+                on_tick()
+            except Exception:
+                pass
         try:
             if job.in_final_state():
                 return
@@ -222,10 +234,12 @@ def _report_job_progress(job, on_status, poll_s=5):
         time.sleep(poll_s)
 
 
-def measure(target, hardware, backend_name, shots, token, instance, on_status=None):
+def measure(target, hardware, backend_name, shots, token, instance, on_status=None, on_tick=None):
     """Measure <H> of the target on its fixed reference state. dry-run → local
     simulator (free); hardware → one real QPU job. on_status(job_id, status), if
-    given, is called on every IBM-side status change while waiting (agent mode)."""
+    given, is called on every IBM-side status change while waiting (agent mode).
+    on_tick(), if given, fires every poll tick regardless of status change (agent
+    liveness heartbeat while waiting on a long-queued job)."""
     from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
     obs, qc = target["obs"], target["circuit"]
 
@@ -289,7 +303,7 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
             f"Check quantum.cloud.ibm.com status and retry later. Last error: {last_err}")
     print(f"  submitted job {job.job_id()} to {backend_name} — waiting for result "
           f"(queue time does NOT count against QPU-execution budget) …")
-    _report_job_progress(job, on_status)
+    _report_job_progress(job, on_status, on_tick=on_tick)
     energy = float(job.result()[0].data.evs)
     tel = _backend_telemetry(backend)
     return (energy, f"{backend_name} (real QPU)", tel,
@@ -431,14 +445,15 @@ def submit(api, record):
         return None
 
 
-def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, api, on_status=None):
+def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, api, on_status=None, on_tick=None):
     """Execute ONE real-hardware QPU job end-to-end (used by --agent): build the
     target, measure ⟨H⟩ on hardware, seal the record, save it, and submit to SOLANGE.
     Returns (submit_response_or_None, record). on_status(job_id, status), if given,
-    is forwarded to measure() to report live IBM-side status changes while waiting."""
+    is forwarded to measure() to report live IBM-side status changes while waiting.
+    on_tick(), if given, is forwarded too (agent liveness heartbeat while waiting)."""
     target = jw_target(key, side, jw_file) if key else h2_target()
     energy, backend_label, telemetry, meta = measure(target, True, backend, shots, token, instance,
-                                                       on_status=on_status)
+                                                       on_status=on_status, on_tick=on_tick)
     hf_exact, _ground = _exact(target["obs"], target["circuit"])
     record = build_record(target, energy, hf_exact, backend_label, telemetry, meta)
     Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -494,11 +509,13 @@ def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, pa
         # changes — the same dispatch row, status stays 'running', only the note
         # updates — so a user watching SOLANGE (not IBM's own dashboard) can see
         # where their job actually is instead of silence until it completes.
+        # Full IBM job ID (not truncated) — a user verifying "is this the job I
+        # submitted?" against IBM's own dashboard needs every digit, not a prefix.
         report_live_status = lambda ibm_job_id, st: post_status(
-            did, "running", note=f"IBM job {ibm_job_id[:8]}…: {st}")
+            did, "running", note=f"IBM job {ibm_job_id}: {st}")
         try:
             resp, _record = run_one_qpu(key, side, backend, shots, ibm_token, instance, jw_file, out_dir, api,
-                                         on_status=report_live_status)
+                                         on_status=report_live_status, on_tick=heartbeat)
             stored = bool(resp) and resp.get("db_status") in ("stored", "stored_no_payload")
             ok = bool(stored and resp.get("seal_ok"))
             note = "ok" if ok else ("verified but not stored" if resp else "submit failed")

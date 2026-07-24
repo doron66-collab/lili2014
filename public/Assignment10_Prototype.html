@@ -1289,7 +1289,7 @@
     var API=(window.QCAIHPC_API_BASE||'https://qcaihpc-simulation-api.onrender.com');
     var f=function(v){return (v==null||isNaN(v))?'—':Number(v).toFixed(6);};
     window.solangeLoadHpc=function(silent){
-    if(!silent){ box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading…</div>'; }
+    if(!silent){ box.innerHTML='<div style="color:var(--gray);font-size:11px">Loading…</div>'; box.__lastHtml=undefined; }
     // paint(el,html): only touch the DOM when content changed (no flicker on polls).
     var paint=function(el,html){ if(!el) return; if(el.__lastHtml===html) return; el.__lastHtml=html; el.innerHTML=html; };
     fetch(API+'/api/simulate/hpc/runs').then(function(r){return r.json();}).then(function(d){
@@ -1416,8 +1416,11 @@
             // not just silence between "queued" and the final result.
             runningQpuJobs.forEach(function(j){
               if(!j.note) return;
-              line+='<div style="margin-top:2px;color:var(--gold);font-size:10px">⚛ '+
-                String(j.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
+              // Full text shown inline (not truncated) AND in title= — a user checking
+              // this against IBM's own dashboard needs the whole job ID, every digit.
+              var noteEsc=String(j.note).replace(/</g,'&lt;');
+              line+='<div style="margin-top:2px;color:var(--gold);font-size:10px" title="'+
+                noteEsc.replace(/"/g,'&quot;')+'">⚛ '+noteEsc+'</div>';
             });
           }
           if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
