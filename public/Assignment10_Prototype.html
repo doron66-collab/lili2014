@@ -1377,7 +1377,8 @@
       var q=n('queued'), r=n('running'), f=n('failed');
       var lastFail=jobs.filter(function(j){return j.status==='failed'&&j.note;})[0];
       var qQpu=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='queued';}).length;
-      var rQpu=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='running';}).length;
+      var runningQpuJobs=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='running';});
+      var rQpu=runningQpuJobs.length;
       fetch(API+'/api/simulate/hpc/agent/status').then(function(x){return x.json();}).then(function(s){
         var online=!!(s&&s.online);
         // The QPU agent is tracked on its own heartbeat row (agent_id=qpu) so its dot
@@ -1408,6 +1409,16 @@
             if(rQpu) qc.push('<span style="color:var(--gold)">'+rQpu+' running</span>');
             line+='<div style="margin-top:2px">'+qpuAgent+(qc.length?' · '+qc.join(' · '):'')+
               (qpuOnline?'':' <span style="color:var(--gray);font-size:10px">— start: <code>solange_qpu.py --agent</code></span>')+'</div>';
+            // Live IBM-side queue/run state — the agent posts this to the SAME
+            // dispatch row (status stays 'running', only the note changes) as it
+            // polls job.status(), so a user who never opens IBM's own dashboard
+            // still sees where their job actually is (queued on IBM vs. executing),
+            // not just silence between "queued" and the final result.
+            runningQpuJobs.forEach(function(j){
+              if(!j.note) return;
+              line+='<div style="margin-top:2px;color:var(--gold);font-size:10px">⚛ '+
+                String(j.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
+            });
           }
           if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
             String(lastFail.note).replace(/</g,'&lt;').slice(0,160)+'</div>';

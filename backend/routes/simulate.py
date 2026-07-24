@@ -866,6 +866,13 @@ async def update_dispatch(dispatch_id: str, payload: dict = Body(...),
     upd = {"status": payload.get("status", "done")}
     if payload.get("note"):    upd["note"] = payload["note"]
     if payload.get("run_id"):  upd["run_id"] = payload["run_id"]
+    if upd["status"] == "running":
+        # A "running" update is itself a liveness signal (e.g. the QPU agent
+        # reporting a live IBM job-status change while still waiting) — refresh
+        # claimed_at so _reap_stale_dispatch's staleness clock resets instead of
+        # timing out a job that is legitimately still queued/executing on IBM's
+        # side well past the original claim (IBM queue waits are not bounded).
+        upd["claimed_at"] = datetime.now(timezone.utc).isoformat()
     if upd["status"] in ("done", "failed"):
         upd["finished_at"] = datetime.now(timezone.utc).isoformat()
     try:
