@@ -147,12 +147,26 @@ def jw_target(key, side, jw_file):
     }
 
 
-def _exact(obs, circuit):
+def _exact(obs, circuit, max_ground_qubits=16):
     """Exact <H> on the fixed reference state, and exact ground state — computed
-    locally so the hardware number has an honest, self-consistent reference."""
+    locally so the hardware number has an honest, self-consistent reference.
+
+    hf ⟨H⟩ on the fixed prepared state is cheap even at 20+ qubits (one
+    statevector, not exponential in a way that matters here). The ground-state
+    diagonalization is the genuinely expensive part — obs.to_matrix() builds
+    the DENSE 2^n x 2^n Hamiltonian matrix, so at 20 qubits that's ~10^12
+    entries: it would hang or OOM, and since this runs AFTER the real hardware
+    measurement, a crash here would throw away an already-successful QPU result.
+    This is the actual classical wall (naive full-Hilbert-space diagonalization,
+    the same thing a classical computer would need to do to reproduce the
+    quantum state exactly) — skip it past max_ground_qubits and say so, instead
+    of crashing and silently losing the measurement."""
     import numpy as np
     from qiskit.quantum_info import Statevector
     hf = float(np.real(Statevector(circuit).expectation_value(obs)))
+    n_qubits = circuit.num_qubits
+    if n_qubits > max_ground_qubits:
+        return hf, None
     ground = float(np.linalg.eigvalsh(obs.to_matrix())[0])
     return hf, ground
 
@@ -621,7 +635,12 @@ def main():
     print(f"backend            : {backend_label}")
     print(f"measured <H> active: {energy:.6f} Ha   (on the fixed HF reference state)")
     print(f"exact <H> active HF: {hf_exact:.6f} Ha   (what a faithful pipeline approaches)")
-    print(f"exact ground active: {ground:.6f} Ha   (reference only; no optimization was done)")
+    if ground is not None:
+        print(f"exact ground active: {ground:.6f} Ha   (reference only; no optimization was done)")
+    else:
+        print(f"exact ground active: SKIPPED — {target['nq']} qubits exceeds the dense-diagonalization "
+              f"wall (~16 qubits: a full 2^n x 2^n matrix). This IS the classical wall: the hardware "
+              f"measurement above completed without needing this at all.")
     if ecore:
         print(f"total energy (P7)  : {ecore + energy:.6f} Ha   (ecore {ecore:.6f} + active)")
     print(f"Δ(measured-HF)     : {(energy - hf_exact)*1000:.2f} mHa   (hardware noise; expected, not an error)")
