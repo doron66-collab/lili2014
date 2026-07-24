@@ -790,7 +790,7 @@ async def list_dispatch(limit: int = 20):
     try:
         res = (sb.table("hpc_dispatch")
                  .select("id, created_at, status, key, side, compound, basis, "
-                         "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note")
+                         "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note, job_type")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"jobs": res.data or []}
     except Exception as e:
