@@ -1226,6 +1226,21 @@
         '<th style="'+TH+'">Full site</th>'+
         '<th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
       variants.forEach(function(v,i){
+        // Unsupported (extracted from the report but no curated GENE_MAP route yet) —
+        // shown greyed-out and unselectable rather than silently dropped, so nothing
+        // detected in a report vanishes without explanation. See v.unsupportedReason.
+        if(v.supported===false){
+          m+='<tr style="opacity:0.5"><td style="'+C+'"><input type="checkbox" disabled title="Not routable — '+
+             (v.unsupportedReason||'unsupported')+'"></td>'+
+             '<td style="'+C+'">—</td>'+
+             '<td style="'+C+';font-weight:700;color:var(--gray)">'+v.gene+'</td>'+
+             '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
+             '<td style="'+C+';color:var(--gray)">—</td>'+
+             '<td style="'+C+';color:var(--gray)">—</td>'+
+             '<td style="'+C+';color:var(--gray);font-size:10px" title="'+(v.unsupportedReason||'')+'">— not simulated ('+(v.unsupportedReason||'unsupported')+')</td>'+
+             '<td style="'+C+';color:var(--gray)">—</td></tr>';
+          return;
+        }
         var q=(v.gm&&v.gm.full_qubits)||null; var r=routeBackend(q||4);
         var ae=(v.gm&&v.gm.active_electrons)||null;
         var aeCol=ae==null?'—':(ae+'e'+(ae>18?' <span style="color:var(--gold);font-size:9px" title="beyond the ~18e exact-classical wall">↑wall</span>':''));
@@ -2957,6 +2972,25 @@ const GENE_MAP = {
   AXIN1:   { badge_type:'WNT Scaffold',      color:'#365314', active_electrons:24,  full_qubits:48  },
   AXIN2:   { badge_type:'WNT Scaffold',      color:'#166534', active_electrons:24,  full_qubits:48  },
   CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#1d4ed8', active_electrons:20,  full_qubits:40,  bqp_class:'B' },
+  // ── Pan-cancer receptor tyrosine kinases / fusions — beyond NSCLC-only scope.
+  // Already recognized by the VCF parser's known-gene list below but previously
+  // had no GENE_MAP entry, so a variant on any of these was silently dropped
+  // (never shown at all) instead of routed or flagged unsupported. ──────────
+  MET:     { badge_type:'Kinase',            color:'#f472b6', active_electrons:46,  full_qubits:92  },
+  RET:     { badge_type:'Kinase Fusion',     color:'#ec4899', active_electrons:44,  full_qubits:88  },
+  ROS1:    { badge_type:'Kinase Fusion',     color:'#db2777', active_electrons:44,  full_qubits:88  },
+  ERBB2:   { badge_type:'Kinase (HER2)',     color:'#e11d48', active_electrons:48,  full_qubits:96  },
+  NTRK1:   { badge_type:'Kinase Fusion',     color:'#be123c', active_electrons:38,  full_qubits:76  },
+  NTRK2:   { badge_type:'Kinase Fusion',     color:'#9f1239', active_electrons:38,  full_qubits:76  },
+  NTRK3:   { badge_type:'Kinase Fusion',     color:'#881337', active_electrons:38,  full_qubits:76  },
+  // ── Pan-cancer proliferation / apoptosis / PI3K axis ─────────────────────
+  MYC:     { badge_type:'Transcription',     color:'#eab308', active_electrons:26,  full_qubits:52  },
+  CDK4:    { badge_type:'Kinase',            color:'#ca8a04', active_electrons:22,  full_qubits:44  },
+  MDM2:    { badge_type:'E3 Ligase',         color:'#a16207', active_electrons:30,  full_qubits:60  },
+  PTEN:    { badge_type:'Phosphatase LOF',   color:'#0d9488', active_electrons:32,  full_qubits:64,  bqp_class:'B' },
+  SMAD4:   { badge_type:'TGF-β Scaffold',    color:'#0f766e', active_electrons:28,  full_qubits:56  },
+  PIK3CA:  { badge_type:'Kinase',            color:'#115e59', active_electrons:44,  full_qubits:88  },
+  KDM5C:   { badge_type:'Demethylase LOF',   color:'#134e4a', active_electrons:34,  full_qubits:68  },
 };
 
 function geneSimId(gene, mutation) {
@@ -3534,13 +3568,29 @@ function loadNGSReport(ngs) {
     return `${g}_LOF`;
   }
 
-  // Build one simulation target per distinct variant (gene-level dedup)
+  // Build one simulation target per distinct variant (gene-level dedup).
+  // Every variant the report actually contains gets a row — genes SOLANGE has no
+  // curated route for are NOT dropped, they're marked unsupported (rendered greyed
+  // out, unselectable, in solangeRenderDispatchMuts) so nothing extracted from a
+  // report vanishes without the user being told why.
   const seenSimIds = new Set();
+  const seenUnsupported = new Set();
   const allVariants = [];
   (ngs.variants || []).forEach(v => {
     const gene = (v.gene || '').toUpperCase();
     const gm   = GENE_MAP[gene];
-    if (!gm || gm.active_electrons < 20) return;
+    const supported = !!gm && gm.active_electrons >= 20;
+    if (!supported) {
+      const key = gene + '|' + (v.mutation || '');
+      if (seenUnsupported.has(key)) return;
+      seenUnsupported.add(key);
+      const reason = !gm ? 'gene not yet mapped in SOLANGE'
+                          : `active-electron estimate (${gm.active_electrons}e) below the ${20}e simulation threshold`;
+      allVariants.push({ gene, mutation: v.mutation || '—', simId: null, gm: null, bqpCls: null,
+        allele_frequency: v.allele_frequency, phase3a: false, source: (v.source || 'ngs'),
+        supported: false, unsupportedReason: reason });
+      return;
+    }
     const simId = resolveSimId(gene, v.mutation);
     if (seenSimIds.has(simId)) return;
     seenSimIds.add(simId);
@@ -3548,22 +3598,26 @@ function loadNGSReport(ngs) {
     // proxy is only a fallback for genes without a curated classification.
     const bqpCls = gm.bqp_class || (gm.active_electrons >= 30 ? 'A' : 'B');
     const phase3a = PHASE3A_IDS.has(simId);
-    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs') });
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs'), supported: true });
   });
 
   // Register labels in __activeVariants so getDisplayName() returns patient data
+  // (unsupported rows have no simId — nothing downstream keys off them by simId).
+  const simulatable = allVariants.filter(av => av.supported);
   window.__activeVariants = {};
-  allVariants.forEach(av => {
+  simulatable.forEach(av => {
     window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}` };
   });
 
   // Populate the Orchestration Compute Dispatcher per-mutation routing from the
   // ACTUAL loaded report (not hardcoded) — only appears once a report is loaded.
+  // Includes unsupported rows (greyed out) so nothing extracted from the report
+  // is silently dropped from view.
   if (typeof window.solangeRenderDispatchMuts === 'function') {
     window.solangeRenderDispatchMuts(allVariants);
   }
 
-  const allTargets    = allVariants.map(av => av.simId);
+  const allTargets    = simulatable.map(av => av.simId);
   const hasAnyTargets = allTargets.length > 0;
 
   // Remove ALL static core rows — patient report drives every row dynamically.
@@ -3584,7 +3638,11 @@ function loadNGSReport(ngs) {
   const mutTbody = document.getElementById('ngs-mutation-rows');
   const bqpTbody = document.getElementById('ngs-bqp-rows');
   const pqDiv    = document.getElementById('ngs-pq-items');
-  allVariants.forEach(av => {
+  // Registry/BQP/PQ rows need a curated GENE_MAP entry (av.gm) to render — only
+  // simulatable targets get a row here. Unsupported variants still appear (greyed
+  // out, not silently dropped) in the Compute Dispatcher's routing table above,
+  // built from the full allVariants list.
+  simulatable.forEach(av => {
     const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
     const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
     const localE   = Math.round(av.gm.active_electrons / 2);
@@ -3689,7 +3747,7 @@ function loadNGSReport(ngs) {
     if (!hasAnyTargets) {
       simTarget.innerHTML = '<option value="" disabled selected style="color:var(--gray)">— No platform targets in this report —</option>';
     } else {
-      allVariants.forEach(av => {
+      simulatable.forEach(av => {
         const opt = document.createElement('option');
         opt.value = av.simId;
         if (av.phase3a) {
