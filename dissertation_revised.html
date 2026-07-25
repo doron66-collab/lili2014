@@ -2496,7 +2496,7 @@
       <h4>Hardware Scale &amp; Classical Simulability</h4>
       <p>Full 44-electron pocket simulation on IBM Heron r3 is future work. The dissertation contribution is the architecture that enables this execution, not the execution itself. Full-scale quantum simulation of TP53 C275F (~44 electrons, ~88 qubits) on IBM Heron r3 is designated as a post-dissertation research phase, contingent on IBM Quantum Network institutional access. <strong>The architecture is hardware-agnostic at the workflow level and vendor-specific at the compilation and error-mitigation layer</strong> — IBM Heron r3 is one supported backend among several, with documented translation overhead at the lower layers.</p>
 
-      <p>The table below quantifies why classical simulation of quantum circuits becomes intractable as qubit count grows, and contextualises the Phase 3A scaling choices. A quantum circuit on <em>n</em> qubits requires a complex state-vector of length 2<sup>n</sup>; stored in double precision (complex128, 16 bytes per amplitude), the memory footprint is <strong>2<sup>n</sup> × 16 bytes</strong>. Every additional qubit doubles the requirement.</p>
+      <p><strong>Table 8.1 — State-vector memory-scaling rationale.</strong> The table below quantifies why classical simulation of quantum circuits becomes intractable as qubit count grows, and contextualises the Phase 3A scaling choices. A quantum circuit on <em>n</em> qubits requires a complex state-vector of length 2<sup>n</sup>; stored in double precision (complex128, 16 bytes per amplitude), the memory footprint is <strong>2<sup>n</sup> × 16 bytes</strong>. Every additional qubit doubles the requirement.</p>
 
       <div class="table-wrap">
         <table>
