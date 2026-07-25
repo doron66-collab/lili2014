@@ -86,7 +86,11 @@ and at ~20e the convergence is assessed against an approximate classical referen
 
 Throughout this migration the **provenance layer (P1–P9)** plays the role of
 TOGAF's *Architecture Governance* — the continuity-of-record discipline that makes
-each iteration auditable.
+each iteration auditable. IBM's own July 2026 acquisition of HRL Laboratories —
+adding a silicon-spin qubit track alongside the existing superconducting roadmap —
+is itself an ADM-class architectural migration, and provides independent validation
+that the NISQ-to-fault-tolerant transition this dissertation anticipates is a
+recognised industry trajectory, not a speculative one.
 
 ### 2.3 Basis-set scope and Phase 3A target selection
 
@@ -137,6 +141,15 @@ fault tolerance.
   as exemplars of the research-computing substrate. `[verify: USC CARC; NSF ACCESS]`
 - Quantum-HPC integration / hybrid orchestration patterns. `[verify: recent quantum-HPC integration literature]`
 - Fault-tolerance roadmaps and the transitional window (Heron → Starling → Blue Jay). `[verify: IBM Quantum roadmap, primary sources]`
+- IBM's dual-modality hardware strategy — IBM's July 2026 acquisition of HRL Laboratories
+  (formerly owned by Boeing and General Motors) established a two-track qubit roadmap:
+  **superconducting qubits** (Heron r3 → Starling → Blue Jay) for near-term NISQ execution,
+  and **silicon-spin qubits** (HRL expertise, paired with the Anderon quantum wafer foundry)
+  for the fault-tolerant regime. SOLANGE's Phase 3B targets the superconducting track
+  (Heron r3, 88q for C275F — within the 94-qubit ceiling demonstrated by Merz et al. 2026);
+  KEAP1 and STK11 full-site targets (300+ qubits) fall in the fault-tolerant window, now
+  mapped to IBM's silicon-spin trajectory (~2030+).
+  `[IBM Newsroom, 23 Jul 2026; Reuters, 23 Jul 2026]`
 
 ### 3.4 Enterprise architecture as a design discipline
 The lens itself, plus the provenance/compliance architecture that governs the whole.
