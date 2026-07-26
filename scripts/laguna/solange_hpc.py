@@ -603,7 +603,39 @@ def run_agent(api, poll_s, token, out_dir):
                        "--out", out_dir, "--submit", api]
                 if job.get("run_vqe"):
                     cmd += ["--vqe", "--vqe-steps", "200"]
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            # Live stage progress: a 20-qubit VQE can run for many minutes, during
+            # which SOLANGE would otherwise show only "1 running" with no indication
+            # of where the job actually is. Stream the child's stdout line by line and
+            # post coarse stage notes to the SAME dispatch row (status stays 'running',
+            # only the note changes) — mirroring the QPU agent's live-status pattern.
+            # stderr is merged into stdout so the failure-tail note below still works.
+            _post_status(api, hdr, did, "running",
+                         note=("DMRG classifying…" if job_type == "dmrg" else "starting RHF/CASSCF…"))
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            _out_lines, _last_step = [], 0
+            for _line in proc.stdout:
+                _out_lines.append(_line)
+                _s = _line.strip()
+                if _s.startswith("RHF"):
+                    _post_status(api, hdr, did, "running", note="RHF converged · running CASSCF…")
+                elif _s.startswith("CASSCF"):
+                    _post_status(api, hdr, did, "running", note="CASSCF done · building JW Hamiltonian…")
+                elif _s.startswith("Running statevector VQE"):
+                    _post_status(api, hdr, did, "running", note="VQE optimising…")
+                elif _s.startswith("step"):
+                    # e.g. "step   40  E = ..." — throttle to one post per 40 steps.
+                    try:
+                        _n = int(_s.split()[1])
+                        if _n - _last_step >= 40:
+                            _last_step = _n
+                            _post_status(api, hdr, did, "running", note=f"VQE step {_n}…")
+                    except Exception:
+                        pass
+            proc.wait()
+            class _Res:
+                pass
+            res = _Res()
+            res.returncode, res.stdout, res.stderr = proc.returncode, "".join(_out_lines), ""
             # Don't mark DONE unless the backend actually STORED the run — otherwise a
             # run can pass verification yet never appear in SOLANGE (e.g. the
             # p8_seal_payload migration not run). "stored" or "stored_no_payload" both count.

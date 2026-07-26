@@ -1389,6 +1389,13 @@
           // Laguna (that would breach the DP2 pull boundary) — it hands the user the
           // exact launch command to paste in their own authenticated Laguna session.
           if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
+          // Live stage note for a running classical (HPC/DMRG) job — the agent posts its
+          // current stage (RHF, CASSCF, VQE step N…) to the job's note as it runs, so a
+          // long run is no longer a silent "1 running". Mirrors the QPU live-status line.
+          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.note;}).forEach(function(j){
+            var cnote=String(j.note).replace(/</g,'&lt;');
+            line+='<div style="margin-top:2px;color:var(--teal);font-size:10px" title="'+cnote.replace(/"/g,'&quot;')+'">⚙ '+cnote+'</div>';
+          });
           // QPU agent line — shown only when QPU work is queued/running or its agent is up.
           if(qpuActivity){
             var qpuAgent=qpuOnline?(dot('var(--gold)')+'<span style="color:var(--gold)">QPU agent online</span>')
