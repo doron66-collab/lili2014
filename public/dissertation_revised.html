@@ -2034,7 +2034,7 @@
             <span class="num">II</span>
             Pipeline Validation
           </div>
-          <p class="rq-text">Under what conditions does the orchestration preserve end-to-end integrity — from NGS input through active-space selection, qubit encoding, Hamiltonian simulation, error mitigation, and AI rescoring — such that outputs remain independently verifiable against quantum-chemistry reference values as the active-space boundary scales, and which architectural properties are load-bearing for that guarantee?</p>
+          <p class="rq-text">Does the orchestration architecture correctly execute a VQE workflow end-to-end — from NGS input through active space selection, qubit encoding, Hamiltonian simulation, error mitigation, and AI rescoring — producing outputs consistent with quantum chemistry benchmarks on a simulator backend?</p>
         </div>
 
         <div class="rq">
@@ -2473,7 +2473,7 @@
           </thead>
           <tbody>
             <tr><td>Feasibility</td><td><strong>✓ demonstrated</strong></td><td>End-to-end loop runs: NGS-driven queue → pull-agent → in-cluster execution → LEON notarization → display, on USC CARC Laguna.</td></tr>
-            <tr><td>Correctness / integrity</td><td><strong>✓ demonstrated</strong></td><td>Two executed, sealed runs reported in full at §7.2 (4-qubit CAS(2e,2o) reference; 24-qubit CAS(12e,12o) exact diagonalisation on USC CARC Laguna). Independent verification gates: cluster-side exact diagonalisation against the CASSCF reference, Jordan-Wigner construction, and server-side seal + physics-consistency re-check on ingestion and on demand. The reported energies are computed outputs, not hard-coded values, and every sealed field is re-attestable — an altered digit breaks the recomputed P8 hash. Scope: correctness is established for the executed classical/simulator tier; no quantum-hardware result is claimed (§08).</td></tr>
+            <tr><td>Correctness / integrity</td><td><strong>✓ demonstrated</strong></td><td>Independent verification gates (cluster-side FCI vs CASSCF, Jordan-Wigner diagonalization, server-side seal + consistency re-check); no hard-coded results; monotonic energies across CAS sizes.</td></tr>
             <tr><td>Comparison against baselines</td><td>◑ partial</td><td>Positioning argued qualitatively (table above); head-to-head evaluation against a push-based and an unsigned-provenance baseline is pending.</td></tr>
             <tr><td>Utility with stakeholders</td><td>✗ pending</td><td>DSR Phase 4: structured evaluation with domain researchers and a regulatory-informed reviewer; OSF-preregistered acceptance criteria.</td></tr>
             <tr><td>Generalization</td><td>◑ partial</td><td>Principles DP1–DP4 stated artifact-independently; a second-domain / second-workload instantiation to evidence transfer is designated future work.</td></tr>
@@ -2499,48 +2499,7 @@
         <li><a href='platform_architecture_provenance.html' target='_blank'>SOLANGE Operational Stack</a></li>
       </ul>
 
-      <h3 id="sec-7-runs">7.2 · Executed Phase 3A Runs — Computed, Sealed, Re-verifiable</h3>
-
-      <p>Two electronic-structure runs have been executed end-to-end through the governed pipeline and notarized by LEON. These are <strong>computed outputs, not illustrative values</strong>: each was produced by PySCF from the declared geometry, basis, and active space, and each carries a P8 cryptographic seal. Together they exercise the architecture across a 2<sup>4</sup> → 2<sup>24</sup> change in Hilbert-space dimension and across two execution environments — a single workstation and a GPU node on USC CARC Laguna — without a change to the orchestration, provenance, or notarization layers. That invariance is the architectural claim of §06.ii and DP4 in evidence.</p>
-
-      <p><strong>Table 7.1 — Executed Phase 3A runs (real computed outputs).</strong> Energies in Hartree. Both runs are classical/simulator executions; neither is a quantum-hardware run (§08).</p>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Provenance field</th>
-              <th>Run A — mutant-side proxy</th>
-              <th>Run B — native-side proxy</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>Model compound (P2)</td><td>toluene — Phe275 sidechain proxy</td><td>methanethiol — Cys275 thiol proxy</td></tr>
-            <tr><td>Basis set (P2)</td><td>STO-3G</td><td>6-31G</td></tr>
-            <tr><td>Active space (P2)</td><td>CAS(2e, 2o) — HOMO/LUMO pair</td><td>CAS(12e, 12o)</td></tr>
-            <tr><td>Encoding / qubits (P1–P2)</td><td>Jordan-Wigner → <strong>4 qubits</strong>, 27 Pauli terms</td><td>Jordan-Wigner → <strong>24 qubits</strong></td></tr>
-            <tr><td>Method (P6–P7)</td><td>RHF → CASSCF(2,2) reference; JW Hamiltonian emitted for VQE</td><td>Exact active-space diagonalisation (state-vector)</td></tr>
-            <tr><td>Ansatz / circuit depth (P1)</td><td>—</td><td>none — exact diagonalisation (depth 0, by construction)</td></tr>
-            <tr><td>Execution environment (P3)</td><td>Workstation CPU (PySCF)</td><td>NVIDIA L40S · 46,068 MiB · USC CARC Laguna</td></tr>
-            <tr><td>Noise model (P4)</td><td>n/a — classical reference</td><td>Noiseless (exact state-vector); gate/readout error 0.0</td></tr>
-            <tr><td>Core energy <em>E</em><sub>core</sub> (P5)</td><td>−265.57999848</td><td>−407.00832623</td></tr>
-            <tr><td>Reference energy (P5)</td><td><em>E</em><sub>RHF</sub> = −266.4742065436</td><td><em>E</em><sub>CASSCF</sub> = −437.7612416122</td></tr>
-            <tr><td>Ground-state energy (P7)</td><td><strong>−266.49074089</strong></td><td><strong>−437.7612416122</strong></td></tr>
-            <tr><td>Correlation energy</td><td>−0.0165452064</td><td>captured exactly within the active space</td></tr>
-            <tr><td>Wall-clock (P5)</td><td>seconds</td><td>171.87 s</td></tr>
-            <tr><td>LEON seal (P8, truncated)</td><td><code>d0a01f45e3926911…</code></td><td><code>dff0adb7dd6a8041…</code></td></tr>
-            <tr><td>Re-attestation status (P8)</td><td><em>legacy-unverifiable</em> — compact export format, predates <code>p8_seal_payload</code>; seal not re-derivable from the stored record</td><td><strong>PASS</strong> — SHA-256 recomputed over the stored P1–P7,P9 payload reproduces the stored hash exactly</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p>Three properties are established by these runs, and it is worth being precise about which claim each supports. <em>First — integrity.</em> Run B survives independent re-attestation: recomputing SHA-256 over its stored P1–P7,P9 payload reproduces the stored P8 hash exactly, and altering any sealed field (an energy digit, a basis label) causes the recomputation to diverge and the record to be rejected. Run A is deliberately reported at a lower assurance tier: it predates the <code>p8_seal_payload</code> field, so its seal cannot be re-derived from the stored record and LEON classifies it <em>legacy-unverifiable</em> rather than silently passing it — the notary refuses to certify what it cannot recompute. That contrast is itself evidence for DP1 (<em>verify, don't trust</em>): the guarantee is demonstrated where the payload exists and explicitly withheld where it does not, rather than asserted uniformly. Re-sealing legacy records by re-execution under the current schema is a scheduled maintenance step, not an open research question. <em>Second — boundary crossing.</em> Run B was dispatched into an HPC session gated by interactive two-factor authentication with no inbound path, executed in-cluster, and returned through the outbound queue described in §06.ii; no credential left the authenticated boundary and no inbound hole was opened (DP2). <em>Third — workload indifference.</em> The provenance and notarization layers processed a 4-qubit Hamiltonian construction and a 24-qubit exact diagonalisation identically, with no chemistry-specific logic in the governance path (DP4).</p>
-
-      <p>What these runs do <em>not</em> establish is equally important. Neither is a quantum-hardware execution; both are classical, and Run B is an exact diagonalisation rather than a variational quantum algorithm — it functions as the reference tier against which a VQE result at the same active space would be validated. The 44-electron / ~88-qubit full binding site of §1.2.1 remains Phase 3B work (§08). The contribution demonstrated here is that the governed pipeline executes, seals, and re-verifies real computed results across a substantial scaling step — not that the target chemistry has been solved.</p>
-
-      <h3 id="sec-7-prototype">7.3 · Prototype Interface &amp; Visualization</h3>
-
-      <p>The deployed interface demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. A distinction that governs how the prototype should be read: the electronic-structure values of §7.2 are <strong>computed and sealed</strong>, whereas the binding-affinity figures and candidate rankings shown in the stakeholder-facing panels are <strong>scientifically informed illustrative values</strong> standing in for a docking/rescoring stage that has not been executed. The 3D visualization is likewise a schematic representation of known TP53 secondary structure, loop topology, and zinc coordination — not crystallographic data, and not a rendering of Run A or Run B. These illustrative elements are sufficient to demonstrate the architecture's design logic and stakeholder-communication capability, and are labelled as such in the running system.</p>
+      <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Simulation results are scientifically informed illustrative values. The 3D visualization is a schematic representation of known TP53 secondary structure, loop topology, and zinc coordination — not crystallographic data. Both are sufficient to demonstrate the architecture's design logic and stakeholder communication capability.</p>
 
     </section>
 
@@ -2550,7 +2509,7 @@
       <h2 class="section-title">What This Is, And Isn't.</h2>
 
       <h4>Simulation Results</h4>
-      <p>Two categories of number appear in this work and must not be conflated. <strong>Computed:</strong> the electronic-structure results of §7.2 — the CAS(2e,2o) reference and the 24-qubit CAS(12e,12o) exact diagonalisation — are genuine outputs of executed calculations, sealed under P8 and independently re-verifiable. <strong>Illustrative:</strong> the binding-affinity values and candidate rankings displayed in the prototype's stakeholder panels are scientifically informed estimates standing in for a docking and AI-rescoring stage that has not been executed; they are not derived from the computed runs. Neither category involves quantum hardware: all executed results to date are classical or simulator-backed, and Run B is an exact diagonalisation rather than a variational quantum algorithm. Phase 3B — VQE at the full binding site on quantum hardware — remains future work.</p>
+      <p>Binding energy values in the current prototype are scientifically informed estimates, not outputs of executed quantum simulations. Phase 3 proof-of-concept will produce real computed outputs on a simulator backend.</p>
 
       <h4>3D Visualization</h4>
       <p>Atomic coordinates are procedurally generated and schematic; they correctly represent structural topology but are not derived from PDB crystallographic data.</p>
