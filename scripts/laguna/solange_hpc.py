@@ -631,6 +631,14 @@ def run_agent(api, poll_s, token, out_dir):
                             _post_status(api, hdr, did, "running", note=f"VQE step {_n}…")
                     except Exception:
                         pass
+                elif "DMRG M=" in _s:
+                    # DMRG sweeps one bond dimension at a time — solange_dmrg.py prints
+                    # "DMRG M=  250  E=... Ha [..]" per M. Surface each as its own stage.
+                    try:
+                        _m = _s.split("M=")[1].split()[0]
+                        _post_status(api, hdr, did, "running", note=f"DMRG bond dim M={_m}…")
+                    except Exception:
+                        pass
             proc.wait()
             class _Res:
                 pass
