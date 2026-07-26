@@ -2501,6 +2501,40 @@
 
       <p>The prototype demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. Simulation results are scientifically informed illustrative values. The 3D visualization is a schematic representation of known TP53 secondary structure, loop topology, and zinc coordination — not crystallographic data. Both are sufficient to demonstrate the architecture's design logic and stakeholder communication capability.</p>
 
+      <h3 id="sec-7-qpu">7.4 · Executed Quantum-Hardware Runs — Pipeline Validation on Real QPUs</h3>
+
+      <p>Six jobs have been executed on real IBM quantum hardware between 15 and 24 July 2026, on two processors — <code>ibm_marrakesh</code> (a Heron r2 device) and <code>ibm_kingston</code>. Each was sampled at 4,096 shots (one early run did not capture the shot count in its record), and each returned a complete P1–P9 provenance record populated from <em>live device telemetry</em> — calibration epoch (P3), per-gate and readout error, and T₁/T₂ (P4) — sealed at source and re-verified by LEON on ingestion. <strong>These are deliberately scoped as pipeline-validation runs, not scientific results.</strong> Every run is a fixed-state expectation-value measurement — ⟨H⟩ evaluated on the Hartree-Fock reference state, <em>not</em> a ground-state search — at the minimal CAS(2e,2o) active space (4 qubits; 2 qubits for the H₂ control). What they establish is an <em>information-systems</em> result: that the full governed loop (mutation-aware Hamiltonian → real QPU execution → live-telemetry provenance capture → cryptographic seal → LEON notarization) runs end-to-end on real hardware across two devices and multiple targets, exactly as the architecture specifies.</p>
+
+      <p><strong>Table 7.2 — Executed quantum-hardware runs (fixed-state ⟨H⟩, CAS(2e,2o)).</strong> Energies in Hartree. The reference is the exact ⟨H⟩ on the <em>same</em> Hartree-Fock state, computed classically; <em>|Δ|</em> is therefore the hardware deviation in reproducing a known expectation value — device noise, not an HF-vs-ground-state gap. The final row is the statevector control (see below).</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Target</th>
+              <th>Device</th>
+              <th>Qubits</th>
+              <th>Measured ⟨H⟩</th>
+              <th>Exact same-state ref.</th>
+              <th>|Δ| (hardware noise)</th>
+              <th>Readout error</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>15 Jul</td><td>H₂ (control target)</td><td><code>ibm_marrakesh</code></td><td>2</td><td>−1.83694414</td><td>−1.83696586</td><td>2.2×10⁻⁵</td><td>5.2×10⁻³</td></tr>
+            <tr><td>15 Jul</td><td>TP53 C275F native</td><td><code>ibm_marrakesh</code></td><td>4</td><td>−432.90018127</td><td>−432.89297587</td><td>7.2×10⁻³</td><td>3.2×10⁻³</td></tr>
+            <tr><td>16 Jul</td><td>TP53 C275F mutant</td><td><code>ibm_kingston</code></td><td>4</td><td>−266.47261721</td><td>−266.47278261</td><td>1.7×10⁻⁴</td><td>9.4×10⁻³</td></tr>
+            <tr><td>19 Jul</td><td>TP53 C275F native</td><td><code>ibm_kingston</code></td><td>4</td><td>−432.89714609</td><td>−432.89297587</td><td>4.2×10⁻³</td><td>5.9×10⁻³</td></tr>
+            <tr><td>24 Jul</td><td>TP53 C275F mutant</td><td><code>ibm_kingston</code></td><td>4</td><td>−266.46986991</td><td>−266.47278261</td><td>2.9×10⁻³</td><td>6.2×10⁻²</td></tr>
+            <tr><td>24 Jul</td><td>KEAP1 LOF mutant</td><td><code>ibm_kingston</code></td><td>4</td><td>−432.89730045</td><td>−432.89297883</td><td>4.3×10⁻³</td><td>5.3×10⁻²</td></tr>
+            <tr style="opacity:0.75;font-style:italic"><td>19 Jul</td><td>TP53 C275F native — <strong>statevector control</strong></td><td>local simulator</td><td>4</td><td>−432.89297587</td><td>−432.89297587</td><td><strong>0 (exact)</strong></td><td>n/a</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The control row carries the argument. Executed through the <em>identical</em> code path with the quantum device replaced by an exact state-vector, the measurement reproduces the classical reference to the last recorded digit (Δ = 0). The harness therefore contributes no error of its own, and the hardware deviations above — spanning 1.7×10⁻⁴ to 7.2×10⁻³ Ha across the two devices — are attributable to the QPUs (shot noise plus gate and readout error at this width), not to the pipeline. This is the intended Phase-3B-precursor evidence: the governance and orchestration layers hold when the backend is real quantum hardware returning genuinely probabilistic output, which is precisely the condition §06.iii's provenance schema and §06.ii's LEON notarization were designed for. <strong>The scientific targets — the ~24-electron local site and the ~44-electron / ~88-qubit full binding site of §1.2.1 — remain Phase 3B work (§08); nothing in this subsection is a chemical-accuracy claim.</strong> What is claimed, and what the records support, is that the pipeline executes and seals real quantum-hardware runs end-to-end.</p>
+
     </section>
 
     <!-- ========== 8. LIMITATIONS ========== -->
