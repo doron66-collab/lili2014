@@ -27,9 +27,39 @@ from pathlib import Path
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 
+# Generic words that carry no topical meaning. Without removing them, a question
+# like "How is a run notarized?" spuriously matches any document containing
+# "how"/"is", pulling in irrelevant sources.
+_STOPWORDS = {
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "am",
+    "how", "what", "which", "who", "whom", "whose", "when", "where", "why",
+    "do", "does", "did", "doing", "done", "of", "to", "in", "on", "for", "and",
+    "or", "with", "by", "as", "at", "it", "its", "that", "this", "these",
+    "those", "can", "could", "would", "should", "will", "shall", "may", "might",
+    "must", "from", "has", "have", "had", "having", "not", "no", "but", "if",
+    "than", "then", "so", "such", "into", "over", "per", "via", "we", "our",
+    "you", "your", "i", "my", "me", "they", "them", "their", "he", "she", "his",
+    "her", "about", "more", "most", "some", "any", "all", "each", "other", "up",
+    "out", "also", "there", "here", "using", "use", "used", "get", "got",
+}
+
+# Light suffix stemmer so query/document word forms match (e.g. "notarized" ~
+# "notarization", "sealed" ~ "seal"). Suffixes are ordered longest-first.
+_SUFFIXES = ("izations", "ization", "ational", "ations", "ation", "izing",
+             "ized", "izes", "ize", "ings", "ing", "edly", "edness", "ness",
+             "ers", "er", "ied", "ies", "ed", "es", "ly", "s")
+
+
+def _stem(t: str) -> str:
+    for suf in _SUFFIXES:
+        if t.endswith(suf) and len(t) - len(suf) >= 3:
+            return t[:-len(suf)]
+    return t
+
 
 def tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+    return [_stem(t) for t in _TOKEN_RE.findall(text.lower())
+            if t not in _STOPWORDS]
 
 
 @dataclass
@@ -141,10 +171,18 @@ def cited_hits(answer: str, hits: list[Hit]) -> list[Hit]:
     Falls back to all hits if the answer cited none.
     """
     idxs = {int(n) for n in _CITE_RE.findall(answer or "")}
-    if not idxs:
+    if idxs:
+        kept = [h for i, h in enumerate(hits, 1) if i in idxs]
+        if kept:
+            return kept
+    # No usable citations (e.g. a model that doesn't bracket its sources): show
+    # only the passages clearly relevant to the query — those within 35% of the
+    # top BM25 score — so weak matches don't appear as supporting evidence.
+    if not hits:
         return hits
-    kept = [h for i, h in enumerate(hits, 1) if i in idxs]
-    return kept or hits
+    top = hits[0].score
+    strong = [h for h in hits if h.score >= 0.35 * top]
+    return strong or hits[:1]
 
 
 _RETRIEVER: Retriever | None = None
