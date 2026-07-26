@@ -611,9 +611,18 @@ def run_agent(api, poll_s, token, out_dir):
             # stderr is merged into stdout so the failure-tail note below still works.
             _post_status(api, hdr, did, "running",
                          note=("DMRG classifying…" if job_type == "dmrg" else "starting RHF/CASSCF…"))
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            # PYTHONUNBUFFERED=1 forces the child (solange_hpc.py's own VQE run, or
+            # solange_dmrg.py under run_dmrg.sh) to flush each print() line immediately
+            # instead of block-buffering until exit — without it the stage lines (and
+            # therefore the live notes AND the per-line heartbeat below) only arrive in
+            # one burst at the very end, so SOLANGE stays stuck on the initial note and
+            # shows the agent offline mid-run. iter(readline, '') guarantees the parent
+            # yields each line as it arrives rather than read-ahead buffering.
+            _env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                    text=True, bufsize=1, env=_env)
             _out_lines, _last_step, _hb = [], 0, 0
-            for _line in proc.stdout:
+            for _line in iter(proc.stdout.readline, ''):
                 _out_lines.append(_line)
                 # Keep the liveness heartbeat alive DURING the run. The agent is blocked
                 # here for the whole job, so without this it stops heartbeating and
