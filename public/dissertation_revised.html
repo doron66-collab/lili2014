@@ -2542,36 +2542,15 @@
 
       <p>The deployed interface demonstrates the complete pipeline flow, grounded in the actual patient NGS report MI25-0349. A distinction that governs how the prototype should be read: the electronic-structure values of §7.2 are <strong>computed and sealed</strong>, whereas the binding-affinity figures and candidate rankings shown in the stakeholder-facing panels are <strong>scientifically informed illustrative values</strong> standing in for a docking/rescoring stage that has not been executed. The 3D visualization is likewise a schematic representation of known TP53 secondary structure, loop topology, and zinc coordination — not crystallographic data, and not a rendering of Run A or Run B. These illustrative elements are sufficient to demonstrate the architecture's design logic and stakeholder-communication capability, and are labelled as such in the running system.</p>
 
-      <h3 id="sec-7-qpu">7.4 · Phase 3B — Quantum-Hardware Execution</h3>
+      <h3 id="sec-7-qpu">7.4 · Phase 3B — Quantum-Hardware Execution Path</h3>
 
-      <p>The orchestration reaches real quantum hardware, and has done so. Between 15 and 24 July 2026 the pipeline submitted and completed measurements on two IBM devices — <code>ibm_marrakesh</code> (Heron r2) and <code>ibm_kingston</code> — through <code>qiskit-ibm-runtime</code>'s <code>EstimatorV2</code>, each returning a sealed P1–P9 record with P3 and P4 populated from live device telemetry (backend identity and version, calibration epoch, gate and readout error rates, T1/T2) rather than left null. The measured quantity is the Hamiltonian expectation value on the Hartree–Fock reference state, with the reported total formed as <em>E</em><sub>core</sub> + <em>E</em><sub>active</sub>.</p>
+      <p>The orchestration reaches real quantum hardware, and the path is implemented rather than projected. Jobs are submitted through <code>qiskit-ibm-runtime</code>'s <code>EstimatorV2</code> against an IBM Heron r2 device (<code>ibm_marrakesh</code>), and the returned expectation value is written into the same nine-element record used for the classical tier — with the P3 and P4 fields populated from live device telemetry rather than left null: backend identity and version, calibration epoch, gate and readout error rates, and T1/T2 coherence times read from the device properties at submission time. Shot count and the IBM job identifier are recorded under P5, and the record is sealed with <code>p8_seal_payload</code> on the same code path as Run B — so hardware records re-attest under LEON at the <em>same</em> assurance tier as the cluster runs, not a weaker one.</p>
 
-      <p><strong>Table 7.2 — Quantum-hardware measurements (executed).</strong> Energies in Hartree. All runs use the CAS(2e,2o) active space (4 qubits). Δ is the deviation of the hardware measurement from the exact reference computed classically for the same Hamiltonian.</p>
+      <p>Two design details in this path are worth noting because they are consequences of running on real hardware rather than a simulator. First, job submission and result retrieval are decoupled: a completed job can be reclaimed by identifier without re-spending quantum time, which matters when a client-side failure would otherwise discard a measurement that the device has already produced and billed. Second, the classical reference computation that would normally accompany a measurement is gated by qubit count — past roughly sixteen qubits, dense diagonalisation of the 2<sup>n</sup> × 2<sup>n</sup> Hamiltonian is skipped and reported as such, because that computation, not the hardware measurement, is the operation that fails first. That asymmetry is the classical wall of §1.2 observed directly in the instrumentation: the quantum measurement returns at a scale where its classical verification no longer can.</p>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Calibration epoch</th><th>Target</th><th>Device</th><th>Exact reference</th><th>Measured</th><th>Δ</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>2026-07-15</td><td>H&#8322; smoke test</td><td>ibm_marrakesh</td><td>—</td><td>−1.836944142</td><td>—</td></tr>
-            <tr><td>2026-07-15</td><td>TP53 C275F (native)</td><td>ibm_marrakesh</td><td>−432.892975873</td><td>−432.900181266</td><td>−7.21 × 10⁻³</td></tr>
-            <tr><td>2026-07-16</td><td>TP53 C275F (mutant)</td><td>ibm_kingston</td><td>−266.472782612</td><td>−266.472617208</td><td>+1.65 × 10⁻⁴</td></tr>
-            <tr><td>2026-07-19</td><td>TP53 C275F (native)</td><td>ibm_kingston</td><td>−432.892975873</td><td>−432.897146091</td><td>−4.17 × 10⁻³</td></tr>
-            <tr><td>2026-07-24</td><td>TP53 C275F (mutant)</td><td>ibm_kingston</td><td>−266.472782612</td><td>−266.469869914</td><td>+2.91 × 10⁻³</td></tr>
-            <tr><td>2026-07-24</td><td>KEAP1 LOF (mutant)</td><td>ibm_kingston</td><td>−432.892978825</td><td>−432.897300447</td><td>−4.32 × 10⁻³</td></tr>
-            <tr><td><em>control</em></td><td><em>TP53 C275F (native)</em></td><td><em>Statevector dry-run — not hardware</em></td><td>−432.892975873</td><td>−432.892975873</td><td><strong>0.000</strong></td></tr>
-          </tbody>
-        </table>
-      </div>
+      <p><em>Reporting status.</em> Executed hardware runs and their measured energies are held as sealed provenance records in the platform's run store; their consolidated presentation — device, active space, shot count, measured energy with confidence interval, and calibration telemetry, in the format of Table 7.1 — is the remaining item for this section and will be reported from those records rather than restated from memory.</p>
 
-      <p>The control row is what makes the rest of the table interpretable, and it is why the dry-run path is retained rather than treated as a development convenience. Executed through the identical code path with the device replaced by an exact state-vector, the measurement returns the classical reference to every reported digit — Δ = 0. The harness therefore contributes no error of its own, and the deviations in the hardware rows are attributable to the devices rather than to the pipeline that drives them. Those deviations, 1.65 × 10⁻⁴ to 7.21 × 10⁻³ Ha, are the magnitude expected from shot noise and gate/readout error at this circuit width; they are recorded, sealed, and reproducible from the stored records rather than smoothed away.</p>
-
-      <p>Taken together with §7.2, the executed work forms a three-tier validation ladder in which each tier isolates a different error source. The <em>classical tier</em> establishes ground truth (CASSCF and exact active-space diagonalisation). The <em>algorithmic tier</em> runs VQE with an AllSinglesDoubles UCCSD ansatz (13 gates, depth 7) on a noiseless simulator and converges to within 1.09 × 10⁻⁵ Ha of the CASSCF reference in 80 optimisation steps — isolating ansatz and optimiser error with the device removed. The <em>hardware tier</em> reported above then reintroduces the device, and the residual gap is device noise. Separating these three quantities is precisely what a provenance record is for: P1–P2 fix the circuit and encoding, P3–P4 fix the device and its calibration state, and P5–P7 fix the measurement and its estimator, so a discrepancy can be attributed rather than merely observed.</p>
-
-      <p>The scope of this evidence should be stated plainly. Every hardware run above uses the minimal CAS(2e,2o) active space at four qubits; the local (~24e) and full binding-site (~44e / ~88-qubit) regimes of §1.2.1 have not been executed on hardware and remain Phase 3B work (§08). Two targets are represented — TP53 C275F and KEAP1 LOF — establishing that the path is not specific to a single mutation, though the reference energies for TP53 C275F (native) and KEAP1 LOF (mutant) agree to within 3 × 10⁻⁶ Ha, reflecting that both are modelled at this stage by closely related cysteine-thiol proxies. What these runs demonstrate is the governed loop closing on real quantum hardware — submission, measurement, telemetry capture, sealing, and re-verification — not chemical accuracy at the target active space.</p>
-
-      </section>
+    </section>
 
     <!-- ========== 8. LIMITATIONS ========== -->
     <section class="doc-section reveal" id="limitations">
