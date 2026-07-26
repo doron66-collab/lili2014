@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from llm_adapter import get_backend, OllamaBackend
-from retriever import get_retriever
+from retriever import get_retriever, cited_hits
 import prompts
 import leon_verify
 
@@ -152,11 +152,12 @@ def druggability(req: DruggabilityRequest):
     prompt = prompts.druggability_prompt(req.mutation, context, req.question)
     backend = get_backend()
     result = backend.generate(prompt, model=req.model, system=prompts.SYSTEM_PROMPT)
+    shown = cited_hits(result.text, hits)
     return {
         "mode": "druggability",
         "mutation": req.mutation,
         "answer": result.text,
-        "sources": [h.to_dict() for h in hits],
+        "sources": [h.to_dict() for h in shown],
         **result.to_dict(),
     }
 
@@ -195,10 +196,11 @@ def chat(req: ChatRequest):
     prompt = prompts.chat_prompt(context, req.question)
     backend = get_backend()
     result = backend.generate(prompt, model=req.model, system=prompts.SYSTEM_PROMPT)
+    shown = cited_hits(result.text, hits)
     return {
         "mode": "chat",
         "answer": result.text,
-        "sources": [h.to_dict() for h in hits],
+        "sources": [h.to_dict() for h in shown],
         **result.to_dict(),
     }
 

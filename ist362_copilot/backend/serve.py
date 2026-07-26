@@ -27,7 +27,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from llm_adapter import get_backend, OllamaBackend
-from retriever import get_retriever
+from retriever import get_retriever, cited_hits
 import prompts
 import leon_verify
 
@@ -97,8 +97,9 @@ def h_druggability(body: dict):
                                          body.get("question"))
     res = get_backend().generate(prompt, model=body.get("model"),
                                  system=prompts.SYSTEM_PROMPT)
+    shown = cited_hits(res.text, hits)
     return {"mode": "druggability", "mutation": mutation, "answer": res.text,
-            "sources": [h.to_dict() for h in hits], **res.to_dict()}
+            "sources": [h.to_dict() for h in shown], **res.to_dict()}
 
 
 def h_warmup(body: dict):
@@ -134,8 +135,9 @@ def h_chat(body: dict):
     prompt = prompts.chat_prompt(r.context_block(hits), q)
     res = get_backend().generate(prompt, model=body.get("model"),
                                  system=prompts.SYSTEM_PROMPT)
+    shown = cited_hits(res.text, hits)
     return {"mode": "chat", "answer": res.text,
-            "sources": [h.to_dict() for h in hits], **res.to_dict()}
+            "sources": [h.to_dict() for h in shown], **res.to_dict()}
 
 
 class Handler(BaseHTTPRequestHandler):

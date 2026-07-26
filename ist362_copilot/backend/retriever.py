@@ -128,6 +128,25 @@ class Retriever:
         return "\n".join(lines)
 
 
+_CITE_RE = re.compile(r"\[(\d+)\]")
+
+
+def cited_hits(answer: str, hits: list[Hit]) -> list[Hit]:
+    """Return only the retrieved passages the answer actually cited as [n].
+
+    The retriever feeds the top-k passages to the model as context, but some may
+    be weak matches the model never uses. Displaying those alongside the answer
+    makes irrelevant sources look supporting. Here we keep only the passages the
+    answer referenced by bracket number (mapping [i] -> the i-th retrieved hit).
+    Falls back to all hits if the answer cited none.
+    """
+    idxs = {int(n) for n in _CITE_RE.findall(answer or "")}
+    if not idxs:
+        return hits
+    kept = [h for i, h in enumerate(hits, 1) if i in idxs]
+    return kept or hits
+
+
 _RETRIEVER: Retriever | None = None
 
 
