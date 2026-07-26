@@ -1567,7 +1567,7 @@
             <td>~48</td>
             <td>NSCLC, melanoma, pancreatic</td>
             <td>~15–20%</td>
-            <td>TCGA, PDB 2A5E; <a href="#ref-62">[62]</a><a href="#ref-63">[63]</a></td>
+            <td>TCGA, PDB 2A5E</td>
           </tr>
           <tr>
             <td><strong>STK11</strong></td>
@@ -2116,7 +2116,7 @@
           <tr><th>TOGAF Domain</th><th>Framework Definition</th><th>SOLANGE Instantiation</th><th>Provenance</th></tr>
         </thead>
         <tbody>
-          <tr><td>Business</td><td>Strategy, drivers, stakeholders, and the problem the system exists to solve.</td><td>Non-druggable NSCLC tumor-suppressor targets (TP53, KEAP1, CDKN2A, STK11) — mutations with no small-molecule binding pocket.</td><td>—</td></tr>
+          <tr><td>Business</td><td>Strategy, drivers, stakeholders, and the problem the system exists to solve.</td><td>Non-druggable NSCLC tumor-suppressor targets (TP53, STK11, KEAP1) — mutations with no small-molecule binding pocket.</td><td>—</td></tr>
           <tr><td>Data</td><td>Logical and physical data assets and their governance.</td><td>Jordan–Wigner-encoded molecular Hamiltonians, CASSCF reference datasets, and the immutable P1–P9 provenance records (21 CFR §11.10(e)).</td><td>P1 · P2 · P5</td></tr>
           <tr><td>Application</td><td>Applications, their behavior, and their interactions.</td><td>CASSCF/PySCF (classical reference), VQE on PennyLane (live Phase 3A), and SqDRIFT sample-based quantum diagonalization (Phase 3B).</td><td>P1 · P6</td></tr>
           <tr><td>Technology</td><td>Hardware, networks, and the platform infrastructure beneath everything above.</td><td>The classical→quantum bridge itself: academic HPC (NSF ACCESS-class allocations) on one side, IBM Heron r3 on the other.</td><td>P3 · P4</td></tr>
@@ -2142,7 +2142,7 @@
           <text x="150" y="488" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">NISQ → FTQC</text>
           <text x="490" y="430" text-anchor="middle" font-family="var(--body)" font-weight="700" font-size="19" fill="#8a6f20">Oncology</text>
           <text x="490" y="452" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">Non-druggable NSCLC</text>
-          <text x="490" y="470" text-anchor="middle" font-family="var(--body)" font-size="12" fill="#1a2028">TP53 · KEAP1 · CDKN2A · STK11</text>
+          <text x="490" y="470" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">TP53 · STK11 · KEAP1</text>
           <text x="490" y="488" text-anchor="middle" font-family="var(--body)" font-size="13" fill="#1a2028">C275F ground-state</text>
           <text x="320" y="300" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">hybrid VQE /</text>
           <text x="320" y="314" text-anchor="middle" font-family="var(--body)" font-size="11" fill="#5c6168">embedding</text>
@@ -2709,7 +2709,7 @@
       <p>This framing positions the quantum simulation architecture not as an isolated computational exercise, but as the <strong>critical first step in a clinically meaningful and scientifically grounded drug discovery pipeline</strong> targeting currently non-druggable TP53 mutations in lung cancer.</p>
 
       <h3>Future Research Directions</h3>
-      <p>The molecular-level simulations enabled by this dissertation's SqDRIFT+VQE pipeline are positioned to inform a second clinical question that lies beyond the dissertation's scope: <strong>NGS-informed radiotherapy decision support</strong>. The non-druggable mutations targeted here — TP53, KEAP1, CDKN2A, STK11 — are the same mutations most frequently implicated in radioresistance literature, and the quantum-derived mechanistic features they expose (DNA damage repair dynamics, oxidative-stress response via the NRF2 pathway disrupted by KEAP1 mutations, apoptotic signaling) are precisely the features current radiogenomic models lack. The signal is measurable in contemporary clinical cohorts: among patients receiving definitive chemoradiation with adjuvant durvalumab, 24-month local-regional failure was 52% in KEAP1/NFE2L2-altered tumours against 27% in wild-type <a href="#ref-64">[64]</a> — an effect of the same target class this platform simulates, observed at the clinical endpoint the radiogenomic layer would predict. Bridging quantum-simulated mutation effects into radiotherapy planning — extending prior efforts such as the Genomic-Adjusted Radiation Dose (GARD) framework (Scott et al., 2017) — is a defensible post-doctoral research program that this dissertation enables but does not undertake. The dissertation builds the molecular-simulation infrastructure; the radiotherapy decision-support layer, with its independent regulatory pathway and prospective-validation requirements, is reserved for future work.</p>
+      <p>The molecular-level simulations enabled by this dissertation's SqDRIFT+VQE pipeline are positioned to inform a second clinical question that lies beyond the dissertation's scope: <strong>NGS-informed radiotherapy decision support</strong>. The non-druggable mutations targeted here — TP53, KEAP1, CDKN2A, STK11 — are the same mutations most frequently implicated in radioresistance literature, and the quantum-derived mechanistic features they expose (DNA damage repair dynamics, oxidative-stress response via the NRF2 pathway disrupted by KEAP1 mutations, apoptotic signaling) are precisely the features current radiogenomic models lack. Bridging quantum-simulated mutation effects into radiotherapy planning — extending prior efforts such as the Genomic-Adjusted Radiation Dose (GARD) framework (Scott et al., 2017) — is a defensible post-doctoral research program that this dissertation enables but does not undertake. The dissertation builds the molecular-simulation infrastructure; the radiotherapy decision-support layer, with its independent regulatory pathway and prospective-validation requirements, is reserved for future work.</p>
     </section>
 
     <!-- ========== 10. TIMELINE ========== -->
@@ -3152,18 +3152,6 @@
         <div class="ref" id="ref-61">
           <span class="ref-num">61</span>
           <span>Nellis, S. (2026, July 23). <em>IBM buys HRL Laboratories to shift to two-track quantum computing strategy</em>. Reuters. <a href="https://www.reuters.com/business/autos-transportation/ibm-buys-hrl-laboratories-shift-two-track-quantum-computing-strategy-2026-07-23/" target="_blank" rel="noopener">reuters.com</a> — Reports IBM acquisition of HRL Laboratories; confirms two-track strategy (superconducting + silicon-spin); notes Boeing and GM retain quantum application partnerships post-acquisition; references the Anderon quantum wafer foundry established by IBM in 2026 with U.S. Department of Commerce support.</span>
-        </div>
-        <div class="ref" id="ref-62">
-          <span class="ref-num">62</span>
-          <span>Ross, J. S., Thummalapalli, R., Febres-Aldana, C. A., et al. (2025). Clinical significance of MTAP deletions and their overlap with concurrent oncogenic driver alterations including EGFR in NSCLC. <em>Journal of Thoracic Oncology</em>, 21(3), 103520. <a href="https://doi.org/10.1016/j.jtho.2025.11.010" target="_blank" rel="noopener">doi.org/10.1016/j.jtho.2025.11.010</a> — Across 4,926 NSCLC tumours profiled by MSK-IMPACT, 10% carried an MTAP deletion, which co-occurs with CDKN2A deletion; 83% of stage-IV MTAP-deleted cases also carried an oncogenic driver. Reports a confirmed partial response to PRMT5-inhibitor monotherapy. Establishes the contemporary evidence base for CDKN2A-locus loss as a clinically consequential, indirectly addressable (synthetic-lethal) target rather than a directly druggable one — the pattern this dissertation's classification framework formalises.</span>
-        </div>
-        <div class="ref" id="ref-63">
-          <span class="ref-num">63</span>
-          <span>Volta, F., La Monica, S., Leonetti, A., et al. (2023). Intrinsic resistance to osimertinib in EGFR-mutated NSCLC cell lines induced by alteration in cell-cycle regulators. <em>Targeted Oncology</em>, 18(6), 953–964. <a href="https://doi.org/10.1007/s11523-023-01005-0" target="_blank" rel="noopener">doi.org/10.1007/s11523-023-01005-0</a> — CDKN2A (p16) knockdown confers intrinsic osimertinib resistance via sustained Rb phosphorylation, reversible by the CDK4/6 inhibitor abemaciclib; p16-deleted patients showed a lower overall response rate. Empirical support for the CDK4/6-interface rationale recorded for CDKN2A in Table 1.</span>
-        </div>
-        <div class="ref" id="ref-64">
-          <span class="ref-num">64</span>
-          <span>Lebow, E. S., Shepherd, A., Eichholz, J. E., et al. (2023). Analysis of tumor mutational burden, progression-free survival, and local-regional control in patients with locally advanced non-small cell lung cancer treated with chemoradiation and durvalumab. <em>JAMA Network Open</em>, 6(1), e2249591. <a href="https://doi.org/10.1001/jamanetworkopen.2022.49591" target="_blank" rel="noopener">doi.org/10.1001/jamanetworkopen.2022.49591</a> — In 81 patients, 24-month local-regional failure was 52% for KEAP1/NFE2L2-altered tumours versus 27% for wild-type, with TMB the only covariate significantly associated with local-regional failure and progression-free survival. Contemporary evidence that the mutations targeted here carry radiotherapy-response signal, supporting the radiogenomic extension identified in §09 as future work.</span>
         </div>
       </div>
     </section>

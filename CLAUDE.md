@@ -18,7 +18,7 @@
 
 ## Science
 - Domain: Non-druggable NSCLC tumor-suppressor mutations
-- Targets: four — TP53, KEAP1, CDKN2A, STK11 (CDKN2A confirmed as the fourth target, 2026-07-26; the earlier "exclude CDKN2A from written text" rule is retired)
+- Targets: TP53, STK11, KEAP1 (NOT CDKN2A in written text)
 - Key mutation: C275F (44 electrons / 88 qubits)
 - Classical limit: CCSD(T) breaks down past ~18e
 - Phase 3A: Live classical proxy — VQE ground-state energies, 4-qubit JW Hamiltonian, PySCF CAS(2e,2o)/STO-3G
