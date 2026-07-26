@@ -1149,6 +1149,7 @@
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected DMRG (0)</button>
       </span>
     </div>
+    <div id="dmrg-queue-status" style="display:none;margin:6px 0 4px;font-size:11px;line-height:1.6"></div>
     <div id="dmrg-classifications" style="margin-top:6px;overflow-x:auto"></div>
     </div>
 
@@ -1368,6 +1369,19 @@
       var qQpu=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='queued';}).length;
       var runningQpuJobs=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='running';});
       var rQpu=runningQpuJobs.length;
+      // DMRG (Rung 3) live progress → the DMRG block's own strip, so it sits under the
+      // DMRG header rather than under RUNG 2 · HPC. Same shared agent, right location.
+      (function(){
+        var dEl=document.getElementById('dmrg-queue-status'); if(!dEl) return;
+        var dRun=jobs.filter(function(j){return j.status==='running'&&j.job_type==='dmrg'&&j.note;});
+        if(!dRun.length){ dEl.style.display='none'; dEl.innerHTML=''; return; }
+        dEl.innerHTML=dRun.map(function(j){
+          var dn=String(j.note).replace(/</g,'&lt;');
+          var dk=(j.key?String(j.key).replace(/</g,'&lt;')+': ':'');
+          return '<div style="color:#a78bfa;font-size:10px" title="'+dn.replace(/"/g,'&quot;')+'">⚙ '+dk+dn+'</div>';
+        }).join('');
+        dEl.style.display='block';
+      })();
       fetch(API+'/api/simulate/hpc/agent/status').then(function(x){return x.json();}).then(function(s){
         var online=!!(s&&s.online);
         // The QPU agent is tracked on its own heartbeat row (agent_id=qpu) so its dot
@@ -1389,12 +1403,15 @@
           // Laguna (that would breach the DP2 pull boundary) — it hands the user the
           // exact launch command to paste in their own authenticated Laguna session.
           if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
-          // Live stage note for a running classical (HPC/DMRG) job — the agent posts its
-          // current stage (RHF, CASSCF, VQE step N…) to the job's note as it runs, so a
-          // long run is no longer a silent "1 running". Mirrors the QPU live-status line.
-          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.note;}).forEach(function(j){
+          // Live stage note for a running HPC (Rung 2) job — RHF → CASSCF → VQE step.
+          // DMRG (Rung 3) jobs are handled by the SAME agent but their progress is shown
+          // in the DMRG block's own strip (see _renderDmrgQueue), not here, so each rung's
+          // live status sits under its own header. The target key is prefixed so two
+          // concurrent/ghost rows are distinguishable at a glance.
+          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.job_type!=='dmrg'&&j.note;}).forEach(function(j){
             var cnote=String(j.note).replace(/</g,'&lt;');
-            line+='<div style="margin-top:2px;color:var(--teal);font-size:10px" title="'+cnote.replace(/"/g,'&quot;')+'">⚙ '+cnote+'</div>';
+            var ck=(j.key?String(j.key).replace(/</g,'&lt;')+': ':'');
+            line+='<div style="margin-top:2px;color:var(--teal);font-size:10px" title="'+cnote.replace(/"/g,'&quot;')+'">⚙ '+ck+cnote+'</div>';
           });
           // QPU agent line — shown only when QPU work is queued/running or its agent is up.
           if(qpuActivity){
