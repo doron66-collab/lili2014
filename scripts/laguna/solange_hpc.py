@@ -603,64 +603,12 @@ def run_agent(api, poll_s, token, out_dir):
                        "--out", out_dir, "--submit", api]
                 if job.get("run_vqe"):
                     cmd += ["--vqe", "--vqe-steps", "200"]
-            # Live stage progress: a 20-qubit VQE can run for many minutes, during
-            # which SOLANGE would otherwise show only "1 running" with no indication
-            # of where the job actually is. Stream the child's stdout line by line and
-            # post coarse stage notes to the SAME dispatch row (status stays 'running',
-            # only the note changes) — mirroring the QPU agent's live-status pattern.
-            # stderr is merged into stdout so the failure-tail note below still works.
-            _post_status(api, hdr, did, "running",
-                         note=("DMRG classifying…" if job_type == "dmrg" else "starting RHF/CASSCF…"))
-            # PYTHONUNBUFFERED=1 forces the child (solange_hpc.py's own VQE run, or
-            # solange_dmrg.py under run_dmrg.sh) to flush each print() line immediately
-            # instead of block-buffering until exit — without it the stage lines (and
-            # therefore the live notes AND the per-line heartbeat below) only arrive in
-            # one burst at the very end, so SOLANGE stays stuck on the initial note and
-            # shows the agent offline mid-run. iter(readline, '') guarantees the parent
-            # yields each line as it arrives rather than read-ahead buffering.
-            _env = {**os.environ, "PYTHONUNBUFFERED": "1"}
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                    text=True, bufsize=1, env=_env)
-            _out_lines, _last_step, _hb = [], 0, 0
-            for _line in iter(proc.stdout.readline, ''):
-                _out_lines.append(_line)
-                # Keep the liveness heartbeat alive DURING the run. The agent is blocked
-                # here for the whole job, so without this it stops heartbeating and
-                # SOLANGE shows it "offline" mid-run even though it is working — the same
-                # bug fixed on the QPU side with on_tick. block2/PySCF are verbose enough
-                # that a per-N-lines ping keeps the online window (90s) satisfied.
-                _hb += 1
-                if _hb % 40 == 0:
-                    _post_heartbeat(api, hdr)
-                _s = _line.strip()
-                if _s.startswith("RHF"):
-                    _post_status(api, hdr, did, "running", note="RHF converged · running CASSCF…")
-                elif _s.startswith("CASSCF"):
-                    _post_status(api, hdr, did, "running", note="CASSCF done · building JW Hamiltonian…")
-                elif _s.startswith("Running statevector VQE"):
-                    _post_status(api, hdr, did, "running", note="VQE optimising…")
-                elif _s.startswith("step"):
-                    # e.g. "step   40  E = ..." — throttle to one post per 40 steps.
-                    try:
-                        _n = int(_s.split()[1])
-                        if _n - _last_step >= 40:
-                            _last_step = _n
-                            _post_status(api, hdr, did, "running", note=f"VQE step {_n}…")
-                    except Exception:
-                        pass
-                elif "DMRG M=" in _s:
-                    # DMRG sweeps one bond dimension at a time — solange_dmrg.py prints
-                    # "DMRG M=  250  E=... Ha [..]" per M. Surface each as its own stage.
-                    try:
-                        _m = _s.split("M=")[1].split()[0]
-                        _post_status(api, hdr, did, "running", note=f"DMRG bond dim M={_m}…")
-                    except Exception:
-                        pass
-            proc.wait()
-            class _Res:
-                pass
-            res = _Res()
-            res.returncode, res.stdout, res.stderr = proc.returncode, "".join(_out_lines), ""
+            # Run the job to completion and capture its output. (An earlier revision
+            # streamed the child's stdout line-by-line to post live stage notes; it
+            # correlated with agent instability on the Laguna node and is reverted to
+            # this proven-stable form. A live-progress reattempt should use a separate
+            # heartbeat thread rather than blocking the agent on the child's pipe.)
+            res = subprocess.run(cmd, capture_output=True, text=True)
             # Don't mark DONE unless the backend actually STORED the run — otherwise a
             # run can pass verification yet never appear in SOLANGE (e.g. the
             # p8_seal_payload migration not run). "stored" or "stored_no_payload" both count.
