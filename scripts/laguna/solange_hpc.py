@@ -593,6 +593,11 @@ def _run_with_progress(cmd, api, hdr, did, job_type):
                                 text=True, bufsize=1, env=env)
         for line in iter(proc.stdout.readline, ''):
             out_lines.append(line)
+            # Echo the child's output into the agent's own log so `tail -f` on the
+            # agent log shows the real DMRG/VQE progress live (observability + lets
+            # us confirm exactly what the child prints and when).
+            sys.stdout.write(line)
+            sys.stdout.flush()
             s = line.strip()
             try:
                 if s.startswith("RHF"):
