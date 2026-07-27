@@ -41,25 +41,43 @@ queued in SOLANGE.
 
 **Where:** Terminal.app on your Mac.
 
+One word brings it up — the `solange` shortcut enters the repo, starts the
+agent, and prints its status:
+
 ```bash
-cd ~/Desktop/lili2014-qpu
-git pull origin claude/code-access-clarification-ab1W8
-bash scripts/laguna/qpu_keepalive.sh start
+solange
 ```
 
-Runs detached (survives closing the terminal) — same as Chapter 1. SOLANGE's
-**QPU agent** dot turns green within ~15s. Default backend is `ibm_kingston`;
-to use a different one:
+SOLANGE's **QPU agent** dot turns green within ~15s. The agent runs detached
+(survives closing the terminal). Look for `RUNNING` and
+`IBM Quantum credentials: AVAILABLE` in the status.
+
+**One-time setup** (only if `solange` isn't defined yet on this Mac — e.g. a
+fresh machine). Paste this once, then `source ~/.bash_profile`:
+
+```bash
+cat >> ~/.bash_profile <<'EOF'
+
+# SOLANGE — bring the QPU agent up in one word
+solange() {
+  cd ~/Desktop/lili2014-qpu && \
+  bash scripts/laguna/qpu_keepalive.sh start && \
+  bash scripts/laguna/qpu_keepalive.sh status
+}
+EOF
+```
+
+To pull the latest code first (e.g. new Hamiltonians), before `solange`:
+
+```bash
+cd ~/Desktop/lili2014-qpu && git pull origin main
+```
+
+Default backend is `ibm_kingston`. To use a different one, or to check/stop:
 
 ```bash
 SOLANGE_QPU_BACKEND=ibm_fez bash scripts/laguna/qpu_keepalive.sh start
-```
-
-```bash
-# check on it any time
 bash scripts/laguna/qpu_keepalive.sh status
-
-# stop it
 bash scripts/laguna/qpu_keepalive.sh stop
 ```
 
