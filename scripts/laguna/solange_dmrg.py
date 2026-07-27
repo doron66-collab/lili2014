@@ -90,8 +90,10 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
                      noises=[1e-5, 1e-6, 0], thrds=[1e-9] * 3, iprint=0)
         dt = time.time() - t0
         energies.append((M, float(e)))
+        # stdout (not stderr) so the agent's live-progress streamer reliably captures
+        # each "DMRG M=" line and surfaces it as a bond-dimension stage note.
         print(f"  DMRG M={M:5d}  E={float(e):.8f} Ha  [{dt:.1f}s this M, "
-              f"{(time.time()-t_start)/60:.1f}m total]", file=sys.stderr)
+              f"{(time.time()-t_start)/60:.1f}m total]", flush=True)
         # Early stop: once the energy stops improving by more than chemical accuracy
         # between consecutive bond dims, larger M cannot change the verdict — the
         # answer has converged. This is exactly classify()'s own convergence test,
