@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 895" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
     <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6b82"/></marker>
     <marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#E8A020"/></marker>
@@ -13,7 +13,7 @@
       .step{font-size:10.5px;font-weight:700}
     </style>
   </defs>
-  <rect x="0" y="0" width="1200" height="860" fill="#f4f6f9"/>
+  <rect x="0" y="0" width="1200" height="895" fill="#f4f6f9"/>
   <text x="40" y="46" font-size="26" font-weight="700" fill="#0B1E3D">SOLANGE — Internal Architecture &amp; the Pull Loop</text>
   <text x="40" y="70" font-size="13" fill="#5b6b82">What SOLANGE is made of, and how a job travels from the browser out to the cluster / quantum hardware and back — verified.</text>
 

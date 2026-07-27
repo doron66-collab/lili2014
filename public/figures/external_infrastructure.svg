@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 780" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 810" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
     <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L8,3 L0,6 Z" fill="#5b6b82"/>
@@ -20,7 +20,7 @@
     </style>
   </defs>
 
-  <rect x="0" y="0" width="1180" height="780" fill="#f4f6f9"/>
+  <rect x="0" y="0" width="1180" height="810" fill="#f4f6f9"/>
   <text x="40" y="46" font-size="26" font-weight="700" fill="#0B1E3D">SOLANGE — External Infrastructure</text>
   <text x="40" y="70" font-size="13" fill="#5b6b82">The third-party services the platform runs on, and how data flows between them. Everything the customer never has to install.</text>
 
