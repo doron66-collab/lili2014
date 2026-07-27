@@ -664,7 +664,7 @@ def run_agent(api, poll_s, token, out_dir):
                        "--submit", api]
             else:
                 compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
-                cmd = [sys.executable, str(_HERE),
+                cmd = [sys.executable, "-u", str(_HERE),
                        "--compound", compound, "--basis", job.get("basis", "6-31g"),
                        "--ncas", str(job["ncas"]), "--nelecas", str(job["nelecas"]),
                        "--key", job["key"], "--side", job.get("side", "native"),

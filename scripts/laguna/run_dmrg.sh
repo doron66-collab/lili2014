@@ -100,4 +100,8 @@ echo "run_dmrg: running → solange_dmrg.py $*"
 echo "──────────────────────────────────────────────────────────────────────"
 
 # 4) run, passing all arguments straight through ───────────────────────────────
-LD_PRELOAD="${PRELOAD}" python scripts/laguna/solange_dmrg.py "$@"
+# -u = unbuffered: the per-bond-dimension "DMRG M=" progress lines flush live to
+# the agent's stdout stream instead of block-buffering until exit (which hid them
+# from the live view). PYTHONUNBUFFERED can get reset across the conda activation
+# above, so pass -u explicitly here.
+LD_PRELOAD="${PRELOAD}" python -u scripts/laguna/solange_dmrg.py "$@"
