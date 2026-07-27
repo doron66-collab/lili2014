@@ -1593,6 +1593,23 @@
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = quantum-necessary (even DMRG fails) · B = DMRG suffices · C = exact classical suffices. '+
           'S_max is the physical evidence — the entanglement threshold, not a size assumption.</div>');
         if (typeof window.updateDmrgDelBtn === 'function') window.updateDmrgDelBtn();
+        // Reflect each completed DMRG classification onto its mutation's status
+        // badges, so a classified target no longer reads "Pending". DMRG is a
+        // separate axis from the Phase-3A VQE run those badges otherwise track, so
+        // this is NON-DESTRUCTIVE: it replaces only a badge still showing "Pending",
+        // never an existing Phase-3A "Done".
+        rows.forEach(function(x){
+          if (!x.key || !x.bqp_class) return;
+          var col = classColor(x.bqp_class);
+          var label = '<span style="font-size:10px;font-weight:700;color:'+col+
+            ';border:1px solid '+col+';border-radius:4px;padding:1px 6px" '+
+            'title="DMRG classification (Rung 3) · Class '+x.bqp_class+
+            (x.s_max!=null?(' · S_max='+Number(x.s_max).toFixed(2)):'')+'">◆ DMRG '+x.bqp_class+'</span>';
+          ['mut-status-'+x.key, 'bqp-status-'+x.key].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el && /Pending/i.test(el.textContent)) el.innerHTML = label;
+          });
+        });
       }).catch(function(){
         dmrgPaint('<div style="color:var(--gray);font-size:11px">DMRG classifications unavailable (backend unreachable).</div>');
       });
