@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 780" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6b82"/>
+    </marker>
+    <marker id="ahg" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#E8A020"/>
+    </marker>
+    <marker id="aht" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#06b6d4"/>
+    </marker>
+    <style>
+      .box{rx:12;ry:12;stroke-width:2}
+      .title{font-weight:700;font-size:16px;fill:#0B1E3D}
+      .sub{font-size:11px;fill:#5b6b82}
+      .lbl{font-size:11px;fill:#5b6b82}
+      .lblb{font-size:11px;font-weight:700}
+      .hdr{font-size:12px;font-weight:700;letter-spacing:1px;fill:#8595aa}
+      .white{fill:#ffffff}
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="780" fill="#f4f6f9"/>
+  <text x="40" y="46" font-size="26" font-weight="700" fill="#0B1E3D">SOLANGE — External Infrastructure</text>
+  <text x="40" y="70" font-size="13" fill="#5b6b82">The third-party services the platform runs on, and how data flows between them. Everything the customer never has to install.</text>
+
+  <!-- ===== SOURCE / CI band ===== -->
+  <text x="40" y="112" class="hdr">SOURCE &amp; DEPLOY</text>
+  <!-- Developer -->
+  <rect x="40" y="124" width="150" height="66" rx="12" fill="#ffffff" stroke="#c3ccd8" stroke-width="2"/>
+  <text x="115" y="152" text-anchor="middle" class="title">Developer</text>
+  <text x="115" y="172" text-anchor="middle" class="sub">git push → main</text>
+  <!-- GitHub -->
+  <rect x="255" y="124" width="180" height="66" rx="12" fill="#0B1E3D" stroke="#0B1E3D"/>
+  <text x="345" y="152" text-anchor="middle" class="title white">GitHub</text>
+  <text x="345" y="172" text-anchor="middle" class="sub" fill="#aab6c6">doron66-collab/lili2014</text>
+
+  <line x1="190" y1="157" x2="250" y2="157" stroke="#5b6b82" stroke-width="2" marker-end="url(#ah)"/>
+
+  <!-- GitHub webhooks to Netlify & Render -->
+  <line x1="435" y1="145" x2="640" y2="250" stroke="#5b6b82" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <line x1="435" y1="170" x2="640" y2="470" stroke="#5b6b82" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="470" y="205" class="lbl" transform="rotate(24 470 205)">auto-deploy (webhook)</text>
+
+  <!-- ===== HOSTING / VENDOR CLOUD ===== -->
+  <rect x="620" y="120" width="520" height="470" rx="16" fill="none" stroke="#c3ccd8" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <text x="640" y="112" class="hdr">VENDOR-HOSTED CLOUD (managed SaaS)</text>
+
+  <!-- Netlify -->
+  <rect x="640" y="228" width="230" height="86" rx="12" fill="#ffffff" stroke="#06b6d4" stroke-width="2.5"/>
+  <text x="755" y="256" text-anchor="middle" class="title">Netlify</text>
+  <text x="755" y="277" text-anchor="middle" class="sub">Hosts the SOLANGE web app</text>
+  <text x="755" y="294" text-anchor="middle" class="sub">+ the dissertation (static)</text>
+  <text x="755" y="309" text-anchor="middle" class="lblb" fill="#06b6d4">solange-platform.bio</text>
+
+  <!-- Render -->
+  <rect x="640" y="448" width="230" height="104" rx="12" fill="#ffffff" stroke="#7c5cff" stroke-width="2.5"/>
+  <text x="755" y="476" text-anchor="middle" class="title">Render</text>
+  <text x="755" y="497" text-anchor="middle" class="sub">Hosts the FastAPI backend</text>
+  <text x="755" y="513" text-anchor="middle" class="sub">(the API + LEON notary)</text>
+  <text x="755" y="530" text-anchor="middle" class="lblb" fill="#7c5cff">qcaihpc-simulation-api</text>
+  <text x="755" y="545" text-anchor="middle" class="lblb" fill="#7c5cff">.onrender.com</text>
+
+  <!-- Supabase -->
+  <rect x="915" y="392" width="205" height="118" rx="12" fill="#ffffff" stroke="#22c55e" stroke-width="2.5"/>
+  <text x="1017" y="420" text-anchor="middle" class="title">Supabase</text>
+  <text x="1017" y="440" text-anchor="middle" class="sub">PostgreSQL database + Auth</text>
+  <text x="1017" y="462" text-anchor="middle" style="font-size:10px;fill:#5b6b82">simulation_runs · hpc_dispatch</text>
+  <text x="1017" y="477" text-anchor="middle" style="font-size:10px;fill:#5b6b82">dmrg_classifications · leon_audit</text>
+  <text x="1017" y="492" text-anchor="middle" style="font-size:10px;fill:#5b6b82">agent_heartbeat · users_profile</text>
+
+  <!-- Structure sources + email -->
+  <rect x="915" y="228" width="205" height="58" rx="10" fill="#ffffff" stroke="#c3ccd8" stroke-width="2"/>
+  <text x="1017" y="252" text-anchor="middle" style="font-size:13px;font-weight:700;fill:#0B1E3D">RCSB PDB · AlphaFold</text>
+  <text x="1017" y="271" text-anchor="middle" class="sub">protein-structure lookup</text>
+
+  <rect x="915" y="300" width="205" height="52" rx="10" fill="#ffffff" stroke="#c3ccd8" stroke-width="2"/>
+  <text x="1017" y="322" text-anchor="middle" style="font-size:13px;font-weight:700;fill:#0B1E3D">Gmail SMTP</text>
+  <text x="1017" y="340" text-anchor="middle" class="sub">access / notification e-mail</text>
+
+  <!-- Render <-> Supabase -->
+  <line x1="870" y1="480" x2="960" y2="480" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#ah)"/>
+  <line x1="960" y1="500" x2="870" y2="500" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="915" y="474" text-anchor="middle" style="font-size:10px;fill:#5b6b82">read / write</text>
+  <!-- Render -> PDB & Gmail -->
+  <line x1="820" y1="448" x2="960" y2="286" stroke="#5b6b82" stroke-width="1.8" marker-end="url(#ah)"/>
+  <line x1="845" y1="448" x2="945" y2="352" stroke="#5b6b82" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- ===== USERS ===== -->
+  <text x="40" y="264" class="hdr">END USER</text>
+  <rect x="40" y="276" width="200" height="86" rx="12" fill="#0B1E3D"/>
+  <text x="140" y="306" text-anchor="middle" class="title white">Clinician / User</text>
+  <text x="140" y="327" text-anchor="middle" class="sub" fill="#aab6c6">web browser only —</text>
+  <text x="140" y="343" text-anchor="middle" class="sub" fill="#aab6c6">no installs, no terminal</text>
+
+  <!-- User -> Netlify (loads app) -->
+  <path d="M240 300 C 430 300, 470 265, 636 262" fill="none" stroke="#06b6d4" stroke-width="2.5" marker-end="url(#aht)"/>
+  <text x="360" y="286" class="lblb" fill="#06b6d4">1 · opens the app (HTTPS)</text>
+  <!-- App -> Render API -->
+  <path d="M755 314 C 755 360, 560 380, 420 400 C 500 470, 636 490, 636 495" fill="none" stroke="#7c5cff" stroke-width="2.5" marker-end="url(#ah)" opacity="0.85"/>
+  <text x="300" y="392" class="lblb" fill="#7c5cff">2 · browser calls the API (HTTPS/JSON)</text>
+
+  <!-- ===== CUSTOMER / INSTITUTION INFRA (agents) ===== -->
+  <rect x="20" y="440" width="560" height="316" rx="16" fill="none" stroke="#E8A020" stroke-width="1.6" stroke-dasharray="3 5"/>
+  <text x="40" y="432" class="hdr" fill="#b9791a">CUSTOMER / INSTITUTION INFRASTRUCTURE — outbound-only agents</text>
+
+  <!-- Laguna -->
+  <rect x="40" y="460" width="250" height="130" rx="12" fill="#ffffff" stroke="#06b6d4" stroke-width="2.5"/>
+  <text x="165" y="486" text-anchor="middle" class="title">USC CARC — Laguna</text>
+  <text x="165" y="506" text-anchor="middle" class="sub">HPC cluster (GPU L40S · largemem)</text>
+  <text x="165" y="527" text-anchor="middle" class="lblb" fill="#06b6d4">HPC / DMRG pull-agent</text>
+  <text x="165" y="544" text-anchor="middle" class="sub">solange_hpc.py — CASSCF/VQE + DMRG</text>
+  <text x="165" y="566" text-anchor="middle" style="font-size:10px;fill:#8595aa">Rung 2 (HPC) · Rung 3 (DMRG)</text>
+  <text x="165" y="580" text-anchor="middle" style="font-size:10px;fill:#8595aa">reached via CARC OnDemand · Duo 2FA</text>
+
+  <!-- Mac -->
+  <rect x="40" y="612" width="250" height="126" rx="12" fill="#ffffff" stroke="#E8A020" stroke-width="2.5"/>
+  <text x="165" y="638" text-anchor="middle" class="title">Operator Mac</text>
+  <text x="165" y="658" text-anchor="middle" class="sub">reliable internet to IBM Cloud</text>
+  <text x="165" y="679" text-anchor="middle" class="lblb" fill="#b9791a">QPU pull-agent</text>
+  <text x="165" y="696" text-anchor="middle" class="sub">solange_qpu.py</text>
+  <text x="165" y="717" text-anchor="middle" style="font-size:10px;fill:#8595aa">Rung 4 (real quantum hardware)</text>
+
+  <!-- IBM Quantum -->
+  <rect x="330" y="620" width="230" height="110" rx="12" fill="#ffffff" stroke="#1f70c1" stroke-width="2.5"/>
+  <text x="445" y="648" text-anchor="middle" class="title">IBM Quantum</text>
+  <text x="445" y="668" text-anchor="middle" class="sub">real QPU — Heron r2/r3</text>
+  <text x="445" y="686" text-anchor="middle" style="font-size:10px;fill:#5b6b82">ibm_kingston · ibm_marrakesh</text>
+  <text x="445" y="706" text-anchor="middle" class="sub">via Qiskit Runtime</text>
+  <text x="445" y="723" text-anchor="middle" style="font-size:10px;fill:#8595aa">the only real quantum step</text>
+
+  <!-- Agents -> Render (outbound only) -->
+  <path d="M290 505 C 470 500, 520 490, 636 500" fill="none" stroke="#E8A020" stroke-width="2.5" marker-end="url(#ahg)"/>
+  <text x="330" y="488" class="lblb" fill="#b9791a">3 · agent polls &amp; returns results (outbound HTTPS)</text>
+  <path d="M290 660 C 400 640, 470 600, 560 545 C 600 525, 630 515, 636 512" fill="none" stroke="#E8A020" stroke-width="2.5" marker-end="url(#ahg)"/>
+
+  <!-- Mac -> IBM -->
+  <line x1="290" y1="678" x2="326" y2="678" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="308" y="668" text-anchor="middle" style="font-size:10px;fill:#5b6b82">runs</text>
+
+  <!-- no-inbound note -->
+  <text x="300" y="756" style="font-size:11px;font-weight:700;fill:#b9791a">✕ no inbound path from the cloud into the cluster / Mac — agents only reach OUT (DP2).</text>
+</svg>

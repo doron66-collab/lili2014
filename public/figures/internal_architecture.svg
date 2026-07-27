@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6b82"/></marker>
+    <marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#E8A020"/></marker>
+    <marker id="agr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#22c55e"/></marker>
+    <style>
+      .t{font-weight:700;font-size:15px;fill:#0B1E3D}
+      .tw{font-weight:700;font-size:15px;fill:#fff}
+      .s{font-size:10.5px;fill:#5b6b82}
+      .sw{font-size:10.5px;fill:#aab6c6}
+      .hdr{font-size:12px;font-weight:700;letter-spacing:1px;fill:#8595aa}
+      .chip{font-size:10px;fill:#0B1E3D}
+      .step{font-size:10.5px;font-weight:700}
+    </style>
+  </defs>
+  <rect x="0" y="0" width="1200" height="860" fill="#f4f6f9"/>
+  <text x="40" y="46" font-size="26" font-weight="700" fill="#0B1E3D">SOLANGE — Internal Architecture &amp; the Pull Loop</text>
+  <text x="40" y="70" font-size="13" fill="#5b6b82">What SOLANGE is made of, and how a job travels from the browser out to the cluster / quantum hardware and back — verified.</text>
+
+  <!-- ===== 1. FRONTEND ===== -->
+  <text x="40" y="112" class="hdr">1 · FRONTEND (browser · React/TypeScript on Netlify)</text>
+  <rect x="40" y="124" width="300" height="250" rx="14" fill="#ffffff" stroke="#06b6d4" stroke-width="2.5"/>
+  <text x="190" y="150" text-anchor="middle" class="t">SOLANGE Web App</text>
+  <text x="190" y="169" text-anchor="middle" class="s">NGS upload · per-mutation routing</text>
+  <!-- ladder rungs -->
+  <rect x="60" y="184" width="260" height="30" rx="6" fill="#eafaf0" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="70" y="204" class="chip"><tspan font-weight="700">Rung 1</tspan> · in-browser VQE (laptop)</text>
+  <rect x="60" y="220" width="260" height="30" rx="6" fill="#e9f7fb" stroke="#06b6d4" stroke-width="1.5"/>
+  <text x="70" y="240" class="chip"><tspan font-weight="700">Rung 2</tspan> · HPC classical → Laguna</text>
+  <rect x="60" y="256" width="260" height="30" rx="6" fill="#f2effe" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="70" y="276" class="chip"><tspan font-weight="700">Rung 3</tspan> · DMRG classifier → Laguna</text>
+  <rect x="60" y="292" width="260" height="30" rx="6" fill="#fdf4e6" stroke="#E8A020" stroke-width="1.5"/>
+  <text x="70" y="312" class="chip"><tspan font-weight="700">Rung 4</tspan> · real QPU → IBM (via Mac)</text>
+  <text x="190" y="344" text-anchor="middle" class="s">Results ladder · live queue-status strip</text>
+  <text x="190" y="360" text-anchor="middle" class="s">P8 seal shown · "notarized by LEON"</text>
+
+  <!-- ===== 2. BACKEND ===== -->
+  <text x="450" y="112" class="hdr">2 · BACKEND (FastAPI on Render)</text>
+  <rect x="450" y="124" width="330" height="250" rx="14" fill="#ffffff" stroke="#7c5cff" stroke-width="2.5"/>
+  <text x="615" y="150" text-anchor="middle" class="t">API &amp; Orchestration</text>
+  <!-- routes -->
+  <rect x="468" y="166" width="294" height="26" rx="6" fill="#f6f4ff"/>
+  <text x="478" y="184" class="chip">routes/simulate.py — dispatch queue · submit · runs</text>
+  <rect x="468" y="198" width="294" height="26" rx="6" fill="#f6f4ff"/>
+  <text x="478" y="216" class="chip">routes/provenance.py — /runs/{id}/verify</text>
+  <rect x="468" y="230" width="294" height="26" rx="6" fill="#f6f4ff"/>
+  <text x="478" y="248" class="chip">routes/pdb.py · notify.py · admin.py</text>
+  <!-- LEON -->
+  <rect x="468" y="270" width="294" height="86" rx="10" fill="#0B1E3D"/>
+  <text x="615" y="294" text-anchor="middle" class="tw">LEON — the notary</text>
+  <text x="615" y="313" text-anchor="middle" class="sw">recomputes the P8 SHA-256 seal, re-checks</text>
+  <text x="615" y="328" text-anchor="middle" class="sw">physics-consistency, REJECTS what fails,</text>
+  <text x="615" y="343" text-anchor="middle" class="sw">writes an immutable row to leon_audit</text>
+
+  <!-- ===== 3. DATABASE ===== -->
+  <text x="890" y="112" class="hdr">3 · DATABASE (Supabase)</text>
+  <rect x="890" y="124" width="270" height="250" rx="14" fill="#ffffff" stroke="#22c55e" stroke-width="2.5"/>
+  <text x="1025" y="150" text-anchor="middle" class="t">PostgreSQL + Auth</text>
+  <rect x="908" y="166" width="234" height="28" rx="6" fill="#eafaf0"/><text x="918" y="185" class="chip"><tspan font-weight="700">hpc_dispatch</tspan> — the job queue</text>
+  <rect x="908" y="200" width="234" height="28" rx="6" fill="#eafaf0"/><text x="918" y="219" class="chip"><tspan font-weight="700">simulation_runs</tspan> — sealed results</text>
+  <rect x="908" y="234" width="234" height="28" rx="6" fill="#eafaf0"/><text x="918" y="253" class="chip"><tspan font-weight="700">dmrg_classifications</tspan> — A/B/C</text>
+  <rect x="908" y="268" width="234" height="28" rx="6" fill="#eafaf0"/><text x="918" y="287" class="chip"><tspan font-weight="700">leon_audit</tspan> — append-only trail</text>
+  <rect x="908" y="302" width="234" height="28" rx="6" fill="#eafaf0"/><text x="918" y="321" class="chip"><tspan font-weight="700">agent_heartbeat</tspan> — liveness</text>
+  <text x="1025" y="350" text-anchor="middle" class="s">service_role key required for inserts</text>
+
+  <!-- frontend <-> backend -->
+  <line x1="340" y1="230" x2="446" y2="230" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="446" y1="255" x2="340" y2="255" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="393" y="222" text-anchor="middle" class="s">HTTPS</text>
+  <text x="393" y="278" text-anchor="middle" class="s">JSON</text>
+  <!-- backend <-> db -->
+  <line x1="780" y1="240" x2="886" y2="240" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="886" y1="262" x2="780" y2="262" stroke="#5b6b82" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- ===== 4. AGENTS (customer infra) ===== -->
+  <rect x="30" y="452" width="1140" height="290" rx="16" fill="none" stroke="#E8A020" stroke-width="1.6" stroke-dasharray="3 6"/>
+  <text x="48" y="444" class="hdr" fill="#b9791a">4 · PULL-AGENTS — run inside the customer's own authenticated session (outbound-only, DP2)</text>
+
+  <!-- HPC/DMRG agent -->
+  <rect x="60" y="472" width="470" height="240" rx="14" fill="#ffffff" stroke="#06b6d4" stroke-width="2.5"/>
+  <text x="295" y="500" text-anchor="middle" class="t">HPC / DMRG Agent — on Laguna</text>
+  <text x="295" y="519" text-anchor="middle" class="s">solange_hpc.py --agent · one process, both job types</text>
+  <rect x="82" y="534" width="200" height="70" rx="8" fill="#e9f7fb" stroke="#06b6d4" stroke-width="1.3"/>
+  <text x="182" y="556" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#0B1E3D">Rung 2 · HPC</text>
+  <text x="182" y="574" text-anchor="middle" class="s">PySCF CASSCF · PennyLane</text>
+  <text x="182" y="590" text-anchor="middle" class="s">VQE on GPU (lightning.gpu)</text>
+  <rect x="300" y="534" width="210" height="70" rx="8" fill="#f2effe" stroke="#a78bfa" stroke-width="1.3"/>
+  <text x="405" y="556" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#0B1E3D">Rung 3 · DMRG</text>
+  <text x="405" y="574" text-anchor="middle" class="s">block2 tensor-network</text>
+  <text x="405" y="590" text-anchor="middle" class="s">A/B/C entanglement verdict</text>
+  <text x="295" y="636" text-anchor="middle" class="s">builds the P1–P9 record · SHA-256 seals it at source</text>
+  <text x="295" y="656" text-anchor="middle" class="s">posts live stage notes (RHF→CASSCF→VQE / bond dims)</text>
+  <text x="295" y="686" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#06b6d4">heartbeat every 30s · survives terminal close (keepalive)</text>
+
+  <!-- QPU agent -->
+  <rect x="700" y="472" width="440" height="240" rx="14" fill="#ffffff" stroke="#E8A020" stroke-width="2.5"/>
+  <text x="920" y="500" text-anchor="middle" class="t">QPU Agent — on the Mac</text>
+  <text x="920" y="519" text-anchor="middle" class="s">solange_qpu.py --agent · claims only Rung-4 jobs</text>
+  <rect x="722" y="534" width="396" height="70" rx="8" fill="#fdf4e6" stroke="#E8A020" stroke-width="1.3"/>
+  <text x="920" y="556" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#0B1E3D">Rung 4 · real quantum hardware</text>
+  <text x="920" y="574" text-anchor="middle" class="s">Qiskit Runtime → IBM Heron (ibm_kingston / marrakesh)</text>
+  <text x="920" y="590" text-anchor="middle" class="s">fixed-state ⟨H⟩ · live P3/P4 device telemetry captured</text>
+  <text x="920" y="636" text-anchor="middle" class="s">builds &amp; seals the same P1–P9 record</text>
+  <text x="920" y="656" text-anchor="middle" class="s">reports IBM job status live back to the queue row</text>
+  <text x="920" y="686" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#b9791a">spends REAL quantum time — only on jobs you queued</text>
+
+  <!-- pull loop arrows: backend queue <-> agents -->
+  <path d="M560 356 C 560 420, 320 430, 295 468" fill="none" stroke="#E8A020" stroke-width="2.5" marker-end="url(#ag)"/>
+  <path d="M690 360 C 780 430, 900 440, 920 468" fill="none" stroke="#E8A020" stroke-width="2.5" marker-end="url(#ag)"/>
+  <text x="360" y="418" class="step" fill="#b9791a">poll /dispatch/next (claim a job)</text>
+
+  <!-- return sealed result -->
+  <path d="M330 472 C 380 420, 470 400, 560 372" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#agr)"/>
+  <path d="M955 472 C 850 420, 720 395, 692 372" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#agr)"/>
+  <text x="470" y="452" class="step" fill="#1a9c4a">return sealed P1–P9 → /hpc/submit → LEON</text>
+
+  <!-- lifecycle strip -->
+  <rect x="60" y="762" width="1080" height="72" rx="12" fill="#0B1E3D"/>
+  <text x="80" y="788" style="font-size:13px;font-weight:700;fill:#fff">Job lifecycle (all provenance-tracked):</text>
+  <text x="80" y="814" style="font-size:12.5px;fill:#dfe7f0">queued (browser) → claimed (agent polls) → executed (in-cluster / on QPU) → returned &amp; SHA-256 sealed → LEON re-verifies → stored → shown in the ladder</text>
+  <text x="80" y="826" style="font-size:10px;fill:#8595aa"> </text>
+</svg>
