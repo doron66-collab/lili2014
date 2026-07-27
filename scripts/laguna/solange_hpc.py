@@ -558,6 +558,70 @@ def _post_heartbeat(api, hdr):
         pass
 
 
+def _run_with_progress(cmd, api, hdr, did, job_type):
+    """Run a job subprocess while keeping the agent live AND surfacing stage progress.
+
+    Robust design (learned from an earlier, reverted attempt): liveness must NOT
+    depend on receiving the child's output. A quiet or buffered child would starve
+    a read-loop-based heartbeat and make the agent look 'offline' mid-run. So the
+    heartbeat runs on its OWN daemon thread (every 30s, independent of any output),
+    and the stdout streaming is best-effort polish layered on top — if parsing ever
+    stalls, the agent stays green and the job still runs to completion.
+
+    Returns an object with .returncode/.stdout/.stderr, like subprocess.run."""
+    import threading
+    stop = threading.Event()
+
+    def _beat():
+        # 30s < the backend's 90s online window, so the agent never flips offline.
+        while not stop.wait(30):
+            _post_heartbeat(api, hdr)
+
+    hb = threading.Thread(target=_beat, daemon=True)
+    hb.start()
+    _post_status(api, hdr, did, "running",
+                 note=("DMRG classifying…" if job_type == "dmrg" else "starting RHF/CASSCF…"))
+    out_lines, last_step = [], 0
+    try:
+        # PYTHONUNBUFFERED=1 forces the child (this script's own VQE run, or
+        # solange_dmrg.py under run_dmrg.sh) to flush each print() immediately, so the
+        # stage lines arrive live instead of one burst at exit. iter(readline,'')
+        # yields each line as it comes; every parse is guarded so one odd line can
+        # never break the loop or the run.
+        env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, bufsize=1, env=env)
+        for line in iter(proc.stdout.readline, ''):
+            out_lines.append(line)
+            s = line.strip()
+            try:
+                if s.startswith("RHF"):
+                    _post_status(api, hdr, did, "running", note="RHF converged · running CASSCF…")
+                elif s.startswith("CASSCF"):
+                    _post_status(api, hdr, did, "running", note="CASSCF done · building JW Hamiltonian…")
+                elif s.startswith("Running statevector VQE"):
+                    _post_status(api, hdr, did, "running", note="VQE optimising…")
+                elif s.startswith("step"):
+                    n = int(s.split()[1])
+                    if n - last_step >= 40:
+                        last_step = n
+                        _post_status(api, hdr, did, "running", note=f"VQE step {n}…")
+                elif "DMRG M=" in s:
+                    m = s.split("M=")[1].split()[0]
+                    _post_status(api, hdr, did, "running", note=f"DMRG bond dim M={m}…")
+            except Exception:
+                pass
+        proc.wait()
+        rc = proc.returncode
+    finally:
+        stop.set()   # always stop the heartbeat thread when the job ends
+    class _R:
+        pass
+    r = _R()
+    r.returncode, r.stdout, r.stderr = rc, "".join(out_lines), ""
+    return r
+
+
 def run_agent(api, poll_s, token, out_dir):
     import urllib.request
     hdr = {"Authorization": "Bearer " + token}
@@ -603,12 +667,9 @@ def run_agent(api, poll_s, token, out_dir):
                        "--out", out_dir, "--submit", api]
                 if job.get("run_vqe"):
                     cmd += ["--vqe", "--vqe-steps", "200"]
-            # Run the job to completion and capture its output. (An earlier revision
-            # streamed the child's stdout line-by-line to post live stage notes; it
-            # correlated with agent instability on the Laguna node and is reverted to
-            # this proven-stable form. A live-progress reattempt should use a separate
-            # heartbeat thread rather than blocking the agent on the child's pipe.)
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            # Run the job with a background heartbeat thread (keeps the agent green
+            # for the whole run) + live stage-note streaming. See _run_with_progress.
+            res = _run_with_progress(cmd, api, hdr, did, job_type)
             # Don't mark DONE unless the backend actually STORED the run — otherwise a
             # run can pass verification yet never appear in SOLANGE (e.g. the
             # p8_seal_payload migration not run). "stored" or "stored_no_payload" both count.
