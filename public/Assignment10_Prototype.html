@@ -3022,23 +3022,38 @@ const GENE_MAP = {
   TSC1:    { badge_type:'GAP LOF',           color:'#e15f10', active_electrons:26,  full_qubits:52  },
   TSC2:    { badge_type:'GAP LOF',           color:'#e06017', active_electrons:30,  full_qubits:60  },
   // ── Neuroendocrine / glioma ───────────────────────────────────────────
-  ATRX:    { badge_type:'Helicase LOF',      color:'#f97316', active_electrons:30,  full_qubits:60  },
+  // ATRX ADD domain: two Zn2+ ions, cross-braced PHD-finger topology (PNAS
+  // 10.1073/pnas.0704057104). Zn2+ is d10 (full shell, no unpaired spins) —
+  // zinc-finger domains are textbook single-reference/DFT-tractable, unlike
+  // open-shell transition-metal centers. Literature estimate, not DMRG-run.
+  ATRX:    { badge_type:'Helicase LOF',      color:'#f97316', active_electrons:30,  full_qubits:60,  bqp_class:'B' },
   IDH1:    { badge_type:'Neomorphic',        color:'#16a34a', active_electrons:22,  full_qubits:44  },
   IDH2:    { badge_type:'Neomorphic',        color:'#169c48', active_electrons:22,  full_qubits:44  },
   // ── Pan-cancer chromatin / DNA-repair ────────────────────────────────
   SMARCA4: { badge_type:'ATPase LOF',        color:'#e85555', active_electrons:40,  full_qubits:80  },
   ARID1A:  { badge_type:'Chromatin LOF',     color:'#6282e8', active_electrons:28,  full_qubits:56  },
   ARID2:   { badge_type:'Chromatin LOF',     color:'#817cdb', active_electrons:28,  full_qubits:56,  bqp_class:'B' },
-  POLE:    { badge_type:'Exonuclease LOF',   color:'#9e6af5', active_electrons:24,  full_qubits:48  },
+  // POLE exonuclease: classic two-metal-ion (Mg2+) proofreading mechanism
+  // (Steitz & Steitz; ScienceDirect 10.1016/j.sbi.2006.10.005). Mg2+ has no
+  // d-electrons — closed-shell, single-reference-friendly. Literature
+  // estimate, not DMRG-run.
+  POLE:    { badge_type:'Exonuclease LOF',   color:'#9e6af5', active_electrons:24,  full_qubits:48,  bqp_class:'B' },
   BRCA1:   { badge_type:'DNA Repair LOF',    color:'#ec478b', active_electrons:32,  full_qubits:64  },
   BRCA2:   { badge_type:'DNA Repair LOF',    color:'#e94b8a', active_electrons:32,  full_qubits:64  },
   ATM:     { badge_type:'DNA Repair LOF',    color:'#e3528c', active_electrons:28,  full_qubits:56  },
   TERT:    { badge_type:'Telomerase',        color:'#9d6fe6', active_electrons:24,  full_qubits:48  },
   RB1:     { badge_type:'Cell Cycle LOF',    color:'#5589cd', active_electrons:32,  full_qubits:64  },
-  NF1:     { badge_type:'RasGAP LOF',        color:'#c87210', active_electrons:28,  full_qubits:56  },
+  // NF1 GAP-related domain: protein-only catalysis via an arginine-finger
+  // mechanism (EMBO J 10.1093/emboj/17.15.4313) — no metal cofactor in the
+  // GRD active site itself. Literature estimate, not DMRG-run.
+  NF1:     { badge_type:'RasGAP LOF',        color:'#c87210', active_electrons:28,  full_qubits:56,  bqp_class:'B' },
   NF2:     { badge_type:'Scaffold LOF',      color:'#cb6f1c', active_electrons:22,  full_qubits:44  },
   AXIN1:   { badge_type:'WNT Scaffold',      color:'#609621', active_electrons:24,  full_qubits:48  },
-  AXIN2:   { badge_type:'WNT Scaffold',      color:'#1e9b4d', active_electrons:24,  full_qubits:48  },
+  // AXIN2: pure scaffold, no catalytic domain of its own — organizes GSK3β/
+  // CK1/APC via protein-protein interaction only (Nat Commun
+  // 10.1038/s41467-019-12203-8), same PPI profile as KEAP1 above. Literature
+  // estimate, not DMRG-run.
+  AXIN2:   { badge_type:'WNT Scaffold',      color:'#1e9b4d', active_electrons:24,  full_qubits:48,  bqp_class:'B' },
   CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#5b82ed', active_electrons:20,  full_qubits:40,  bqp_class:'B' },
   // ── Pan-cancer receptor tyrosine kinases / fusions — beyond NSCLC-only scope.
   // Already recognized by the VCF parser's known-gene list below but previously
@@ -3664,9 +3679,15 @@ function loadNGSReport(ngs) {
     seenSimIds.add(simId);
     // Authoritative class (matches backend/dissertation) when defined; the size
     // proxy is only a fallback for genes without a curated classification.
+    // Track WHICH kind of estimate this is — a literature-grounded gm.bqp_class
+    // (still not a DMRG result, but at least reasoned from known active-site
+    // chemistry) vs. the raw >=30e size heuristic, which has no chemistry
+    // behind it at all. Conflating the two in the UI is exactly how a crude
+    // guess got read as a considered answer before.
     const bqpCls = gm.bqp_class || (gm.active_electrons >= 30 ? 'A' : 'B');
+    const bqpBasis = gm.bqp_class ? 'literature' : 'heuristic';
     const phase3a = PHASE3A_IDS.has(simId);
-    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs'), supported: true });
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, bqpBasis, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs'), supported: true });
   });
 
   // Register labels in __activeVariants so getDisplayName() returns patient data
@@ -3674,10 +3695,11 @@ function loadNGSReport(ngs) {
   const simulatable = allVariants.filter(av => av.supported);
   window.__activeVariants = {};
   simulatable.forEach(av => {
-    // bqpSource starts 'estimated' (gene-level GENE_MAP default) and flips to
-    // 'dmrg' once a real per-mutation DMRG classification lands for this simId
-    // (see solangeReconcileDmrgClasses) — never invented, always traceable.
-    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}`, bqpCls: av.bqpCls, bqpSource: 'estimated' };
+    // bqpSource starts 'literature' or 'heuristic' (gene-level GENE_MAP default,
+    // see bqpBasis above) and flips to 'dmrg' once a real per-mutation DMRG
+    // classification lands for this simId (see solangeReconcileDmrgClasses) —
+    // never invented, always traceable.
+    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}`, bqpCls: av.bqpCls, bqpSource: av.bqpBasis };
   });
 
   // Populate the Orchestration Compute Dispatcher per-mutation routing from the
@@ -3715,9 +3737,13 @@ function loadNGSReport(ngs) {
   // built from the full allVariants list.
   simulatable.forEach(av => {
     const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>` : `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
-    // "estimated" until a real DMRG run for this exact mutation notarizes a class
-    // (solangeReconcileDmrgClasses swaps this label + badge to "✓ DMRG-confirmed").
-    const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">estimated · gene-level</span>`;
+    // Honest about WHICH estimate this is until a real DMRG run for this exact
+    // mutation notarizes a class (solangeReconcileDmrgClasses swaps this label +
+    // badge to "✓ DMRG-confirmed"): 'literature' = reasoned from known active-
+    // site chemistry (still not computed); 'heuristic' = raw >=30e size guess,
+    // no chemistry behind it — should be trusted the least of the three.
+    const sourceLabel = av.bqpBasis === 'literature' ? 'literature estimate · gene-level' : 'size heuristic · uncurated';
+    const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">${sourceLabel}</span>`;
     const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
     const localE   = Math.round(av.gm.active_electrons / 2);
     if (mutTbody) {
