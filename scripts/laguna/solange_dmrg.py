@@ -151,7 +151,7 @@ def classify(active_electrons, energies, s_max):
     return "A", "quantum-necessary — " + "; ".join(reasons) + "."
 
 
-def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0):
+def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0, density_fit=True):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -172,11 +172,22 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     if lines and lines[0].strip().isdigit():
         lines = lines[2:]
     mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=verbose)
-    # RHF requires closed-shell (spin=0); anything else needs ROHF instead.
-    print(f"  running RHF/ROHF on {mol.natm} atoms, {mol.nao} basis functions "
-          f"(this and the AVAS step below print nothing further until they finish "
-          f"unless --verbose is raised)...", flush=True)
-    mf = (scf.RHF(mol) if spin == 0 else scf.ROHF(mol)).run()
+    # RHF requires closed-shell (spin=0); anything else needs ROHF instead. A QM
+    # cluster this size (hundreds of atoms once real protonation is included,
+    # easily 1000+ basis functions) makes conventional (non-density-fitted) SCF
+    # a real bottleneck — density fitting approximates the 2-electron integrals
+    # with an auxiliary basis, standard practice for generating CASSCF orbitals,
+    # a few x10 faster here with negligible accuracy impact on the orbitals
+    # AVAS then selects. --no-density-fit (density_fit=False) turns it off if an
+    # exact comparison is ever needed.
+    print(f"  running RHF/ROHF{'  (density-fitted)' if density_fit else ''} on "
+          f"{mol.natm} atoms, {mol.nao} basis functions (this and the AVAS step "
+          f"below print nothing further until they finish unless --verbose is "
+          f"raised)...", flush=True)
+    mf = scf.RHF(mol) if spin == 0 else scf.ROHF(mol)
+    if density_fit:
+        mf = mf.density_fit()
+    mf = mf.run()
     ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")])
     # Report the active space BEFORE paying for CASSCF, not after: CASSCF cost is
     # roughly combinatorial in ncas, so a caller needs this number while they can
@@ -244,6 +255,10 @@ def main():
     ap.add_argument("--spin", type=int, default=0,
                     help="2S = Nalpha - Nbeta for --geometry mode (default 0, closed shell / "
                          "RHF). Non-zero switches to ROHF.")
+    ap.add_argument("--no-density-fit", action="store_true",
+                    help="--geometry mode only: disable density-fitted RHF/ROHF (on by "
+                         "default — a QM cluster this size makes conventional SCF slow; "
+                         "pass this only if an exact, non-DF comparison is specifically needed)")
     ap.add_argument("--basis", default="6-31g")
     ap.add_argument("--ncas", type=int)
     ap.add_argument("--nelecas", type=int)
@@ -287,7 +302,8 @@ def main():
         print(f"SOLANGE DMRG classifier · {args.key} · geometry={args.geometry} "
               f"· AVAS[{args.avas}]/{args.basis} · charge={args.charge} spin={args.spin}")
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
-                                       charge=args.charge, spin=args.spin, verbose=args.verbose)
+                                       charge=args.charge, spin=args.spin, verbose=args.verbose,
+                                       density_fit=not args.no_density_fit)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
