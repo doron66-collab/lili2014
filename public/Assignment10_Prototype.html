@@ -3915,30 +3915,48 @@ window.solangeReconcileDmrgClasses = function(dmrgRows) {
     if (av.bqpSource === 'dmrg' && av.bqpCls === x.bqp_class) return; // already reconciled
     av.bqpCls = x.bqp_class;
     av.bqpSource = 'dmrg';
-    const isA = x.bqp_class === 'A';
-    const badge = isA
-      ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>`
-      : `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
-    const sMaxNote = x.s_max != null ? ` · S_max=${Number(x.s_max).toFixed(2)}` : '';
-    const bqpCell = document.getElementById(`bqp-class-${x.key}`);
-    if (bqpCell) {
-      bqpCell.innerHTML = badge +
-        `<span style="display:block;font-size:8px;color:var(--green);margin-top:2px" title="Notarized by LEON${sMaxNote}">✓ DMRG-confirmed</span>`;
+    // Real classification is three-way (A/B/C — C means DMRG found an exact
+    // classical solution, no quantum method needed at all). Anything that
+    // isn't exactly 'A' or 'B' must NOT fall through to a hardcoded "Class B"
+    // label — that silently mislabels C (or any unexpected value) as B, which
+    // is exactly the bug this replaces: rows said "Class B" while the honest
+    // A/B headline count (below) correctly excluded them, reading 0/0.
+    let badge, rowBg;
+    if (x.bqp_class === 'A') {
+      badge = `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>`;
+      rowBg = 'rgba(232,160,32,0.06)';
+    } else if (x.bqp_class === 'B') {
+      badge = `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
+      rowBg = '';
+    } else {
+      // Class C (or any other backend value) — classically tractable, out of
+      // scope for the quantum-necessary/advantaged headline below.
+      badge = `<span class="badge badge-gray">BQP <span style="opacity:.8">Class ${x.bqp_class}</span></span>`;
+      rowBg = '';
     }
+    const sMaxNote = x.s_max != null ? ` · S_max=${Number(x.s_max).toFixed(2)}` : '';
+    const confirmNote = x.bqp_class === 'C'
+      ? `<span style="display:block;font-size:8px;color:var(--gray);margin-top:2px" title="Notarized by LEON${sMaxNote}">✓ DMRG-confirmed · classically tractable</span>`
+      : `<span style="display:block;font-size:8px;color:var(--green);margin-top:2px" title="Notarized by LEON${sMaxNote}">✓ DMRG-confirmed</span>`;
+    const bqpCell = document.getElementById(`bqp-class-${x.key}`);
+    if (bqpCell) bqpCell.innerHTML = badge + confirmNote;
     const mutCell = document.getElementById(`mut-class-${x.key}`);
     if (mutCell) mutCell.innerHTML = `<span class="bqp-badge-${x.bqp_class.toLowerCase()}" title="DMRG-confirmed${sMaxNote}">${x.bqp_class}</span>`;
     const bqpRow = document.getElementById(`bqp-row-${x.key}`);
-    if (bqpRow) bqpRow.style.background = isA ? 'rgba(232,160,32,0.06)' : '';
+    if (bqpRow) bqpRow.style.background = rowBg;
     const mutRow = document.getElementById(`mut-row-${x.key}`);
     if (mutRow) { mutRow.classList.remove('bqp-row-a','bqp-row-b','bqp-row-c'); mutRow.classList.add(`bqp-row-${x.bqp_class.toLowerCase()}`); }
   });
-  // Recompute the headline A/B count from reconciled (not just estimated) data
+  // Recompute the headline A/B count from reconciled (not just estimated) data.
+  // Class C is deliberately excluded here too — it's not a quantum target.
   const bqpSummary = document.getElementById('bqp-summary-line');
   const vals = Object.values(window.__activeVariants);
   if (bqpSummary && vals.length) {
     const nA = vals.filter(v => v.bqpCls === 'A').length;
     const nB = vals.filter(v => v.bqpCls === 'B').length;
-    bqpSummary.innerHTML = `<strong style="color:var(--gold)">${nA} quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong> — no classical path reaches chemical accuracy for either class`;
+    const nC = vals.filter(v => v.bqpCls === 'C').length;
+    const cNote = nC ? ` · <span style="color:var(--gray)">${nC} classically tractable (C)</span>` : '';
+    bqpSummary.innerHTML = `<strong style="color:var(--gold)">${nA} quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong>${cNote} — no classical path reaches chemical accuracy for either class`;
   }
 };
 
