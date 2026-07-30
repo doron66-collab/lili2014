@@ -151,7 +151,7 @@ def classify(active_electrons, energies, s_max):
     return "A", "quantum-necessary — " + "; ".join(reasons) + "."
 
 
-def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0):
+def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -171,12 +171,23 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0):
     lines = [l for l in geom.splitlines() if l.strip()]
     if lines and lines[0].strip().isdigit():
         lines = lines[2:]
-    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=0)
+    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=verbose)
     # RHF requires closed-shell (spin=0); anything else needs ROHF instead.
+    print(f"  running RHF/ROHF on {mol.natm} atoms, {mol.nao} basis functions "
+          f"(this and the AVAS step below print nothing further until they finish "
+          f"unless --verbose is raised)...", flush=True)
     mf = (scf.RHF(mol) if spin == 0 else scf.ROHF(mol)).run()
     ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")])
+    # Report the active space BEFORE paying for CASSCF, not after: CASSCF cost is
+    # roughly combinatorial in ncas, so a caller needs this number while they can
+    # still Ctrl+C and narrow --avas, not only once the (possibly hours-long) run
+    # has already finished or is still silently grinding.
+    size_note = (" *** LARGE for CASSCF (>16 active orbitals is often impractical "
+                 "— consider narrowing --avas) ***" if ncas > 16 else "")
+    print(f"  AVAS selected active space: CAS({nelec},{ncas}){size_note}", flush=True)
     from pyscf import mcscf
     mc = mcscf.CASSCF(mf, ncas, nelec)
+    mc.verbose = verbose
     if spin == 0:
         mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell
     e_casscf = mc.kernel(mo)[0]
@@ -276,7 +287,7 @@ def main():
         print(f"SOLANGE DMRG classifier · {args.key} · geometry={args.geometry} "
               f"· AVAS[{args.avas}]/{args.basis} · charge={args.charge} spin={args.spin}")
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
-                                       charge=args.charge, spin=args.spin)
+                                       charge=args.charge, spin=args.spin, verbose=args.verbose)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
