@@ -30,6 +30,21 @@
 - Contact: Michal Rosen-Zvi (ROSEN@il.ibm.com) — leaving IBM, referred to Ella (quantum partnerships)
 - Ella: leads quantum partnerships at IBM Research Israel
 
+## Heron r3 access — strategy (in negotiation, 2026-07; leave until access lands)
+- STATUS: Doron negotiating with the university to fund r3 runs. Not yet available.
+- Feasibility of the 44e/88q anchor (TP53 C275F): the blocker was ACCESS, not feasibility.
+  88q fits in Heron r3 (~156q). NOT via naive VQE (NISQ noise kills a deep 88q circuit),
+  but via **SqDRIFT / sample-based quantum diagonalization** — QPU samples dominant configs,
+  classical diagonalizes the sampled subspace (noise-robust). IBM already demoed 32e/100q
+  (C13Cl2, arXiv:2603.08696); 44e/88q is comparable → plausibly in reach, NOT guaranteed,
+  and hard to validate (no exact classical ground truth at 44e → compare vs DMRG/CCSD(T)).
+- FRAMING for the dissertation: r3 is a STRENGTHENING of Phase 3B, NOT a prerequisite. The
+  contribution is the ARCHITECTURE (already substantiated). Three value tiers, in order:
+  (1) operational scale-up on real hardware [safest — proves the governed pipeline holds at
+  larger circuit width; directly answers RQ II]; (2) real P3/P4 provenance/telemetry at scale
+  [strengthens the Part-11 claim §06.iii]; (3) the 44e anchor attempt via SqDRIFT [upside/risky].
+  DO NOT bet the thesis on tier 3. Also: separate publication + BLAIS grant strength.
+
 ## LEON
 - **LEON** = Lineage-Evidence Orchestration & Notarization — the single notarization authority
 - Canonical module: `backend/routes/leon.py` (owns the P8 seal: build_p8_payload / build_p8_seal / notarize / reverify)
