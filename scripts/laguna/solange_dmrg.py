@@ -151,7 +151,8 @@ def classify(active_electrons, energies, s_max):
     return "A", "quantum-necessary — " + "; ".join(reasons) + "."
 
 
-def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0, density_fit=True):
+def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
+                             density_fit=True, max_memory=16000):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -171,7 +172,12 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     lines = [l for l in geom.splitlines() if l.strip()]
     if lines and lines[0].strip().isdigit():
         lines = lines[2:]
-    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=verbose)
+    # pyscf's own default (4000 MB) is conservative for a desktop, not a Laguna
+    # largemem node (1.5 TB) — a real protein cluster's CASSCF/FCI step routinely
+    # wants more, and the alternative is a "needs N MB, over max_memory limit"
+    # warning (or a hard failure) instead of just... using the RAM that's there.
+    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin,
+                verbose=verbose, max_memory=max_memory)
     # RHF requires closed-shell (spin=0); anything else needs ROHF instead. A QM
     # cluster this size (hundreds of atoms once real protonation is included,
     # easily 1000+ basis functions) makes conventional (non-density-fitted) SCF
@@ -199,6 +205,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     from pyscf import mcscf
     mc = mcscf.CASSCF(mf, ncas, nelec)
     mc.verbose = verbose
+    mc.max_memory = max_memory  # explicit — don't rely on inheriting mol's setting
     if spin == 0:
         mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell
     e_casscf = mc.kernel(mo)[0]
@@ -259,6 +266,11 @@ def main():
                     help="--geometry mode only: disable density-fitted RHF/ROHF (on by "
                          "default — a QM cluster this size makes conventional SCF slow; "
                          "pass this only if an exact, non-DF comparison is specifically needed)")
+    ap.add_argument("--max-memory", type=int, default=16000,
+                    help="--geometry mode only: MB available to pyscf for SCF/CASSCF/FCI "
+                         "(default 16000 — pyscf's own default of 4000 is sized for a "
+                         "laptop, not a Laguna largemem node; raise this if you still see "
+                         "a 'needs N MB, over max_memory limit' warning)")
     ap.add_argument("--basis", default="6-31g")
     ap.add_argument("--ncas", type=int)
     ap.add_argument("--nelecas", type=int)
@@ -303,7 +315,7 @@ def main():
               f"· AVAS[{args.avas}]/{args.basis} · charge={args.charge} spin={args.spin}")
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
                                        charge=args.charge, spin=args.spin, verbose=args.verbose,
-                                       density_fit=not args.no_density_fit)
+                                       density_fit=not args.no_density_fit, max_memory=args.max_memory)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
