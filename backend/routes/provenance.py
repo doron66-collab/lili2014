@@ -89,17 +89,23 @@ async def verify_seal(run_id: str):
 @router.get("/leon-audit")
 async def leon_audit(limit: int = 50, run_id: str = None):
     """LEON's append-only audit trail — every notarization, re-verification, and
-    rejection, time-stamped (21 CFR §11.10(e)). Public read; never mutable."""
+    rejection, time-stamped (21 CFR §11.10(e)). Public read; never mutable.
+
+    total_count is an exact server-side COUNT over the whole table (not capped by
+    `limit`) — the honest headline number for "how many notarization events has
+    LEON recorded", distinct from `count` (how many rows this response returned)."""
     sb = get_supabase()
     try:
-        q = (sb.table("leon_audit").select("*")
+        q = (sb.table("leon_audit").select("*", count="exact")
                .order("created_at", desc=True).limit(limit))
         if run_id:
             q = q.eq("run_id", run_id)
         res = q.execute()
-        return {"notary": "LEON", "data": res.data, "count": len(res.data)}
+        return {"notary": "LEON", "data": res.data, "count": len(res.data),
+                "total_count": res.count if res.count is not None else len(res.data)}
     except Exception as e:
-        return {"notary": "LEON", "data": [], "count": 0, "note": f"audit trail unavailable: {e}"}
+        return {"notary": "LEON", "data": [], "count": 0, "total_count": 0,
+                "note": f"audit trail unavailable: {e}"}
 
 
 @router.get("/summary")

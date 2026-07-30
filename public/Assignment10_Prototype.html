@@ -627,9 +627,9 @@
       <div class="footnote" style="margin-top:10px">★ NGS = detected in patient report MI25-0349 · 📚 Research = TCGA/COSMIC/ClinVar literature target · Sibling = same gene/domain as NGS finding · Class A/B rows are quantum simulation targets · Class C rows filtered out after NGS load</div>
     </div>
 
-    <!-- Patient NGS Panel -->
+    <!-- Case NGS Panel -->
     <div class="card">
-      <div class="card-title" id="ngs-panel-title">Patient NGS Profile — No report loaded</div>
+      <div class="card-title" id="ngs-panel-title">Case NGS Profile — No report loaded</div>
       <div class="alert alert-gold" id="ngs-tier1-alert" style="margin-bottom:12px;display:none"></div>
       <table>
         <tr><th>Biomarker</th><th>Result</th><th>Implication</th></tr>
@@ -640,7 +640,7 @@
         <tr><td>KEAP1</td><td id="ngs-keap1" style="color:var(--gray)">—</td><td style="color:var(--gray);font-size:11px">—</td></tr>
       </table>
       <div class="divider"></div>
-      <div id="ngs-footer" style="font-size:11px;color:var(--gray)">Upload an NGS report or load the demo to populate patient data.</div>
+      <div id="ngs-footer" style="font-size:11px;color:var(--gray)">Upload an NGS report or load the demo to populate case data.</div>
     </div>
   </div>
 
@@ -1773,6 +1773,7 @@
   <!-- All-Target Summary Table -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title" id="bqp-card-title" style="color:var(--white)">All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status</div>
+    <div id="bqp-summary-line" style="font-size:12px;margin:-2px 0 12px 0"></div>
     <table>
       <thead>
         <tr>
@@ -1882,6 +1883,8 @@
     <h2 style="color:var(--white)">Compliance & Audit Trail</h2>
     <p style="color:var(--white)">FDA 21 CFR Part 11 · Reproducibility Engine · Provenance Metadata</p>
   </div>
+
+  <div id="leon-audit-summary" style="font-size:12px;margin:-4px 0 16px 0;color:var(--gray)"></div>
 
   <div id="comp-status-alert" style="margin-bottom:20px;padding:14px 18px;background:rgba(0,200,180,0.12);border:1px solid rgba(0,200,180,0.5);border-radius:var(--radius);font-size:12px;color:var(--white)">
     No simulation run yet — load an NGS report and run a VQE/sqDRIFT simulation to generate a compliance record.
@@ -2453,7 +2456,26 @@ function show(id) {
   }
   window.scrollTo({top:0, behavior:'smooth'});
   if (id === 's3') loadLiveResults();
+  if (id === 's4') loadLeonAuditSummary();
   if (id === 's5') loadAdminView();
+}
+
+// ── LEON audit headline — makes §06.iii's "immutable, append-only" claim ──
+// concrete: the exact total row count in leon_audit, not just this run's card.
+// This is what user-type C (compliance/regulatory informatics) looks for first.
+async function loadLeonAuditSummary() {
+  const el = document.getElementById('leon-audit-summary');
+  if (!el) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/provenance/leon-audit?limit=1`);
+    const data = await res.json();
+    const n = data.total_count ?? 0;
+    el.innerHTML = n
+      ? `<strong style="color:var(--green)">✓ ${n.toLocaleString()} notarization event${n !== 1 ? 's' : ''}</strong> recorded in LEON's append-only audit trail — insert-only, no update or delete path exists.`
+      : `No notarization events recorded yet.`;
+  } catch (e) {
+    el.innerHTML = '';
+  }
 }
 
 // ── Update ALL tabs with the result from any simulation run ───────────────
@@ -3496,7 +3518,7 @@ function loadNGSReport(ngs) {
   }
   // NGS panel title
   const pt = document.getElementById('ngs-panel-title');
-  if (pt) pt.textContent = `Active Patient NGS Profile — ${id}`;
+  if (pt) pt.textContent = `Active Case NGS Profile — ${id}`;
   // Tier I alert — first tier I variant
   const tier1 = (ngs.variants || []).find(v => v.tier === 'I');
   const alertEl = document.getElementById('ngs-tier1-alert');
@@ -3770,6 +3792,18 @@ function loadNGSReport(ngs) {
   if (pipeTitle) pipeTitle.textContent = n ? `Live Research Pipeline — ${n} Active Target${n !== 1 ? 's' : ''}` : 'Live Research Pipeline — No platform targets in this report';
   const bqpTitle = document.getElementById('bqp-card-title');
   if (bqpTitle) bqpTitle.textContent = n ? `All-Target Summary — ${n} Target${n !== 1 ? 's' : ''} · BQP Classification & Simulation Status` : 'All-Target Summary — No platform targets detected';
+  // Headline stat for the BQP classifier itself (§06.i) — the count, not just the
+  // table, is the first thing a researcher deciding "is this target worth a
+  // quantum run" should see. Class C is filtered out before this screen (★ note
+  // above the registry table), so only A/B are counted here.
+  const bqpSummary = document.getElementById('bqp-summary-line');
+  if (bqpSummary) {
+    const nA = allVariants.filter(av => av.bqpCls === 'A').length;
+    const nB = allVariants.filter(av => av.bqpCls === 'B').length;
+    bqpSummary.innerHTML = n
+      ? `<strong style="color:var(--gold)">${nA} quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong> — no classical path reaches chemical accuracy for either class`
+      : '';
+  }
 
   // BQP class visual treatment for dynamically injected rows
   allVariants.forEach(av => {
@@ -4528,10 +4562,10 @@ function resetPlatform() {
   el('dash-subtitle') && (el('dash-subtitle').textContent = 'NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar');
 
   // ── Dashboard — NGS panel ─────────────────────────────────────────────
-  el('ngs-panel-title') && (el('ngs-panel-title').textContent = 'Patient NGS Profile — No report loaded');
+  el('ngs-panel-title') && (el('ngs-panel-title').textContent = 'Case NGS Profile — No report loaded');
   if (el('ngs-tier1-alert')) { el('ngs-tier1-alert').innerHTML = ''; el('ngs-tier1-alert').style.display = 'none'; }
   ['ngs-egfr','ngs-tmb','ngs-msi','ngs-tp53','ngs-keap1'].forEach(id => { if (el(id)) el(id).innerHTML = '—'; });
-  el('ngs-footer') && (el('ngs-footer').textContent = 'Upload an NGS report or load the demo to populate patient data.');
+  el('ngs-footer') && (el('ngs-footer').textContent = 'Upload an NGS report or load the demo to populate case data.');
 
   // ── Dashboard — structure sources ─────────────────────────────────────
   el('structure-sources-card') && (el('structure-sources-card').style.display = 'none');
@@ -4542,6 +4576,7 @@ function resetPlatform() {
   });
   el('pipeline-card-title') && (el('pipeline-card-title').textContent = 'Live Research Pipeline — No NGS loaded');
   el('bqp-card-title')      && (el('bqp-card-title').textContent      = 'All-Target Summary — No NGS loaded');
+  el('bqp-summary-line')    && (el('bqp-summary-line').innerHTML      = '');
 
   // Clear dynamically-injected tier badges
   document.querySelectorAll('.ngs-tier-badge').forEach(b => b.remove());
