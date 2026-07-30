@@ -51,6 +51,7 @@ Then: python solange_dmrg.py --geometry tp53_c275f_cluster.xyz \\
 """
 
 import argparse
+import shlex
 import sys
 from pathlib import Path
 
@@ -62,6 +63,87 @@ CAP_BOND_LENGTH = 1.09
 # Element inference fallback when columns 77-78 are blank (older PDB files).
 _NAME_ELEMENT_HINTS = {"CA": "C", "CB": "C", "N": "N", "O": "O", "S": "S",
                         "ZN": "ZN", "MG": "MG", "FE": "FE", "MN": "MN"}
+
+
+def parse_structure(path):
+    """Dispatch to the PDB or mmCIF parser by file extension. Both return the
+    same atom-dict shape so the rest of the script doesn't care which format
+    it got — RCSB serves legacy .pdb only for older depositions, .cif always."""
+    suffix = Path(path).suffix.lower()
+    if suffix == ".cif":
+        return parse_cif(path)
+    return parse_pdb(path)
+
+
+def parse_cif(path):
+    """Minimal mmCIF _atom_site loop parser — just enough to get coordinates
+    + auth_* identifiers (the numbering scheme that matches the PDB literature
+    and RCSB's own web viewer, as opposed to label_* which renumbers from 1
+    per entity). Not a general CIF parser: assumes one _atom_site loop, values
+    on one line each (true for every RCSB-deposited structure)."""
+    lines = Path(path).read_text().splitlines()
+
+    # Phase 1: locate the _atom_site loop's tag block. Find a "loop_" line
+    # immediately followed by "_atom_site." tags (there is exactly one such
+    # loop in a standard RCSB mmCIF file).
+    tag_start = None
+    for i, raw in enumerate(lines):
+        if raw.strip() == "loop_" and i + 1 < len(lines) and lines[i + 1].strip().startswith("_atom_site."):
+            tag_start = i + 1
+            break
+    if tag_start is None:
+        raise SystemExit(f"no _atom_site loop found in {path} — is this a valid mmCIF file?")
+
+    tags = []
+    j = tag_start
+    while j < len(lines) and lines[j].strip().startswith("_atom_site."):
+        tags.append(lines[j].strip().split(".", 1)[1])
+        j += 1
+
+    # Phase 2: data rows run from here until a blank line, a comment ("#"),
+    # a new tag/loop_, or EOF — whichever comes first.
+    rows = []
+    while j < len(lines):
+        line = lines[j].strip()
+        if not line or line.startswith("#") or line.startswith("_") or line == "loop_":
+            break
+        rows.append(shlex.split(line))
+        j += 1
+
+    if not tags or not rows:
+        raise SystemExit(f"no _atom_site loop found in {path} — is this a valid mmCIF file?")
+    idx = {t: n for n, t in enumerate(tags)}
+    required = ["group_PDB", "auth_atom_id", "auth_comp_id", "auth_asym_id",
+                "auth_seq_id", "Cartn_x", "Cartn_y", "Cartn_z", "type_symbol"]
+    missing = [t for t in required if t not in idx]
+    if missing:
+        raise SystemExit(f"mmCIF _atom_site loop is missing expected columns: {missing}")
+
+    atoms = []
+    for r in rows:
+        if len(r) != len(tags):
+            continue  # defensive: malformed/truncated row
+        record = r[idx["group_PDB"]]
+        if record not in ("ATOM", "HETATM"):
+            continue
+        alt_idx = idx.get("label_alt_id")
+        if alt_idx is not None and r[alt_idx] not in (".", "?", "A"):
+            continue  # keep only the primary alternate location, same as parse_pdb
+        icode_idx = idx.get("pdbx_PDB_ins_code")
+        atoms.append({
+            "record": record,
+            "serial": int(r[idx["id"]]) if "id" in idx else len(atoms) + 1,
+            "name": r[idx["auth_atom_id"]].strip("'\""),
+            "resname": r[idx["auth_comp_id"]],
+            "chain": r[idx["auth_asym_id"]],
+            "resseq": int(r[idx["auth_seq_id"]]),
+            "icode": "" if icode_idx is None or r[icode_idx] in (".", "?") else r[icode_idx],
+            "xyz": np.array([float(r[idx["Cartn_x"]]), float(r[idx["Cartn_y"]]), float(r[idx["Cartn_z"]])]),
+            "element": r[idx["type_symbol"]].upper(),
+        })
+    if not atoms:
+        raise SystemExit(f"parsed the _atom_site loop in {path} but found zero ATOM/HETATM rows")
+    return atoms
 
 
 def parse_pdb(path):
@@ -190,8 +272,8 @@ def suggest_avas(rows):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--pdb", required=True, help="local PDB file (download it yourself first — "
-                     "this script does not fetch from RCSB)")
+    ap.add_argument("--pdb", required=True, help="local structure file, .pdb or .cif "
+                     "(download it yourself first — this script does not fetch from RCSB)")
     ap.add_argument("--chain", help="chain ID for the center residue")
     ap.add_argument("--resi", type=int, help="residue number for the center")
     ap.add_argument("--atom", default="CA", help="atom name within that residue to center on (default CA)")
@@ -201,7 +283,7 @@ def main():
     ap.add_argument("--out", required=True, help="output .xyz path")
     args = ap.parse_args()
 
-    atoms = parse_pdb(args.pdb)
+    atoms = parse_structure(args.pdb)
     center = find_center(atoms, chain=args.chain, resi=args.resi, atom_name=args.atom, hetero=args.hetero)
     selected = select_residues(atoms, center, args.radius)
     caps = cap_dangling_bonds(selected)
