@@ -151,11 +151,19 @@ def classify(active_electrons, energies, s_max):
     return "A", "quantum-necessary — " + "; ".join(reasons) + "."
 
 
-def integrals_from_geometry(xyz_path, basis, avas_aos):
+def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
-    H-capping) is the chemist's input — that step is NOT auto-generated here."""
+    H-capping) is the chemist's input — that step is NOT auto-generated here.
+
+    charge/spin are ALSO the chemist's input, not guessed: pyscf defaults to a
+    neutral (charge=0), closed-shell (spin=0) molecule, which silently assumes
+    the atom count sums to an even number of electrons. A QM cluster cut from a
+    protein (capped side chains, possibly missing hydrogens on the source
+    structure) essentially never satisfies that by accident — get an odd
+    electron count with the defaults and pyscf raises "Electron number N and
+    spin 0 are not consistent" rather than guessing wrong silently."""
     from pyscf import gto, scf, ao2mo, fci
     from pyscf.mcscf import avas
     geom = Path(xyz_path).read_text()
@@ -163,12 +171,14 @@ def integrals_from_geometry(xyz_path, basis, avas_aos):
     lines = [l for l in geom.splitlines() if l.strip()]
     if lines and lines[0].strip().isdigit():
         lines = lines[2:]
-    mol = gto.M(atom="\n".join(lines), basis=basis, verbose=0)
-    mf = scf.RHF(mol).run()
+    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=0)
+    # RHF requires closed-shell (spin=0); anything else needs ROHF instead.
+    mf = (scf.RHF(mol) if spin == 0 else scf.ROHF(mol)).run()
     ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")])
     from pyscf import mcscf
     mc = mcscf.CASSCF(mf, ncas, nelec)
-    mc.fix_spin_(ss=0)
+    if spin == 0:
+        mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell
     e_casscf = mc.kernel(mo)[0]
     h1e, ecore = mc.get_h1eff()
     h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
@@ -215,6 +225,14 @@ def main():
     ap.add_argument("--compound", help="model compound (key in GEOM) — demo mode")
     ap.add_argument("--geometry", help="path to a QM-cluster .xyz (real functional site)")
     ap.add_argument("--avas", help="comma-separated AVAS target AOs, e.g. 'Zn 3d,S 3p'")
+    ap.add_argument("--charge", type=int, default=0,
+                    help="net molecular charge for --geometry mode (default 0/neutral). A QM "
+                         "cluster cut from a protein rarely sums to a neutral closed shell by "
+                         "accident — pyscf will error with 'Electron number N and spin S are "
+                         "not consistent' if this is wrong; that error is the signal to set it.")
+    ap.add_argument("--spin", type=int, default=0,
+                    help="2S = Nalpha - Nbeta for --geometry mode (default 0, closed shell / "
+                         "RHF). Non-zero switches to ROHF.")
     ap.add_argument("--basis", default="6-31g")
     ap.add_argument("--ncas", type=int)
     ap.add_argument("--nelecas", type=int)
@@ -256,8 +274,9 @@ def main():
         if not args.avas:
             ap.error("--geometry requires --avas (target AOs for active-space selection)")
         print(f"SOLANGE DMRG classifier · {args.key} · geometry={args.geometry} "
-              f"· AVAS[{args.avas}]/{args.basis}")
-        cas = integrals_from_geometry(args.geometry, args.basis, args.avas)
+              f"· AVAS[{args.avas}]/{args.basis} · charge={args.charge} spin={args.spin}")
+        cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
+                                       charge=args.charge, spin=args.spin)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
