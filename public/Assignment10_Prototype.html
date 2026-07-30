@@ -3874,8 +3874,12 @@ function loadNGSReport(ngs) {
     }
   }
 
-  // Auto-fetch structure sources for all variants
-  lookupStructureSources(ngs.variants || []);
+  // Auto-fetch structure sources for all variants. Pass simulatable (has
+  // .simId resolved already) too, so the panel can also surface any
+  // mutation-specific curated PDB (MUTATION_PDB_MAP in backend/routes/pdb.py,
+  // e.g. TP53_C275F -> 2OCJ) — the generic per-gene UniProt list alone can
+  // silently miss it (it's capped at 10 IDs, unsorted by relevance).
+  lookupStructureSources(ngs.variants || [], simulatable);
 
   // ── Bridge to the 3D viewer (separate /3d app, same origin) ───────────────
   // The "View 3D Simulations" button opens solange-platform.bio/3d in a new
@@ -3986,7 +3990,7 @@ window.solangeReconcileDmrgClasses = function(dmrgRows) {
   }
 };
 
-async function lookupStructureSources(variants) {
+async function lookupStructureSources(variants, simulatable) {
   const card = document.getElementById('structure-sources-card');
   const body = document.getElementById('structure-sources-body');
   if (!card || !body) return;
@@ -3996,6 +4000,17 @@ async function lookupStructureSources(variants) {
   const geneSource = {};
   variants.forEach(v => { if (v.gene) geneSource[v.gene] = v.source || 'ngs'; });
   const genes = [...new Set(variants.map(v => v.gene))];
+
+  // Map gene -> simId(s) present in this report, so we can also check the
+  // backend's hand-curated MUTATION_PDB_MAP (backend/routes/pdb.py) — a
+  // mutation-specific pick (e.g. TP53_C275F -> 2OCJ, the actual core domain
+  // structure) that the generic per-gene UniProt list can miss entirely: it's
+  // capped at 10 IDs with no relevance sort, so a gene with 190 RCSB entries
+  // (like TP53) can show 10 irrelevant ones and never surface the right one.
+  const geneSimIds = {};
+  (simulatable || []).forEach(av => {
+    (geneSimIds[av.gene] = geneSimIds[av.gene] || []).push(av.simId);
+  });
 
   body.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:4px 0">
     Resolving ${genes.length} gene(s) via UniProt → RCSB PDB → AlphaFold DB…</div>`;
@@ -4044,7 +4059,14 @@ async function lookupStructureSources(variants) {
           </td>
           <td style="font-size:11px">${r.uniRow.protein_name || '—'}</td>
           <td style="font-size:11px">
-            ${ids.length ? pdbLinks + toggle : '<span style="color:var(--gray)">None in RCSB</span>'}
+            ${(r.curated && r.curated.length) ? r.curated.map(c => `
+              <div style="margin-bottom:4px">
+                <span style="color:var(--gold);font-size:9px;font-weight:700">★ CURATED for ${c.simId}</span><br>
+                <a href="https://www.rcsb.org/structure/${c.pdb_id}" target="_blank"
+                   style="color:var(--gold);font-family:monospace">${c.pdb_id}</a>
+                <span style="color:var(--gray);font-size:10px">${c.title ? '· ' + c.title : ''}${c.resolution ? ` · ${c.resolution}Å` : ''}</span>
+              </div>`).join('') : ''}
+            ${ids.length ? pdbLinks + toggle : (!(r.curated && r.curated.length) ? '<span style="color:var(--gray)">None in RCSB</span>' : '')}
           </td>
           <td style="font-size:11px">
             ${r.afRow.available
@@ -4091,7 +4113,17 @@ async function lookupStructureSources(variants) {
       } catch {}
     }
 
-    rows.push({ gene, uniRow, afRow });
+    // Curated per-mutation pick, if this report's gene resolved to a simId
+    // the backend has a MUTATION_PDB_MAP entry for.
+    const curated = [];
+    for (const simId of (geneSimIds[gene] || [])) {
+      try {
+        const cr = await fetch(`${API_BASE}/api/pdb/mutation/${simId}`);
+        if (cr.ok) curated.push({ simId, ...(await cr.json()) });
+      } catch {}
+    }
+
+    rows.push({ gene, uniRow, afRow, curated });
 
     // Render incrementally as each gene resolves
     renderRows();

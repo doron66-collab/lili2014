@@ -23,7 +23,11 @@ MUTATION_PDB_MAP = {
     "TP53_Y220C":  "2VUK",
     "KEAP1_LOF":   "2FLU",
     "STK11_LKB1":  "2QK7",
-    "CDKN2A_P16":  "2A5E",
+    # Frontend's resolveSimId() always resolves CDKN2A's generic LOF/deletion
+    # variant to "CDKN2A_LOF" (no named-mutation table entry for this gene) —
+    # the key here must match that, not the old "CDKN2A_P16" which nothing
+    # ever looks up.
+    "CDKN2A_LOF":  "2A5E",
 }
 
 
