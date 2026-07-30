@@ -1788,7 +1788,7 @@
         <td>~44</td>
         <td><strong>~88</strong></td>
         <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
-        <td><span class="badge badge-gold">BQP ★</span></td>
+        <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
         <td id="bqp-de-TP53_C275F"><span style="color:var(--gray)">—</span></td>
         <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -1798,7 +1798,7 @@
         <td>~155</td>
         <td>~310</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
-        <td><span class="badge badge-teal">BQP</span></td>
+        <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
         <td id="bqp-de-KEAP1_LOF" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -1808,7 +1808,7 @@
         <td>~155</td>
         <td>~310</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
-        <td><span class="badge badge-teal">BQP</span></td>
+        <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
         <td id="bqp-de-KEAP1_G333C" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_G333C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -1818,7 +1818,7 @@
         <td>~155</td>
         <td>~310</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
-        <td><span class="badge badge-teal">BQP</span></td>
+        <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
         <td id="bqp-de-KEAP1_R320Q" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -1828,7 +1828,7 @@
         <td>~152</td>
         <td>~304</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
-        <td><span class="badge badge-teal">BQP</span></td>
+        <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
         <td id="bqp-de-STK11_LKB1" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -1838,7 +1838,7 @@
         <td>~48 <span style="color:var(--gray);font-size:9px">(local · near-term⚡)</span></td>
         <td>~304</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
-        <td><span class="badge badge-gold">BQP ★</span></td>
+        <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
         <td id="bqp-de-STK11_F354L" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_F354L"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -1848,7 +1848,7 @@
         <td>~152</td>
         <td>~304</td>
         <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
-        <td><span class="badge badge-gold">BQP ★</span></td>
+        <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
         <td id="bqp-de-STK11_D194N" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_D194N"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
@@ -3706,7 +3706,7 @@ function loadNGSReport(ngs) {
   // out, not silently dropped) in the Compute Dispatcher's routing table above,
   // built from the full allVariants list.
   simulatable.forEach(av => {
-    const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★</span>` : `<span class="badge badge-teal">BQP</span>`;
+    const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>` : `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
     const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
     const localE   = Math.round(av.gm.active_electrons / 2);
     if (mutTbody) {
