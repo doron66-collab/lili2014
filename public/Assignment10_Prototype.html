@@ -1569,6 +1569,11 @@
         }
         var classColor = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         window.__dmrgRows = rows;   // cached for CSV export / per-row JSON download
+        // Real per-mutation classification overrides the gene-level GENE_MAP
+        // estimate on the All-Target Summary / Compute Dispatcher rows, so a
+        // report with different (or newly-classified) mutations is never stuck
+        // showing a hardcoded guess once actual DMRG evidence exists.
+        if (typeof window.solangeReconcileDmrgClasses === 'function') window.solangeReconcileDmrgClasses(rows);
         var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
           '<th style="'+TH+'">Target</th><th style="'+TH+'">Time</th><th style="'+TH+'">CAS</th>'+
           '<th style="'+TH+'">S_max</th><th style="'+TH+'">Class</th>'+
@@ -3669,7 +3674,10 @@ function loadNGSReport(ngs) {
   const simulatable = allVariants.filter(av => av.supported);
   window.__activeVariants = {};
   simulatable.forEach(av => {
-    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}` };
+    // bqpSource starts 'estimated' (gene-level GENE_MAP default) and flips to
+    // 'dmrg' once a real per-mutation DMRG classification lands for this simId
+    // (see solangeReconcileDmrgClasses) — never invented, always traceable.
+    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}`, bqpCls: av.bqpCls, bqpSource: 'estimated' };
   });
 
   // Populate the Orchestration Compute Dispatcher per-mutation routing from the
@@ -3707,13 +3715,16 @@ function loadNGSReport(ngs) {
   // built from the full allVariants list.
   simulatable.forEach(av => {
     const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>` : `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
+    // "estimated" until a real DMRG run for this exact mutation notarizes a class
+    // (solangeReconcileDmrgClasses swaps this label + badge to "✓ DMRG-confirmed").
+    const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">estimated · gene-level</span>`;
     const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
     const localE   = Math.round(av.gm.active_electrons / 2);
     if (mutTbody) {
       const tr = document.createElement('tr');
       tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${av.simId}`;
       tr.innerHTML = `
-        <td><span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span></td>
+        <td id="mut-class-${av.simId}"><span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span></td>
         <td style="font-weight:700;color:${av.gm.color}">${av.gene}</td>
         <td id="mut-type-${av.simId}">${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
         <td style="font-size:10px;color:${av.source==='research'?'#93c5fd':'var(--teal)'}">${av.source==='research'?'📚 Research':'★ NGS'}</td>
@@ -3730,7 +3741,7 @@ function loadNGSReport(ngs) {
         <td>${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
         <td>~${av.gm.active_electrons}</td><td>~${av.gm.full_qubits}</td>
         <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
-        <td>${bqpBadge}</td>
+        <td id="bqp-class-${av.simId}">${bqpBadge}${bqpSourceNote}</td>
         <td id="bqp-de-${av.simId}" style="color:var(--gray)">—</td>
         <td id="bqp-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
       bqpTbody.appendChild(tr);
@@ -3879,7 +3890,57 @@ function loadNGSReport(ngs) {
     // localStorage unavailable (private mode / quota) — 3D viewer falls back
     // to its built-in demo set. Non-fatal.
   }
+
+  // Re-apply any DMRG classifications already fetched this session — a fresh
+  // report upload rebuilds __activeVariants from scratch, so previously-known
+  // per-mutation evidence must be replayed onto the new rows rather than left
+  // showing "estimated" until the next poll happens to land.
+  if (window.__dmrgRows && typeof window.solangeReconcileDmrgClasses === 'function') {
+    window.solangeReconcileDmrgClasses(window.__dmrgRows);
+  }
 }
+
+// Swap the gene-level GENE_MAP "estimated" BQP class for the real, per-mutation
+// DMRG classification (Rung 3, S_max-based, LEON-notarized) once it's actually
+// been run for a target in the currently loaded report. Called by
+// solangeLoadDmrg() after each /api/simulate/hpc/dmrg/list fetch — so uploading
+// a report with different mutations, or classifying a new one, both flow
+// through here rather than any hardcoded table.
+window.solangeReconcileDmrgClasses = function(dmrgRows) {
+  if (!Array.isArray(dmrgRows) || !window.__activeVariants) return;
+  dmrgRows.forEach(x => {
+    if (!x.key || !x.bqp_class) return;
+    const av = window.__activeVariants[x.key];
+    if (!av) return; // DMRG record for a target not in the currently loaded report
+    if (av.bqpSource === 'dmrg' && av.bqpCls === x.bqp_class) return; // already reconciled
+    av.bqpCls = x.bqp_class;
+    av.bqpSource = 'dmrg';
+    const isA = x.bqp_class === 'A';
+    const badge = isA
+      ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>`
+      : `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
+    const sMaxNote = x.s_max != null ? ` · S_max=${Number(x.s_max).toFixed(2)}` : '';
+    const bqpCell = document.getElementById(`bqp-class-${x.key}`);
+    if (bqpCell) {
+      bqpCell.innerHTML = badge +
+        `<span style="display:block;font-size:8px;color:var(--green);margin-top:2px" title="Notarized by LEON${sMaxNote}">✓ DMRG-confirmed</span>`;
+    }
+    const mutCell = document.getElementById(`mut-class-${x.key}`);
+    if (mutCell) mutCell.innerHTML = `<span class="bqp-badge-${x.bqp_class.toLowerCase()}" title="DMRG-confirmed${sMaxNote}">${x.bqp_class}</span>`;
+    const bqpRow = document.getElementById(`bqp-row-${x.key}`);
+    if (bqpRow) bqpRow.style.background = isA ? 'rgba(232,160,32,0.06)' : '';
+    const mutRow = document.getElementById(`mut-row-${x.key}`);
+    if (mutRow) { mutRow.classList.remove('bqp-row-a','bqp-row-b','bqp-row-c'); mutRow.classList.add(`bqp-row-${x.bqp_class.toLowerCase()}`); }
+  });
+  // Recompute the headline A/B count from reconciled (not just estimated) data
+  const bqpSummary = document.getElementById('bqp-summary-line');
+  const vals = Object.values(window.__activeVariants);
+  if (bqpSummary && vals.length) {
+    const nA = vals.filter(v => v.bqpCls === 'A').length;
+    const nB = vals.filter(v => v.bqpCls === 'B').length;
+    bqpSummary.innerHTML = `<strong style="color:var(--gold)">${nA} quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong> — no classical path reaches chemical accuracy for either class`;
+  }
+};
 
 async function lookupStructureSources(variants) {
   const card = document.getElementById('structure-sources-card');
