@@ -4000,7 +4000,80 @@ async function lookupStructureSources(variants) {
   body.innerHTML = `<div style="color:var(--gray);font-size:12px;padding:4px 0">
     Resolving ${genes.length} gene(s) via UniProt → RCSB PDB → AlphaFold DB…</div>`;
 
+  // Which genes' PDB-ID list is currently expanded past the first 4 — a plain
+  // module-level Set (not per-render state) so toggling survives the
+  // incremental re-renders below and a click doesn't have to re-fetch anything.
+  window.__structExpanded = window.__structExpanded || new Set();
+  window.toggleStructMore = function(gene) {
+    if (window.__structExpanded.has(gene)) window.__structExpanded.delete(gene);
+    else window.__structExpanded.add(gene);
+    if (typeof window.__structRerender === 'function') window.__structRerender();
+  };
+
   const rows = [];
+  const renderRows = () => {
+    body.innerHTML = `
+      <table>
+        <tr>
+          <th>Gene</th><th>UniProt ID</th><th>Protein</th>
+          <th>PDB Structures</th><th>AlphaFold</th><th>Links</th>
+        </tr>
+        ${rows.map(r => {
+          const expanded = window.__structExpanded.has(r.gene);
+          const ids = r.uniRow.pdb_ids;
+          const shown = expanded ? ids : ids.slice(0, 4);
+          const pdbLinks = shown.map(id =>
+              `<a href="https://www.rcsb.org/structure/${id}" target="_blank"
+                  style="color:var(--teal);font-family:monospace;margin-right:4px">${id}</a>`
+            ).join('');
+          const toggle = ids.length > 4
+            ? `<a href="javascript:void(0)" onclick="toggleStructMore('${r.gene}')"
+                  style="color:var(--gray);text-decoration:underline;cursor:pointer;font-size:10px">
+                  ${expanded ? 'show fewer' : `+${ids.length - 4} more`}</a>`
+            : '';
+          return `
+        <tr>
+          <td style="font-weight:700;color:var(--teal)">
+            ${r.gene}${geneSource[r.gene] === 'research' ? '<span style="color:var(--gray);font-size:10px"> *</span>' : ''}
+          </td>
+          <td style="font-family:monospace;font-size:11px">
+            ${r.uniRow.found
+              ? `<a href="https://www.uniprot.org/uniprotkb/${r.uniRow.uniprot_id}" target="_blank"
+                    style="color:var(--teal)">${r.uniRow.uniprot_id}</a>`
+              : '<span style="color:var(--gray)">Not found</span>'}
+          </td>
+          <td style="font-size:11px">${r.uniRow.protein_name || '—'}</td>
+          <td style="font-size:11px">
+            ${ids.length ? pdbLinks + toggle : '<span style="color:var(--gray)">None in RCSB</span>'}
+          </td>
+          <td style="font-size:11px">
+            ${r.afRow.available
+              ? `<span style="color:var(--green)">✓ Available</span>
+                 <span style="color:var(--gray);font-size:10px"> · pLDDT ${r.afRow.pLDDT?.toFixed(1) ?? '—'}</span>`
+              : '<span style="color:var(--gray)">—</span>'}
+          </td>
+          <td style="font-size:11px;white-space:nowrap">
+            ${r.uniRow.pdb_ids[0]
+              ? `<a href="https://www.rcsb.org/structure/${r.uniRow.pdb_ids[0]}" target="_blank"
+                    style="color:var(--teal);margin-right:6px">RCSB ↗</a>`
+              : ''}
+            ${r.afRow.available
+              ? `<a href="${r.afRow.view_url}" target="_blank" style="color:var(--teal)">AlphaFold ↗</a>`
+              : ''}
+          </td>
+        </tr>`;
+        }).join('')}
+      </table>
+      ${rows.length < genes.length
+        ? `<div style="color:var(--gray);font-size:11px;margin-top:8px">Fetching ${genes.length - rows.length} more…</div>`
+        : `<div style="color:var(--gray);font-size:10px;margin-top:8px">
+            Sources: UniProt REST API · RCSB PDB REST API · AlphaFold DB EMBL-EBI · All queries cached 24h
+            · <span style="color:var(--gray)">* Research target (TCGA/COSMIC literature) — not detected in this NGS report</span>
+           </div>`}
+    `;
+  };
+  window.__structRerender = renderRows;
+
   for (const gene of genes) {
     // UniProt lookup (via our backend proxy)
     let uniRow = { gene, found: false, uniprot_id: '—', protein_name: '—', pdb_ids: [], alphafold_url: null };
@@ -4021,56 +4094,7 @@ async function lookupStructureSources(variants) {
     rows.push({ gene, uniRow, afRow });
 
     // Render incrementally as each gene resolves
-    body.innerHTML = `
-      <table>
-        <tr>
-          <th>Gene</th><th>UniProt ID</th><th>Protein</th>
-          <th>PDB Structures</th><th>AlphaFold</th><th>Links</th>
-        </tr>
-        ${rows.map(r => `
-        <tr>
-          <td style="font-weight:700;color:var(--teal)">
-            ${r.gene}${geneSource[r.gene] === 'research' ? '<span style="color:var(--gray);font-size:10px"> *</span>' : ''}
-          </td>
-          <td style="font-family:monospace;font-size:11px">
-            ${r.uniRow.found
-              ? `<a href="https://www.uniprot.org/uniprotkb/${r.uniRow.uniprot_id}" target="_blank"
-                    style="color:var(--teal)">${r.uniRow.uniprot_id}</a>`
-              : '<span style="color:var(--gray)">Not found</span>'}
-          </td>
-          <td style="font-size:11px">${r.uniRow.protein_name || '—'}</td>
-          <td style="font-size:11px">
-            ${r.uniRow.pdb_ids.length
-              ? r.uniRow.pdb_ids.slice(0,4).map(id =>
-                  `<a href="https://www.rcsb.org/structure/${id}" target="_blank"
-                      style="color:var(--teal);font-family:monospace;margin-right:4px">${id}</a>`
-                ).join('') + (r.uniRow.pdb_ids.length > 4 ? `<span style="color:var(--gray)">+${r.uniRow.pdb_ids.length - 4} more</span>` : '')
-              : '<span style="color:var(--gray)">None in RCSB</span>'}
-          </td>
-          <td style="font-size:11px">
-            ${r.afRow.available
-              ? `<span style="color:var(--green)">✓ Available</span>
-                 <span style="color:var(--gray);font-size:10px"> · pLDDT ${r.afRow.pLDDT?.toFixed(1) ?? '—'}</span>`
-              : '<span style="color:var(--gray)">—</span>'}
-          </td>
-          <td style="font-size:11px;white-space:nowrap">
-            ${r.uniRow.pdb_ids[0]
-              ? `<a href="https://www.rcsb.org/structure/${r.uniRow.pdb_ids[0]}" target="_blank"
-                    style="color:var(--teal);margin-right:6px">RCSB ↗</a>`
-              : ''}
-            ${r.afRow.available
-              ? `<a href="${r.afRow.view_url}" target="_blank" style="color:var(--teal)">AlphaFold ↗</a>`
-              : ''}
-          </td>
-        </tr>`).join('')}
-      </table>
-      ${rows.length < genes.length
-        ? `<div style="color:var(--gray);font-size:11px;margin-top:8px">Fetching ${genes.length - rows.length} more…</div>`
-        : `<div style="color:var(--gray);font-size:10px;margin-top:8px">
-            Sources: UniProt REST API · RCSB PDB REST API · AlphaFold DB EMBL-EBI · All queries cached 24h
-            · <span style="color:var(--gray)">* Research target (TCGA/COSMIC literature) — not detected in this NGS report</span>
-           </div>`}
-    `;
+    renderRows();
   }
 }
 
