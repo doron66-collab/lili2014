@@ -9,7 +9,7 @@
 #SBATCH --output=dmrg_%j.out
 #SBATCH --error=dmrg_%j.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=doron66@gmail.com
+#SBATCH --mail-user=doron.cohen@cgu.edu
 
 # ── SOLANGE DMRG classifier job for USC Laguna (CARC) ───────────────────────
 # Runs solange_dmrg.py's --geometry path (real active-site cluster, not a demo
