@@ -152,7 +152,7 @@ def classify(active_electrons, energies, s_max):
 
 
 def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
-                             density_fit=True, max_memory=16000):
+                             density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit"):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -181,18 +181,26 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # RHF requires closed-shell (spin=0); anything else needs ROHF instead. A QM
     # cluster this size (hundreds of atoms once real protonation is included,
     # easily 1000+ basis functions) makes conventional (non-density-fitted) SCF
-    # a real bottleneck — density fitting approximates the 2-electron integrals
-    # with an auxiliary basis, standard practice for generating CASSCF orbitals,
-    # a few x10 faster here with negligible accuracy impact on the orbitals
-    # AVAS then selects. --no-density-fit (density_fit=False) turns it off if an
-    # exact comparison is ever needed.
-    print(f"  running RHF/ROHF{'  (density-fitted)' if density_fit else ''} on "
+    # AND CASSCF a real bottleneck — CASSCF's orbital optimization still touches
+    # every basis function each macro-iteration, not just the active space, so
+    # disabling DF doesn't just slow RHF, it makes CASSCF itself take hours even
+    # for a tiny active space (learned the hard way: CAS(18,12) — trivial for
+    # the FCI solver — sat for 2+ hours in a non-DF CASSCF on a 491-function
+    # basis). Density fitting propagates from mf into mcscf.CASSCF(mf, ...)
+    # automatically and keeps CASSCF fast too — the earlier OOM wasn't caused
+    # by DF itself, it was pyscf silently falling back to an oversized
+    # even-tempered auxiliary basis because sto-3g has no matching JKFIT
+    # companion in the standard libraries. Naming a modest, general-purpose
+    # auxbasis explicitly (default def2-universal-jkfit) fixes that mismatch
+    # directly instead of giving up DF's speed for both RHF and CASSCF.
+    # --no-density-fit (density_fit=False) is kept as an escape hatch only.
+    print(f"  running RHF/ROHF{f'  (density-fitted, auxbasis={df_auxbasis})' if density_fit else ''} on "
           f"{mol.natm} atoms, {mol.nao} basis functions (this and the AVAS step "
           f"below print nothing further until they finish unless --verbose is "
           f"raised)...", flush=True)
     mf = scf.RHF(mol) if spin == 0 else scf.ROHF(mol)
     if density_fit:
-        mf = mf.density_fit()
+        mf = mf.density_fit(auxbasis=df_auxbasis)
     mf = mf.run()
     ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")])
     # Report the active space BEFORE paying for CASSCF, not after: CASSCF cost is
@@ -204,6 +212,8 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     print(f"  AVAS selected active space: CAS({nelec},{ncas}){size_note}", flush=True)
     from pyscf import mcscf
     mc = mcscf.CASSCF(mf, ncas, nelec)
+    if density_fit:
+        mc = mc.density_fit(auxbasis=df_auxbasis)  # keep CASSCF's own integral transform DF-accelerated too
     mc.verbose = verbose
     mc.max_memory = max_memory  # explicit — don't rely on inheriting mol's setting
     if spin == 0:
@@ -263,9 +273,19 @@ def main():
                     help="2S = Nalpha - Nbeta for --geometry mode (default 0, closed shell / "
                          "RHF). Non-zero switches to ROHF.")
     ap.add_argument("--no-density-fit", action="store_true",
-                    help="--geometry mode only: disable density-fitted RHF/ROHF (on by "
-                         "default — a QM cluster this size makes conventional SCF slow; "
-                         "pass this only if an exact, non-DF comparison is specifically needed)")
+                    help="--geometry mode only: disable density-fitted RHF/ROHF AND CASSCF "
+                         "(both on by default — a QM cluster this size makes the conventional, "
+                         "non-DF path slow for BOTH steps, not just RHF: CASSCF's orbital "
+                         "optimization still touches every basis function each macro-iteration "
+                         "even when the active space itself is tiny. Pass this only if an exact, "
+                         "non-DF comparison is specifically needed — expect it to take hours.)")
+    ap.add_argument("--df-auxbasis", default="def2-universal-jkfit",
+                    help="--geometry mode only: auxiliary basis for density fitting (default "
+                         "def2-universal-jkfit — a compact, general-purpose fitting basis that "
+                         "works with any primary basis. Naming this explicitly matters most for "
+                         "primary bases with no matching JKFIT companion in the standard "
+                         "libraries, e.g. sto-3g: left to guess, pyscf falls back to an "
+                         "oversized even-tempered auxiliary basis and DF can OOM instead of help)")
     ap.add_argument("--max-memory", type=int, default=16000,
                     help="--geometry mode only: MB available to pyscf for SCF/CASSCF/FCI "
                          "(default 16000 — pyscf's own default of 4000 is sized for a "
@@ -315,7 +335,8 @@ def main():
               f"· AVAS[{args.avas}]/{args.basis} · charge={args.charge} spin={args.spin}")
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
                                        charge=args.charge, spin=args.spin, verbose=args.verbose,
-                                       density_fit=not args.no_density_fit, max_memory=args.max_memory)
+                                       density_fit=not args.no_density_fit, max_memory=args.max_memory,
+                                       df_auxbasis=args.df_auxbasis)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
