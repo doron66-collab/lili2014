@@ -15,9 +15,15 @@
 # when your browser/SSH session disconnects. Submit it, close everything, come
 # back later and check with `squeue --me` / `tail -f dmrg_<jobid>.out`.
 #
-# Defaults below match the TP53_C275F validation run from 2026-07-30 (5A
-# cluster around Cys275, sto-3g, no density-fit — that combination is what
-# actually got RHF to converge without being OOM-killed on this cluster).
+# Defaults below match the TP53_C275F validation run (5A cluster around
+# Cys275, sto-3g). Density fitting is ON by default with an explicit modest
+# auxbasis (def2-universal-jkfit) for both RHF and CASSCF — an earlier
+# --no-density-fit default here fixed a memory crash in RHF but made CASSCF
+# itself take hours for even a tiny active space (it still transforms every
+# basis function each macro-iteration without DF). The real fix for the
+# original OOM was pinning the auxbasis, not dropping DF — see
+# solange_dmrg.py's --df-auxbasis. Set NO_DENSITY_FIT_FLAG=--no-density-fit
+# only if an exact, non-DF comparison is specifically needed.
 # Override any of them via environment variables, e.g.:
 #   sbatch --export=RADIUS_XYZ=tp53_c275_r7.0_h.xyz,BASIS=6-31g run_dmrg_geometry.sbatch
 
@@ -50,7 +56,8 @@ bash scripts/laguna/run_dmrg.sh \
     --charge    "${CHARGE:-0}" \
     --verbose   "${VERBOSE:-3}" \
     --max-memory "${MAX_MEMORY:-16000}" \
-    ${NO_DENSITY_FIT_FLAG:---no-density-fit} \
+    --df-auxbasis "${DF_AUXBASIS:-def2-universal-jkfit}" \
+    ${NO_DENSITY_FIT_FLAG:-} \
     --scratch   "${SCRATCH:-./tmp_dmrg_$SLURM_JOB_ID}" \
     --bond-dims "${BOND_DIMS:-250,500,1000,2000}" \
     --submit
