@@ -152,7 +152,8 @@ def classify(active_electrons, energies, s_max):
 
 
 def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
-                             density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit"):
+                             density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit",
+                             max_cycle_macro=20):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -216,9 +217,16 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         mc = mc.density_fit(auxbasis=df_auxbasis)  # keep CASSCF's own integral transform DF-accelerated too
     mc.verbose = verbose
     mc.max_memory = max_memory  # explicit — don't rely on inheriting mol's setting
+    # A hard ceiling, not a diagnosis: pyscf's own default (50) has no time bound.
+    # This guarantees the run finishes within a predictable number of iterations
+    # even if convergence is slow, at the cost of possibly stopping before full
+    # convergence — mc.converged (checked below) reports whether that happened.
+    mc.max_cycle_macro = max_cycle_macro
     if spin == 0:
         mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell
     e_casscf = mc.kernel(mo)[0]
+    conv_note = "converged" if mc.converged else f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first"
+    print(f"  CASSCF {conv_note} · E={e_casscf:.8f}", flush=True)
     h1e, ecore = mc.get_h1eff()
     h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
     na = nelec // 2
@@ -286,6 +294,11 @@ def main():
                          "primary bases with no matching JKFIT companion in the standard "
                          "libraries, e.g. sto-3g: left to guess, pyscf falls back to an "
                          "oversized even-tempered auxiliary basis and DF can OOM instead of help)")
+    ap.add_argument("--max-cycle-macro", type=int, default=20,
+                    help="--geometry mode only: hard cap on CASSCF macro-iterations (default 20, "
+                         "pyscf's own default is 50 with no time bound). This is a time ceiling, "
+                         "not a convergence guarantee — the run prints whether it actually "
+                         "converged or just hit this cap.")
     ap.add_argument("--max-memory", type=int, default=16000,
                     help="--geometry mode only: MB available to pyscf for SCF/CASSCF/FCI "
                          "(default 16000 — pyscf's own default of 4000 is sized for a "
@@ -336,7 +349,7 @@ def main():
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
                                        charge=args.charge, spin=args.spin, verbose=args.verbose,
                                        density_fit=not args.no_density_fit, max_memory=args.max_memory,
-                                       df_auxbasis=args.df_auxbasis)
+                                       df_auxbasis=args.df_auxbasis, max_cycle_macro=args.max_cycle_macro)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
