@@ -1,5 +1,12 @@
 # SOLANGE™ — Project Memory
 
+## Communication
+- Doron communicates in Hebrew. Write replies in plain right-to-left Hebrew; when an
+  English term is needed, place it in parentheses immediately after its Hebrew
+  equivalent (e.g. "מוטציה (mutation)", "תחום הליבה (core domain)") — never as a bare
+  Latin token embedded mid-sentence, which breaks bidi (RTL/LTR) rendering and garbles
+  the sentence on his screen. This applies to every conversation, not just one session.
+
 ## Acronym
 **SOLANGE™** = Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics
 
