@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 660" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="aTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#06b6d4"/>
+    </marker>
+    <marker id="aGold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#E8A020"/>
+    </marker>
+    <marker id="aGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22c55e"/>
+    </marker>
+    <marker id="aRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+  <rect width="1080" height="660" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="540" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#0B1E3D">SOLANGE — Governed Job Lifecycle Across a Security Boundary</text>
+  <text x="540" y="52" text-anchor="middle" font-size="11" fill="#64748b">Push, pull, and notarization — one quantum job from browser click to notarized record</text>
+
+  <!-- ============ LANE 1 · SOLANGE ============ -->
+  <rect x="195" y="86" width="845" height="132" rx="8" fill="#e0f2fe" stroke="#0B1E3D" stroke-width="1.25"/>
+  <text x="48" y="138" font-size="11.5" font-weight="700" fill="#0B1E3D">SOLANGE</text>
+  <text x="48" y="154" font-size="9.5" fill="#334155">vendor-hosted platform</text>
+  <text x="48" y="168" font-size="8.5" fill="#94a3b8">Netlify · Render · Supabase</text>
+
+  <!-- (1) Job queued -->
+  <rect x="215" y="110" width="185" height="84" rx="6" fill="#ffffff" stroke="#0B1E3D" stroke-width="1.25"/>
+  <circle cx="232" cy="128" r="11" fill="#0B1E3D"/>
+  <text x="232" y="132" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">1</text>
+  <text x="250" y="132" font-size="11" font-weight="700" fill="#0B1E3D">Job queued</text>
+  <text x="228" y="153" font-size="9" fill="#334155">Researcher marks a mutation</text>
+  <text x="228" y="167" font-size="9" fill="#334155">in the browser; SOLANGE writes</text>
+  <text x="228" y="181" font-size="9" fill="#334155">one row — status = queued</text>
+
+  <!-- (6) LEON -->
+  <rect x="600" y="100" width="215" height="104" rx="6" fill="#0B1E3D"/>
+  <circle cx="617" cy="118" r="11" fill="#ffffff"/>
+  <text x="617" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#0B1E3D">6</text>
+  <text x="635" y="122" font-size="11.5" font-weight="700" fill="#f1f5f9">LEON — notarization</text>
+  <text x="613" y="143" font-size="9" fill="#cbd5e1">Independently recomputes the P8</text>
+  <text x="613" y="157" font-size="9" fill="#cbd5e1">seal, compares it against the one</text>
+  <text x="613" y="171" font-size="9" fill="#cbd5e1">submitted, and re-checks physics</text>
+  <text x="613" y="185" font-size="9" fill="#cbd5e1">consistency</text>
+  <text x="613" y="199" font-size="9" font-style="italic" font-weight="700" fill="#E8A020">verify, don't trust</text>
+
+  <!-- accept -->
+  <line x1="815" y1="123" x2="845" y2="123" stroke="#22c55e" stroke-width="1.75" marker-end="url(#aGreen)"/>
+  <rect x="845" y="100" width="180" height="46" rx="5" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.25"/>
+  <path d="M862,116 l4,5 l8,-10" fill="none" stroke="#22c55e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="882" y="120" font-size="10" font-weight="700" fill="#166534">ACCEPTED</text>
+  <text x="935" y="136" text-anchor="middle" font-size="8.5" fill="#334155">stored · audit row appended</text>
+
+  <!-- reject -->
+  <line x1="815" y1="181" x2="845" y2="181" stroke="#ef4444" stroke-width="1.75" marker-end="url(#aRed)"/>
+  <rect x="845" y="158" width="180" height="46" rx="5" fill="#fef2f2" stroke="#ef4444" stroke-width="1.25"/>
+  <path d="M861,172 l10,10 M871,172 l-10,10" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="879" y="181" font-size="10" font-weight="700" fill="#991b1b">REJECTED (422)</text>
+  <text x="935" y="197" text-anchor="middle" font-size="8.5" fill="#334155">never stored — rejection audited</text>
+
+  <!-- ============ LANE 2 · AGENT (perimeter) ============ -->
+  <rect x="195" y="250" width="845" height="150" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.25" stroke-dasharray="6,4"/>
+  <text x="48" y="296" font-size="11.5" font-weight="700" fill="#0B1E3D">EXECUTION AGENT</text>
+  <text x="48" y="312" font-size="9.5" fill="#334155">inside the institutional</text>
+  <text x="48" y="326" font-size="9.5" fill="#334155">security perimeter</text>
+  <text x="48" y="342" font-size="8.5" fill="#94a3b8">interactive 2FA · no inbound path</text>
+
+  <!-- (2) Job claimed -->
+  <rect x="420" y="272" width="195" height="104" rx="6" fill="#ffffff" stroke="#06b6d4" stroke-width="1.5"/>
+  <circle cx="437" cy="290" r="11" fill="#0B1E3D"/>
+  <text x="437" y="294" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">2</text>
+  <text x="455" y="294" font-size="11" font-weight="700" fill="#0B1E3D">Job claimed</text>
+  <text x="433" y="315" font-size="9" fill="#334155">Agent polls SOLANGE every 15 s</text>
+  <text x="433" y="329" font-size="9" fill="#334155">and claims the row → running</text>
+  <text x="433" y="349" font-size="8.5" font-style="italic" fill="#0e7490">Hamiltonian is read from the agent's</text>
+  <text x="433" y="362" font-size="8.5" font-style="italic" fill="#0e7490">OWN local file — none crosses inward</text>
+
+  <!-- (5) Record sealed -->
+  <rect x="680" y="272" width="195" height="104" rx="6" fill="#ffffff" stroke="#06b6d4" stroke-width="1.5"/>
+  <circle cx="697" cy="290" r="11" fill="#0B1E3D"/>
+  <text x="697" y="294" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">5</text>
+  <text x="715" y="294" font-size="11" font-weight="700" fill="#0B1E3D">Record sealed</text>
+  <text x="693" y="315" font-size="9" fill="#334155">Assembles the P1–P9 record and</text>
+  <text x="693" y="329" font-size="9" fill="#334155">computes the P8 seal here —</text>
+  <text x="693" y="343" font-size="9" fill="#334155">where the computation happened</text>
+  <text x="693" y="362" font-size="8.5" font-style="italic" fill="#0e7490">then pushes it outbound</text>
+
+  <!-- ============ LANE 3 · IBM ============ -->
+  <rect x="195" y="432" width="845" height="120" rx="8" fill="#fffbeb" stroke="#E8A020" stroke-width="1.25"/>
+  <text x="48" y="478" font-size="11.5" font-weight="700" fill="#0B1E3D">IBM QUANTUM</text>
+  <text x="48" y="494" font-size="9.5" fill="#334155">external vendor</text>
+  <text x="48" y="508" font-size="8.5" fill="#94a3b8">Heron QPU</text>
+
+  <!-- (4) Circuit executes -->
+  <rect x="470" y="452" width="240" height="80" rx="6" fill="#ffffff" stroke="#E8A020" stroke-width="1.5"/>
+  <circle cx="487" cy="470" r="11" fill="#0B1E3D"/>
+  <text x="487" y="474" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">4</text>
+  <text x="505" y="474" font-size="11" font-weight="700" fill="#0B1E3D">Circuit executes</text>
+  <text x="483" y="496" font-size="9" fill="#334155">The QPU runs the circuit and returns</text>
+  <text x="483" y="510" font-size="9" fill="#334155">the measured expectation value</text>
+
+  <!-- ==== ARROW 2→1 (PULL, outbound) ==== -->
+  <line x1="470" y1="272" x2="345" y2="196" stroke="#06b6d4" stroke-width="2" marker-end="url(#aTeal)"/>
+  <text x="210" y="232" font-size="8.5" font-weight="700" fill="#0e7490">PULL — outbound HTTPS request;</text>
+  <text x="210" y="244" font-size="8.5" fill="#0e7490">the job descriptor returns on it</text>
+
+  <!-- ==== ARROW 2→4 (submit circuit) ==== -->
+  <line x1="517" y1="376" x2="572" y2="452" stroke="#E8A020" stroke-width="2" marker-end="url(#aGold)"/>
+  <circle cx="545" cy="414" r="10" fill="#E8A020"/>
+  <text x="545" y="418" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">3</text>
+  <text x="505" y="410" text-anchor="end" font-size="8.5" font-weight="700" fill="#a16207">submits the circuit</text>
+  <text x="505" y="422" text-anchor="end" font-size="8.5" fill="#a16207">(outbound)</text>
+
+  <!-- ==== ARROW 4→5 (result returns) ==== -->
+  <line x1="648" y1="452" x2="702" y2="376" stroke="#E8A020" stroke-width="2" marker-end="url(#aGold)"/>
+  <text x="712" y="412" font-size="8.5" fill="#a16207">result returns on the</text>
+  <text x="712" y="424" font-size="8.5" fill="#a16207">agent's own connection</text>
+
+  <!-- ==== ARROW 5→6 (push sealed record) ==== -->
+  <line x1="777" y1="272" x2="742" y2="206" stroke="#06b6d4" stroke-width="2" marker-end="url(#aTeal)"/>
+  <text x="792" y="232" font-size="8.5" font-weight="700" fill="#0e7490">PUSH — the sealed</text>
+  <text x="792" y="244" font-size="8.5" fill="#0e7490">P1–P9 record, outbound</text>
+
+  <!-- ============ FOOTNOTE ============ -->
+  <line x1="195" y1="578" x2="1040" y2="578" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="195" y="600" font-size="10.5" font-weight="700" fill="#0B1E3D">DP2 — cross a security boundary without weakening it.</text>
+  <text x="195" y="617" font-size="9.5" fill="#334155">Every connection above is opened from inside the perimeter outward. No party outside it can initiate a connection into it, and no cluster</text>
+  <text x="195" y="631" font-size="9.5" fill="#334155">credential is stored beyond it. Steps 2–5 execute only while an agent is alive inside an authenticated session; absent one, work stays queued by design.</text>
+</svg>
