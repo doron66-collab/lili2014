@@ -1120,6 +1120,51 @@ async def delete_selected_dmrg(payload: dict = Body(...),
         raise HTTPException(status_code=500, detail=f"delete failed: {e}")
 
 
+# NOTE: must stay ABOVE the "/{mutation_id}" catch-all below — FastAPI matches
+# routes in declaration order, so a literal path declared after it would be
+# swallowed as a mutation id (and would trigger a full VQE run, which this is
+# explicitly not).
+@router.get("/targets/reference")
+async def target_reference_energies():
+    """Per-target reference energies, read straight from the stored JW Hamiltonian
+    set. Pure lookup: no simulation is run and nothing is written.
+
+    The quantity of interest is `correlation_ha` — the CASSCF-exact energy minus
+    the RHF (mean-field) energy over the SAME active space, same molecule, same
+    basis. Unlike an absolute total energy it is directly interpretable, and
+    unlike a mutant-minus-native difference it is actually meaningful here: the
+    two sides are represented by different model compounds, so subtracting them
+    would compare unrelated molecules rather than the effect of the mutation.
+
+    Reported against chemical accuracy (1.6 mHa) it states how far mean-field
+    falls short for a target — the empirical footing under the §06.i class."""
+    CHEM_ACC_MHA = 1.6
+    out = {}
+    for key, sides in _JW_DATA.items():
+        if not isinstance(sides, dict):
+            continue
+        for side, e in sides.items():
+            if not isinstance(e, dict):
+                continue
+            exact, rhf = e.get("e_active_exact"), e.get("e_active_rhf")
+            if exact is None or rhf is None:
+                continue
+            corr = exact - rhf
+            out.setdefault(key, {})[side] = {
+                "compound":        e.get("compound"),
+                "e_casscf_ha":     e.get("e_casscf"),
+                "e_active_exact":  exact,
+                "e_active_rhf":    rhf,
+                "correlation_ha":  round(corr, 10),
+                "correlation_mha": round(corr * 1000.0, 4),
+                # How many multiples of chemical accuracy mean-field misses by —
+                # the number that makes the value legible without a chemistry background.
+                "vs_chem_acc":     round(abs(corr * 1000.0) / CHEM_ACC_MHA, 1),
+            }
+    return {"chem_accuracy_mha": CHEM_ACC_MHA, "targets": out,
+            "_source": "jw_hamiltonians.json (stored reference set — no run performed)"}
+
+
 @router.get("/{mutation_id}")
 async def run_simulation(mutation_id: str, authorization: str | None = Header(None)):
     try:

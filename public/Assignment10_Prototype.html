@@ -3766,7 +3766,10 @@ function loadNGSReport(ngs) {
     // site chemistry (still not computed); 'heuristic' = raw >=30e size guess,
     // no chemistry behind it — should be trusted the least of the three.
     const sourceLabel = av.bqpBasis === 'literature' ? 'literature estimate · gene-level' : 'size heuristic · uncurated';
-    const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">${sourceLabel}</span>`;
+    const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">${sourceLabel}</span>`
+      // Filled in by solangeRenderCorrelation once the stored reference set has
+      // been fetched — the measured evidence sitting under the class label.
+      + `<span id="bqp-corr-${av.simId}" style="display:block;font-size:8px;margin-top:1px"></span>`;
     const bqpRowBg = av.bqpCls === 'A' ? 'background:rgba(232,160,32,0.06)' : '';
     const localE   = Math.round(av.gm.active_electrons / 2);
     if (mutTbody) {
@@ -3904,6 +3907,9 @@ function loadNGSReport(ngs) {
   // silently miss it (it's capped at 10 IDs, unsorted by relevance).
   lookupStructureSources(ngs.variants || [], simulatable);
 
+  // Correlation energy under each BQP class badge (pure lookup — no run triggered).
+  if (typeof window.solangeRenderCorrelation === 'function') window.solangeRenderCorrelation();
+
   // ── Bridge to the 3D viewer (separate /3d app, same origin) ───────────────
   // The "View 3D Simulations" button opens solange-platform.bio/3d in a new
   // tab. That app has no other channel to this page, so persist THIS patient's
@@ -3973,6 +3979,44 @@ window.solangeDmrgCoversSite = function(dmrgRow, activeElectrons) {
   const siteE = Number(activeElectrons);
   if (!isFinite(runE) || !isFinite(siteE) || siteE <= 0) return true;
   return runE >= 0.9 * siteE;   // GENE_MAP site sizes are approximate ("~44e") — allow a margin
+};
+
+// Correlation energy — the measured evidence sitting under the BQP class label.
+// CASSCF-exact minus RHF over the SAME active space, same molecule, same basis,
+// so unlike an absolute total energy the number means something on its own, and
+// unlike a mutant-minus-native difference it is actually computable here (the two
+// sides are represented by different model compounds — subtracting them would
+// compare unrelated molecules, not the mutation). Expressed as multiples of
+// chemical accuracy, it states how far mean-field falls short: the empirical
+// footing under a class that is otherwise a literature estimate.
+window.solangeRenderCorrelation = async function() {
+  if (!window.__activeVariants) return;
+  try {
+    if (!window.__targetRefs) {
+      const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+      const r = await fetch(`${API}/api/simulate/targets/reference`);
+      if (!r.ok) return;
+      window.__targetRefs = await r.json();
+    }
+    const refs = window.__targetRefs;
+    Object.keys(window.__activeVariants).forEach(simId => {
+      const el = document.getElementById(`bqp-corr-${simId}`);
+      if (!el) return;
+      const entry = refs.targets && refs.targets[simId];
+      // Prefer the mutant side: the table row is a mutation, and that side models
+      // the substituted residue. Fall back to native when only it is present.
+      const e = entry && (entry.mutant || entry.native);
+      if (!e || e.correlation_mha == null) { el.innerHTML = ''; return; }
+      const side = (entry.mutant ? 'mutant' : 'native');
+      el.innerHTML = `<span style="color:var(--teal)">corr ${e.correlation_mha.toFixed(1)} mHa</span>`
+        + `<span style="color:var(--gray)"> · ${e.vs_chem_acc}× chem. acc.</span>`;
+      el.title = `Correlation energy for the ${side} side (${e.compound}): CASSCF-exact minus RHF `
+        + `over the same active space — ${e.correlation_mha.toFixed(2)} mHa, i.e. ${e.vs_chem_acc}x `
+        + `chemical accuracy (1.6 mHa). Mean-field misses the exact answer by this much, which is `
+        + `why an exact treatment is required rather than optional. Read from the stored reference `
+        + `set; no run is triggered to obtain it.`;
+    });
+  } catch (e) { /* reference set unavailable — the class label stands on its own */ }
 };
 
 window.solangeReconcileDmrgClasses = function(dmrgRows) {
@@ -4899,8 +4943,28 @@ function updateDashboardAfterRun(mutationId, data) {
   const bqpStatus = document.getElementById(`bqp-status-${mutationId}`);
   const bqpDe     = document.getElementById(`bqp-de-${mutationId}`);
   if (bqpStatus) bqpStatus.innerHTML = `<span class="badge badge-green">✓ 3A Live</span>`;
-  if (bqpDe)     bqpDe.innerHTML =
-    `<strong style="color:var(--teal)">${(+energy).toFixed(4)} Hₐ <span style="font-size:9px;color:var(--gray)">(3A POC)</span></strong>`;
+  if (bqpDe) {
+    // The absolute energy alone says little. The number that does carry meaning is
+    // its deviation from the classical CASSCF reference for the SAME active space —
+    // same molecule, same basis — i.e. did the quantum method land on the known
+    // answer. Read against chemical accuracy (1.6 mHa), which is the threshold the
+    // whole classical-tractability argument is phrased in.
+    const ref = data.full_record && data.full_record.p5_casscf_ref_ha;
+    let deltaLine = '';
+    if (ref != null && isFinite(+ref)) {
+      const dmha = (+energy - +ref) * 1000;
+      const mag  = Math.abs(dmha);
+      // Within chemical accuracy is the result we want; colour only says which side of it.
+      const col  = mag < 1.6 ? 'var(--green)' : 'var(--gold)';
+      // '&lt;' not '<' — a literal '<' here opens a bogus tag and innerHTML swallows
+      // the rest of the line, silently blanking the value in exactly the best case
+      // (VQE landing dead on the reference).
+      const shown = mag < 0.005 ? '&lt;0.01' : (dmha > 0 ? '+' : '−') + mag.toFixed(2);
+      deltaLine = `<div style="font-size:9px;color:${col};margin-top:2px" title="Deviation from the classical CASSCF reference for this same active space (${(+ref).toFixed(6)} Hₐ). Chemical accuracy is 1.6 mHa — inside that band the quantum result is indistinguishable from the exact classical answer.">Δ vs CASSCF ref: ${shown} mHa${mag < 1.6 ? ' · within chem. accuracy' : ''}</div>`;
+    }
+    bqpDe.innerHTML =
+      `<strong style="color:var(--teal)">${(+energy).toFixed(4)} Hₐ <span style="font-size:9px;color:var(--gray)">(3A POC)</span></strong>${deltaLine}`;
+  }
 
   // PQ checklist (Compliance tab)
   updatePQAfterRun(mutationId);
