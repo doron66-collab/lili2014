@@ -1581,13 +1581,25 @@
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
           var provisional = x.time_budget_hit ? ' <span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
+          // "provisional" means the sweep was cut short. This is a different caveat:
+          // the sweep completed, but over an active space far smaller than the target's
+          // own site — so the verdict is about that fragment. Flagged here, on the
+          // authoritative record row, so it is never read as a full-site classification.
+          var _avRow = (window.__activeVariants || {})[x.key];
+          var _scopedRow = !!_avRow && typeof window.solangeDmrgCoversSite === 'function'
+                           && !window.solangeDmrgCoversSite(x, _avRow.activeElectrons);
+          var scopeNote = _scopedRow
+            ? ' <span style="color:var(--gold);font-size:9px" title="This run covered ' + x.nelecas
+              + 'e against a ~' + _avRow.activeElectrons + 'e site. It classifies that fragment, not the target — '
+              + 'the target keeps its own classification until a run of commensurate scope is available.">(scope-limited)</span>'
+            : '';
           // Rationale: full text, no width cap (was clipped at 280px). LEON hash:
           // shown longer and monospace so it can be selected/copied, full value in title.
           hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
-                '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+'</td>'+
+                '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+scopeNote+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.5">'+(x.class_rationale||'—')+'</td>'+
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
                 '<td style="'+C+'">'+(x.id?('<button onclick="verifyDmrgRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
@@ -1606,10 +1618,18 @@
         rows.forEach(function(x){
           if (!x.key || !x.bqp_class) return;
           var col = classColor(x.bqp_class);
-          var label = '<span style="font-size:10px;font-weight:700;color:'+col+
-            ';border:1px solid '+col+';border-radius:4px;padding:1px 6px" '+
+          // A run that did not cover the target's active site is marked "scoped" so the
+          // badge cannot be read as a full-site verdict (see solangeDmrgCoversSite).
+          var _av = (window.__activeVariants || {})[x.key];
+          var scoped = !!_av && typeof window.solangeDmrgCoversSite === 'function'
+                       && !window.solangeDmrgCoversSite(x, _av.activeElectrons);
+          var label = '<span style="font-size:10px;font-weight:700;color:'+(scoped ? 'var(--gray)' : col)+
+            ';border:1px solid '+(scoped ? 'var(--gray)' : col)+';border-radius:4px;padding:1px 6px" '+
             'title="DMRG classification (Rung 3) · Class '+x.bqp_class+
-            (x.s_max!=null?(' · S_max='+Number(x.s_max).toFixed(2)):'')+'">◆ DMRG '+x.bqp_class+'</span>';
+            (x.s_max!=null?(' · S_max='+Number(x.s_max).toFixed(2)):'')+
+            (scoped ? ' · SCOPE-LIMITED: this run covered '+x.nelecas+'e against a ~'+_av.activeElectrons
+                      +'e site, so it classifies that fragment, not the target' : '')+
+            '">◆ DMRG '+x.bqp_class+(scoped ? ' (scoped)' : '')+'</span>';
           ['mut-status-'+x.key, 'bqp-status-'+x.key].forEach(function(id){
             var el = document.getElementById(id);
             if (el && /Pending/i.test(el.textContent)) el.innerHTML = label;
@@ -3699,7 +3719,10 @@ function loadNGSReport(ngs) {
     // see bqpBasis above) and flips to 'dmrg' once a real per-mutation DMRG
     // classification lands for this simId (see solangeReconcileDmrgClasses) —
     // never invented, always traceable.
-    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}`, bqpCls: av.bqpCls, bqpSource: av.bqpBasis };
+    window.__activeVariants[av.simId] = { gene: av.gene, mutation: av.mutation, label: `${av.gene} ${av.mutation}`, bqpCls: av.bqpCls, bqpSource: av.bqpBasis,
+      // Carried so a returning DMRG verdict can be checked for SCOPE before it is
+      // allowed to reclassify this target — see solangeDmrgCoversSite.
+      activeElectrons: av.gm.active_electrons };
   });
 
   // Populate the Orchestration Compute Dispatcher per-mutation routing from the
@@ -3936,12 +3959,45 @@ function loadNGSReport(ngs) {
 // solangeLoadDmrg() after each /api/simulate/hpc/dmrg/list fetch — so uploading
 // a report with different mutations, or classifying a new one, both flow
 // through here rather than any hardcoded table.
+// A DMRG run classifies the active space it was actually given — nothing more.
+// A deliberately small validation run (a few residues, CAS(6,4)) against a target
+// whose real site is ~44e is a pipeline check, not a verdict on the mutation: its
+// own rationale, "6e <= 18e exact-classical wall", is a statement about six
+// electrons. Letting such a run repaint the target's class would silently promote
+// an infrastructure test into a scientific claim about a site it never touched —
+// and would demote a Class-A anchor to Class C on the strength of a fragment.
+// Runs whose scope is unknown are not second-guessed; only a demonstrably
+// undersized one is held back from reclassifying.
+window.solangeDmrgCoversSite = function(dmrgRow, activeElectrons) {
+  const runE  = Number(dmrgRow && dmrgRow.nelecas);
+  const siteE = Number(activeElectrons);
+  if (!isFinite(runE) || !isFinite(siteE) || siteE <= 0) return true;
+  return runE >= 0.9 * siteE;   // GENE_MAP site sizes are approximate ("~44e") — allow a margin
+};
+
 window.solangeReconcileDmrgClasses = function(dmrgRows) {
   if (!Array.isArray(dmrgRows) || !window.__activeVariants) return;
   dmrgRows.forEach(x => {
     if (!x.key || !x.bqp_class) return;
     const av = window.__activeVariants[x.key];
     if (!av) return; // DMRG record for a target not in the currently loaded report
+
+    // SCOPE GATE — a run that did not cover this target's active site annotates
+    // the row but must not reclassify it. The record itself stands untouched in
+    // Rung 3; what is withheld is only the authority to overwrite the target's class.
+    if (!window.solangeDmrgCoversSite(x, av.activeElectrons)) {
+      const note = document.getElementById(`bqp-source-${x.key}`);
+      if (note) {
+        const basis = av.bqpSource === 'literature' ? 'literature estimate' : 'size heuristic';
+        note.innerHTML = `${basis} · <span style="color:#e8a020">DMRG CAS(${x.nelecas},${x.ncas}) — scope-limited</span>`;
+        note.title = `A DMRG run classifies the active space it was given. This one covered ${x.nelecas}e `
+          + `against this target's ~${av.activeElectrons}e site, so its Class ${x.bqp_class} verdict describes `
+          + `that fragment, not the mutation. The classification shown here is therefore left unchanged. `
+          + `The run itself is stored and LEON-verified in Rung 3.`;
+      }
+      return;
+    }
+
     if (av.bqpSource === 'dmrg' && av.bqpCls === x.bqp_class) return; // already reconciled
     av.bqpCls = x.bqp_class;
     av.bqpSource = 'dmrg';
