@@ -397,7 +397,8 @@ def main():
     print("-" * 68)
     print(f"CLASS {cls}{' (PROVISIONAL — time budget hit)' if time_budget_hit else ''}")
     print(f"  {rationale}")
-    print(f"elapsed {round(time.time()-t0,1)}s")
+    elapsed_s = round(time.time() - t0, 1)
+    print(f"elapsed {elapsed_s}s")
 
     out = {
         "id": str(uuid.uuid4()),
@@ -407,6 +408,7 @@ def main():
         "dmrg_energies": energies, "s_max": s_max,
         "bqp_class": cls, "class_rationale": rationale,
         "time_budget_hit": time_budget_hit, "bond_dims_requested": bond_dims,
+        "elapsed_s": elapsed_s,
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
         "provenance_source": "HPC/Laguna (DMRG classifier)",
     }

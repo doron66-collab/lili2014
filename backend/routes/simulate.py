@@ -984,9 +984,16 @@ async def list_hpc_runs(limit: int = 50):
 _DMRG_DB_COLUMNS = frozenset({
     "id", "created_at", "key", "compound", "basis", "ncas", "nelecas",
     "e_casscf", "dmrg_energies", "s_max", "bqp_class", "class_rationale",
-    "time_budget_hit", "bond_dims_requested", "method",
+    "time_budget_hit", "bond_dims_requested", "method", "elapsed_s",
     "dmrg_seal_payload", "dmrg_hash", "provenance_source",
 })
+# NOTE: "elapsed_s" requires the matching Supabase column to exist first —
+# see the one-time migration in scripts/laguna/RUN_GUIDE.md §2 (or run:
+#   alter table public.dmrg_classifications add column if not exists elapsed_s numeric;
+# ). Until that migration runs, any submit carrying elapsed_s will insert-fail
+# (caught below, db_status="error") — LEON's seal is still verified and audited,
+# but the record silently will not land in the table. Run the migration BEFORE
+# the first solange_dmrg.py --submit after this change.
 
 
 @router.post("/hpc/dmrg/submit")
