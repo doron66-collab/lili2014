@@ -951,6 +951,38 @@ async def delete_selected_qpu_runs(payload: dict = Body(...),
         raise HTTPException(status_code=500, detail=f"delete failed: {e}")
 
 
+@router.post("/hpc/runs/delete/classical")
+async def delete_selected_classical_runs(payload: dict = Body(...),
+                                         authorization: str | None = Header(None)):
+    """Delete SPECIFIC classical HPC runs by id (the per-row checkbox flow, Rung
+    2). Mirrors delete_selected_qpu_runs exactly but with the phase guard
+    reversed: this endpoint can NEVER delete a QPU run even if a QPU id is
+    passed, so a slip on either checkbox list can't cross into the other rung's
+    runs — the QPU side's real-quantum-time cost, and the classical side's own
+    re-submit cost, each stay isolated to their own opt-in delete."""
+    _uid_from_auth(authorization)
+    ids = (payload or {}).get("ids") or []
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(status_code=400, detail="body must include a non-empty 'ids' list")
+    sb = get_supabase()
+    if not sb:
+        return {"deleted": 0, "db": "not_configured"}
+    try:
+        rows = (sb.table("simulation_runs").select("id, phase")
+                  .in_("id", [str(i) for i in ids]).execute())
+        hpc_ids = [r["id"] for r in (rows.data or [])
+                   if str(r.get("phase", "")) == "3A-HPC"]
+        if not hpc_ids:
+            return {"deleted": 0, "status": "deleted", "requested": len(ids),
+                    "note": "no matching classical HPC rows for the given ids"}
+        res = sb.table("simulation_runs").delete().in_("id", hpc_ids).execute()
+        n = len(res.data) if getattr(res, "data", None) else len(hpc_ids)
+        return {"deleted": n, "status": "deleted", "requested": len(ids)}
+    except Exception as e:
+        logging.error("Classical HPC delete failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"delete failed: {e}")
+
+
 @router.get("/hpc/runs")
 async def list_hpc_runs(limit: int = 50):
     """List externally-executed HPC runs for the dashboard — classical Laguna
