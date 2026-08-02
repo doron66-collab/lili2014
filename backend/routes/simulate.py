@@ -1059,7 +1059,7 @@ async def list_dmrg_classifications(limit: int = 50):
                  .select("id, created_at, key, compound, basis, ncas, nelecas, "
                          "e_casscf, s_max, bqp_class, class_rationale, "
                          "time_budget_hit, bond_dims_requested, dmrg_energies, "
-                         "method, provenance_source, dmrg_hash")
+                         "elapsed_s, method, provenance_source, dmrg_hash")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"classifications": res.data or []}
     except Exception as e:
