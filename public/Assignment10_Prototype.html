@@ -2187,10 +2187,22 @@
      is DP5 applied to the platform's own reporting.
      ══════════════════════════════════════════════════════════════════════════ -->
 <div class="screen" id="s6">
-  <h2 style="color:var(--white)">Executive View</h2>
-  <p style="color:var(--gray);font-size:12px;margin:-4px 0 16px;line-height:1.7">
-    Measured quantities only. <strong style="color:var(--white)">Consumption is reported,
-    not cost</strong> &mdash; the rate per second is your commercial term, not ours to assume.
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <h2 style="color:var(--white);margin:0">Executive View</h2>
+    <span style="font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+                 color:var(--green);background:rgba(34,197,94,0.12);
+                 border:1px solid rgba(34,197,94,0.4);border-radius:999px;padding:2px 9px"
+          title="Independently verified against a published benchmark: N2 CAS(6,6)/cc-pVDZ, matched to 0.00 mHa classically and 0.471 mHa on a 12-qubit run.">Platform verified</span>
+    <span style="font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+                 color:var(--gold);background:rgba(232,160,32,0.12);
+                 border:1px solid rgba(232,160,32,0.4);border-radius:999px;padding:2px 9px"
+          title="The molecules currently loaded are reference stand-ins used to exercise the system end to end. Production runs use your own structures.">Reference data</span>
+  </div>
+  <p style="color:var(--gray);font-size:12px;margin:6px 0 16px;line-height:1.7">
+    Measured quantities only. <strong style="color:var(--white)">Consumption is reported, not
+    cost</strong> &mdash; the rate is your commercial term. Running on reference data, so
+    <strong style="color:var(--white)">results are not clinical findings</strong>; production
+    runs use your own structures.
   </p>
 
   <!-- ── Governance: what the pipeline caught ─────────────────────────────── -->
@@ -2238,21 +2250,6 @@
       </div>
       <div id="exec-cost" style="text-align:right;flex:1;min-width:220px"></div>
     </div>
-  </div>
-
-  <!-- One line, not a block. Everything the previous two-panel version said fits in a
-       sentence, and an executive screen should not spend a card on a sentence. -->
-  <div style="margin-bottom:14px;padding:12px 15px;border:1px solid var(--border);
-              border-left:3px solid var(--gold);border-radius:8px;background:rgba(232,160,32,0.05)">
-    <span style="font-size:12.5px;color:var(--white);line-height:1.7">
-      <strong>Platform verified. Dataset is reference data.</strong>
-      <span style="color:var(--gray)">The pipeline is independently verified against a published
-      benchmark (N<sub>2</sub>, matched to 0.00&nbsp;mHa classically and 0.471&nbsp;mHa on 12
-      qubits). The molecules currently loaded are reference stand-ins used to exercise the system
-      end to end &mdash; <strong style="color:var(--white)">results shown are not clinical or
-      chemical findings</strong>. Production runs use your own structures and produce your own
-      results.</span>
-    </span>
   </div>
 
   <!-- Declared gaps, as four short chips rather than a table of paragraphs. The
