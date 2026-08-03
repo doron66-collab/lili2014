@@ -477,7 +477,7 @@
   </div>
 
   <div class="nav-tabs">
-    <button class="nav-tab" onclick="show('s6')">Executive</button>
+    <button class="nav-tab" id="exec-nav-tab" onclick="show('s6')" style="display:none">Executive</button>
     <button class="nav-tab active" onclick="show('s1')">Dashboard</button>
     <button class="nav-tab" onclick="show('s2')">Orchestration</button>
     <button class="nav-tab" onclick="show('s3')">Results</button>
@@ -2406,8 +2406,20 @@ async function showPlatform(user) {
   document.getElementById('menu-email').textContent  = email;
 
   // Show password change only for non-guest accounts
-  if (email !== 'guest@solange.bio')
+  const isGuest = (email === 'guest@solange.bio');
+  if (!isGuest)
     document.getElementById('pw-change-section').style.display = 'block';
+
+  // Executive tab: hidden by default in the markup (id="exec-nav-tab"), same
+  // pattern as Admin below. The guest account is a demo/evaluation login shown
+  // to anyone with the link — it must not carry internal operational reporting
+  // (governance counts, quantum spend, evidence standing), so it stays scoped
+  // to the same four tabs a scientist uses. Every other authenticated account
+  // gets it; there is no separate "executive" role to check against yet.
+  if (!isGuest) {
+    const t = document.getElementById('exec-nav-tab');
+    if (t) t.style.display = '';
+  }
 
   // Detect admin role and show admin tab if applicable
   try {
