@@ -2197,9 +2197,14 @@
 
   <!-- ── Governance: what the pipeline caught ─────────────────────────────── -->
   <div class="card" style="margin-bottom:14px">
-    <div style="font-size:13px;font-weight:700;color:var(--white);letter-spacing:.3px;margin-bottom:5px">What the pipeline stopped</div>
+    <!-- The heading was "What the pipeline stopped", which four of the five tiles
+         contradict: 101 notarized and 118 re-checked are results that PASSED. Only
+         the rejections and scope hold-backs were stopped. Renamed to what the block
+         actually shows — that every result is checked before it counts, refusals
+         included. -->
+    <div style="font-size:13px;font-weight:700;color:var(--white);letter-spacing:.3px;margin-bottom:5px">Nothing is stored unchecked</div>
     <p style="color:var(--gray);font-size:11px;margin:2px 0 12px;line-height:1.6">
-      Work halted before it became a wrong conclusion.
+      Every result is re-verified on arrival. Refusals and limits are recorded too.
     </p>
     <div id="exec-governance" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
       <div style="color:var(--gray);font-size:12px">Loading…</div>
@@ -2713,28 +2718,27 @@ window.solangeRenderExec = function() {
   }).length;
   const g = document.getElementById('exec-governance');
   if (g) g.innerHTML =
-      _execTile(rejected, 'Results rejected at the gate',
-                rejected ? 'Failed verification. Never stored.' : 'Every submission verified.',
-                rejected ? 'var(--gold)' : 'var(--green)')
-    + (() => {
+    // Ordered as a sequence a reader can follow: what passed, what failed, what was
+    // limited, what was re-proved, what was logged. The previous order opened with a
+    // zero, which reads as "nothing happened" rather than "nothing failed".
+      (() => {
         const nHpc = runs.filter(r => (r.phase || '') === '3A-HPC').length;
         const stored = nHpc + qpu.length + dmrg.length;
-        // The breakdown was previously a clause inside a paragraph of 9.5px grey text,
-        // where it was present but unreadable — which is the same as absent. It is the
-        // answer to the obvious question ("101 notarizations, 12 quantum runs?"), so it
-        // gets its own line, its own weight, and the arithmetic spelled out.
-        return _execTile(notarized, 'Results notarized &mdash; all rungs',
+        return _execTile(notarized, 'Verified and stored',
           `<div style="color:var(--white);font-weight:600;margin-bottom:3px">`
         + `${nHpc} classical &middot; ${qpu.length} quantum &middot; ${dmrg.length} DMRG `
-        + `<span style="color:var(--gray);font-weight:400">= ${stored} stored now</span></div>`
+        + `<span style="color:var(--gray);font-weight:400">= ${stored} on file now</span></div>`
         + `Ledger keeps deleted runs too &mdash; why ${notarized} exceeds ${stored}.`,
           'var(--green)');
       })()
-    + _execTile(scoped, 'Verdicts held back',
+    + _execTile(rejected, 'Refused at the gate',
+                rejected ? 'Failed verification. Never stored.' : 'None failed verification.',
+                rejected ? 'var(--gold)' : 'var(--green)')
+    + _execTile(scoped, 'Held back as out of scope',
                 'Measured on a fragment, so not applied to the whole target.',
                 scoped ? 'var(--gold)' : 'var(--gray)')
-    + _execTile(reverified, 'Seals re-checked later',
-                'Proven again on demand, not trusted from one check.',
+    + _execTile(reverified, 'Re-proved later',
+                'Checked again on demand, not trusted from one check.',
                 reverified ? 'var(--teal)' : 'var(--gray)')
     + _execTile(auditTotal || audit.length, 'Audit entries', 'Append-only. Nothing is ever removed.');
 
