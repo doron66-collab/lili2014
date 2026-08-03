@@ -1043,42 +1043,38 @@
          RUNG 4  Quantum hardware     (IBM Heron — 3B-QPU, the bottom of the ladder)
        Small is at the top; you climb down into quantum. Each rung has its own
        internal sub-ladder. ══════════════════════════════════════════════════ -->
-  <!-- EVIDENCE-GRADE BANNER — deliberately above every rung, not tucked inside one.
-       The discipline enforced in backend/routes/evidence.py existed only in API
-       payloads and JSON files; a reader looking at the screen saw tables of numbers
-       with no indication of their standing. That is the exact failure mode this
-       project set out to avoid, so the qualification is stated once, up front, and
-       covers everything below it. -->
-  <div style="margin:4px 0 14px;padding:11px 14px;border:1px solid rgba(232,160,32,0.45);
-              border-left:3px solid var(--gold);border-radius:8px;background:rgba(232,160,32,0.07)">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
-                   color:var(--gold);background:rgba(232,160,32,0.16);
-                   border:1px solid rgba(232,160,32,0.5);border-radius:999px;padding:2px 9px">Proof of concept</span>
-      <span style="font-size:11.5px;font-weight:700;color:var(--white)">The values below are not validated chemistry.</span>
+  <!-- Evidence note. Deliberately quiet: an alarming banner reads as "something is
+       broken" rather than "something is explained", and people stop reading it —
+       which defeats the point. One neutral line states the essential fact; the
+       detail is one click away for anyone who wants it. Wording tracks
+       POC_DISCLAIMER in backend/routes/evidence.py. -->
+  <details style="margin:4px 0 12px;padding:7px 11px;border:1px solid var(--border);
+                  border-radius:7px;background:rgba(148,163,184,0.05)">
+    <summary style="font-size:10.5px;color:var(--gray);cursor:pointer;line-height:1.5">
+      <span style="font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+                   color:var(--gray);border:1px solid var(--border);border-radius:999px;
+                   padding:1px 7px;margin-right:6px">proof of concept</span>
+      Values below demonstrate the pipeline, not validated chemistry &mdash; what that means
+    </summary>
+    <div style="font-size:10.5px;color:var(--gray);line-height:1.7;margin-top:9px;
+                padding-top:8px;border-top:1px solid var(--border)">
+      Targets on this ladder are computed over <strong style="color:var(--white)">model compounds
+      at CAS(2e,2o)/STO-3G</strong> &mdash; toluene standing in for a Phe sidechain, methanethiol
+      for Cys. Those are correct calculations of what they describe: two electrons of a stand-in
+      molecule. They are not characterisations of a protein active site, and active-space sizes
+      are curated literature estimates rather than measurements. What is demonstrated is that the
+      orchestration, provenance and verification pipeline works end to end, so no chemical or
+      biological conclusion follows from these numbers. This is an Information Systems
+      contribution &mdash; the architecture is the artifact.
+      <div style="margin-top:7px">
+        <strong style="color:var(--teal)">Independently checked:</strong> the pipeline reproduces a
+        reference it did not produce &mdash; N&#8322; CAS(6,6)/cc-pVDZ, CASSCF to 0.00&nbsp;mHa and
+        12-qubit VQE to 0.471&nbsp;mHa (29% of chemical accuracy). That validates the instrument for
+        small-molecule bond breaking; it transfers nothing to protein active sites. See
+        <code style="font-size:9.5px">scripts/laguna/benchmarks.json</code>.
+      </div>
     </div>
-    <div style="font-size:10.5px;color:var(--gray);line-height:1.65;margin-top:6px">
-      Every target on this ladder runs over <strong style="color:var(--white)">model compounds at
-      CAS(2e,2o)/STO-3G</strong> &mdash; toluene standing in for a Phe sidechain, methanethiol for
-      Cys. Those are correct calculations of what they describe: two electrons of a stand-in
-      molecule. They are <em>not</em> characterisations of a protein active site, and active-space
-      sizes are curated literature estimates rather than measurements. What is demonstrated here is
-      that the orchestration, provenance and verification pipeline works end to end &mdash;
-      <strong style="color:var(--white)">no chemical or biological conclusion may be drawn from
-      these numbers</strong>. This is an Information Systems contribution; the architecture is the
-      artifact, not the chemistry.
-    </div>
-    <div style="font-size:10.5px;color:var(--gray);line-height:1.65;margin-top:6px;
-                border-top:1px solid rgba(232,160,32,0.25);padding-top:6px">
-      <strong style="color:var(--teal)">Independently checked:</strong> the pipeline reproduces a
-      reference it did not produce &mdash; N&#8322; CAS(6,6)/cc-pVDZ, CASSCF to
-      <strong style="color:var(--white)">0.00&nbsp;mHa</strong> and VQE on 12 qubits to
-      <strong style="color:var(--white)">0.471&nbsp;mHa</strong> (29% of chemical accuracy).
-      That validates the <em>instrument</em> for small-molecule bond breaking. It transfers
-      nothing to protein active sites &mdash; reproducing a known answer validates the instrument,
-      not a discovery. See <code style="font-size:9.5px">scripts/laguna/benchmarks.json</code>.
-    </div>
-  </div>
+  </details>
 
   <div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px">
     <span style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--green);background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);border-radius:999px;padding:2px 9px">Ladder · Rung 1 — Laptop</span>
@@ -1844,22 +1840,16 @@
   <div class="card" style="margin-bottom:16px">
     <div class="card-title" id="bqp-card-title" style="color:var(--white)">All-Target Summary — 1 NSCLC Mutation · BQP Classification & Simulation Status</div>
     <div id="bqp-summary-line" style="font-size:12px;margin:-2px 0 12px 0"></div>
-    <!-- Same qualification as the Orchestration ladder. This table is the most
-         quotable surface in the platform — a screenshot of it, stripped of context,
-         reads as a finding. The caveat travels WITH the numbers. -->
-    <div style="display:flex;align-items:flex-start;gap:9px;margin:0 0 12px;padding:9px 12px;
-                border:1px solid rgba(232,160,32,0.4);border-left:3px solid var(--gold);
-                border-radius:7px;background:rgba(232,160,32,0.06)">
-      <span style="font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
-                   color:var(--gold);white-space:nowrap;padding-top:1px">Proof of concept</span>
-      <span style="font-size:10.5px;color:var(--gray);line-height:1.6">
-        Energies below are computed over <strong style="color:var(--white)">CAS(2e,2o)/STO-3G model
-        compounds</strong>, not these targets' active sites; active-electron counts are curated
-        literature estimates. The BQP class is an <em>expectation</em> until a DMRG run at the
-        target's own scale confirms it. These demonstrate the pipeline &mdash;
-        <strong style="color:var(--white)">no chemical or biological conclusion follows from
-        them</strong>.
-      </span>
+    <!-- Same note, same quiet treatment. This table is the most quotable surface in
+         the platform, so the qualification stays attached to it — but as a line, not
+         an alarm. -->
+    <div style="font-size:10px;color:var(--gray);line-height:1.6;margin:0 0 11px;
+                padding-left:9px;border-left:2px solid var(--border)">
+      <span style="font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+                   color:var(--gray)">Proof of concept ·</span>
+      energies are computed over CAS(2e,2o)/STO-3G model compounds rather than these targets'
+      active sites, and active-electron counts are curated literature estimates. A BQP class is an
+      expectation until a DMRG run at the target's own scale confirms it.
     </div>
     <table>
       <thead>
