@@ -2220,17 +2220,25 @@
     <div id="exec-qpu" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
       <div style="color:var(--gray);font-size:12px">Loading…</div>
     </div>
-    <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--border);
-                display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-      <span style="font-size:11px;color:var(--gray)">Apply your rate:</span>
-      <span style="font-size:11px;color:var(--gray)">$</span>
-      <input id="exec-rate" type="number" step="0.01" min="0" placeholder="per QPU-second"
-             oninput="window.solangeRenderExec && window.solangeRenderExec()"
-             style="width:110px;background:#020814;border:1px solid var(--border);border-radius:6px;
-                    padding:4px 8px;color:var(--white);font-size:11px">
-      <span id="exec-cost" style="font-size:11.5px;color:var(--gray)">
-        &mdash; enter your rate to see a figure. None is assumed.
-      </span>
+    <!-- Cost was a small line under the tiles and vanished. It is the number a manager
+         reads first, so it gets the largest type on the screen — but only once a rate
+         has been supplied, because the platform still refuses to assume one. Before
+         that the panel asks for the rate rather than showing a placeholder figure. -->
+    <div style="margin-top:14px;padding:14px 16px;border:1px solid var(--border);
+                border-radius:9px;background:rgba(255,255,255,0.025);
+                display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+                    color:var(--gray);margin-bottom:6px">Your rate per QPU-second</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:17px;color:var(--gray)">$</span>
+          <input id="exec-rate" type="number" step="0.01" min="0" placeholder="0.00"
+                 oninput="window.solangeRenderExec && window.solangeRenderExec()"
+                 style="width:120px;background:#020814;border:1px solid var(--border);border-radius:7px;
+                        padding:7px 10px;color:var(--white);font-size:17px;font-weight:700">
+        </div>
+      </div>
+      <div id="exec-cost" style="text-align:right;flex:1;min-width:220px"></div>
     </div>
   </div>
 
@@ -2763,16 +2771,30 @@ window.solangeRenderExec = function() {
   const c = document.getElementById('exec-cost');
   if (c) {
     if (isFinite(rate) && rate > 0 && secs > 0) {
-      c.innerHTML = `<strong style="color:var(--white)">$${(secs * rate).toFixed(2)}</strong>
-        <span style="color:var(--gray)"> at your rate of $${rate.toFixed(2)}/s over ${secs.toFixed(1)}s.
-        Derived from the rate you entered — the platform assumes none.</span>`;
-    } else if (isFinite(rate) && rate > 0) {
-      c.innerHTML = '<span style="color:var(--gray)">No measured seconds yet to apply a rate to.</span>';
+      c.innerHTML =
+        `<div style="font-size:34px;font-weight:800;color:var(--gold);line-height:1.05">
+           $${(secs * rate).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+         </div>
+         <div style="font-size:11.5px;color:var(--white);font-weight:600;margin-top:4px">
+           Quantum time to date, at your rate
+         </div>
+         <div style="font-size:10.5px;color:var(--gray);margin-top:3px">
+           ${secs.toFixed(1)}s &times; $${rate.toFixed(2)}/s &middot; rate supplied by you, not assumed
+         </div>`;
+    } else if (secs > 0) {
+      c.innerHTML =
+        `<div style="font-size:26px;font-weight:700;color:var(--gray);line-height:1.1">&mdash;</div>
+         <div style="font-size:11.5px;color:var(--white);font-weight:600;margin-top:4px">
+           Enter your rate to see the cost
+         </div>
+         <div style="font-size:10.5px;color:var(--gray);margin-top:3px">
+           ${secs.toFixed(1)}s consumed. The platform assumes no price.
+         </div>`;
     } else {
-      c.innerHTML = '&mdash; enter your rate to see a figure. None is assumed.';
+      c.innerHTML =
+        `<div style="font-size:11.5px;color:var(--gray)">No measured seconds yet to price.</div>`;
     }
   }
-
 };
 
 function show(id) {
