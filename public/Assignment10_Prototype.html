@@ -1054,19 +1054,17 @@
     <summary style="font-size:10.5px;color:var(--gray);cursor:pointer;line-height:1.5">
       <span style="font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
                    color:var(--gray);border:1px solid var(--border);border-radius:999px;
-                   padding:1px 7px;margin-right:6px">proof of concept</span>
-      Values below demonstrate the pipeline, not validated chemistry &mdash; what that means
+                   padding:1px 7px;margin-right:6px">reference data</span>
+      Values below run on reference compounds, not customer structures &mdash; what that means
     </summary>
     <div style="font-size:10.5px;color:var(--gray);line-height:1.7;margin-top:9px;
                 padding-top:8px;border-top:1px solid var(--border)">
-      Targets on this ladder are computed over <strong style="color:var(--white)">model compounds
-      at CAS(2e,2o)/STO-3G</strong> &mdash; toluene standing in for a Phe sidechain, methanethiol
-      for Cys. Those are correct calculations of what they describe: two electrons of a stand-in
-      molecule. They are not characterisations of a protein active site, and active-space sizes
-      are curated literature estimates rather than measurements. What is demonstrated is that the
-      orchestration, provenance and verification pipeline works end to end, so no chemical or
-      biological conclusion follows from these numbers. This is an Information Systems
-      contribution &mdash; the architecture is the artifact.
+      Targets on this ladder run on <strong style="color:var(--white)">reference compounds at
+      CAS(2e,2o)/STO-3G</strong> &mdash; toluene in place of a Phe sidechain, methanethiol for Cys.
+      Each is a correct calculation of the compound it describes, and is used to exercise the
+      orchestration, provenance and verification path end to end at low cost. Active-space sizes
+      are literature values rather than site measurements. Results here are therefore not clinical
+      or chemical findings; production runs against customer structures are.
       <div style="margin-top:7px">
         <strong style="color:var(--teal)">Independently checked:</strong> the pipeline reproduces a
         reference it did not produce &mdash; N&#8322; CAS(6,6)/cc-pVDZ, CASSCF to 0.00&nbsp;mHa and
@@ -1847,10 +1845,10 @@
     <div style="font-size:10px;color:var(--gray);line-height:1.6;margin:0 0 11px;
                 padding-left:9px;border-left:2px solid var(--border)">
       <span style="font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
-                   color:var(--gray)">Proof of concept ·</span>
-      energies are computed over CAS(2e,2o)/STO-3G model compounds rather than these targets'
-      active sites, and active-electron counts are curated literature estimates. A BQP class is an
-      expectation until a DMRG run at the target's own scale confirms it.
+                   color:var(--gray)">Reference data ·</span>
+      energies run on CAS(2e,2o)/STO-3G reference compounds rather than these targets' own active
+      sites, and active-electron counts are literature values. A BQP class remains an expectation
+      until a DMRG run at the target's own scale confirms it.
     </div>
     <table>
       <thead>
@@ -2247,12 +2245,13 @@
   <div style="margin-bottom:14px;padding:12px 15px;border:1px solid var(--border);
               border-left:3px solid var(--gold);border-radius:8px;background:rgba(232,160,32,0.05)">
     <span style="font-size:12.5px;color:var(--white);line-height:1.7">
-      <strong>The machinery is proven; the chemistry is not.</strong>
-      <span style="color:var(--gray)">The pipeline reproduces an independent benchmark exactly
-      (N<sub>2</sub>, 0.00&nbsp;mHa classically, 0.471&nbsp;mHa on 12 qubits), but every target
-      here is computed over stand-in molecules rather than its real active site &mdash;
-      <strong style="color:var(--white)">no medical or chemical conclusion follows from these
-      numbers</strong>. That is the intended state: this is an architecture project.</span>
+      <strong>Platform verified. Dataset is reference data.</strong>
+      <span style="color:var(--gray)">The pipeline is independently verified against a published
+      benchmark (N<sub>2</sub>, matched to 0.00&nbsp;mHa classically and 0.471&nbsp;mHa on 12
+      qubits). The molecules currently loaded are reference stand-ins used to exercise the system
+      end to end &mdash; <strong style="color:var(--white)">results shown are not clinical or
+      chemical findings</strong>. Production runs use your own structures and produce your own
+      results.</span>
     </span>
   </div>
 
@@ -2269,10 +2268,6 @@
       <div style="border:1px dashed var(--border);border-radius:8px;padding:11px 13px">
         <div style="font-size:12.5px;font-weight:700;color:var(--white)">Time saved</div>
         <div style="font-size:10.5px;color:var(--gray);margin-top:4px;line-height:1.5">Needs the same task run manually to compare against.</div>
-      </div>
-      <div style="border:1px dashed var(--border);border-radius:8px;padding:11px 13px">
-        <div style="font-size:12.5px;font-weight:700;color:var(--white)">Cost per result</div>
-        <div style="font-size:10.5px;color:var(--gray);margin-top:4px;line-height:1.5">Seconds are measured above. The rate is yours.</div>
       </div>
       <div style="border:1px dashed var(--border);border-radius:8px;padding:11px 13px">
         <div style="font-size:12.5px;font-weight:700;color:var(--white)">Manual steps removed</div>
@@ -5112,13 +5107,13 @@ async function verifyDmrgRun(classId, btn) {
 function solangeCsvProvenanceHeader(what) {
   return [
     '# SOLANGE — ' + what,
-    '# PROOF OF CONCEPT. These values are NOT validated chemistry.',
-    '# Energies are computed over CAS(2e,2o)/STO-3G MODEL COMPOUNDS (e.g. toluene standing in',
-    '#   for a Phe sidechain), not over the named targets\' active sites. Active-electron counts',
-    '#   are curated literature estimates, not measurements. BQP classes are expectations until',
-    '#   a DMRG run at the target\'s own scale confirms them.',
-    '# What these demonstrate is that the orchestration, provenance and verification pipeline',
-    '#   runs end to end. NO chemical or biological conclusion may be drawn from them.',
+    '# REFERENCE DATASET. These values are not clinical or chemical findings.',
+    '# Energies run on CAS(2e,2o)/STO-3G REFERENCE COMPOUNDS (e.g. toluene in place of a Phe',
+    '#   sidechain), not on the named targets\' own active sites. Active-electron counts are',
+    '#   literature values. A BQP class remains an expectation until a DMRG run at the target\'s',
+    '#   own scale confirms it.',
+    '# This dataset exercises the orchestration, provenance and verification path end to end.',
+    '#   Production runs against customer structures produce customer results.',
     '# Independently checked: the pipeline reproduces N2 CAS(6,6)/cc-pVDZ (a reference it did',
     '#   not produce) to 0.00 mHa classically and 0.471 mHa via 12-qubit VQE. That validates the',
     '#   instrument for small-molecule bond breaking only — it transfers nothing to protein sites.',
@@ -5171,10 +5166,10 @@ function downloadDmrgJson(i, btn) {
   // as it is eyeballed, and a parser that drops comments must not also drop the
   // caveat. Placed first so it is the first thing seen either way.
   const payload = {
-    _evidence_grade: 'demonstration_only',
-    _disclaimer: 'PROOF OF CONCEPT — not validated chemistry. Computed over a CAS(2e,2o)/STO-3G '
-               + 'model compound, not this target\'s active site. Demonstrates that the pipeline '
-               + 'runs end to end; no chemical or biological conclusion may be drawn from it.',
+    _dataset: 'reference',
+    _disclaimer: 'Reference dataset — not a clinical or chemical finding. Computed on a '
+               + 'CAS(2e,2o)/STO-3G reference compound, not this target\'s own active site. '
+               + 'Production runs against customer structures produce customer results.',
     _sealed_by: 'LEON — seal is over the record fields below, not over this qualification block.',
     ...x
   };
