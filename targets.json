@@ -1,0 +1,412 @@
+{
+  "_purpose": "SINGLE SOURCE OF TRUTH for target facts. Every other place these values appear derives from here — nothing is hand-edited downstream. Created because the same fact was written in four independent places and nothing forced them to agree: the dissertation said 'C275F is Class B' while the frontend and backend both said 'A'. A checker catches that; a single source prevents it.",
+  "_authority": "The dissertation (public/dissertation_revised.html) is authoritative where it speaks — it is the artifact under examination. Any value here that contradicts it is wrong by definition. bqp_class_source records the quote.",
+  "_consumers": [
+    "backend/routes/simulate.py (MUTATION_CONFIGS)",
+    "public/Assignment10_Prototype.html (GENE_MAP, MUTATION_CLASS)",
+    "scripts/laguna/verify_consistency.py (verifies all of the above agree)"
+  ],
+  "_class_granularity": "A gene carries bqp_class only where the dissertation records it as having 'no single-residue anchor' (KEAP1, CDKN2A, STK11) — there the class is a property of the domain. Genes whose mutations genuinely differ (TP53) carry none, and their classes live under mutations.",
+  "genes": {
+    "TP53": {
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "badge_type": "Structural",
+      "color": "#E8A020"
+    },
+    "KEAP1": {
+      "active_electrons": 155,
+      "full_qubits": 310,
+      "badge_type": "PPI",
+      "color": "#b47fd4",
+      "bqp_class": "B"
+    },
+    "STK11": {
+      "active_electrons": 152,
+      "full_qubits": 304,
+      "badge_type": "SL",
+      "color": "#60a5fa",
+      "bqp_class": "A"
+    },
+    "KRAS": {
+      "active_electrons": 40,
+      "full_qubits": 80,
+      "badge_type": "Structural",
+      "color": "#34d399"
+    },
+    "BRAF": {
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "badge_type": "Structural",
+      "color": "#f87171"
+    },
+    "EGFR": {
+      "active_electrons": 48,
+      "full_qubits": 96,
+      "badge_type": "Structural",
+      "color": "#fbbf24"
+    },
+    "ALK": {
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "badge_type": "SL",
+      "color": "#a78bfa"
+    },
+    "VHL": {
+      "active_electrons": 25,
+      "full_qubits": 50,
+      "badge_type": "Structural",
+      "color": "#06b6d4"
+    },
+    "BAP1": {
+      "active_electrons": 35,
+      "full_qubits": 70,
+      "badge_type": "Ubiquitin LOF",
+      "color": "#0891b2"
+    },
+    "PBRM1": {
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "badge_type": "Chromatin LOF",
+      "color": "#0d93b7"
+    },
+    "SETD2": {
+      "active_electrons": 30,
+      "full_qubits": 60,
+      "badge_type": "Methyltransf. LOF",
+      "color": "#2591ba"
+    },
+    "FGFR3": {
+      "active_electrons": 24,
+      "full_qubits": 48,
+      "badge_type": "Kinase",
+      "color": "#d97706"
+    },
+    "TSC1": {
+      "active_electrons": 26,
+      "full_qubits": 52,
+      "badge_type": "GAP LOF",
+      "color": "#e15f10"
+    },
+    "TSC2": {
+      "active_electrons": 30,
+      "full_qubits": 60,
+      "badge_type": "GAP LOF",
+      "color": "#e06017"
+    },
+    "ATRX": {
+      "active_electrons": 30,
+      "full_qubits": 60,
+      "badge_type": "Helicase LOF",
+      "color": "#f97316",
+      "bqp_class": "B"
+    },
+    "IDH1": {
+      "active_electrons": 22,
+      "full_qubits": 44,
+      "badge_type": "Neomorphic",
+      "color": "#16a34a"
+    },
+    "IDH2": {
+      "active_electrons": 22,
+      "full_qubits": 44,
+      "badge_type": "Neomorphic",
+      "color": "#169c48"
+    },
+    "SMARCA4": {
+      "active_electrons": 40,
+      "full_qubits": 80,
+      "badge_type": "ATPase LOF",
+      "color": "#e85555"
+    },
+    "ARID1A": {
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "badge_type": "Chromatin LOF",
+      "color": "#6282e8"
+    },
+    "ARID2": {
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "badge_type": "Chromatin LOF",
+      "color": "#817cdb",
+      "bqp_class": "B"
+    },
+    "POLE": {
+      "active_electrons": 24,
+      "full_qubits": 48,
+      "badge_type": "Exonuclease LOF",
+      "color": "#9e6af5",
+      "bqp_class": "B"
+    },
+    "BRCA1": {
+      "active_electrons": 32,
+      "full_qubits": 64,
+      "badge_type": "DNA Repair LOF",
+      "color": "#ec478b"
+    },
+    "BRCA2": {
+      "active_electrons": 32,
+      "full_qubits": 64,
+      "badge_type": "DNA Repair LOF",
+      "color": "#e94b8a"
+    },
+    "ATM": {
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "badge_type": "DNA Repair LOF",
+      "color": "#e3528c"
+    },
+    "TERT": {
+      "active_electrons": 24,
+      "full_qubits": 48,
+      "badge_type": "Telomerase",
+      "color": "#9d6fe6"
+    },
+    "RB1": {
+      "active_electrons": 32,
+      "full_qubits": 64,
+      "badge_type": "Cell Cycle LOF",
+      "color": "#5589cd"
+    },
+    "NF1": {
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "badge_type": "RasGAP LOF",
+      "color": "#c87210",
+      "bqp_class": "B"
+    },
+    "NF2": {
+      "active_electrons": 22,
+      "full_qubits": 44,
+      "badge_type": "Scaffold LOF",
+      "color": "#cb6f1c"
+    },
+    "AXIN1": {
+      "active_electrons": 24,
+      "full_qubits": 48,
+      "badge_type": "WNT Scaffold",
+      "color": "#609621"
+    },
+    "AXIN2": {
+      "active_electrons": 24,
+      "full_qubits": 48,
+      "badge_type": "WNT Scaffold",
+      "color": "#1e9b4d",
+      "bqp_class": "B"
+    },
+    "CDKN2A": {
+      "active_electrons": 18,
+      "full_qubits": 36,
+      "badge_type": "Cell Cycle LOF",
+      "color": "#5b82ed",
+      "bqp_class": "B",
+      "active_electrons_range": [
+        14,
+        18
+      ],
+      "active_electrons_source": "dissertation §06.i — hydrophobic core disruption, 14-18e"
+    },
+    "MET": {
+      "active_electrons": 46,
+      "full_qubits": 92,
+      "badge_type": "Kinase",
+      "color": "#f472b6"
+    },
+    "RET": {
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "badge_type": "Kinase Fusion",
+      "color": "#ec4899"
+    },
+    "ROS1": {
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "badge_type": "Kinase Fusion",
+      "color": "#e64d91"
+    },
+    "ERBB2": {
+      "active_electrons": 48,
+      "full_qubits": 96,
+      "badge_type": "Kinase (HER2)",
+      "color": "#ec4c6f"
+    },
+    "NTRK1": {
+      "active_electrons": 38,
+      "full_qubits": 76,
+      "badge_type": "Kinase Fusion",
+      "color": "#f2446f"
+    },
+    "NTRK2": {
+      "active_electrons": 38,
+      "full_qubits": 76,
+      "badge_type": "Kinase Fusion",
+      "color": "#ef4776"
+    },
+    "NTRK3": {
+      "active_electrons": 38,
+      "full_qubits": 76,
+      "badge_type": "Kinase Fusion",
+      "color": "#ea4d7d"
+    },
+    "MYC": {
+      "active_electrons": 26,
+      "full_qubits": 52,
+      "badge_type": "Transcription",
+      "color": "#eab308"
+    },
+    "CDK4": {
+      "active_electrons": 22,
+      "full_qubits": 44,
+      "badge_type": "Kinase",
+      "color": "#ca8a04"
+    },
+    "MDM2": {
+      "active_electrons": 30,
+      "full_qubits": 60,
+      "badge_type": "E3 Ligase",
+      "color": "#c37504"
+    },
+    "PTEN": {
+      "active_electrons": 32,
+      "full_qubits": 64,
+      "badge_type": "Phosphatase LOF",
+      "color": "#0a988b",
+      "bqp_class": "B"
+    },
+    "SMAD4": {
+      "active_electrons": 28,
+      "full_qubits": 56,
+      "badge_type": "TGF-β Scaffold",
+      "color": "#10978d"
+    },
+    "PIK3CA": {
+      "active_electrons": 44,
+      "full_qubits": 88,
+      "badge_type": "Kinase",
+      "color": "#18978e"
+    },
+    "KDM5C": {
+      "active_electrons": 34,
+      "full_qubits": 68,
+      "badge_type": "Demethylase LOF",
+      "color": "#21978f"
+    }
+  },
+  "mutations": {
+    "TP53_C275F": {
+      "name": "TP53 p.Cys275Phe",
+      "pdb": "2OCJ",
+      "jw_source": [
+        "TP53_C275F",
+        "mutant"
+      ],
+      "full_electrons": 44,
+      "full_qubits": 88,
+      "local_electrons": 24,
+      "local_qubits": 48,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "dissertation: \"Under this template C275F is Class B: it sits in the empirically "
+    },
+    "TP53_Y220C": {
+      "name": "TP53 p.Tyr220Cys",
+      "pdb": "2VUK",
+      "jw_source": [
+        "TP53_Y220C",
+        "mutant"
+      ],
+      "full_electrons": 38,
+      "full_qubits": 76,
+      "local_electrons": 24,
+      "local_qubits": 48,
+      "bqp_class": "C",
+      "hardware_era": "placeholder",
+      "bqp_class_source": "dissertation: Y220C is a cavity-creating mutant and \"a poor demonstration target "
+    },
+    "KEAP1_LOF": {
+      "name": "KEAP1 Loss-of-Function",
+      "pdb": "2FLU",
+      "jw_source": [
+        "KEAP1_G333C",
+        "mutant"
+      ],
+      "full_electrons": 155,
+      "full_qubits": 310,
+      "local_electrons": 104,
+      "local_qubits": 208,
+      "bqp_class": "B",
+      "hardware_era": "fault_tolerant"
+    },
+    "KEAP1_G333C": {
+      "name": "KEAP1 p.Gly333Cys",
+      "pdb": "1U6D",
+      "jw_source": [
+        "KEAP1_G333C",
+        "mutant"
+      ],
+      "full_electrons": 155,
+      "full_qubits": 310,
+      "local_electrons": 104,
+      "local_qubits": 208,
+      "bqp_class": "B",
+      "hardware_era": "fault_tolerant"
+    },
+    "KEAP1_R320Q": {
+      "name": "KEAP1 p.Arg320Gln",
+      "pdb": "2FLU",
+      "jw_source": [
+        "KEAP1_R320Q",
+        "mutant"
+      ],
+      "full_electrons": 155,
+      "full_qubits": 310,
+      "local_electrons": 80,
+      "local_qubits": 160,
+      "bqp_class": "B",
+      "hardware_era": "fault_tolerant"
+    },
+    "STK11_LKB1": {
+      "name": "STK11/LKB1 Loss-of-Function",
+      "pdb": "2WTK",
+      "jw_source": [
+        "STK11_D194N",
+        "native"
+      ],
+      "full_electrons": 152,
+      "full_qubits": 304,
+      "local_electrons": 76,
+      "local_qubits": 152,
+      "bqp_class": "A",
+      "hardware_era": "fault_tolerant"
+    },
+    "STK11_F354L": {
+      "name": "STK11 p.Phe354Leu",
+      "pdb": "2WTK",
+      "jw_source": [
+        "STK11_F354L",
+        "mutant"
+      ],
+      "full_electrons": 152,
+      "full_qubits": 304,
+      "local_electrons": 48,
+      "local_qubits": 96,
+      "bqp_class": "A",
+      "hardware_era": "near_term"
+    },
+    "STK11_D194N": {
+      "name": "STK11 p.Asp194Asn",
+      "pdb": "2WTK",
+      "jw_source": [
+        "STK11_D194N",
+        "mutant"
+      ],
+      "full_electrons": 152,
+      "full_qubits": 304,
+      "local_electrons": 76,
+      "local_qubits": 152,
+      "bqp_class": "A",
+      "hardware_era": "fault_tolerant"
+    }
+  }
+}

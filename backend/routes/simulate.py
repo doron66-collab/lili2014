@@ -338,6 +338,51 @@ MUTATION_CONFIGS = {
 }
 
 
+# ── Single source of truth overlay ────────────────────────────────────────────
+# The literals above are convenient to read but they are NOT authoritative for the
+# three fields that were found duplicated and contradictory across the codebase:
+# bqp_class, full_electrons, full_qubits. Those come from targets.json, which the
+# dissertation is checked against by scripts/laguna/verify_consistency.py.
+#
+# This exists because the same fact was written in four independent places with
+# nothing forcing agreement, and they duly diverged: the dissertation stated
+# "C275F is Class B" while this file and the frontend both said "A" — the demo
+# claiming more than the thesis was prepared to defend, on the anchor target.
+# A checker detects that after the fact; reading from one source prevents it.
+#
+# Applied as an overlay rather than by deleting the literals, so no unrelated field
+# (pdb, desc, jw_source, the CAS(2,2) active_electrons) can be lost in the move.
+# Divergence is logged rather than silently corrected: if these ever disagree, the
+# literal above is stale and should be deleted, and that is worth seeing in the log.
+_TARGETS_PATH = Path(__file__).parent.parent / "targets.json"
+try:
+    with open(_TARGETS_PATH) as _tf:
+        _TARGETS = json.load(_tf)
+    for _key, _src in (_TARGETS.get("mutations") or {}).items():
+        _cfg = MUTATION_CONFIGS.get(_key)
+        if not _cfg:
+            continue
+        for _field in ("bqp_class", "full_electrons", "full_qubits"):
+            _want = _src.get(_field)
+            if _want is None:
+                continue
+            if _cfg.get(_field) != _want:
+                logging.warning(
+                    "targets.json overrides MUTATION_CONFIGS[%s].%s: %r -> %r "
+                    "(the literal in simulate.py is stale)",
+                    _key, _field, _cfg.get(_field), _want)
+            _cfg[_field] = _want
+    logging.info("targets.json loaded — %d mutations, %d genes (single source of truth)",
+                 len(_TARGETS.get("mutations") or {}), len(_TARGETS.get("genes") or {}))
+except FileNotFoundError:
+    # Not fatal: the literals are a complete, working fallback. But it means the
+    # single-source guarantee is off, and that must be visible rather than assumed.
+    _TARGETS = {}
+    logging.error("targets.json NOT FOUND at %s — falling back to the literals in "
+                  "simulate.py. Cross-file consistency is NOT guaranteed in this state.",
+                  _TARGETS_PATH)
+
+
 def run_vqe(config: dict, progress_cb=None) -> dict:
     """
     Live 4-qubit VQE on PennyLane default.qubit simulator.

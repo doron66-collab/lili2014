@@ -11,6 +11,7 @@ facts about targets and reports every disagreement, so the question stops being
 "has anyone noticed?" and becomes "does the check pass?".
 
 SOURCES COMPARED
+  0. targets.json                        — THE SINGLE SOURCE OF TRUTH
   1. public/Assignment10_Prototype.html  — GENE_MAP (per gene)
   2. backend/routes/simulate.py          — MUTATION_CONFIGS (per mutation)
   3. public/dissertation_revised.html    — the prose being defended
@@ -39,6 +40,7 @@ UI   = ROOT / "public" / "Assignment10_Prototype.html"
 API  = ROOT / "backend" / "routes" / "simulate.py"
 DISS = ROOT / "public" / "dissertation_revised.html"
 JW   = ROOT / "jw_hamiltonians.json"
+SRC  = ROOT / "targets.json"
 
 
 def gene_map():
@@ -185,6 +187,50 @@ def main():
             if q != 2 * e:
                 problems.append(f"{label} {name}: {e}e should map to {2*e}q under JW, but says {q}q")
                 print(f"    MISMATCH  {label} {name:14} {e}e -> stated {q}q, expected {2*e}q")
+
+    # ── 4b. targets.json is the SINGLE SOURCE — every consumer must match it ──
+    # Checks 2 and 3 above compare consumers to each other, which catches drift but
+    # cannot say which one is right. This check says so: targets.json is the source,
+    # and a consumer that disagrees with it is the one that is wrong.
+    print("\n[4b] targets.json (single source) vs its consumers")
+    src = json.loads(SRC.read_text())
+    for key, t in sorted(src["mutations"].items()):
+        cfg = mc.get(key)
+        if not cfg:
+            continue
+        for field, srcv, gotv in (("bqp_class", t.get("bqp_class"), cfg.get("bqp_class")),
+                                  ("full_electrons", t.get("full_electrons"), cfg.get("full_electrons")),
+                                  ("full_qubits", t.get("full_qubits"), cfg.get("full_qubits"))):
+            if srcv is None or gotv is None:
+                continue
+            checked += 1
+            if srcv != gotv:
+                problems.append(f"{key}.{field}: targets.json={srcv} vs simulate.py={gotv}")
+                print(f"    MISMATCH  {key:14} {field}: source={srcv} simulate.py={gotv}")
+        # the UI's mutation-level table, where it carries the mutation
+        if key in mcls:
+            for field, srcv, gotv in (("bqp_class", t.get("bqp_class"), mcls[key].get("bqp_class")),
+                                      ("active_electrons", t.get("full_electrons"), mcls[key].get("active_electrons"))):
+                if srcv is None or gotv is None:
+                    continue
+                checked += 1
+                if srcv != gotv:
+                    problems.append(f"{key}.{field}: targets.json={srcv} vs MUTATION_CLASS={gotv}")
+                    print(f"    MISMATCH  {key:14} {field}: source={srcv} MUTATION_CLASS={gotv}")
+        print(f"    ok        {key:14} matches source")
+
+    for gene, t in sorted(src["genes"].items()):
+        ui_g = gm.get(gene)
+        if not ui_g:
+            continue
+        for field in ("active_electrons", "full_qubits", "bqp_class"):
+            srcv, gotv = t.get(field), ui_g.get(field)
+            if srcv is None and gotv is None:
+                continue
+            checked += 1
+            if srcv != gotv:
+                problems.append(f"gene {gene}.{field}: targets.json={srcv} vs GENE_MAP={gotv}")
+                print(f"    MISMATCH  gene {gene:10} {field}: source={srcv} GENE_MAP={gotv}")
 
     # ── 5. jw_source keys must exist in the Hamiltonian file ──────────────────
     print("\n[5] simulate.py jw_source -> jw_hamiltonians.json")
