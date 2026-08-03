@@ -62,6 +62,46 @@
 ## Standing Tasks
 - **Dissertation sync (ALWAYS):** every change to the SOLANGE system must be reflected in the dissertation (§06.ii LEON, §06.iii audit-in-running-code, §06.iv DP1–DP4). Treat this as a permanent, non-optional step of any feature/UI change. **Single file only:** `public/dissertation_revised.html` is the one real file (it's what Netlify actually serves); root `dissertation_revised.html` is a symlink to it, kept only for convenience — never recreate it as a second real file (two copies drifted apart once already, from a parallel session editing only one side; the symlink makes that impossible now).
 - **UI ladder order:** Orchestration tab blocks are ordered small→large→quantum (laptop/in-browser VQE at top → HPC classical → DMRG → QPU at bottom); keep new blocks in that ladder.
+- **Consistency check (ALWAYS, after any change to target facts):** run
+  `python scripts/laguna/verify_consistency.py`. Two seconds, no environment needed —
+  it only reads four repo files. Expect `0 contradiction(s) found`; non-zero exit means
+  a real contradiction. This exists because target facts are hardcoded in **four
+  independent places** (GENE_MAP ~45 genes, MUTATION_CLASS, backend MUTATION_CONFIGS,
+  and the dissertation prose), so nothing structurally forces them to agree. That is how
+  "C275F is Class B" in the dissertation sat next to `bqp_class:'A'` in both the frontend
+  and the backend — the demo overclaiming, on the anchor target, relative to the document
+  it demonstrates. Found by accident while reading; the checker exists so the next one
+  is not. **Necessary, not sufficient:** it compares numbers and class letters only. A
+  claim made in one place only, or reasoning that is simply wrong, is out of its reach.
+- **Which table owns a class:** genes the dissertation records as having *"no
+  single-residue anchor"* (KEAP1, CDKN2A, STK11) carry `bqp_class` on GENE_MAP — for them
+  the class is a property of the domain, so gene-level is correct. Genes whose mutations
+  genuinely differ (TP53: C275F = B at 44e, Y220C = C at 38e) carry **no** gene-level
+  class and live in `MUTATION_CLASS`. Never add a gene-level class to a gene that
+  classifies per mutation: an unlisted variant must come back *not classified*, never a
+  size proxy. Every entry needs its dissertation quote in `source`.
+- **Benchmarks:** `python scripts/laguna/verify_benchmark.py` re-derives every reference
+  energy from its own stated specification. A reference nobody can regenerate is an
+  assertion, not a reference.
+
+## Evidence discipline (non-negotiable)
+- **Never present a proxy value as a target property.** Platform energies are computed
+  over CAS(2e,2o)/STO-3G **model compounds** — toluene for a Phe sidechain, methanethiol
+  for Cys — and compounds are **shared across genes**, so formamide's number appears
+  identically under NF1, RB1, TP53-LOF and CDKN2A. Always name the compound alongside the
+  number, or four views of one calculation read as four independent results agreeing.
+- **Scope gates everything.** A measurement is authoritative only for the active space it
+  covered: `solangeDmrgCoversSite` (UI) and `_covers_site` (gateway) both require ≥90% of
+  the target's site. A CAS(6,4) run does not classify a 44e site — it annotates, it never
+  overrides.
+- **Confidence is capped by provenance, not by presence** (`backend/routes/gateway.py`).
+  Unstated provenance is treated as unverified, never assumed good.
+- **Grades are earned from inputs, never declared** (`backend/routes/evidence.py`). No
+  target currently supports a chemical or biological finding; `POC_DISCLAIMER` is the one
+  canonical wording — mirror it, don't rewrite it.
+- This is an **Information Systems** dissertation. The architecture is the artifact; the
+  chemistry is not. Demonstrating the pipeline is the claim — never that a computed value
+  is chemically correct.
 
 ## Compliance
 - Standard: FDA 21 CFR §11.10(e)
