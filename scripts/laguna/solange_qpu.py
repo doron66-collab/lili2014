@@ -320,8 +320,43 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
     _report_job_progress(job, on_status, on_tick=on_tick)
     energy = float(job.result()[0].data.evs)
     tel = _backend_telemetry(backend)
+    qpu_s = _billable_qpu_seconds(job)
     return (energy, f"{backend_name} (real QPU)", tel,
-            {"mode": "hardware", "shots": shots, "job_id": job.job_id(), "backend": backend_name})
+            {"mode": "hardware", "shots": shots, "job_id": job.job_id(),
+             "backend": backend_name, "qpu_seconds": qpu_s})
+
+
+def _billable_qpu_seconds(job):
+    """The quantity IBM actually bills for: QPU EXECUTION seconds, not wall clock.
+
+    Queue time is free and often dominates — a job can sit for minutes and execute in
+    seconds — so wall clock would overstate cost by an order of magnitude. Anything
+    presented as a dollar figure has to come from this number and nothing else.
+
+    Qiskit Runtime has moved this between accessors across versions, so each is tried
+    in turn. Wrapped defensively on purpose: a metrics call failing must never lose a
+    result that has already cost real money. If none works we return None, and the
+    cost is reported as unrecorded rather than estimated — an invented figure would be
+    worse than an absent one.
+    """
+    for label, fn in (
+        ("job.usage()",            lambda: job.usage()),
+        ("job.metrics()['usage']", lambda: job.metrics().get("usage")),
+        ("metrics usage_seconds",  lambda: job.metrics().get("usage_seconds")),
+    ):
+        try:
+            v = fn()
+            if isinstance(v, dict):                     # some versions nest it
+                v = v.get("quantum_seconds", v.get("seconds"))
+            if v is not None:
+                print(f"  QPU execution time: {float(v):.2f}s  (via {label}; "
+                      f"queue time excluded — this is the billable quantity)")
+                return round(float(v), 3)
+        except Exception:
+            continue
+    print("  QPU execution time: NOT REPORTED by this Qiskit Runtime version — "
+          "cost will show as unrecorded rather than estimated.", file=sys.stderr)
+    return None
 
 
 def retrieve(job_id, backend_name, token, instance):
@@ -412,7 +447,11 @@ def build_record(target, active_energy, hf_exact_active, backend_label, telemetr
         "p4_t1_us": telemetry.get("p4_t1_us"), "p4_t2_us": telemetry.get("p4_t2_us"),
         "p4_note": ("real IBM QPU calibration data" if is_hw else "dry-run — no device"),
 
+        # p5_elapsed_s stays None for QPU runs: for a classical run it is wall clock,
+        # which for a QPU job is mostly IBM queue time and would badly overstate usage.
+        # The billable quantity lives in its own field so the two can never be confused.
         "p5_shots": meta.get("shots"), "p5_elapsed_s": None,
+        "p5_qpu_seconds": meta.get("qpu_seconds"),
         "p5_ecore_ha": ecore,
         "p5_active_energy_ha": active_energy,
         "p5_casscf_ref_ha": target.get("e_casscf"),
