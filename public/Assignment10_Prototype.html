@@ -3073,6 +3073,134 @@ const MI25_0349 = {
 function loadDemoNGS() { loadNGSReport(MI25_0349); }
 
 // ── Known gene → platform mapping ─────────────────────────────────────────
+// ── BQP class scope — which mutations a gene-level class was actually reasoned for ──
+// A curated class is a claim about a specific molecular situation, not about a gene
+// symbol. TP53's Class A was argued at "C275F's 44-electron active-space boundary";
+// applying it to a TP53 splice variant inherits a conclusion whose premise may not
+// hold, since a splice variant need not produce the protein that boundary describes.
+//
+// Every entry below is quoted from public/dissertation_revised.html. Nothing here is
+// inferred from which JW Hamiltonians happen to exist, and nothing is invented: genes
+// the dissertation does not reason about are marked undocumented rather than given a
+// scope that would look authoritative.
+const BQP_CLASS_SCOPE = {
+  KEAP1: {
+    variants: ['G333C', 'R320Q'], acceptsLof: true,
+    source: 'dissertation: "One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B". Reasoning is domain-level — "the Kelch-domain binding pocket" — and the figure note records that KEAP1 loss-of-function has no single-residue anchor, so LOF is in scope by construction.'
+  },
+  STK11: {
+    variants: ['F354L', 'D194N', 'LKB1'], acceptsLof: true,
+    source: 'dissertation: "One of the four STK11/LKB1 target mutations (LKB1 LOF, F354L, D194N), classified Class A". Listed with LOF explicitly, and recorded among the targets with no single-residue anchor.'
+  },
+  TP53: {
+    variants: ['C275F'], acceptsLof: false,
+    // ⚠ UNRESOLVED CONTRADICTION between the code and the dissertation.
+    // The dissertation states, once and unambiguously — it is the only "X is Class Y"
+    // sentence in the document — "Under this template C275F is Class B: it sits in the
+    // empirically quantum-advantaged regime". It reaches that deliberately, arguing
+    // "the claim is the weaker but defensible one" and explicitly declining to assert
+    // that no classical path exists.
+    // GENE_MAP.TP53 and backend/routes/simulate.py both carry "A" (quantum-necessary),
+    // which is the STRONGER claim the thesis chose not to make. GENE_MAP's own comment
+    // asserts it "matches backend + dissertation"; it matches the backend only.
+    // Not silently changed here: the anchor target's class is a thesis-level decision,
+    // not a code cleanup. Flagged for resolution — see the conversation of 2026-08-03.
+    source: 'dissertation: the BQP argument is made at "C275F\'s 44-electron active-space boundary", and TP53 mutant classes are explicitly distinguished — cavity-creating (Y220C) vs DNA-interface structural (C275F) vs direct contact (R248W). The class is tied to C275F specifically, which carries a single-residue Zn-coordination anchor, so it does not transfer to other TP53 variants. NOTE: the dissertation assigns C275F Class B; the code currently says A. Unresolved.'
+  },
+  CDKN2A: {
+    variants: [], acceptsLof: true, borderline: true,
+    source: 'dissertation: "an active space in the 14-18 electron range, straddling the classical tractability threshold". Site-level (no single-residue anchor), but the range sits at or below the 18e exact-classical wall, so the class cannot be settled from size — see the note on GENE_MAP.CDKN2A.'
+  }
+  // ATRX, ARID2, POLE, NF1, AXIN2, PTEN carry a bqp_class in GENE_MAP but the
+  // dissertation does not reason about them at all (zero mentions for ATRX, POLE,
+  // AXIN2, ARID2, PTEN). Deliberately absent here: absence marks them undocumented
+  // rather than dressing an unsourced value as literature-grounded.
+};
+
+// p.Cys275Phe -> C275F. The same substitution appears in both notations across the
+// platform (NGS reports and the UI use the HGVS three-letter form; the scope table
+// and jw_hamiltonians.json use the short form), so scope matching must see through
+// the difference rather than treat two spellings of one mutation as two mutations.
+const AA3TO1 = { ALA:'A',ARG:'R',ASN:'N',ASP:'D',CYS:'C',GLN:'Q',GLU:'E',GLY:'G',
+                 HIS:'H',ILE:'I',LEU:'L',LYS:'K',MET:'M',PHE:'F',PRO:'P',SER:'S',
+                 THR:'T',TRP:'W',TYR:'Y',VAL:'V',TER:'*' };
+window.solangeShortMutation = function(mutation) {
+  const m = String(mutation || '').trim().replace(/^p\./i, '');
+  const hit = m.match(/^([A-Za-z]{3})(\d+)([A-Za-z]{3})$/);
+  if (!hit) return m;
+  const a = AA3TO1[hit[1].toUpperCase()], b = AA3TO1[hit[3].toUpperCase()];
+  return (a && b) ? `${a}${hit[2]}${b}` : m;
+};
+
+// Classify a mutation string into the categories that matter for whether an
+// active-site electronic-structure argument can transfer to it.
+window.solangeMutationType = function(mutation) {
+  const m = String(mutation || '').trim();
+  if (!m || m === '—') return 'unspecified';
+  const low = m.toLowerCase();
+  // Order matters: check the specific patterns before the generic substitution one.
+  if (/\bc\.\d+[+-]\d+/.test(m))                       return 'splice';   // intronic offset, e.g. c.375+2T>G
+  if (/\b(ins|del|dup|fs)\b|del[A-Z]*\d*|\bdeletion\b|\bhomozygous deletion\b/i.test(m)) return 'indel';
+  if (/loss of function|\blof\b|\bloss\b/i.test(low))  return 'lof';
+  if (/^p\.[A-Za-z]{3}\d+[A-Za-z]{3}$/.test(m))        return 'missense'; // p.Cys275Phe
+  if (/^[A-Z]\d+[A-Z]$/.test(m))                       return 'missense'; // C275F
+  if (/\bc\.\d+[ACGT]>[ACGT]\b/.test(m))               return 'substitution';
+  return 'other';
+};
+
+// Decide whether a gene's curated class transfers to THIS mutation, and say why not
+// when it doesn't. Returns the class to display (null = deliberately unclassified),
+// the basis label, and a human-readable note.
+window.solangeClassScope = function(gene, mutation, gm) {
+  const mutType = window.solangeMutationType(mutation);
+  const sizeCls = gm.active_electrons >= 30 ? 'A' : 'B';
+
+  if (!gm.bqp_class) {
+    return { cls: sizeCls, basis: 'heuristic', mutType,
+             note: 'No curated classification for this gene; class shown is the raw '
+                 + '≥ 30e size proxy, which has no chemistry behind it.' };
+  }
+
+  const sc = BQP_CLASS_SCOPE[gene];
+  if (!sc) {
+    // A class exists but nothing documents what it covers. Report it, do not dress it.
+    return { cls: gm.bqp_class, basis: 'undocumented', mutType,
+             note: 'This gene carries a curated class, but the dissertation does not '
+                 + 'state what it was reasoned for, so its scope cannot be checked.' };
+  }
+
+  // CDKN2A: documented range straddles the exact-classical wall. Size cannot settle it.
+  if (sc.borderline) {
+    return { cls: null, basis: 'borderline', mutType,
+             note: 'Documented active space is 14–18e, which straddles the 18e '
+                 + 'exact-classical wall — the class cannot be determined from size. '
+                 + 'A DMRG run at this target’s own scale is what resolves it.' };
+  }
+
+  // Match against BOTH notations. The same substitution is written p.Cys275Phe in
+  // HGVS protein form and C275F in the short form, and the platform uses both — the
+  // NGS report and the UI say p.Cys275Phe, the scope table and jw_hamiltonians say
+  // C275F. Matching only the short form marked the ANCHOR mutation out of scope,
+  // which testing caught.
+  const raw = String(mutation || '').toUpperCase();
+  const short = window.solangeShortMutation(mutation).toUpperCase();
+  const named = sc.variants.some(v => {
+    const V = v.toUpperCase();
+    return raw.includes(V) || short.includes(V);
+  });
+  const lofOk = sc.acceptsLof && (mutType === 'lof' || mutType === 'indel');
+  if (named || lofOk) {
+    return { cls: gm.bqp_class, basis: 'literature', mutType, note: sc.source };
+  }
+
+  return { cls: null, basis: 'out_of_scope', mutType,
+           note: `${gene}’s Class ${gm.bqp_class} was reasoned for `
+               + `${sc.variants.join(', ') || 'specific variants'}`
+               + `${sc.acceptsLof ? ' (and loss-of-function)' : ''}. This mutation is `
+               + `${mutType === 'unspecified' ? 'unspecified' : 'a ' + mutType + ' variant'}, `
+               + `which that reasoning does not cover, so no class is asserted here.` };
+};
+
 const GENE_MAP = {
   // ── Core NSCLC targets ───────────────────────────────────────────────
   // bqp_class = authoritative A/B/C classification (matches backend + dissertation),
@@ -3126,7 +3254,18 @@ const GENE_MAP = {
   // 10.1038/s41467-019-12203-8), same PPI profile as KEAP1 above. Literature
   // estimate, not DMRG-run.
   AXIN2:   { badge_type:'WNT Scaffold',      color:'#1e9b4d', active_electrons:24,  full_qubits:48,  bqp_class:'B' },
-  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#5b82ed', active_electrons:20,  full_qubits:40,  bqp_class:'B' },
+  // active_electrons was 20 here, which contradicts the dissertation's own figure:
+  // "an active space in the 14-18 electron range, straddling the classical
+  // tractability threshold". 20 sits outside that range entirely. Corrected to the
+  // documented upper bound (18) rather than a midpoint, because 18 is the value the
+  // text actually names and inventing 16 would repeat the original error in a new
+  // direction. Note the consequence: the whole documented range lies at or below the
+  // 18e exact-classical wall, so size alone would put CDKN2A in Class C, not the
+  // curated B — which is precisely why BQP_CLASS_SCOPE marks it borderline and
+  // withholds a class until a DMRG run settles it. The disagreement is real and is
+  // surfaced rather than papered over.
+  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#5b82ed', active_electrons:18,  full_qubits:36,  bqp_class:'B',
+             active_electrons_range:[14,18], active_electrons_source:'dissertation §06.i — hydrophobic core disruption, 14-18e' },
   // ── Pan-cancer receptor tyrosine kinases / fusions — beyond NSCLC-only scope.
   // Already recognized by the VCF parser's known-gene list below but previously
   // had no GENE_MAP entry, so a variant on any of these was silently dropped
@@ -3756,10 +3895,18 @@ function loadNGSReport(ngs) {
     // chemistry) vs. the raw >=30e size heuristic, which has no chemistry
     // behind it at all. Conflating the two in the UI is exactly how a crude
     // guess got read as a considered answer before.
-    const bqpCls = gm.bqp_class || (gm.active_electrons >= 30 ? 'A' : 'B');
-    const bqpBasis = gm.bqp_class ? 'literature' : 'heuristic';
+    // A gene-level class does not automatically cover every mutation of that gene.
+    // solangeClassScope() checks the incoming mutation against the scope the
+    // dissertation actually documents for this gene's class; where it does not
+    // transfer, no class is asserted at all (bqpCls stays null) and the reason is
+    // carried through for display.
+    const scope  = window.solangeClassScope(gene, v.mutation, gm);
+    const bqpCls = scope.cls;
+    const bqpBasis = scope.basis;
     const phase3a = PHASE3A_IDS.has(simId);
-    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, bqpBasis, allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs'), supported: true });
+    allVariants.push({ gene, mutation: v.mutation || 'LOF', simId, gm, bqpCls, bqpBasis,
+      scopeNote: scope.note, mutType: scope.mutType,
+      allele_frequency: v.allele_frequency, phase3a, source: (v.source || 'ngs'), supported: true });
   });
 
   // Register labels in __activeVariants so getDisplayName() returns patient data
@@ -3811,13 +3958,23 @@ function loadNGSReport(ngs) {
   // out, not silently dropped) in the Compute Dispatcher's routing table above,
   // built from the full allVariants list.
   simulatable.forEach(av => {
-    const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>` : `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`;
+    // null = deliberately unclassified (scope did not transfer, or borderline).
+    // Shown as an explicit "not classified" state rather than silently defaulting to
+    // B, which is how an unfounded class got asserted in the first place.
+    const bqpBadge = av.bqpCls === 'A' ? `<span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span>`
+                   : av.bqpCls === 'B' ? `<span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span>`
+                   : `<span class="badge badge-gray" title="No class asserted — see the note below">BQP <span style="opacity:.8">not classified</span></span>`;
     // Honest about WHICH estimate this is until a real DMRG run for this exact
     // mutation notarizes a class (solangeReconcileDmrgClasses swaps this label +
     // badge to "✓ DMRG-confirmed"): 'literature' = reasoned from known active-
     // site chemistry (still not computed); 'heuristic' = raw >=30e size guess,
     // no chemistry behind it — should be trusted the least of the three.
-    const sourceLabel = av.bqpBasis === 'literature' ? 'literature estimate · gene-level' : 'size heuristic · uncurated';
+    const sourceLabel =
+        av.bqpBasis === 'literature'   ? 'literature estimate · scope checked'
+      : av.bqpBasis === 'undocumented' ? '<span style="color:var(--gold)">curated class · scope undocumented</span>'
+      : av.bqpBasis === 'out_of_scope' ? '<span style="color:var(--gold)">gene class does not cover this mutation</span>'
+      : av.bqpBasis === 'borderline'   ? '<span style="color:var(--gold)">straddles the classical wall — needs DMRG</span>'
+      : 'size heuristic · uncurated';
     const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">${sourceLabel}</span>`
       // Filled in by solangeRenderCorrelation once the stored reference set has
       // been fetched — the measured evidence sitting under the class label.
@@ -3828,7 +3985,7 @@ function loadNGSReport(ngs) {
       const tr = document.createElement('tr');
       tr.className = 'dynamic-expansion-row'; tr.id = `mut-row-${av.simId}`;
       tr.innerHTML = `
-        <td id="mut-class-${av.simId}"><span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span></td>
+        <td id="mut-class-${av.simId}">${av.bqpCls ? `<span class="bqp-badge-${av.bqpCls.toLowerCase()}">${av.bqpCls}</span>` : '<span style="color:var(--gray)" title="No class asserted for this mutation">—</span>'}</td>
         <td style="font-weight:700;color:${av.gm.color}">${av.gene}</td>
         <td id="mut-type-${av.simId}">${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
         <td style="font-size:10px;color:${av.source==='research'?'#93c5fd':'var(--teal)'}">${av.source==='research'?'📚 Research':'★ NGS'}</td>
@@ -3925,7 +4082,7 @@ function loadNGSReport(ngs) {
     const row = document.getElementById(`mut-row-${av.simId}`);
     if (!row) return;
     row.classList.remove('bqp-row-a','bqp-row-b','bqp-row-c');
-    row.classList.add(`bqp-row-${av.bqpCls.toLowerCase()}`);
+    if (av.bqpCls) row.classList.add(`bqp-row-${av.bqpCls.toLowerCase()}`);
   });
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
@@ -3941,7 +4098,7 @@ function loadNGSReport(ngs) {
         const opt = document.createElement('option');
         opt.value = av.simId;
         if (av.phase3a) {
-          opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls}] · ${av.gm.active_electrons}e`;
+          opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls || 'unclassified'}] · ${av.gm.active_electrons}e`;
         } else {
           opt.textContent = `${av.gene} ${av.mutation} · Phase 3B only — IBM Heron r3 (${av.gm.full_qubits}q)`;
           opt.style.color = '#f59e0b';
