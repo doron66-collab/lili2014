@@ -2440,8 +2440,8 @@
       <h3 id="sec-6-iv" style="margin-top:3rem">06.iv · Design Contribution: Principles &amp; Evaluation</h3>
       <p>The three claims above are, in Design Science Research terms, the <em>instantiation</em> (Hevner et al., 2004; Gregor &amp; Hevner, 2013): SOLANGE is the running artifact that proves they are realizable together. The transferable contribution to Information Systems, however, is not the platform but the smaller set of <strong>design principles</strong> the platform embodies — knowledge that generalizes to the wider class of <em>governed scientific-computing pipelines that must cross organizational, security, and hardware boundaries while remaining auditable</em>. This subsection states those principles explicitly, positions them against the precedent systems of §3.4, and — in keeping with the honesty commitments of §08 — separates what the proof-of-concept has already <em>demonstrated</em> from what remains for formal <em>evaluation</em> in DSR Phase 4.</p>
 
-      <h4>Four Design Principles (DP1–DP4)</h4>
-      <p>Each principle is stated as generalizable design knowledge, paired with its concrete mechanism in SOLANGE and the reasoning that justifies it. The principles are deliberately artifact-independent: a different platform in a different scientific domain could satisfy all four without sharing a line of SOLANGE's code.</p>
+      <h4>Five Design Principles (DP1–DP5)</h4>
+      <p>Each principle is stated as generalizable design knowledge, paired with its concrete mechanism in SOLANGE and the reasoning that justifies it. The principles are deliberately artifact-independent: a different platform in a different scientific domain could satisfy all five without sharing a line of SOLANGE's code.</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -2451,10 +2451,61 @@
             <tr><td><strong>DP1</strong></td><td><em>Verify, don't trust.</em> A result crossing a trust boundary is an unverified claim until reproducible cryptographic proof re-establishes its integrity — never trusted on the strength of its origin.</td><td><strong>LEON</strong> recomputes the P8 seal and re-checks physics-consistency at ingestion and again on demand; failing records are rejected, not stored (§06.ii).</td><td>Applies the zero-trust security stance to scientific provenance; makes the P1–P9 chain self-enforcing rather than declarative.</td></tr>
             <tr><td><strong>DP2</strong></td><td><em>Cross a security boundary without weakening it.</em> Where a resource sits behind interactive 2FA with no inbound path, control is inverted so the platform never reaches in and stores no credential outside the boundary.</td><td>Pull-based dispatch: a bounded agent inside the authenticated session polls an <em>outbound</em> queue, executes, and returns results — <em>queued→claimed→executed→returned</em> (§06.ii).</td><td>Adapts the self-hosted-runner / queue-worker pattern to governed HPC; preserves the human 2FA that gates the session.</td></tr>
             <tr><td><strong>DP3</strong></td><td><em>Provenance is a first-class, execution-time artifact.</em> Audit records are emitted at the moment device state is recoverable, never reconstructed afterward.</td><td>The nine-element P1–P9 record is produced during execution and sealed at source; calibration epoch and error budget are captured in-band (§06.iii).</td><td>Retrospective provenance is non-physical for probabilistic quantum runs; governance must live in the orchestration, not be bolted onto outputs.</td></tr>
-            <tr><td><strong>DP4</strong></td><td><em>Governance is workload-agnostic.</em> The orchestration and notarization layers are indifferent to the scientific payload they carry.</td><td>The CASSCF/VQE chemistry is one interchangeable workload; the dispatch, provenance, and LEON layers make no assumption about it and would carry any heavy compute unchanged.</td><td>This is what makes the contribution an <em>Information Systems</em> one rather than a computational-chemistry one — the governed pattern transfers beyond the biology.</td></tr>
+            <tr><td><strong>DP4</strong></td><td><em>Governance is workload-agnostic.</em> The orchestration and notarization layers are indifferent to the scientific payload they carry.</td><td>The CASSCF/VQE chemistry is one interchangeable workload; the dispatch, provenance, and LEON layers make no assumption about it and would carry any heavy compute unchanged.</td><td>This is what makes the contribution an <em>Information Systems</em> one rather than a computational-chemistry one — the governed pattern transfers beyond the biology.</td></tr><tr><td><strong>DP5</strong></td><td><em>A result&rsquo;s standing is bounded by its weakest input, and the bound travels with the result.</em> A system that computes correctly may still report misleadingly, because correctness and standing are different properties. Every value therefore carries a grade derived from its inputs &mdash; never asserted by whoever produced it &mdash; and that grade accompanies the value into every surface it reaches.</td><td>Evidence grades (<code>demonstration_only</code> / <code>template_conformant</code> / <code>reference_exemplar</code>) are computed from the inputs themselves and cannot be self-declared; the Decision Gateway caps a recommendation&rsquo;s confidence at the provenance of whichever input decided the route, and reports the uncapped value alongside so the gap is visible; a measurement is authoritative only for the active space it actually covered; and the qualification is emitted into the interface, the CSV and JSON exports, and the API payload from one canonical definition, so it cannot be separated from the numbers by a screenshot or a download.</td><td>Derived from failures observed in this artifact rather than proposed in the abstract. A correlation energy computed over a two-electron model compound was rendered as a property of a forty-four-electron protein site; because model compounds are shared across genes, four targets displayed the identical value and read as independent corroboration of one another. A DMRG run over a six-electron fragment reclassified the anchor target it had never characterised. Each was a correct calculation reported without its scope. The generalizable claim is that in any pipeline where cheap proxies stand in for expensive systems &mdash; which is to say most computational science &mdash; scope must be enforced structurally, because it will not survive being left to the reader.</td></tr>
           </tbody>
         </table>
-      </div>
+      
+      <p><strong>On DP5 and the standing of this platform's own numbers.</strong> DP5 is
+      the principle this artifact had the most occasion to learn, and it is stated here
+      with the failures that produced it rather than as an abstraction. SOLANGE computes
+      real quantities over stand-in systems: a CAS(2e,2o)/STO-3G calculation on toluene
+      where a phenylalanine sidechain belongs, on methanethiol where a cysteine does.
+      Those are correct calculations of what they describe &mdash; two electrons of a model
+      compound &mdash; and they are precisely what a pipeline demonstration requires. They
+      become misconduct at the moment a report allows one to be read as a characterisation
+      of a protein active site. The distance between <em>we computed this</em> and <em>this
+      is true of the target</em> is the entire distance between a demonstration and a
+      claim, and nothing about the arithmetic marks where that line falls.</p>
+
+      <p>Three observed failures fixed the principle's shape. A correlation energy computed
+      over two electrons of a shared model compound was displayed beneath each target's
+      classification; because those compounds are reused across genes, four unrelated
+      targets showed an identical value and read as independent corroboration of one
+      another &mdash; one calculation rendered four times, presenting as four measurements
+      agreeing. A DMRG classification run over a six-electron fragment was allowed to
+      reclassify a forty-four-electron target it had never characterised, silently
+      promoting an infrastructure test into a scientific verdict. And a curated
+      gene-level classification, reasoned for one specific structural mutant, was
+      inherited by a splice variant of the same gene whose premise it does not share.
+      In each case the computation was sound and the reporting was not.</p>
+
+      <p>The generalizable claim is therefore narrow and, the candidate argues, transferable:
+      <em>in any pipeline where cheap proxies stand in for expensive systems &mdash; which is
+      to say most of computational science &mdash; scope cannot be left to the reader, because
+      it will not survive contact with a screenshot, an exported CSV, or a colleague reading
+      a table six months later.</em> It must be enforced structurally: grades computed from
+      inputs rather than asserted by their producers, confidence bounded by the weakest input
+      that determined a result, measurements authoritative only over the space they actually
+      covered, and the qualification emitted from a single canonical definition into every
+      surface a number can reach. The instantiation in SOLANGE is a set of mechanisms
+      (<code>evidence.py</code>, the Gateway's provenance ceilings, the scope gates, a
+      cross-source consistency checker that is run rather than trusted); the contribution is
+      the vocabulary and the discipline, which are what would transfer to a platform sharing
+      none of this code.</p>
+
+      <p><em>Applied to this dissertation's own results, DP5 is unambiguous.</em> No target in
+      this platform is presently validated to a standard supporting a chemical or biological
+      finding, and every artifact the system emits says so in the payload rather than in a
+      footnote. What has been independently established is narrower and is stated as such:
+      the pipeline reproduces a reference it did not itself produce &mdash; N<sub>2</sub>
+      CAS(6,6)/cc-pVDZ, recovered to 0.00&nbsp;mHa classically and to 0.471&nbsp;mHa (29% of
+      chemical accuracy) through a twelve-qubit VQE on the Jordan&ndash;Wigner Hamiltonian.
+      That validates the instrument for small-molecule bond breaking and transfers nothing to
+      protein active sites: reproducing a known answer validates an instrument, not a
+      discovery. Stating the limit alongside the result is not modesty about the work; under
+      DP5 it is the work.</p>
+
+</div>
 
       <h4>Positioning Against Precedent Systems — the White Space</h4>
       <p>The four properties that matter jointly are: cross-vendor/heterogeneous orchestration; <em>signed, independently re-verifiable</em> provenance (not merely a run log); the ability to cross a hard security boundary (interactive 2FA, no inbound) without weakening it; and an explicit regulatory-records mapping (21 CFR Part 11). No precedent system reviewed in §3.4 occupies the intersection of all four; that intersection is the defensible contribution.</p>
@@ -2486,7 +2537,7 @@
             <tr><td>Correctness / integrity</td><td><strong>✓ demonstrated</strong></td><td>Independent verification gates (cluster-side FCI vs CASSCF, Jordan-Wigner diagonalization, server-side seal + consistency re-check); no hard-coded results; monotonic energies across CAS sizes.</td></tr>
             <tr><td>Comparison against baselines</td><td>◑ partial</td><td>Positioning argued qualitatively (table above); head-to-head evaluation against a push-based and an unsigned-provenance baseline is pending.</td></tr>
             <tr><td>Utility with stakeholders</td><td>✗ pending</td><td>DSR Phase 4: structured evaluation with domain researchers and a regulatory-informed reviewer; OSF-preregistered acceptance criteria.</td></tr>
-            <tr><td>Generalization</td><td>◑ partial</td><td>Principles DP1–DP4 stated artifact-independently; a second-domain / second-workload instantiation to evidence transfer is designated future work.</td></tr>
+            <tr><td>Generalization</td><td>◑ partial</td><td>Principles DP1–DP5 stated artifact-independently; a second-domain / second-workload instantiation to evidence transfer is designated future work.</td></tr>
             <tr><td>Theoretical grounding</td><td><strong>✓</strong></td><td>Design Science Research paradigm (Hevner et al., 2004; Gregor &amp; Hevner, 2013); provenance and zero-trust literatures.</td></tr>
           </tbody>
         </table>
