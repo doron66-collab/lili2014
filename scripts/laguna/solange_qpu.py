@@ -470,6 +470,13 @@ def build_record(target, active_energy, hf_exact_active, backend_label, telemetr
         "p2_jw_terms": target["terms"],
 
         "p3_backend": backend_label,
+        # The vendor's own identifier for this execution. Without it a sealed record
+        # cannot be reconciled against IBM's billing export: LEON can prove the record
+        # is unaltered since sealing, but not that it corresponds to anything IBM says
+        # happened. For a platform whose claim is provenance, that was a real hole —
+        # exposed when SOLANGE's 12 stored runs could not be matched against IBM's 13
+        # completed jobs to settle which usage figures belonged to which run.
+        "p3_vendor_job_id": meta.get("job_id"),
         "p3_backend_version": telemetry.get("p3_backend_version"),
         "p3_calibration_epoch": telemetry.get("p3_calibration_epoch") or now,
 

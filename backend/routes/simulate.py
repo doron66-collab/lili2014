@@ -41,6 +41,10 @@ _DB_COLUMNS = frozenset({
     "p2_compiler", "p2_compiler_version", "p2_encoding", "p2_basis_set",
     "p2_active_electrons", "p2_active_orbitals", "p2_model_compound", "p2_jw_terms",
     "p3_backend", "p3_backend_version", "p3_calibration_epoch", "p3_simulator",
+    # IBM's own job id — the key that lets a sealed run be reconciled against the
+    # vendor's billing export. Needs:
+    #   alter table public.simulation_runs add column if not exists p3_vendor_job_id text;
+    "p3_vendor_job_id",
     "p4_gate_error_rate", "p4_readout_error_rate", "p4_t1_us", "p4_t2_us", "p4_note",
     "p5_shots", "p5_raw_energy", "p5_energy_variance", "p5_opt_steps", "p5_elapsed_s",
     # Billable QPU execution seconds — the ONLY basis for a cost figure. Distinct from
@@ -1062,7 +1066,7 @@ async def list_hpc_runs(limit: int = 50):
         res = (sb.table("simulation_runs")
                  .select("id, created_at, mutation_id, mutation_name, phase, "
                          "p1_ansatz, p2_active_electrons, p2_active_orbitals, p2_basis_set, "
-                         "p3_backend, p3_calibration_epoch, p5_elapsed_s, p5_qpu_seconds, p5_qpu_seconds_source, p5_ecore_ha, "
+                         "p3_backend, p3_vendor_job_id, p3_calibration_epoch, p5_elapsed_s, p5_qpu_seconds, p5_qpu_seconds_source, p5_ecore_ha, "
                          "p5_casscf_ref_ha, p7_energy_ha, p7_ref_hf_ha, p7_method, p8_hash")
                  .in_("phase", ["3A-HPC", "3B-QPU", "3B-QPU-dryrun"])
                  .order("created_at", desc=True)
