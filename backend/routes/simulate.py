@@ -354,7 +354,17 @@ MUTATION_CONFIGS = {
 # (pdb, desc, jw_source, the CAS(2,2) active_electrons) can be lost in the move.
 # Divergence is logged rather than silently corrected: if these ever disagree, the
 # literal above is stale and should be deleted, and that is worth seeing in the log.
-_TARGETS_PATH = Path(__file__).parent.parent / "targets.json"
+# Search rather than assume. The first draft pointed only at backend/targets.json while
+# the file lived at the repo root, so this silently fell through to the literals — the
+# single-source guarantee off, and nothing on screen to say so. backend/targets.json is
+# a symlink to the root file (one real copy, following the same pattern as the root
+# dissertation_revised.html symlink); the search makes the loader independent of whether
+# a given deployment ships the repo root at all.
+_TARGETS_CANDIDATES = [
+    Path(__file__).parent.parent / "targets.json",           # backend/ (symlink)
+    Path(__file__).parent.parent.parent / "targets.json",    # repo root (the real file)
+]
+_TARGETS_PATH = next((p for p in _TARGETS_CANDIDATES if p.exists()), _TARGETS_CANDIDATES[0])
 try:
     with open(_TARGETS_PATH) as _tf:
         _TARGETS = json.load(_tf)
