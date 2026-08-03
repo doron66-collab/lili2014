@@ -2665,8 +2665,16 @@ window.solangeRenderExec = function() {
   const dryRun = runs.filter(r => (r.phase || '') === '3B-QPU-dryrun');
 
   // ── Governance: refusals are the measurable benefit ────────────────────────
-  const rejected = audit.filter(a => /reject/i.test(a.action || a.verdict || '')).length;
-  const notarized = audit.filter(a => /notariz/i.test(a.action || '')).length;
+  // The column is `event`, not `action` — leon.write_audit() writes one of
+  // "notarize" | "reject" | "reverify", alongside an `integrity` of PASS/REJECTED.
+  // Reading a.action returned undefined for every row, so both tiles sat at zero
+  // while the ledger was filling up normally. Fall back to `integrity` so a row
+  // written by an older shape still counts rather than silently vanishing.
+  const _ev = a => String(a.event || '');
+  const rejected  = audit.filter(a => /reject/i.test(_ev(a)) ||
+                                      /REJECT/i.test(String(a.integrity || ''))).length;
+  const notarized = audit.filter(a => /notariz/i.test(_ev(a))).length;
+  const reverified = audit.filter(a => /reverif/i.test(_ev(a))).length;
   // Scope-limited DMRG runs: real evidence that was correctly NOT allowed to reclassify.
   const scoped = dmrg.filter(x => {
     const av = (window.__activeVariants || {})[x.key];
@@ -2679,7 +2687,9 @@ window.solangeRenderExec = function() {
                 rejected ? 'Seal or consistency check failed — never stored as a result.'
                          : 'None so far. Every submission verified.',
                 rejected ? 'var(--gold)' : 'var(--green)')
-    + _execTile(notarized, 'Results notarized', 'Seal independently recomputed and matched.', 'var(--green)')
+    + _execTile(notarized, 'Results notarized',
+                `Seal independently recomputed and matched at ingestion.${reverified ? ` ${reverified} later re-verification(s).` : ''}`,
+                'var(--green)')
     + _execTile(scoped, 'Verdicts held back by scope',
                 'Real measurements, correctly not applied to a target they did not cover.',
                 scoped ? 'var(--gold)' : 'var(--gray)')
