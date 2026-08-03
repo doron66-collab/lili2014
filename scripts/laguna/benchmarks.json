@@ -1,0 +1,86 @@
+{
+  "_purpose": "Validation benchmarks — systems whose correct answer is known independently of this platform, so the pipeline can be checked rather than merely run. A benchmark validates the INSTRUMENT for systems of the class it covers; it is not a scientific finding and does not transfer to other targets.",
+  "_how_references_were_obtained": "Computed with PySCF 2.14.0 from the fully specified conditions in each entry, and recorded only after verifying explicit convergence. They are NOT copied from a secondary source. A complete specification (geometry to 4 decimals, basis, active space, method, convergence tolerances) makes the value reproducible by any correct implementation — which is what makes it a reference rather than an assertion. Reproduce with scripts/laguna/verify_benchmark.py.",
+  "_grades": "Meeting a reference here establishes CROSS-IMPLEMENTATION agreement: SOLANGE's JW/VQE path recovers what an independent, standard method gets for the identical specification. That validates the quantum-algorithm layer. It does NOT validate the chemical setup — geometry, basis, and active-space choices could be inapt and both methods would still agree with each other. Literature corroboration is a separate, stronger check, tracked per entry below.",
+
+  "benchmarks": [
+    {
+      "id": "N2_CAS66_ccpVDZ_re",
+      "system": "N2",
+      "why_this_system": "The canonical multireference test in electronic structure. RHF is qualitatively wrong for N2 bond breaking, so recovering a correct energy exercises precisely the correlated machinery that the platform's classical-intractability argument depends on. If the pipeline cannot reproduce N2, nothing it reports about a harder system can be trusted.",
+      "compound_key": "n2_benchmark",
+      "geometry": "N 0.0000 0.0000 0.0000 / N 0.0000 0.0000 1.0977",
+      "geometry_units": "angstrom",
+      "geometry_source": "Experimental equilibrium bond length r_e = 1.0977 A (Huber & Herzberg, Constants of Diatomic Molecules)",
+      "basis_set": "cc-pVDZ",
+      "n_basis_functions": 28,
+      "charge": 0,
+      "spin": 0,
+      "nelecas": 6,
+      "ncas": 6,
+      "jw_qubits": 12,
+      "method": "CASSCF (orbital-optimised), matching what scripts/laguna/solange_hpc.py runs",
+      "reference_energy_ha": -109.0900257023,
+      "reference_tolerance_mha": 1.6,
+      "tolerance_rationale": "Chemical accuracy, 1 kcal/mol — the same threshold the platform's tractability argument is phrased in throughout.",
+      "supporting_values": {
+        "e_rhf_ha": -108.9541280137,
+        "e_casci_on_rhf_orbitals_ha": -109.0217859870,
+        "orbital_optimisation_gain_mha": 68.24
+      },
+      "convergence": {
+        "rhf_converged": true,
+        "casscf_converged": true,
+        "rhf_conv_tol": 1e-10,
+        "casscf_conv_tol": 1e-9,
+        "casscf_conv_tol_grad": 1e-5
+      },
+      "literature_corroborated": false,
+      "literature_note": "Not yet checked against a published value at these exact conditions. CAS(6,6)/cc-pVDZ is a standard choice for N2 in the literature, but published numbers must match geometry, basis, and orbital treatment exactly before they can be claimed as corroboration — a nearby number from different conditions is not agreement."
+    },
+    {
+      "id": "N2_CAS108_ccpVDZ_re",
+      "system": "N2",
+      "why_this_system": "The same system at a larger active space. Running one system at two active-space sizes tests whether the pipeline stays correct AS SCALE GROWS, which is the architectural claim being made — not merely whether it is correct at one convenient size.",
+      "compound_key": "n2_benchmark",
+      "geometry": "N 0.0000 0.0000 0.0000 / N 0.0000 0.0000 1.0977",
+      "geometry_units": "angstrom",
+      "geometry_source": "Experimental equilibrium bond length r_e = 1.0977 A (Huber & Herzberg, Constants of Diatomic Molecules)",
+      "basis_set": "cc-pVDZ",
+      "n_basis_functions": 28,
+      "charge": 0,
+      "spin": 0,
+      "nelecas": 10,
+      "ncas": 8,
+      "jw_qubits": 16,
+      "method": "CASSCF (orbital-optimised), matching what scripts/laguna/solange_hpc.py runs",
+      "reference_energy_ha": -109.1026200499,
+      "reference_tolerance_mha": 1.6,
+      "tolerance_rationale": "Chemical accuracy, 1 kcal/mol.",
+      "supporting_values": {
+        "e_rhf_ha": -108.9541280137,
+        "e_casci_on_rhf_orbitals_ha": -109.0343803483,
+        "orbital_optimisation_gain_mha": 68.24
+      },
+      "convergence": {
+        "rhf_converged": true,
+        "casscf_converged": true,
+        "rhf_conv_tol": 1e-10,
+        "casscf_conv_tol": 1e-9,
+        "casscf_conv_tol_grad": 1e-5
+      },
+      "literature_corroborated": false,
+      "literature_note": "See the CAS(6,6) entry. Same caveat applies."
+    }
+  ],
+
+  "_planned": [
+    {
+      "id": "2Fe2S_DMRG",
+      "system": "[2Fe-2S] iron-sulfur cluster",
+      "status": "not yet implemented",
+      "why_it_matters": "A real metalloprotein active site: strongly correlated, biologically genuine, and with published DMRG reference values. It is the benchmark that would move the validated system CLASS closest to the class this platform actually claims to serve. N2 validates the instrument for small-molecule bond breaking and nothing more; that gap is the reason this entry exists.",
+      "references_to_obtain": "Li & Chan et al. DMRG active-space models for [2Fe-2S]/[4Fe-4S] (see arXiv:1408.5080 and follow-ups). Exact active space, geometry, and basis must be matched before any number is entered here."
+    }
+  ]
+}

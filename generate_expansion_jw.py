@@ -168,7 +168,24 @@ ISOBUTANE = [
     ('H', (-1.745,  1.526, -0.870)),
 ]
 
+# ── Validation benchmark systems ──────────────────────────────────────────────
+# Not targets. These exist so the pipeline can be checked against an answer that
+# is known independently of it — the difference between "our code ran" and "our
+# code is right". N2 is the canonical multireference test in electronic structure:
+# RHF fails badly on it, so reproducing a correct N2 energy exercises exactly the
+# correlated machinery the platform's whole argument rests on.
+#
+# The geometry is the experimental equilibrium bond length, r_e = 1.0977 Ang
+# (Huber & Herzberg, Constants of Diatomic Molecules). Stated to full precision
+# because a benchmark whose geometry is approximate cannot be reproduced, and an
+# irreproducible reference is not a reference.
+N2_BENCHMARK = [
+    ('N', (0.000,  0.000,  0.0000)),
+    ('N', (0.000,  0.000,  1.0977)),
+]
+
 GEOM = {
+    'n2_benchmark':  N2_BENCHMARK,
     'methanethiol':  METHANETHIOL,
     'toluene':       TOLUENE,
     'p_cresol':      P_CRESOL,
