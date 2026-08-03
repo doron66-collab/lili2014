@@ -13,7 +13,13 @@
 ## Platform
 - Full name: SOLANGE™ 3D Quantum Simulation Platform
 - URL: https://solange-platform.bio
-- Guest login: guest@solange.bio / Solange2026
+- No guest login. Retired 2026-08-03 — a shared, publicly-known password (it had
+  been repeated in this file and in chat many times) could inherit whatever NGS
+  report was last loaded in the same browser via localStorage, and could reach
+  the destructive Reset control. Every account is now individually provisioned
+  via Supabase Auth ("Add user"), so there is always a real user_id behind every
+  session. Three tiers only: admin, executive, full user — see showPlatform() in
+  Assignment10_Prototype.html.
 
 ## Dissertation
 - Candidate: Doron Cohen

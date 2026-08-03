@@ -2405,29 +2405,27 @@ async function showPlatform(user) {
   document.getElementById('user-label').textContent  = email;
   document.getElementById('menu-email').textContent  = email;
 
-  // Show password change only for non-guest accounts
-  const isGuest = (email === 'guest@solange.bio');
-  if (!isGuest)
-    document.getElementById('pw-change-section').style.display = 'block';
+  document.getElementById('pw-change-section').style.display = 'block';
 
-  // ── Role-based tab visibility — four tiers, one fetch ───────────────────
-  // users_profile.role drives this, combined with the guest special-case.
+  // ── Role-based tab visibility — three tiers, one fetch ──────────────────
+  // The guest tier was retired: a shared, publicly-known login (its password
+  // lived in plain text in project docs and had been repeated in chat many
+  // times) could inherit whatever NGS report was last loaded in the same
+  // browser via localStorage, and could reach the destructive Reset control.
+  // Closing both properly meant removing the tier rather than patching
+  // around a login that was never really private. Every account is now
+  // individually provisioned (Supabase Auth "Add user"), so there is always
+  // a real user_id behind every session.
   //   admin      (Doron only) — every tab, including Orchestration (the only
   //              tier allowed to dispatch jobs that spend real HPC/QPU time)
   //              and Admin.
   //   executive  — Executive + Dashboard + Results + Compliance. NOT
   //              Orchestration: an executive account must not be able to
   //              trigger real quantum/HPC spend. Not Admin.
-  //   guest      — Dashboard + Results + Compliance only. Same operational
-  //              restriction as executive (no Orchestration — a public demo
-  //              login spending real quantum time is worse, not better), and
-  //              additionally no Executive tab: that is internal reporting,
-  //              not something a public account should see.
-  //   full user  — (default: any authenticated non-guest account with no
-  //              users_profile row, or a role other than admin/executive)
-  //              Dashboard + Orchestration + Results + Compliance — every
-  //              tab a working scientist needs. Not Executive, not Admin:
-  //              Executive is reserved for the two roles above it.
+  //   full user  — (default: any authenticated account with no users_profile
+  //              row, or a role other than admin/executive) Dashboard +
+  //              Orchestration + Results + Compliance — every tab a working
+  //              scientist needs. Not Executive, not Admin.
   let role = null;
   try {
     const { data: profile } = await supa
@@ -2437,7 +2435,7 @@ async function showPlatform(user) {
 
   const isAdmin = (role === 'admin');
   const isExec  = (role === 'executive');
-  const showOrchestration = isAdmin || (!isGuest && !isExec);
+  const showOrchestration = isAdmin || !isExec;
   const showExecutive     = isAdmin || isExec;
 
   const orchTab = document.getElementById('orch-nav-tab');
@@ -2591,8 +2589,6 @@ document.addEventListener('click', e => {
 });
 
 async function changePassword() {
-  if (document.getElementById('menu-email').textContent === 'guest@solange.bio') return;
-
   const np  = document.getElementById('new-password').value;
   const cp  = document.getElementById('confirm-password').value;
   const msg = document.getElementById('pw-msg');

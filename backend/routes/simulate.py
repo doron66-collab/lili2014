@@ -748,30 +748,27 @@ def _uid_from_auth(authorization: str | None) -> str:
 
 def _require_dispatch_allowed(authorization: str | None, sb) -> str:
     """Verify the caller may dispatch work that spends real HPC/DMRG/QPU time —
-    reject guest and executive accounts. Returns the user id on success.
+    reject executive accounts. Returns the user id on success.
 
-    The frontend's four-tier tab model already hides the Orchestration tab from
-    guest and executive accounts, but that is a UI-only gate: _uid_from_auth
-    only checks that a token exists, never who it belongs to, so a guest or
-    executive session could still call this endpoint directly and queue a job
-    that costs real cluster time or real QPU-seconds. This is the server-side
-    check that actually stops it — the same posture as LEON's "verify, don't
-    trust" applied to who is allowed to spend, not just what gets stored.
+    The frontend's three-tier tab model already hides the Orchestration tab from
+    executive accounts, but that is a UI-only gate: _uid_from_auth only checks
+    that a token exists, never who it belongs to, so an executive session could
+    still call this endpoint directly and queue a job that costs real cluster
+    time or real QPU-seconds. This is the server-side check that actually stops
+    it — the same posture as LEON's "verify, don't trust" applied to who is
+    allowed to spend, not just what gets stored.
 
-    Guest is identified by email (a fixed, shared demo login), checked first
-    since it needs no database round trip. Executive is a users_profile.role,
-    checked only if Supabase is reachable — if it is not, the guest check above
-    still holds, but an executive-role rejection cannot be made and the caller
-    proceeds; that degrades to "unenforced" rather than "wrongly blocked",
-    which is the safer failure direction for a role check with no source of
-    truth to consult.
+    (The guest tier this once also rejected was retired outright — see the
+    comment in showPlatform() in Assignment10_Prototype.html for why — so the
+    only remaining restriction to enforce here is executive.)
+
+    Checked via users_profile.role, and only possible if Supabase is reachable;
+    if it is not, the check degrades to "unenforced" rather than "wrongly
+    blocks a legitimate account", the safer failure direction for a role check
+    with no source of truth to consult.
     """
     claims = _claims_from_auth(authorization)
     uid = claims["sub"]
-    email = (claims.get("email") or "").strip().lower()
-    if email == "guest@solange.bio":
-        raise HTTPException(status_code=403,
-            detail="Guest accounts cannot dispatch jobs that spend real HPC/DMRG/QPU time.")
     if sb:
         try:
             res = sb.table("users_profile").select("role").eq("id", uid).single().execute()
@@ -862,8 +859,8 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
     """Queue an HPC job from SOLANGE. The cluster agent picks it up and runs it.
 
     Real spend gate: this is the single endpoint every job type goes through
-    (job_type=hpc/dmrg/qpu), so it is the one place that needs the guest/
-    executive check — see _require_dispatch_allowed."""
+    (job_type=hpc/dmrg/qpu), so it is the one place that needs the executive
+    check — see _require_dispatch_allowed."""
     sb = get_supabase()
     uid = _require_dispatch_allowed(authorization, sb)
     if not sb:
