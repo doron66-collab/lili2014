@@ -479,7 +479,7 @@
   <div class="nav-tabs">
     <button class="nav-tab" id="exec-nav-tab" onclick="show('s6')" style="display:none">Executive</button>
     <button class="nav-tab active" onclick="show('s1')">Dashboard</button>
-    <button class="nav-tab" onclick="show('s2')">Orchestration</button>
+    <button class="nav-tab" id="orch-nav-tab" onclick="show('s2')" style="display:none">Orchestration</button>
     <button class="nav-tab" onclick="show('s3')">Results</button>
     <button class="nav-tab" onclick="show('s4')">Compliance</button>
     <button class="nav-tab" id="admin-nav-tab" onclick="show('s5')" style="display:none;color:#f87171;">Admin</button>
@@ -2410,23 +2410,41 @@ async function showPlatform(user) {
   if (!isGuest)
     document.getElementById('pw-change-section').style.display = 'block';
 
-  // Executive tab: hidden by default in the markup (id="exec-nav-tab"), same
-  // pattern as Admin below. The guest account is a demo/evaluation login shown
-  // to anyone with the link — it must not carry internal operational reporting
-  // (governance counts, quantum spend, evidence standing), so it stays scoped
-  // to the same four tabs a scientist uses. Every other authenticated account
-  // gets it; there is no separate "executive" role to check against yet.
-  if (!isGuest) {
-    const t = document.getElementById('exec-nav-tab');
-    if (t) t.style.display = '';
-  }
-
-  // Detect admin role and show admin tab if applicable
+  // ── Role-based tab visibility — four tiers, one fetch ───────────────────
+  // users_profile.role drives this, combined with the guest special-case.
+  //   admin      (Doron only) — every tab, including Orchestration (the only
+  //              tier allowed to dispatch jobs that spend real HPC/QPU time)
+  //              and Admin.
+  //   executive  — Executive + Dashboard + Results + Compliance. NOT
+  //              Orchestration: an executive account must not be able to
+  //              trigger real quantum/HPC spend. Not Admin.
+  //   guest      — Dashboard + Results + Compliance only. Same operational
+  //              restriction as executive (no Orchestration — a public demo
+  //              login spending real quantum time is worse, not better), and
+  //              additionally no Executive tab: that is internal reporting,
+  //              not something a public account should see.
+  //   full user  — (default: any authenticated non-guest account with no
+  //              users_profile row, or a role other than admin/executive)
+  //              Dashboard + Orchestration + Results + Compliance — every
+  //              tab a working scientist needs. Not Executive, not Admin:
+  //              Executive is reserved for the two roles above it.
+  let role = null;
   try {
     const { data: profile } = await supa
       .from('users_profile').select('role, full_name').eq('id', user.id).single();
-    if (profile?.role === 'admin') showAdminTab();
-  } catch { /* no profile = regular user */ }
+    role = profile?.role || null;
+  } catch { /* no profile row = full user; role stays null */ }
+
+  const isAdmin = (role === 'admin');
+  const isExec  = (role === 'executive');
+  const showOrchestration = isAdmin || (!isGuest && !isExec);
+  const showExecutive     = isAdmin || isExec;
+
+  const orchTab = document.getElementById('orch-nav-tab');
+  if (orchTab) orchTab.style.display = showOrchestration ? '' : 'none';
+  const execTab = document.getElementById('exec-nav-tab');
+  if (execTab) execTab.style.display = showExecutive ? '' : 'none';
+  if (isAdmin) showAdminTab();
 
   // Restore runs from current session (persists across refreshes, cleared only by Reset)
   loadSessionHistory();
