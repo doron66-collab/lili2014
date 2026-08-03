@@ -2687,13 +2687,21 @@ window.solangeRenderExec = function() {
                 rejected ? 'Seal or consistency check failed — never stored as a result.'
                          : 'None so far. Every submission verified.',
                 rejected ? 'var(--gold)' : 'var(--green)')
-    + _execTile(notarized, 'Results notarized &mdash; all rungs',
-                `Every rung, not just quantum: ${runs.filter(r=>(r.phase||'')==='3A-HPC').length} classical, `
-                + `${qpu.length} quantum, ${dmrg.length} DMRG currently stored. The ledger is `
-                + `append-only, so it also retains entries for runs later deleted &mdash; which is why `
-                + `this exceeds the number of runs on file.`
-                + (reverified ? ` ${reverified} later re-verification(s).` : ''),
-                'var(--green)')
+    + (() => {
+        const nHpc = runs.filter(r => (r.phase || '') === '3A-HPC').length;
+        const stored = nHpc + qpu.length + dmrg.length;
+        // The breakdown was previously a clause inside a paragraph of 9.5px grey text,
+        // where it was present but unreadable — which is the same as absent. It is the
+        // answer to the obvious question ("101 notarizations, 12 quantum runs?"), so it
+        // gets its own line, its own weight, and the arithmetic spelled out.
+        return _execTile(notarized, 'Results notarized &mdash; all rungs',
+          `<div style="color:var(--white);font-weight:600;margin-bottom:3px">`
+        + `${nHpc} classical &middot; ${qpu.length} quantum &middot; ${dmrg.length} DMRG `
+        + `<span style="color:var(--gray);font-weight:400">= ${stored} stored now</span></div>`
+        + `The ledger is append-only, so it keeps entries for runs since deleted &mdash; `
+        + `that is why ${notarized} exceeds ${stored}.`,
+          'var(--green)');
+      })()
     + _execTile(scoped, 'Verdicts held back by scope',
                 'Real measurements, correctly not applied to a target they did not cover.',
                 scoped ? 'var(--gold)' : 'var(--gray)')
