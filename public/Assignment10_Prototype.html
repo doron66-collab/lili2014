@@ -477,11 +477,11 @@
   </div>
 
   <div class="nav-tabs">
+    <button class="nav-tab" onclick="show('s6')">Executive</button>
     <button class="nav-tab active" onclick="show('s1')">Dashboard</button>
     <button class="nav-tab" onclick="show('s2')">Orchestration</button>
     <button class="nav-tab" onclick="show('s3')">Results</button>
     <button class="nav-tab" onclick="show('s4')">Compliance</button>
-    <button class="nav-tab" onclick="show('s6')">Executive</button>
     <button class="nav-tab" id="admin-nav-tab" onclick="show('s5')" style="display:none;color:#f87171;">Admin</button>
   </div>
 
@@ -2782,7 +2782,9 @@ function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const map = {s1:0, s2:1, s3:2, s4:3, s6:4, s5:'admin-nav-tab'};
+  // Indices match the button ORDER in .nav-tabs, not the screen id numbering —
+  // Executive sits first in the markup while its screen is still id="s6".
+  const map = {s6:0, s1:1, s2:2, s3:3, s4:4, s5:'admin-nav-tab'};
   const tabRef = map[id];
   if (typeof tabRef === 'string') {
     document.getElementById(tabRef)?.classList.add('active');
