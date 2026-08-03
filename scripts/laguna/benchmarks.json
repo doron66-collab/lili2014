@@ -36,7 +36,46 @@
         "casscf_conv_tol_grad": 1e-5
       },
       "literature_corroborated": false,
-      "literature_note": "Not yet checked against a published value at these exact conditions. CAS(6,6)/cc-pVDZ is a standard choice for N2 in the literature, but published numbers must match geometry, basis, and orbital treatment exactly before they can be claimed as corroboration — a nearby number from different conditions is not agreement."
+      "literature_note": "Not yet checked against a published value at these exact conditions. CAS(6,6)/cc-pVDZ is a standard choice for N2 in the literature, but published numbers must match geometry, basis, and orbital treatment exactly before they can be claimed as corroboration — a nearby number from different conditions is not agreement.",
+
+      "verified_runs": [
+        {
+          "date": "2026-08-03",
+          "where": "USC CARC Laguna, NVIDIA L40S",
+          "pipeline": "scripts/laguna/solange_hpc.py --compound n2_benchmark --basis cc-pvdz --ncas 6 --nelecas 6 --vqe --submit",
+          "solange_run_id": "b4a2d6aa-233f-434d-9e60-9401930bd74c",
+          "p8_seal_prefix": "a9d703f605aeef8a",
+          "leon_verdict": "PASSED (seal_ok=true, consistency_ok=true, stored)",
+
+          "classical_path": {
+            "e_rhf_ha": -108.95412801,
+            "e_casscf_ha": -109.09002570,
+            "delta_vs_reference_mha": 0.0,
+            "verdict": "Reproduces the registry reference exactly."
+          },
+
+          "quantum_path": {
+            "jw_qubits": 12,
+            "jw_pauli_terms": 383,
+            "e_exact_active_ha": -13.59152397,
+            "e_vqe_active_ha": -13.59105307,
+            "delta_vqe_vs_exact_mha": 0.471,
+            "fraction_of_chemical_accuracy": 0.29,
+            "device": "lightning.gpu",
+            "vqe_seconds": 5.611,
+            "verdict": "VQE recovers exact diagonalisation of the same Hamiltonian to within chemical accuracy. Note VQE is a variational upper bound, so a small positive gap is the expected direction."
+          },
+
+          "gauge_invariance_check": {
+            "note": "Independently run on CPU (this repo, 2026-08-03) and on the L40S. The core/active SPLIT differs slightly between them — ecore -95.49849680 vs -95.49850173, active -13.59152891 vs -13.59152397 — because CASSCF has orbital gauge freedom. The TOTAL is identical to 1e-8 Ha (-109.0900257). The physically meaningful quantity is invariant across both hardware paths, which is the correct behaviour and a check worth keeping.",
+            "cpu_total_ha": -109.09002571,
+            "gpu_total_ha": -109.09002570
+          },
+
+          "what_this_establishes": "The pipeline computes CORRECTLY, not merely successfully, at 12 qubits — three times the width previously validated on this platform (4). Both the classical and the quantum layer were checked against an answer the pipeline did not produce.",
+          "what_this_does_not_establish": "Nothing about protein active sites: N2 is a diatomic. And the reference, while computed by an independent METHOD (direct diagonalisation vs a variational circuit), is not literature-corroborated — so this is cross-method verification, not external validation. Both gaps are deliberate and tracked."
+        }
+      ]
     },
     {
       "id": "N2_CAS108_ccpVDZ_re",
