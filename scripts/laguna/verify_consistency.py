@@ -58,6 +58,28 @@ def gene_map():
     return out
 
 
+def mutation_class():
+    """MUTATION_CLASS entries: key -> {bqp_class, active_electrons, full_qubits}.
+
+    Some facts are per mutation, not per gene — TP53's C275F and Y220C differ in both
+    class and active-space size. Where this table speaks it OVERRIDES GENE_MAP, and the
+    checker must compare against it rather than flagging the gene-level default as a
+    contradiction of a value it was never meant to describe."""
+    s = UI.read_text(encoding="utf-8")
+    blk = s[s.find("const MUTATION_CLASS = {"):]
+    blk = blk[:blk.find("\n};")]
+    out = {}
+    for m in re.finditer(r"^\s*(\w+):\s*\{(.*?)\n  \}", blk, re.S | re.M):
+        k, body = m.group(1), m.group(2)
+        bc = re.search(r"bqp_class:\s*'(\w)'", body)
+        ae = re.search(r"active_electrons:\s*(\d+)", body)
+        fq = re.search(r"full_qubits:\s*(\d+)", body)
+        out[k] = {"bqp_class": bc.group(1) if bc else None,
+                  "active_electrons": int(ae.group(1)) if ae else None,
+                  "full_qubits": int(fq.group(1)) if fq else None}
+    return out
+
+
 def mutation_configs():
     """MUTATION_CONFIGS entries: key -> {full_electrons, full_qubits, bqp_class, jw_source}."""
     s = API.read_text(encoding="utf-8")
@@ -96,6 +118,7 @@ def dissertation_claims():
 
 def main():
     gm, mc, dc = gene_map(), mutation_configs(), dissertation_claims()
+    mcls = mutation_class()
     jw = json.loads(JW.read_text())
     problems, checked = [], 0
 
@@ -124,29 +147,32 @@ def main():
     print("\n[2] BQP class — GENE_MAP vs simulate.py")
     for key, cfg in sorted(mc.items()):
         gene = key.split("_")[0]
-        if gene not in gm or gm[gene]["bqp_class"] is None or cfg["bqp_class"] is None:
+        # Mutation-level table wins where it speaks — that is the whole point of it.
+        ui_cls, src = (mcls[key]["bqp_class"], "MUTATION_CLASS") if key in mcls \
+                      else (gm.get(gene, {}).get("bqp_class"), f"GENE_MAP[{gene}]")
+        if ui_cls is None or cfg["bqp_class"] is None:
             continue
         checked += 1
-        if gm[gene]["bqp_class"] != cfg["bqp_class"]:
-            problems.append(f"{key}: GENE_MAP[{gene}]={gm[gene]['bqp_class']} vs simulate.py={cfg['bqp_class']}")
-            print(f"    MISMATCH  {key:14} GENE_MAP={gm[gene]['bqp_class']}  simulate.py={cfg['bqp_class']}")
+        if ui_cls != cfg["bqp_class"]:
+            problems.append(f"{key}: {src}={ui_cls} vs simulate.py={cfg['bqp_class']}")
+            print(f"    MISMATCH  {key:14} {src}={ui_cls}  simulate.py={cfg['bqp_class']}")
         else:
-            print(f"    ok        {key:14} both {cfg['bqp_class']}")
+            print(f"    ok        {key:14} both {cfg['bqp_class']}  (via {src})")
 
     # ── 3. Electron counts: GENE_MAP vs simulate.py ───────────────────────────
     print("\n[3] Active-electron count — GENE_MAP vs simulate.py")
     for key, cfg in sorted(mc.items()):
         gene = key.split("_")[0]
-        if gene not in gm or cfg["full_electrons"] is None:
+        ui_e, src = (mcls[key]["active_electrons"], "MUTATION_CLASS") if key in mcls \
+                    else (gm.get(gene, {}).get("active_electrons"), f"GENE_MAP[{gene}]")
+        if ui_e is None or cfg["full_electrons"] is None:
             continue
         checked += 1
-        if gm[gene]["active_electrons"] != cfg["full_electrons"]:
-            problems.append(f"{key}: GENE_MAP[{gene}]={gm[gene]['active_electrons']}e "
-                            f"vs simulate.py full_electrons={cfg['full_electrons']}e")
-            print(f"    MISMATCH  {key:14} GENE_MAP={gm[gene]['active_electrons']}e  "
-                  f"simulate.py={cfg['full_electrons']}e")
+        if ui_e != cfg["full_electrons"]:
+            problems.append(f"{key}: {src}={ui_e}e vs simulate.py full_electrons={cfg['full_electrons']}e")
+            print(f"    MISMATCH  {key:14} {src}={ui_e}e  simulate.py={cfg['full_electrons']}e")
         else:
-            print(f"    ok        {key:14} both {cfg['full_electrons']}e")
+            print(f"    ok        {key:14} both {cfg['full_electrons']}e  (via {src})")
 
     # ── 4. Jordan-Wigner arithmetic: qubits must be 2x electrons ──────────────
     print("\n[4] Jordan-Wigner arithmetic — qubits == 2 x electrons")

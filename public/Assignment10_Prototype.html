@@ -3073,6 +3073,33 @@ const MI25_0349 = {
 function loadDemoNGS() { loadNGSReport(MI25_0349); }
 
 // ── Known gene → platform mapping ─────────────────────────────────────────
+// ── Mutation-level classification — where the class is NOT a property of the gene ──
+// A gene-level entry cannot express that two mutations of the same gene differ, and for
+// TP53 they demonstrably do: C275F is a DNA-interface structural mutant at a 44e site,
+// Y220C is a cavity-creating mutant at 38e which the dissertation calls an already-solved
+// problem (Rezatapopt, Phase II). Holding one class on GENE_MAP.TP53 forced Y220C to
+// inherit C275F's — the cross-source checker caught exactly that, twice.
+//
+// Genes the dissertation records as having "no single-residue anchor" (KEAP1, CDKN2A,
+// STK11) keep their class on GENE_MAP, because for them gene-level IS the right
+// granularity — the class is a property of the domain, not of a residue.
+const MUTATION_CLASS = {
+  TP53_C275F: {
+    bqp_class: 'B', active_electrons: 44, full_qubits: 88,
+    source: 'dissertation: "Under this template C275F is Class B: it sits in the empirically '
+          + 'quantum-advantaged regime defined by the current state of both classical and quantum '
+          + 'methods circa 2026." Stated deliberately as "the weaker but defensible one" — the '
+          + 'thesis declines to claim that no classical path exists, since DMRG and neural quantum '
+          + 'states continue to advance.'
+  },
+  TP53_Y220C: {
+    bqp_class: 'C', active_electrons: 38, full_qubits: 76,
+    source: 'dissertation: Y220C is a cavity-creating mutant and "a poor demonstration target '
+          + 'because the platform would be solving an already-solved problem" (Rezatapopt in '
+          + 'Phase II). Class C — classical methods suffice, filtered out of the quantum pipeline.'
+  }
+};
+
 // ── BQP class scope — which mutations a gene-level class was actually reasoned for ──
 // A curated class is a claim about a specific molecular situation, not about a gene
 // symbol. TP53's Class A was argued at "C275F's 44-electron active-space boundary";
@@ -3154,6 +3181,35 @@ window.solangeMutationType = function(mutation) {
 window.solangeClassScope = function(gene, mutation, gm) {
   const mutType = window.solangeMutationType(mutation);
   const sizeCls = gm.active_electrons >= 30 ? 'A' : 'B';
+  // Both notations, computed once: the NGS report and UI use p.Cys275Phe, the tables
+  // use C275F, and every match below has to see through that difference.
+  const raw   = String(mutation || '').toUpperCase();
+  const short = window.solangeShortMutation(mutation).toUpperCase();
+
+  // Mutation-level first: where a class is documented for THIS mutation specifically,
+  // it is both more precise than the gene-level one and not subject to scope transfer —
+  // it is already about the mutation in hand.
+  const mkey = Object.keys(MUTATION_CLASS).find(k => {
+    const variant = k.slice(k.indexOf('_') + 1).toUpperCase();
+    return k.startsWith(gene + '_')
+        && (short.includes(variant) || raw.includes(variant));
+  });
+  if (mkey) {
+    return { cls: MUTATION_CLASS[mkey].bqp_class, basis: 'literature', mutType,
+             note: MUTATION_CLASS[mkey].source };
+  }
+
+  // If this gene classifies per MUTATION, an unlisted mutation is genuinely unknown —
+  // not a candidate for the size proxy. The gene has no gene-level class precisely
+  // because its mutations differ, so falling back to size here would reintroduce the
+  // inheritance this table exists to stop, wearing a different label.
+  const geneIsPerMutation = Object.keys(MUTATION_CLASS).some(k => k.startsWith(gene + '_'));
+  if (!gm.bqp_class && geneIsPerMutation) {
+    return { cls: null, basis: 'out_of_scope', mutType,
+             note: gene + ' is classified per mutation, not per gene — its variants differ in '
+                 + 'both class and active-space size. This mutation has no documented '
+                 + 'classification of its own, and a size proxy would not be one.' };
+  }
 
   if (!gm.bqp_class) {
     return { cls: sizeCls, basis: 'heuristic', mutType,
@@ -3182,8 +3238,6 @@ window.solangeClassScope = function(gene, mutation, gm) {
   // NGS report and the UI say p.Cys275Phe, the scope table and jw_hamiltonians say
   // C275F. Matching only the short form marked the ANCHOR mutation out of scope,
   // which testing caught.
-  const raw = String(mutation || '').toUpperCase();
-  const short = window.solangeShortMutation(mutation).toUpperCase();
   const named = sc.variants.some(v => {
     const V = v.toUpperCase();
     return raw.includes(V) || short.includes(V);
@@ -3203,10 +3257,21 @@ window.solangeClassScope = function(gene, mutation, gm) {
 
 const GENE_MAP = {
   // ── Core NSCLC targets ───────────────────────────────────────────────
-  // bqp_class = authoritative A/B/C classification (matches backend + dissertation),
+  // bqp_class here is the GENE-level class, valid only for genes the dissertation
+  // records as having "no single-residue anchor" (KEAP1, CDKN2A, STK11) — for those
+  // the class is a property of the domain, so one value per gene is correct.
+  // Mutation-specific classes live in MUTATION_CLASS above; TP53 has NO gene-level
+  // class precisely because C275F (B, 44e) and Y220C (C, 38e) differ.
   // NOT derived from size. A = quantum-necessary (no classical path); B = quantum-
   // advantaged (classical insufficient). KEAP1 is the tell: biggest at 310q yet B.
-  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:44,  full_qubits:88,  bqp_class:'A' },
+  // The previous comment claimed this "matches backend + dissertation". It matched
+  // the backend only: both carried TP53 = A while the dissertation says C275F is B.
+  // No gene-level bqp_class: TP53's mutations genuinely differ (C275F = B at 44e,
+  // Y220C = C at 38e), so any single value here would be wrong for one of them.
+  // See MUTATION_CLASS. active_electrons stays at C275F's 44e as the display default
+  // for unlisted TP53 variants, which is why such variants resolve to "not classified"
+  // rather than borrowing a number that describes a different mutation.
+  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:44,  full_qubits:88 },
   KEAP1:   { badge_type:'PPI',              color:'#b47fd4', active_electrons:155, full_qubits:310, bqp_class:'B' },
   STK11:   { badge_type:'SL',              color:'#60a5fa', active_electrons:152, full_qubits:304, bqp_class:'A' },
   KRAS:    { badge_type:'Structural',        color:'#34d399', active_electrons:40,  full_qubits:80  },

@@ -219,7 +219,14 @@ MUTATION_CONFIGS = {
         "local_qubits": 48,
         "full_electrons": 44,    # Zn²⁺ shell + DNA-guanine interface — PDB 2OCJ
         "full_qubits": 88,       # ONLY target within 94-qubit demonstrated ceiling (Merz et al. 2026)
-        "bqp_class": "A",
+        # B, not A — aligned to the dissertation, which states it once and explicitly:
+        # "Under this template C275F is Class B: it sits in the empirically
+        # quantum-advantaged regime". It reaches that deliberately — "the claim is the
+        # weaker but defensible one" — declining to assert that NO classical path exists,
+        # because DMRG and neural quantum states keep advancing. This value said "A"
+        # (quantum-necessary), the stronger claim the thesis chose not to make, so the
+        # demo was overclaiming relative to the document it demonstrates.
+        "bqp_class": "B",
         "hardware_era": "current",
         "phase3b_backend": "IBM Heron r3",
     },
