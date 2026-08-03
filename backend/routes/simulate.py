@@ -721,22 +721,67 @@ async def submit_hpc_run(payload: dict = Body(...)):
     }
 
 
-def _uid_from_auth(authorization: str | None) -> str:
-    """Extract the user id (sub) from a Bearer JWT; raise 401 if absent/invalid."""
+def _claims_from_auth(authorization: str | None) -> dict:
+    """Decode the Bearer JWT's claims (no signature check — Supabase already
+    verified it to issue it; this just reads what it says). Raises 401 if
+    absent/malformed or missing a subject."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization header required")
     import base64 as _b64, json as _json
     try:
         pb = authorization[7:].split(".")[1]
         pb += "=" * (-len(pb) % 4)
-        uid = _json.loads(_b64.urlsafe_b64decode(pb)).get("sub")
-        if not uid:
+        claims = _json.loads(_b64.urlsafe_b64decode(pb))
+        if not claims.get("sub"):
             raise HTTPException(status_code=401, detail="Invalid token")
-        return uid
+        return claims
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def _uid_from_auth(authorization: str | None) -> str:
+    """Extract the user id (sub) from a Bearer JWT; raise 401 if absent/invalid."""
+    return _claims_from_auth(authorization)["sub"]
+
+
+def _require_dispatch_allowed(authorization: str | None, sb) -> str:
+    """Verify the caller may dispatch work that spends real HPC/DMRG/QPU time —
+    reject guest and executive accounts. Returns the user id on success.
+
+    The frontend's four-tier tab model already hides the Orchestration tab from
+    guest and executive accounts, but that is a UI-only gate: _uid_from_auth
+    only checks that a token exists, never who it belongs to, so a guest or
+    executive session could still call this endpoint directly and queue a job
+    that costs real cluster time or real QPU-seconds. This is the server-side
+    check that actually stops it — the same posture as LEON's "verify, don't
+    trust" applied to who is allowed to spend, not just what gets stored.
+
+    Guest is identified by email (a fixed, shared demo login), checked first
+    since it needs no database round trip. Executive is a users_profile.role,
+    checked only if Supabase is reachable — if it is not, the guest check above
+    still holds, but an executive-role rejection cannot be made and the caller
+    proceeds; that degrades to "unenforced" rather than "wrongly blocked",
+    which is the safer failure direction for a role check with no source of
+    truth to consult.
+    """
+    claims = _claims_from_auth(authorization)
+    uid = claims["sub"]
+    email = (claims.get("email") or "").strip().lower()
+    if email == "guest@solange.bio":
+        raise HTTPException(status_code=403,
+            detail="Guest accounts cannot dispatch jobs that spend real HPC/DMRG/QPU time.")
+    if sb:
+        try:
+            res = sb.table("users_profile").select("role").eq("id", uid).single().execute()
+            role = (res.data or {}).get("role")
+        except Exception:
+            role = None
+        if role == "executive":
+            raise HTTPException(status_code=403,
+                detail="Executive accounts cannot dispatch jobs that spend real HPC/DMRG/QPU time.")
+    return uid
 
 
 # ── Outbound dispatch queue: SOLANGE → (pull agent on the cluster) → SOLANGE ──
@@ -814,9 +859,13 @@ async def agent_status(agent_id: str = "default"):
 
 @router.post("/hpc/dispatch")
 async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = Header(None)):
-    """Queue an HPC job from SOLANGE. The cluster agent picks it up and runs it."""
-    uid = _uid_from_auth(authorization)
+    """Queue an HPC job from SOLANGE. The cluster agent picks it up and runs it.
+
+    Real spend gate: this is the single endpoint every job type goes through
+    (job_type=hpc/dmrg/qpu), so it is the one place that needs the guest/
+    executive check — see _require_dispatch_allowed."""
     sb = get_supabase()
+    uid = _require_dispatch_allowed(authorization, sb)
     if not sb:
         return {"queued": False, "db": "not_configured"}
     row = {
