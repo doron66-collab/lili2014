@@ -44,6 +44,8 @@ them stays here. No black box for the scientist, no source disclosure for us.
 import logging
 from fastapi import APIRouter, Body, HTTPException
 
+from routes import evidence as ev_grade
+
 router = APIRouter()
 
 # ── Thresholds — kept identical to scripts/laguna/solange_dmrg.py, which is the
@@ -341,6 +343,25 @@ def recommend(ev: dict) -> dict:
             f"The active-space size ({active_e:.0f}e) is {ae_basis}, not a measurement of this "
             f"target's site; every threshold test above was taken against that number.")
 
+    # ── Evidence grade — what may be SAID about any of this ────────────────────
+    # Separate axis from the route. The route answers "where should this run"; the
+    # grade answers "what standing does the answer have". A recommendation can be
+    # perfectly sound as routing and still rest on demonstration-grade inputs, and
+    # the reader must be told so in the same breath, not in a footnote.
+    grade = ev_grade.grade_evidence({
+        "target_ref":        ev.get("target_ref"),
+        "active_electrons":  active_e,
+        "computed_scope_e":  s_max_scope if s_max_scope is not None else corr_scope,
+        "basis_set":         corr_basis or ev.get("basis_set"),
+        "model_compound":    ev.get("model_compound"),
+        "geometry_source":   ev.get("geometry_source"),
+        "reference_source":  ev.get("reference_source"),
+        "reference_delta_mha":     ev.get("reference_delta_mha"),
+        "reference_tolerance_mha": ev.get("reference_tolerance_mha"),
+    })
+    if not ev_grade.may_state_chemical_finding(grade["evidence_grade"]):
+        limitations.insert(0, grade["disclaimer"])
+
     info = ROUTES[route]
     return {
         "target_ref": ev.get("target_ref"),
@@ -360,6 +381,8 @@ def recommend(ev: dict) -> dict:
         "rationale": rationale,
         "evidence_gaps": gaps,
         "limitations": limitations,
+        "evidence": grade,
+        "may_state_chemical_finding": ev_grade.may_state_chemical_finding(grade["evidence_grade"]),
         # Real quantum time is metered and paid for. Anything that spends it is
         # gated on a human saying yes — the Gateway recommends, it never commits.
         "requires_human_approval": info["spends_quantum_time"],
