@@ -2687,14 +2687,21 @@ window.solangeRenderExec = function() {
                 rejected ? 'Seal or consistency check failed — never stored as a result.'
                          : 'None so far. Every submission verified.',
                 rejected ? 'var(--gold)' : 'var(--green)')
-    + _execTile(notarized, 'Results notarized',
-                `Seal independently recomputed and matched at ingestion.${reverified ? ` ${reverified} later re-verification(s).` : ''}`,
+    + _execTile(notarized, 'Results notarized &mdash; all rungs',
+                `Every rung, not just quantum: ${runs.filter(r=>(r.phase||'')==='3A-HPC').length} classical, `
+                + `${qpu.length} quantum, ${dmrg.length} DMRG currently stored. The ledger is `
+                + `append-only, so it also retains entries for runs later deleted &mdash; which is why `
+                + `this exceeds the number of runs on file.`
+                + (reverified ? ` ${reverified} later re-verification(s).` : ''),
                 'var(--green)')
     + _execTile(scoped, 'Verdicts held back by scope',
                 'Real measurements, correctly not applied to a target they did not cover.',
                 scoped ? 'var(--gold)' : 'var(--gray)')
+    + _execTile(reverified, 'Seals re-verified later',
+                'Re-checked on demand long after ingestion — integrity re-attested, not asserted once and trusted (DP1).',
+                reverified ? 'var(--teal)' : 'var(--gray)')
     + _execTile(auditTotal || audit.length, 'Audit entries',
-                'Append-only ledger, every verdict including refusals. Server-side count over the whole table.');
+                'Append-only ledger: every notarization, re-verification and refusal. Server-side count over the whole table.');
 
   // ── Quantum consumption, in seconds ────────────────────────────────────────
   const withUsage = qpu.filter(r => r.p5_qpu_seconds != null);
