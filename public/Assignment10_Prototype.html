@@ -4060,13 +4060,22 @@ window.solangeRenderCorrelation = async function() {
       const e = entry && (entry.mutant || entry.native);
       if (!e || e.correlation_mha == null) { el.innerHTML = ''; return; }
       const side = (entry.mutant ? 'mutant' : 'native');
-      el.innerHTML = `<span style="color:var(--teal)">corr ${e.correlation_mha.toFixed(1)} mHa</span>`
+      // NAME THE COMPOUND. Model compounds are SHARED across genes — formamide stands
+      // in for NF1, RB1, TP53-LOF and CDKN2A alike — so four targets legitimately show
+      // the identical number. Without the compound on the line that reads as four
+      // independent measurements agreeing, which would be a striking result and is
+      // entirely fictitious: it is one calculation displayed four times. Naming the
+      // proxy makes the repetition self-explaining instead of mysterious.
+      el.innerHTML = `<span style="color:var(--teal)">${e.compound || 'proxy'} corr ${e.correlation_mha.toFixed(1)} mHa</span>`
         + `<span style="color:var(--gray)"> · ${e.vs_chem_acc}× chem. acc.</span>`;
-      el.title = `Correlation energy for the ${side} side (${e.compound}): CASSCF-exact minus RHF `
-        + `over the same active space — ${e.correlation_mha.toFixed(2)} mHa, i.e. ${e.vs_chem_acc}x `
-        + `chemical accuracy (1.6 mHa). Mean-field misses the exact answer by this much, which is `
-        + `why an exact treatment is required rather than optional. Read from the stored reference `
-        + `set; no run is triggered to obtain it.`;
+      el.title = `Correlation energy of the MODEL COMPOUND '${e.compound}' (${side} side), which `
+        + `stands in for this target: CASSCF-exact minus RHF over the same CAS(2e,2o) space — `
+        + `${e.correlation_mha.toFixed(2)} mHa, i.e. ${e.vs_chem_acc}x chemical accuracy (1.6 mHa). `
+        + `This is a property of ${e.compound}, NOT of ${simId}: other targets sharing the same `
+        + `stand-in molecule show the identical number, and that repetition is expected rather than `
+        + `corroborating. It indicates the proxy chemistry is correlated; it does not establish `
+        + `anything about this target's own active site. Read from the stored reference set; no run `
+        + `is triggered to obtain it.`;
     });
   } catch (e) { /* reference set unavailable — the class label stands on its own */ }
 };
