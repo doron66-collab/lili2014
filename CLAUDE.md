@@ -83,6 +83,14 @@
 - **Benchmarks:** `python scripts/laguna/verify_benchmark.py` re-derives every reference
   energy from its own stated specification. A reference nobody can regenerate is an
   assertion, not a reference.
+- **Single source of truth — `targets.json`.** Target facts (bqp_class, electron and
+  qubit counts) are edited **there and nowhere else**. The backend overlays it onto
+  `MUTATION_CONFIGS` at import; the frontend's `GENE_MAP`/`MUTATION_CLASS` are **derived**,
+  kept in sync by `python scripts/laguna/sync_targets.py` (add `--check` for a read-only
+  CI gate). Never hand-edit those tables — a hand-edit is exactly how the frontend came to
+  display Class A while the dissertation said B. After changing `targets.json`: run
+  `sync_targets.py`, then `verify_consistency.py`. Every class needs its dissertation
+  quote in `bqp_class_source`.
 
 ## Evidence discipline (non-negotiable)
 - **Never present a proxy value as a target property.** Platform energies are computed
