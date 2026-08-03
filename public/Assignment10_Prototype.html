@@ -2657,7 +2657,12 @@ window.solangeRenderExec = function() {
   const d = window.__execData;
   if (!d) return;
   const { runs, dmrg, audit, auditTotal } = d;
-  const qpu = runs.filter(r => /^3B-QPU/.test(r.phase || ''));
+  // EXACT match, not a prefix. '3B-QPU-dryrun' is a free local simulator run that
+  // consumed no quantum time whatsoever; counting it here would inflate hardware
+  // usage with runs that never touched a device — and would do so invisibly, since
+  // a dry run looks identical in every other column.
+  const qpu    = runs.filter(r => (r.phase || '') === '3B-QPU');
+  const dryRun = runs.filter(r => (r.phase || '') === '3B-QPU-dryrun');
 
   // ── Governance: refusals are the measurable benefit ────────────────────────
   const rejected = audit.filter(a => /reject/i.test(a.action || a.verdict || '')).length;
@@ -2691,7 +2696,8 @@ window.solangeRenderExec = function() {
                 withUsage.length ? `Across ${withUsage.length} run(s), from IBM's usage figure.`
                                  : 'No run yet carries a recorded usage figure.',
                 'var(--gold)')
-    + _execTile(qpu.length, 'Quantum runs executed', 'On real IBM hardware.')
+    + _execTile(qpu.length, 'Quantum runs executed',
+                `On real IBM hardware.${dryRun.length ? ` ${dryRun.length} dry run(s) excluded — free simulator, no device time.` : ''}`)
     + _execTile(withUsage.length ? (secs / withUsage.length).toFixed(1) + 's' : '—',
                 'Mean per run', 'Fixed-width circuits run to a near-constant duration.')
     + _execTile(noUsage, 'Runs without a usage figure',
