@@ -65,6 +65,47 @@ HERON_QUBITS = 156
 # approximately ("~44e").
 SITE_COVERAGE_MIN = 0.9
 
+# ── Provenance discipline ──────────────────────────────────────────────────────
+# A number's VALUE and a number's STANDING are different things, and conflating
+# them is how a demonstration becomes a claim. Every quantity this Gateway routes
+# on is therefore graded by where it came from, and the recommendation's confidence
+# is capped by the weakest input that actually decided the route — never merely by
+# whether the inputs were present.
+#
+# This matters concretely and today: the platform's stored correlation energies are
+# computed over CAS(2e,2o)/STO-3G *model compounds* (toluene standing in for a Phe
+# sidechain, methanethiol for Cys). They are real computations and they are correct
+# about what they measured — two electrons of a proxy molecule. They are not a
+# characterisation of a 44-electron protein active site, and the Gateway must never
+# let one be read as the other. Likewise, GENE_MAP's active-electron counts are
+# curated literature estimates, not measurements, and the route can hinge on them.
+CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
+
+PROVENANCE_CEILING = {
+    "measured_at_site": "high",    # a real run whose active space covered this target
+    "literature":       "medium",  # curated from published chemistry — an expectation
+    "unstated":         "medium",  # caller did not say; do not assume it is gold
+    "measured_proxy":   "low",     # a real computation, but of a stand-in system
+    "heuristic":        "low",     # a size guess with no chemistry behind it
+}
+
+# Within this fraction of a threshold, plausible estimate error could flip the
+# route, so the call is borderline regardless of how good the number's source is.
+BORDERLINE_FRAC = 0.15
+
+
+def _cap(confidence, ceiling):
+    """Lower `confidence` to `ceiling` if it currently claims more than that."""
+    return confidence if CONFIDENCE_RANK[confidence] <= CONFIDENCE_RANK[ceiling] else ceiling
+
+
+def _borderline(value, threshold):
+    """True when a value sits close enough to a threshold that the route is fragile."""
+    try:
+        return abs(float(value) - float(threshold)) <= BORDERLINE_FRAC * float(threshold)
+    except (TypeError, ValueError):
+        return False
+
 
 def _covers_site(measured_e, site_e):
     """True when a measurement's active space is commensurate with the target site.
@@ -113,6 +154,10 @@ def recommend(ev: dict) -> dict:
     isolation, and so the IP boundary above is structural rather than a promise."""
     rationale = []
     gaps = []
+    # (ceiling, reason) pairs — each one an upper bound the final confidence may not
+    # exceed. Collected as the evidence is examined, applied once at the end, and
+    # reported, so a caller can see WHY a recommendation is only as strong as it is.
+    caps = []
 
     # ── Read the evidence, tolerating absence rather than assuming a default ────
     def num(key):
@@ -137,8 +182,17 @@ def recommend(ev: dict) -> dict:
     s_max        = num("s_max")
     s_max_scope  = num("s_max_scope_e")
     corr_mha     = num("correlation_mha")
+    corr_scope   = num("correlation_scope_e")
+    corr_basis   = ev.get("correlation_basis_set")
     prior_class  = ev.get("prior_class")
     prior_basis  = ev.get("prior_basis")
+
+    # How the active-electron count itself was arrived at. The 18e wall is a hard
+    # route decision, and it is taken against THIS number — so if the number is a
+    # curated estimate rather than a measurement, the recommendation inherits that.
+    ae_basis = str(ev.get("active_electrons_basis") or "unstated").strip().lower()
+    if ae_basis not in PROVENANCE_CEILING:
+        ae_basis = "unstated"
 
     # ── Is the entanglement measurement, if any, actually about THIS target? ────
     s_max_usable = s_max is not None
@@ -154,13 +208,27 @@ def recommend(ev: dict) -> dict:
         route = "exact_classical"
         quantum_value = False
         confidence = "high"
+        decisive = f"active-electron count ({ae_basis})"
+        caps.append((PROVENANCE_CEILING[ae_basis],
+                     f"the route turns on the active-electron count, which is {ae_basis}"))
         rationale.append(
             f"{active_e:.0f} active electrons is at or below the {EXACT_WALL_E}e "
             f"exact-classical wall: CCSD(T)/FCI reaches chemical accuracy here. "
             f"Quantum hardware would add cost and queue time without adding accuracy.")
+        if _borderline(active_e, EXACT_WALL_E):
+            caps.append(("medium", f"{active_e:.0f}e sits close to the {EXACT_WALL_E}e wall"))
+            rationale.append(
+                f"This call is borderline: at {active_e:.0f}e the target is within "
+                f"{int(BORDERLINE_FRAC*100)}% of the {EXACT_WALL_E}e wall, so a modest revision of "
+                f"the active-space definition could move it off this route.")
 
     # ── 2. Measured entanglement at commensurate scale — the authoritative signal ─
     elif s_max_usable:
+        decisive = "measured S_max at site scale"
+        if s_max_scope is None:
+            # Scope unstated: not second-guessed for routing (see _covers_site), but
+            # it cannot then carry full confidence either.
+            caps.append(("medium", "the S_max measurement's active space was not stated"))
         if s_max > S_HARD:
             route = "qpu"
             quantum_value = True
@@ -178,12 +246,20 @@ def recommend(ev: dict) -> dict:
                 f"Measured S_max = {s_max:.2f} is at or below {S_HARD}: DMRG converges at a "
                 f"practical bond dimension, so a classical tensor-network run reaches "
                 f"chemical accuracy. Quantum time is not warranted for this target.")
+        if _borderline(s_max, S_HARD):
+            caps.append(("medium", f"S_max {s_max:.2f} sits close to the {S_HARD} threshold"))
+            rationale.append(
+                f"This call is borderline: S_max is within {int(BORDERLINE_FRAC*100)}% of the "
+                f"{S_HARD} threshold, so it separates the classical and quantum routes only "
+                f"narrowly. Treat the route as provisional and prefer re-measuring before "
+                f"committing significant resource either way.")
 
     # ── 3. No usable measurement — recommend earning the evidence, not guessing ──
     else:
         route = "dmrg_first"
         quantum_value = None
         confidence = "low"
+        decisive = "absence of any usable measurement"
         gaps.append("No entanglement measurement at this target's own scale.")
         rationale.append(
             f"{active_e:.0f}e is past the {EXACT_WALL_E}e exact-classical wall, but no "
@@ -197,13 +273,39 @@ def recommend(ev: dict) -> dict:
                 + ", but a literature or heuristic label is an expectation, not a "
                   "measurement, and is not sufficient grounds to commit quantum time.")
 
-    # ── Correlation energy — modulates confidence, never picks the route ────────
+    # ── Correlation energy — same scope discipline as S_max, for the same reason ─
+    # A correlation energy computed over a CAS(2e,2o) model compound is a true
+    # statement about two electrons of a stand-in molecule. Saying "mean-field is
+    # insufficient HERE" on that basis silently promotes it into a claim about a
+    # 44-electron protein site it never touched. Scope is checked, and the sentence
+    # changes to match what was actually measured.
     if corr_mha is not None:
         ratio = abs(corr_mha) / CHEM_ACC_MHA
-        rationale.append(
-            f"Correlation energy is {abs(corr_mha):.1f} mHa — {ratio:.0f}x chemical accuracy "
-            f"({CHEM_ACC_MHA} mHa). Mean-field (RHF/DFT) is definitively insufficient here, so a "
-            f"correlated treatment of some kind is required regardless of which route is taken.")
+        corr_covers = _covers_site(corr_scope, active_e) if corr_scope is not None else None
+        basis_note = f", {corr_basis}" if corr_basis else ""
+        if corr_covers is False:
+            rationale.append(
+                f"Correlation energy of {abs(corr_mha):.1f} mHa ({ratio:.0f}x chemical accuracy) was "
+                f"computed over a {corr_scope:.0f}e model space{basis_note} — not this target's "
+                f"~{active_e:.0f}e site. It shows that model chemistry is correlated; it does NOT "
+                f"establish that mean-field is insufficient for this target.")
+            gaps.append(
+                f"Correlation energy is proxy-scale ({corr_scope:.0f}e of a model compound vs a "
+                f"~{active_e:.0f}e site) and is not evidence about this target.")
+            caps.append(("low", "correlation energy is proxy-scale"))
+        elif corr_covers is True:
+            rationale.append(
+                f"Correlation energy is {abs(corr_mha):.1f} mHa — {ratio:.0f}x chemical accuracy "
+                f"({CHEM_ACC_MHA} mHa) — measured over this target's own active space{basis_note}. "
+                f"Mean-field (RHF/DFT) is insufficient here, so a correlated treatment is required "
+                f"regardless of which route is taken.")
+        else:
+            rationale.append(
+                f"A correlation energy of {abs(corr_mha):.1f} mHa ({ratio:.0f}x chemical accuracy) was "
+                f"supplied without stating the active space it was computed over{basis_note}, so it "
+                f"cannot be attributed to this target. Treated as indicative only.")
+            gaps.append("Correlation energy supplied without a scope — provenance unverifiable.")
+            caps.append(("medium", "correlation energy scope unstated"))
     else:
         gaps.append("No correlation energy available — mean-field adequacy is unverified.")
 
@@ -217,6 +319,28 @@ def recommend(ev: dict) -> dict:
             f"is {HERON_QUBITS}q (IBM Heron). It is not executable on today's hardware — the "
             f"quantum route is correct in principle but blocked in practice.")
 
+    # ── Apply the confidence ceilings ──────────────────────────────────────────
+    # Done last and in one place: a recommendation may not present itself as more
+    # certain than the weakest input that decided it. The reasons are returned
+    # alongside, so "medium" is never an unexplained hedge.
+    stated_confidence = confidence
+    limits = []
+    for ceiling, reason in caps:
+        if CONFIDENCE_RANK[ceiling] < CONFIDENCE_RANK[confidence]:
+            limits.append(f"capped to {ceiling} — {reason}")
+        confidence = _cap(confidence, ceiling)
+
+    # Always present, never empty: what a chemist must know before treating any of
+    # this as a finding rather than a routing suggestion.
+    limitations = list(limits)
+    limitations.append(
+        "This is a routing recommendation, not a chemical result. It states which "
+        "computational method the available evidence justifies — not what the answer is.")
+    if ae_basis != "measured_at_site":
+        limitations.append(
+            f"The active-space size ({active_e:.0f}e) is {ae_basis}, not a measurement of this "
+            f"target's site; every threshold test above was taken against that number.")
+
     info = ROUTES[route]
     return {
         "target_ref": ev.get("target_ref"),
@@ -228,9 +352,14 @@ def recommend(ev: dict) -> dict:
         "executable_today": feasible,
         "quantum_adds_value": quantum_value,     # None = not yet determinable
         "confidence": confidence,
+        # What the branch alone would have claimed, before provenance capped it.
+        # Exposed so the gap between the two is visible rather than hidden.
+        "confidence_before_provenance": stated_confidence,
+        "decided_by_evidence": decisive,
         "qubits_required": int(qubits),
         "rationale": rationale,
         "evidence_gaps": gaps,
+        "limitations": limitations,
         # Real quantum time is metered and paid for. Anything that spends it is
         # gated on a human saying yes — the Gateway recommends, it never commits.
         "requires_human_approval": info["spends_quantum_time"],
