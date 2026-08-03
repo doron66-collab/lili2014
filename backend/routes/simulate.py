@@ -47,7 +47,7 @@ _DB_COLUMNS = frozenset({
     # p5_elapsed_s (wall clock) on purpose: for a QPU job wall clock is dominated by
     # free queue time. Needs the Supabase column:
     #   alter table public.simulation_runs add column if not exists p5_qpu_seconds numeric;
-    "p5_qpu_seconds",
+    "p5_qpu_seconds", "p5_qpu_seconds_source",
     "p5_ecore_ha", "p5_active_energy_ha", "p5_casscf_ref_ha",
     "p6_method", "p6_note",
     "p7_energy_ha", "p7_ci_lower", "p7_ci_upper", "p7_confidence", "p7_method", "p7_ref_hf_ha",
@@ -1062,7 +1062,7 @@ async def list_hpc_runs(limit: int = 50):
         res = (sb.table("simulation_runs")
                  .select("id, created_at, mutation_id, mutation_name, phase, "
                          "p1_ansatz, p2_active_electrons, p2_active_orbitals, p2_basis_set, "
-                         "p3_backend, p3_calibration_epoch, p5_elapsed_s, p5_qpu_seconds, p5_ecore_ha, "
+                         "p3_backend, p3_calibration_epoch, p5_elapsed_s, p5_qpu_seconds, p5_qpu_seconds_source, p5_ecore_ha, "
                          "p5_casscf_ref_ha, p7_energy_ha, p7_ref_hf_ha, p7_method, p8_hash")
                  .in_("phase", ["3A-HPC", "3B-QPU", "3B-QPU-dryrun"])
                  .order("created_at", desc=True)

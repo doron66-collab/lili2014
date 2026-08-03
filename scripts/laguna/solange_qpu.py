@@ -320,43 +320,69 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
     _report_job_progress(job, on_status, on_tick=on_tick)
     energy = float(job.result()[0].data.evs)
     tel = _backend_telemetry(backend)
-    qpu_s = _billable_qpu_seconds(job)
+    qpu_s, qpu_src = _billable_qpu_seconds(job)
     return (energy, f"{backend_name} (real QPU)", tel,
             {"mode": "hardware", "shots": shots, "job_id": job.job_id(),
-             "backend": backend_name, "qpu_seconds": qpu_s})
+             "backend": backend_name, "qpu_seconds": qpu_s, "qpu_seconds_source": qpu_src})
 
 
 def _billable_qpu_seconds(job):
-    """The quantity IBM actually bills for: QPU EXECUTION seconds, not wall clock.
+    """Read the run duration from IBM'S OWN record of the job — the same figure the
+    IBM Quantum dashboard shows the user — and return (seconds, source_label).
 
-    Queue time is free and often dominates — a job can sit for minutes and execute in
-    seconds — so wall clock would overstate cost by an order of magnitude. Anything
-    presented as a dollar figure has to come from this number and nothing else.
+    Taken from IBM rather than timed locally on purpose. A local stopwatch measures
+    wall clock, which for a QPU job is mostly free queue time: the ARID2 run occupied
+    42 seconds of wall clock and a small fraction of that on the device. IBM's own
+    usage figure is the billable quantity and the only defensible basis for a cost.
 
-    Qiskit Runtime has moved this between accessors across versions, so each is tried
-    in turn. Wrapped defensively on purpose: a metrics call failing must never lose a
-    result that has already cost real money. If none works we return None, and the
-    cost is reported as unrecorded rather than estimated — an invented figure would be
-    worse than an absent one.
+    Returns the SOURCE alongside the number, because a cost figure without a stated
+    origin is exactly the kind of unattributed value this platform exists to refuse.
+    Qiskit Runtime has moved this field between accessors across versions, so each is
+    tried in turn, with IBM's execution timestamps as a last resort.
+
+    Wrapped defensively throughout: a metrics call that raises must never destroy a
+    result that has already cost real money. When nothing is available it returns
+    (None, None) and the cost renders as unrecorded rather than estimated.
     """
     for label, fn in (
-        ("job.usage()",            lambda: job.usage()),
-        ("job.metrics()['usage']", lambda: job.metrics().get("usage")),
-        ("metrics usage_seconds",  lambda: job.metrics().get("usage_seconds")),
+        ("IBM job.usage()",                lambda: job.usage()),
+        ("IBM job.metrics()['usage']",     lambda: job.metrics().get("usage")),
+        ("IBM job.metrics()['usage_seconds']", lambda: job.metrics().get("usage_seconds")),
     ):
         try:
             v = fn()
             if isinstance(v, dict):                     # some versions nest it
                 v = v.get("quantum_seconds", v.get("seconds"))
             if v is not None:
-                print(f"  QPU execution time: {float(v):.2f}s  (via {label}; "
-                      f"queue time excluded — this is the billable quantity)")
-                return round(float(v), 3)
+                print(f"  QPU execution time: {float(v):.3f}s  (source: {label} — "
+                      f"queue time excluded; this is the billable quantity)")
+                return round(float(v), 3), label
         except Exception:
             continue
-    print("  QPU execution time: NOT REPORTED by this Qiskit Runtime version — "
-          "cost will show as unrecorded rather than estimated.", file=sys.stderr)
-    return None
+
+    # Fallback: IBM's own execution timestamps. running -> finished is device time,
+    # NOT created -> finished, which would silently fold the free queue wait into
+    # a number that is about to be multiplied by a dollar rate.
+    try:
+        ts = (job.metrics() or {}).get("timestamps") or {}
+        started, ended = ts.get("running"), ts.get("finished")
+        if started and ended:
+            from datetime import datetime
+            def _p(x):
+                return x if isinstance(x, datetime) else datetime.fromisoformat(
+                    str(x).replace("Z", "+00:00"))
+            secs = (_p(ended) - _p(started)).total_seconds()
+            if secs >= 0:
+                label = "IBM job.metrics()['timestamps'] running->finished"
+                print(f"  QPU execution time: {secs:.3f}s  (source: {label}; "
+                      f"usage field unavailable in this Qiskit Runtime version)")
+                return round(secs, 3), label
+    except Exception:
+        pass
+
+    print("  QPU execution time: NOT REPORTED by IBM for this job — cost will show as "
+          "unrecorded rather than estimated.", file=sys.stderr)
+    return None, None
 
 
 def retrieve(job_id, backend_name, token, instance):
@@ -399,8 +425,13 @@ def retrieve(job_id, backend_name, token, instance):
         tel = _backend_telemetry(service.backend(bname))
     except Exception:
         pass
+    # Also the backfill path: a job run before timing was captured can have its
+    # duration recovered from IBM here, at no QPU cost, by re-submitting with
+    # --retrieve <JOB_ID>.
+    qpu_s, qpu_src = _billable_qpu_seconds(job)
     return (energy, f"{bname} (real QPU)", tel,
-            {"mode": "hardware", "shots": None, "job_id": job_id, "backend": bname})
+            {"mode": "hardware", "shots": None, "job_id": job_id, "backend": bname,
+             "qpu_seconds": qpu_s, "qpu_seconds_source": qpu_src})
 
 
 def build_record(target, active_energy, hf_exact_active, backend_label, telemetry, meta):
@@ -452,6 +483,9 @@ def build_record(target, active_energy, hf_exact_active, backend_label, telemetr
         # The billable quantity lives in its own field so the two can never be confused.
         "p5_shots": meta.get("shots"), "p5_elapsed_s": None,
         "p5_qpu_seconds": meta.get("qpu_seconds"),
+        # Where the number came from. A cost figure without a stated origin is an
+        # unattributed value, which is the one thing this platform will not emit.
+        "p5_qpu_seconds_source": meta.get("qpu_seconds_source"),
         "p5_ecore_ha": ecore,
         "p5_active_energy_ha": active_energy,
         "p5_casscf_ref_ha": target.get("e_casscf"),
