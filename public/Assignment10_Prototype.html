@@ -2719,10 +2719,22 @@ window.solangeRenderExec = function() {
   const notarized = audit.filter(a => /notariz/i.test(_ev(a))).length;
   const reverified = audit.filter(a => /reverif/i.test(_ev(a))).length;
   // Scope-limited DMRG runs: real evidence that was correctly NOT allowed to reclassify.
+  // Site size comes from the loaded report if there is one, but falls back to
+  // GENE_MAP/MUTATION_CLASS. Without the fallback this tile read 0 whenever no NGS
+  // report happened to be open — an executive figure that silently changed with
+  // which patient file was on screen, which is not a figure at all.
+  const siteSizeFor = key => {
+    const av = (window.__activeVariants || {})[key];
+    if (av && av.activeElectrons) return av.activeElectrons;
+    const mc = (typeof MUTATION_CLASS !== 'undefined') && MUTATION_CLASS[key];
+    if (mc && mc.active_electrons) return mc.active_electrons;
+    const gm = (typeof GENE_MAP !== 'undefined') && GENE_MAP[String(key).split('_')[0]];
+    return gm ? gm.active_electrons : null;
+  };
   const scoped = dmrg.filter(x => {
-    const av = (window.__activeVariants || {})[x.key];
-    return av && typeof window.solangeDmrgCoversSite === 'function'
-              && !window.solangeDmrgCoversSite(x, av.activeElectrons);
+    const site = siteSizeFor(x.key);
+    return site && typeof window.solangeDmrgCoversSite === 'function'
+                && !window.solangeDmrgCoversSite(x, site);
   }).length;
   const g = document.getElementById('exec-governance');
   if (g) g.innerHTML =
@@ -2742,9 +2754,11 @@ window.solangeRenderExec = function() {
     + _execTile(rejected, 'Refused at the gate',
                 rejected ? 'Failed verification. Never stored.' : 'None failed verification.',
                 rejected ? 'var(--gold)' : 'var(--green)')
-    + _execTile(scoped, 'Held back as out of scope',
-                'Measured on a fragment, so not applied to the whole target.',
-                scoped ? 'var(--gold)' : 'var(--gray)')
+    + _execTile(scoped, 'Conclusions withheld',
+                scoped ? 'Evidence covered only part of the target, so the system declined to '
+                       + 'classify it. Each would have been a wrong call.'
+                       : 'All evidence covered the target it was applied to.',
+                scoped ? 'var(--gold)' : 'var(--green)')
     + _execTile(reverified, 'Re-proved later',
                 'Checked again on demand, not trusted from one check.',
                 reverified ? 'var(--teal)' : 'var(--gray)')
