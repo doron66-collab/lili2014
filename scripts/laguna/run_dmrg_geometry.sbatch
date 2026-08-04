@@ -28,6 +28,12 @@
 # only if an exact, non-DF comparison is specifically needed.
 # Override any of them via environment variables, e.g.:
 #   sbatch --export=RADIUS_XYZ=tp53_c275_r7.0_h.xyz,BASIS=6-31g run_dmrg_geometry.sbatch
+#
+# DMRG_SCF=1 (set below) uses DMRG (block2) as CASSCF's own orbital-optimization
+# solver instead of FCI — see scripts/laguna/dmrgscf_block2.py. This is what
+# actually raises the ncas ceiling past ~16 orbitals; the FCI path this script
+# used before cannot reach a real site's active-space size at all. Unset it
+# (--export=DMRG_SCF=) to fall back to plain FCI-based CASSCF.
 
 set -euo pipefail
 echo "Job $SLURM_JOB_ID on $(hostname)  $(date)"
@@ -48,6 +54,17 @@ export MKL_NUM_THREADS="${MKL_NUM_THREADS:-2}"
 REPO="${SOLANGE_REPO:-$HOME/lili2014}"
 cd "$REPO"
 
+# --dmrg-scf and its two sub-flags are appended as an array, not inlined into
+# the fixed argument list above them, so DMRG_SCF unset means the call below
+# is byte-identical to before this option existed (no stray empty strings
+# reaching argparse, which an inline "${X:-}" pattern would risk).
+DMRG_SCF_ARGS=()
+if [[ -n "${DMRG_SCF:-}" ]]; then
+  DMRG_SCF_ARGS=(--dmrg-scf
+                 --dmrg-scf-maxm "${DMRG_SCF_MAXM:-250}"
+                 --dmrg-scf-scratch "${DMRG_SCF_SCRATCH:-./tmp_dmrgscf_orb_$SLURM_JOB_ID}")
+fi
+
 # ── The run ──────────────────────────────────────────────────────────────────
 bash scripts/laguna/run_dmrg.sh \
     --key       "${KEY:-TP53_C275F}" \
@@ -62,6 +79,7 @@ bash scripts/laguna/run_dmrg.sh \
     ${NO_DENSITY_FIT_FLAG:-} \
     --scratch   "${SCRATCH:-./tmp_dmrg_$SLURM_JOB_ID}" \
     --bond-dims "${BOND_DIMS:-250,500,1000,2000}" \
+    "${DMRG_SCF_ARGS[@]}" \
     --submit
 
 echo "Done $(date)."
