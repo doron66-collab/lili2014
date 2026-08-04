@@ -51,11 +51,94 @@ Then: python solange_dmrg.py --geometry tp53_c275f_cluster.xyz \\
 """
 
 import argparse
+import json
+import re
 import shlex
 import sys
+import urllib.request
 from pathlib import Path
 
 import numpy as np
+
+RCSB_DOWNLOAD = "https://files.rcsb.org/download"
+_HERE = Path(__file__).resolve()
+
+
+def _targets_path():
+    """targets.json is the single source of truth for which structure a target
+    uses (CLAUDE.md). Searched rather than assumed, same as simulate.py and
+    pdb.py do, so this works from a checkout that ships only one of the two."""
+    for p in (_HERE.parents[2] / "targets.json", _HERE.parents[2] / "backend" / "targets.json"):
+        if p.exists():
+            return p
+    return None
+
+
+def resolve_target(key):
+    """Look up a mutation key in targets.json -> (pdb_id, residue_number).
+
+    Returns the residue number ONLY when the target actually names one. A
+    generic loss-of-function key (KEAP1_LOF) has no single residue by
+    definition — the dissertation records those genes as having "no single-
+    residue anchor" — so this returns None for it rather than inventing a
+    center. The caller must then supply --resi or --hetero explicitly.
+
+    Chain is deliberately NOT guessed: targets.json stores no chain ID, and
+    picking one (say "A") would be a silent structural assumption of exactly
+    the kind this pipeline must not make.
+    """
+    p = _targets_path()
+    if p is None:
+        raise SystemExit("targets.json not found — pass --pdb/--pdb-id and --resi directly.")
+    muts = (json.loads(p.read_text(encoding="utf-8")).get("mutations") or {})
+    if key not in muts:
+        raise SystemExit(f"'{key}' is not in targets.json. Known: {', '.join(sorted(muts))}")
+    entry = muts[key]
+    pdb_id = entry.get("pdb")
+    if not pdb_id:
+        raise SystemExit(f"{key} has no 'pdb' field in targets.json.")
+    # Residue number from the canonical name ("TP53 p.Cys275Phe" -> 275); fall
+    # back to the key's own suffix ("TP53_C275F" -> 275). Both are absent for a
+    # generic LOF target, which is the honest answer, not a failure.
+    resi = None
+    m = re.search(r"p\.[A-Za-z]{3}(\d+)", entry.get("name") or "")
+    if m:
+        resi = int(m.group(1))
+    else:
+        m = re.match(r"^[A-Z0-9]+_[A-Z](\d+)[A-Z]$", key)
+        if m:
+            resi = int(m.group(1))
+    return pdb_id, resi
+
+
+def fetch_structure(pdb_id, cache_dir="./pdb_cache"):
+    """Download {pdb_id}.cif from RCSB into cache_dir, or reuse it if present.
+
+    mmCIF rather than legacy PDB: the .pdb format cannot represent structures
+    past 62 chains or 99,999 atoms and RCSB no longer issues it for large
+    entries, so requesting it would work for today's small targets and fail
+    silently-later on a bigger one. parse_structure() already handles both.
+    """
+    pdb_id = pdb_id.strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{4}", pdb_id):
+        raise SystemExit(f"'{pdb_id}' is not a 4-character PDB ID.")
+    cache = Path(cache_dir)
+    cache.mkdir(parents=True, exist_ok=True)
+    dest = cache / f"{pdb_id}.cif"
+    if dest.exists() and dest.stat().st_size > 0:
+        print(f"using cached {dest}")
+        return str(dest)
+    url = f"{RCSB_DOWNLOAD}/{pdb_id}.cif"
+    print(f"downloading {url} …")
+    try:
+        with urllib.request.urlopen(url, timeout=60) as r:
+            data = r.read()
+    except Exception as e:
+        raise SystemExit(f"could not download {pdb_id} from RCSB ({e}). "
+                         f"Download it manually and pass --pdb <file>.")
+    dest.write_bytes(data)
+    print(f"wrote {dest} ({len(data)/1024:.0f} KB)")
+    return str(dest)
 
 # Standard C-H capping bond length (Angstrom).
 CAP_BOND_LENGTH = 1.09
@@ -272,8 +355,16 @@ def suggest_avas(rows):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--pdb", required=True, help="local structure file, .pdb or .cif "
-                     "(download it yourself first — this script does not fetch from RCSB)")
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--pdb", help="local structure file, .pdb or .cif")
+    src.add_argument("--pdb-id", help="4-character PDB ID to download from RCSB (cached)")
+    src.add_argument("--target", help="mutation key from targets.json (e.g. TP53_C275F) — "
+                     "resolves both the PDB ID and, when the target names a specific "
+                     "residue, --resi. You must still supply --chain: targets.json "
+                     "stores no chain, and guessing one would be a silent structural "
+                     "assumption.")
+    ap.add_argument("--cache-dir", default="./pdb_cache",
+                    help="where downloaded structures are kept (default ./pdb_cache)")
     ap.add_argument("--chain", help="chain ID for the center residue")
     ap.add_argument("--resi", type=int, help="residue number for the center")
     ap.add_argument("--atom", default="CA", help="atom name within that residue to center on (default CA)")
@@ -282,6 +373,27 @@ def main():
     ap.add_argument("--no-hetero", action="store_true", help="exclude HETATM records (waters, ions, ligands) from the output")
     ap.add_argument("--out", required=True, help="output .xyz path")
     args = ap.parse_args()
+
+    # Resolve the structure source before anything else touches args.pdb.
+    if args.target:
+        pdb_id, resi = resolve_target(args.target)
+        print(f"targets.json: {args.target} -> PDB {pdb_id}"
+              + (f", residue {resi}" if resi else ", no single-residue anchor"))
+        if resi is not None and args.resi is None and not args.hetero:
+            args.resi = resi
+        if args.resi is None and not args.hetero:
+            raise SystemExit(
+                f"{args.target} names no specific residue (a generic loss-of-function "
+                f"target has no single-residue anchor), so there is no center to "
+                f"extract around. Pass --resi <n> or --hetero <RESNAME> explicitly.")
+        if not args.chain and not args.hetero:
+            raise SystemExit(
+                "--target resolves the structure and residue but NOT the chain — "
+                "targets.json does not store one. Pass --chain explicitly (open the "
+                "structure and confirm which chain carries this residue).")
+        args.pdb = fetch_structure(pdb_id, args.cache_dir)
+    elif args.pdb_id:
+        args.pdb = fetch_structure(args.pdb_id, args.cache_dir)
 
     atoms = parse_structure(args.pdb)
     center = find_center(atoms, chain=args.chain, resi=args.resi, atom_name=args.atom, hetero=args.hetero)
