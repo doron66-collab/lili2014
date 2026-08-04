@@ -175,6 +175,8 @@ class Block2FCISolver:
         self._n_calls = 0
         self._t0 = None
         self._warned_truncation = False
+        self._last_macro_e = None   # last CASCI (ecore != 0) energy, for the ΔE readout
+        self._n_macro = 0
         # Warm-start state, reused across macro-iterations. See kernel().
         self._driver = None
         self._ket = None
@@ -301,6 +303,20 @@ class Block2FCISolver:
 
         if self.progress:
             dt, total = time.time() - t_call, time.time() - self._t0
+            # CASSCF calls this ~4x per macro-iteration: once for the actual
+            # CASCI energy (ecore = the frozen-core energy) and several times to
+            # probe the orbital gradient (ecore = 0, active space only). Only the
+            # first kind tracks convergence, and reading that off a flat log means
+            # picking out every fourth line by eye. Mark it, and show the change
+            # from the previous one — that delta is what conv_tol is tested
+            # against, so it is the number that says whether this is progressing.
+            tag = ""
+            if ecore:
+                d = ("" if self._last_macro_e is None
+                     else f"  ΔE={(energy - self._last_macro_e)*1000:+.3f} mHa")
+                self._last_macro_e = energy
+                self._n_macro += 1
+                tag = f"  <- macro-iter {self._n_macro}{d}"
             # Labelled "solve", NOT "macro-iteration": CASSCF calls the solver
             # several times per macro-iteration (probing the orbital gradient),
             # and with different ecore values — which is why the printed energy
@@ -311,7 +327,7 @@ class Block2FCISolver:
             # stdout, flushed: a `tail -f` on a batch job must show this live,
             # same convention as run_dmrg()'s "DMRG M=" lines.
             print(f"  [dmrg-scf] solve {self._n_calls:4d}  E={energy:.8f} Ha  "
-                  f"[{dt:.1f}s, {total/60:.1f}m total]", flush=True)
+                  f"[{dt:.1f}s, {total/60:.1f}m total]{tag}", flush=True)
 
         self._dm1, self._dm2, self._last_energy = dm1, dm2, energy
         return energy, "block2-mps"      # token; PySCF never inspects it
