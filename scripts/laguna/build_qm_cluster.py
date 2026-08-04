@@ -291,6 +291,40 @@ def select_residues(atoms, center, radius):
     return selected
 
 
+# Nominal formal charges at pH 7 for the residues and ions that carry one.
+# HIS is deliberately absent: it is the textbook ambiguous case (neutral or +1
+# depending on local environment), and assigning it a number here would be
+# guessing at exactly the point where the chemist's judgment is required.
+_RESIDUE_CHARGE = {"ASP": -1, "GLU": -1, "LYS": +1, "ARG": +1,
+                   "ZN": +2, "MG": +2, "CA": +2, "FE": +2, "MN": +2,
+                   "NA": +1, "K": +1, "CL": -1}
+_AMBIGUOUS = {"HIS", "CYS"}      # CYS: neutral thiol vs -1 thiolate (metal-bound)
+
+
+def charge_summary(selected):
+    """Report the ionizable content of the cluster, and a nominal net charge.
+
+    Exists because of the error pyscf raises otherwise: "Electron number N and
+    spin 0 are not consistent". That message is correct and deliberate — the
+    code refuses to guess — but on its own it tells the chemist nothing about
+    WHY the count came out odd or what to set instead. Composition is something
+    this script actually knows, so it should say it.
+
+    The number returned is a starting point, not an answer. Protonation states,
+    histidine tautomers, metal-bound thiolates and buried-residue pKa shifts all
+    move it, and none of them are determinable from coordinates alone.
+    """
+    counts, ambiguous = {}, {}
+    for ats in selected.values():
+        resn = (ats[0].get("resname") or "").strip().upper()
+        if resn in _RESIDUE_CHARGE:
+            counts[resn] = counts.get(resn, 0) + 1
+        elif resn in _AMBIGUOUS:
+            ambiguous[resn] = ambiguous.get(resn, 0) + 1
+    nominal = sum(_RESIDUE_CHARGE[r] * n for r, n in counts.items())
+    return counts, ambiguous, nominal
+
+
 def _atom(ats, name):
     for a in ats:
         if a["name"] == name:
@@ -410,6 +444,57 @@ def main():
     print(f"selected {len(selected)} residues, {n_heavy} heavy atoms, {len(caps)} capping H")
     print(f"wrote {args.out}")
     print(f"suggested --avas: \"{suggest_avas(rows)}\"")
+
+    # ── Charge / electron parity ──────────────────────────────────────────────
+    # Without this, the next step fails with pyscf's bare "Electron number N and
+    # spin 0 are not consistent" — correct, but silent about why. The electron
+    # count and the ionizable content are both known here, so report them.
+    _Z = {"H":1,"C":6,"N":7,"O":8,"F":9,"NA":11,"MG":12,"P":15,"S":16,"CL":17,
+          "K":19,"CA":20,"MN":25,"FE":26,"ZN":30,"SE":34}
+    n_elec = sum(_Z.get((r[0] or "").strip().upper(), 0) for r in rows)
+    counts, ambiguous, nominal = charge_summary(selected)
+
+    # ── Hydrogens: the check that matters most, done first ────────────────────
+    # X-ray structures below ~1.2 A do not resolve hydrogens, so a cluster cut
+    # straight out of one is a heavy-atom skeleton. That is not a molecule any
+    # quantum-chemistry code can treat: every C, N and O is missing its
+    # hydrogens, so the electron count is wrong, the valences are wrong, and an
+    # odd electron count (pyscf's "Electron number N and spin 0 are not
+    # consistent") is a downstream symptom rather than a charge problem. Say so
+    # before offering charge arithmetic that would only paper over it.
+    n_h = sum(1 for r in rows if (r[0] or "").strip().upper() == "H")
+    n_heavy_rows = len(rows) - n_h
+    ratio = (n_h / n_heavy_rows) if n_heavy_rows else 0.0
+    if ratio < 0.5:
+        print(f"\n*** HYDROGENS MISSING: {n_h} H for {n_heavy_rows} heavy atoms "
+              f"(ratio {ratio:.2f}; a protonated organic cluster is nearer 1.0). "
+              f"{len(caps)} of those H are this script's own bond caps. ***")
+        print("  This structure is almost certainly an X-ray model, which does not")
+        print("  resolve hydrogens. The cluster is a heavy-atom skeleton and is NOT")
+        print("  ready for QM: valences are unsatisfied and the electron count is not")
+        print("  the molecule's. Protonate it first — pdb2pqr (with PROPKA for pKa),")
+        print("  reduce, or PyMOL's h_add — then re-run this script on the result.")
+        print("  Any charge suggested below is arithmetic on an incomplete molecule.")
+
+    print(f"\nneutral-atom electron count: {n_elec} ({'even' if n_elec % 2 == 0 else 'ODD'})")
+    if counts:
+        print("  ionizable residues/ions: "
+              + ", ".join(f"{n}x{r}({_RESIDUE_CHARGE[r]:+d})" for r, n in sorted(counts.items())))
+    if ambiguous:
+        print("  environment-dependent, NOT counted: "
+              + ", ".join(f"{n}x{r}" for r, n in sorted(ambiguous.items()))
+              + "  (HIS neutral vs +1; CYS thiol vs thiolate)")
+    print(f"  nominal net charge from the unambiguous ones: {nominal:+d}")
+    print(f"  -> starting point:  --charge {nominal}  "
+          f"(electrons would be {n_elec - nominal}, "
+          f"{'even' if (n_elec - nominal) % 2 == 0 else 'ODD — adjust'})")
+    if (n_elec - nominal) % 2:
+        print("  An odd count cannot pair into a closed shell: either the charge is off "
+              "by one (check the residues listed above as environment-dependent), or the "
+              "system is genuinely open-shell and needs --spin 1.")
+    print("  This is arithmetic on formal charges, not a protonation-state assignment — "
+          "buried-residue pKa shifts, histidine tautomers and metal-bound thiolates all "
+          "move it, and none are determinable from coordinates alone.")
     print("REVIEW BEFORE SUBMITTING: confirm the radius captured what you intend, "
           "check for atoms with only partial sidechains that still needed capping "
           "(rare with whole-residue selection, but verify near proline/glycine), "
