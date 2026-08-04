@@ -1339,6 +1339,33 @@
         var cellEl = document.getElementById('gwrec-'+v.simId);
         if(cellEl) cellEl.innerHTML = gatewayCell(v.simId);
       }));
+      if(typeof window.solangeUpdateCasSuggestion === 'function') window.solangeUpdateCasSuggestion();
+    };
+
+    // ── CAS-size suggestion from the Gateway's qubits_required ─────────────────
+    // Pre-fills the (still fully editable) CAS dropdown from whatever is checked
+    // right now. Only touches CAS — native/mutant and VQE stay entirely manual,
+    // those aren't evidence-based questions the Gateway has an opinion on.
+    window.solangeUpdateCasSuggestion = function(){
+      var casSel = document.getElementById('hpc-cas');
+      var msgEl  = document.getElementById('hpc-cas-suggest');
+      if(!casSel) return;
+      var checked = Array.prototype.filter.call(document.querySelectorAll('.hpc-chk'), function(c){ return c.checked; });
+      var variants = window.__dispatchVariants || [];
+      var maxQ = 0, have = false;
+      checked.forEach(function(c){
+        var v = variants[parseInt(c.getAttribute('data-i'), 10)];
+        var rec = v && v.simId && window.__gatewayRecs && window.__gatewayRecs[v.simId];
+        if(rec && rec.qubits_required != null){ have = true; maxQ = Math.max(maxQ, rec.qubits_required); }
+      });
+      if(!have){ if(msgEl) msgEl.textContent=''; return; }
+      var opts = Array.prototype.map.call(casSel.options, function(o){ return {v:o.value, q:2*parseInt(o.value,10)}; });
+      opts.sort(function(a,b){ return a.q-b.q; });
+      var pick = null;
+      for(var i=0;i<opts.length;i++){ if(opts[i].q >= maxQ){ pick = opts[i]; break; } }
+      if(!pick) pick = opts[opts.length-1];
+      casSel.value = pick.v;
+      if(msgEl) msgEl.textContent = '← Gateway suggests this from ' + maxQ + 'q required (edit freely)';
     };
 
     // window hook: loadNGSReport(...) passes the actual loaded variants here.
@@ -1346,7 +1373,7 @@
       if(!variants||!variants.length){placeholder();return;}
       window.__dispatchVariants = variants;   // for dispatchSelectedToHpc()
       var m='<table style="width:100%;border-collapse:collapse"><tr>'+
-        '<th style="'+TH+'"><input type="checkbox" id="hpc-chk-all" onclick="document.querySelectorAll(\'.hpc-chk\').forEach(function(c){c.checked=this.checked}.bind(this))"></th>'+
+        '<th style="'+TH+'"><input type="checkbox" id="hpc-chk-all" onclick="document.querySelectorAll(\'.hpc-chk\').forEach(function(c){c.checked=this.checked}.bind(this)); if(typeof window.solangeUpdateCasSuggestion===\'function\') window.solangeUpdateCasSuggestion();"></th>'+
         '<th style="'+TH+'">Class</th>'+
         '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th>'+
         '<th style="'+TH+'" title="Active electrons in the full site — classical exact wall ≈ 18e">Active e⁻</th>'+
@@ -1374,7 +1401,7 @@
         var q=(v.gm&&v.gm.full_qubits)||null; var r=routeBackend(q||4);
         var ae=(v.gm&&v.gm.active_electrons)||null;
         var aeCol=ae==null?'—':(ae+'e'+(ae>18?' <span style="color:var(--gold);font-size:9px" title="beyond the ~18e exact-classical wall">↑wall</span>':''));
-        m+='<tr><td style="'+C+'"><input type="checkbox" class="hpc-chk" data-i="'+i+'"></td>'+
+        m+='<tr><td style="'+C+'"><input type="checkbox" class="hpc-chk" data-i="'+i+'" onchange="if(typeof window.solangeUpdateCasSuggestion===\'function\') window.solangeUpdateCasSuggestion();"></td>'+
            '<td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
            '<td style="'+C+';font-weight:700;color:'+((v.gm&&v.gm.color)||'var(--white)')+'">'+v.gene+'</td>'+
            '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
@@ -1386,9 +1413,10 @@
       });
       var controls='<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:11px">'+
         '<span style="color:var(--gray)">Dispatch selected as</span>'+
-        '<select id="hpc-cas" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
+        '<select id="hpc-cas" title="Pre-filled from the Gateway\'s qubits_required for whatever is checked above — still a plain dropdown, change it freely" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
           '<option value="6">CAS(6,6) · 12q</option><option value="8" selected>CAS(8,8) · 16q</option>'+
           '<option value="10">CAS(10,10) · 20q</option><option value="12">CAS(12,12) · 24q</option></select>'+
+        '<span id="hpc-cas-suggest" style="color:var(--gray);font-size:9.5px"></span>'+
         '<select id="hpc-side" title="Which allele to run — native (wild-type) or mutant" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
           '<option value="native" selected>native</option><option value="mutant">mutant</option></select>'+
         '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
