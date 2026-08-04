@@ -82,6 +82,22 @@
   .screen { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
   .screen.active { display: block; }
 
+  /* ── WIDE TABLE WRAPPERS ── ladder/dispatch tables have more columns than fit
+     on a laptop screen; the plain `overflow-x:auto` divs scroll correctly, but
+     the OS-default auto-hidden scrollbar (esp. macOS "show scrollbars: when
+     scrolling") gives no visible sign the extra columns exist — they just read
+     as cut off. Force the scrollbar to always render, and hint at it in-content. */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.28) rgba(255,255,255,0.04);
+  }
+  .table-scroll::-webkit-scrollbar { height: 9px; }
+  .table-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 5px; }
+  .table-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.28); border-radius: 5px; }
+  .table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.42); }
+
   /* ── SECTION HEADER ── */
   .section-header { margin-bottom: 24px; }
   .section-header h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
@@ -1135,9 +1151,9 @@
   <!-- ── Compute Dispatcher — QC·AI·HPC backend routing (RUNG 2→4 live below) ── -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing<span class="info-i" data-tip="Intended production routing policy — the rule the orchestrator applies to size each problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that, and real quantum hardware once the problem passes the classical reach. This is a dispatch decision rule, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders for what has actually run. Note: hardware-validation smoke tests deliberately run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this size-based production rule.">i</span></div>
-    <div id="dispatch-tiers" style="margin:6px 0 16px;overflow-x:auto"></div>
+    <div id="dispatch-tiers" class="table-scroll" style="margin:6px 0 16px"></div>
     <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
-    <div id="dispatch-muts" style="margin:6px 0 16px;overflow-x:auto"></div>
+    <div id="dispatch-muts" class="table-scroll" style="margin:6px 0 16px"></div>
 
     <!-- ── RUNG 2 · HPC classical → RUNG 3 · DMRG → RUNG 4 · Quantum (bottom) ──
          Each rung is its own bordered/tinted block (not just a divider line) with
@@ -1164,7 +1180,7 @@
       </span>
     </div>
     <div id="hpc-queue-status" style="display:none;margin:6px 0 10px;font-size:11px;line-height:1.6"></div>
-    <div id="dispatch-hpc" style="overflow-x:auto"></div>
+    <div id="dispatch-hpc" class="table-scroll"></div>
     </div>
 
     <!-- ── RUNG 3 · DMRG — the last classical resort before quantum. Sits ABOVE the
@@ -1187,7 +1203,7 @@
       </span>
     </div>
     <div id="dmrg-queue-status" style="display:none;margin:6px 0 4px;font-size:11px;line-height:1.6"></div>
-    <div id="dmrg-classifications" style="margin-top:6px;overflow-x:auto"></div>
+    <div id="dmrg-classifications" class="table-scroll" style="margin-top:6px"></div>
     </div>
 
     <!-- ── RUNG 4 · Quantum hardware — the bottom of the ladder. Reached only when the
@@ -1208,7 +1224,7 @@
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected QPU (0)</button>
       </span>
     </div>
-    <div id="dispatch-qpu" style="margin-top:6px;overflow-x:auto"></div>
+    <div id="dispatch-qpu" class="table-scroll" style="margin-top:6px"></div>
     </div>
   </div>
   <script>
