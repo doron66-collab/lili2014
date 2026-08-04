@@ -118,13 +118,20 @@ class Block2FCISolver:
     """
 
     def __init__(self, maxM=500, scratch="./tmp_dmrgscf_orb", n_threads=4,
-                 n_sweeps=10, tol=1e-8, verbose=False):
+                 n_sweeps=10, tol=1e-8, verbose=False, progress=True):
         self.maxM = int(maxM)
         self.scratch = scratch
         self.n_threads = int(n_threads)
         self.n_sweeps = int(n_sweeps)
         self.tol = float(tol)
         self.verbose = verbose
+        # progress: print one line per CASSCF macro-iteration. On by default and
+        # deliberately so — DMRG-SCF replaces a solver that took seconds with one
+        # that runs a full DMRG sweep per macro-iteration, and CASSCF at verbose=0
+        # says nothing. Without this the run is indistinguishable from a hang,
+        # which is exactly how it first presented on Laguna. Same reasoning as
+        # run_dmrg()'s per-bond-dimension lines: a long job must show a pulse.
+        self.progress = progress
         # PySCF reads these off the solver; keep the attributes it expects.
         self.nroots = 1
         self.spin = None
@@ -132,13 +139,21 @@ class Block2FCISolver:
         self._dm1 = None
         self._dm2 = None
         self._last_energy = None
+        self._n_calls = 0
+        self._t0 = None
 
     # ── PySCF fcisolver interface ──────────────────────────────────────────
 
     def kernel(self, h1e, eri, norb, nelec, ci0=None, ecore=0, **kwargs):
         """Solve the active space by DMRG. Returns (energy, civec-token)."""
+        import time
         from pyscf import ao2mo
         from pyblock2.driver.core import DMRGDriver, SymmetryTypes
+
+        self._n_calls += 1
+        if self._t0 is None:
+            self._t0 = time.time()
+        t_call = time.time()
 
         nalpha, nbeta = _as_alpha_beta(nelec)
         n_elec, spin = nalpha + nbeta, nalpha - nbeta
@@ -146,6 +161,14 @@ class Block2FCISolver:
         # full 4-index tensor. restore(1, ...) is a no-op if already full.
         eri_full = ao2mo.restore(1, np.asarray(eri), norb)
         h1e = np.asarray(h1e)
+
+        if self.progress and self._n_calls == 1:
+            # Announced once, before the first (silent) sweep rather than after
+            # it, so the very first thing the user sees is what is about to
+            # happen — not a blank terminal.
+            print(f"  [dmrg-scf] solver engaged: CAS({n_elec},{norb}), maxM={self.maxM}, "
+                  f"{self.n_sweeps} sweeps per macro-iteration, {self.n_threads} threads. "
+                  f"One line per macro-iteration follows.", flush=True)
 
         driver = DMRGDriver(scratch=self.scratch, symm_type=SymmetryTypes.SU2,
                             n_threads=self.n_threads)
@@ -174,6 +197,13 @@ class Block2FCISolver:
                 f"match what this build of pyblock2 returns. REFUSING to continue — "
                 f"CASSCF would otherwise converge silently to a wrong energy. Fix the "
                 f"axis order in dmrgscf_block2.py and re-run validate() before using it.")
+
+        if self.progress:
+            dt, total = time.time() - t_call, time.time() - self._t0
+            # stdout, flushed: a `tail -f` on a batch job must show this live,
+            # same convention as run_dmrg()'s "DMRG M=" lines.
+            print(f"  [dmrg-scf] macro-iter {self._n_calls:3d}  E={energy:.8f} Ha  "
+                  f"[{dt:.1f}s this solve, {total/60:.1f}m total]", flush=True)
 
         self._dm1, self._dm2, self._last_energy = dm1, dm2, energy
         return energy, "block2-mps"      # token; PySCF never inspects it
@@ -249,7 +279,7 @@ def validate(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_validate"
     # that blocks a working setup is its own kind of failure, so the margin is
     # bought here rather than by loosening the tolerance.
     solver = Block2FCISolver(maxM=maxM, scratch=scratch, n_threads=n_threads,
-                             n_sweeps=24)
+                             n_sweeps=24, progress=False)   # validate prints its own line
     e_dmrg, civec = solver.kernel(h1e, eri, norb, (nalpha, nbeta), ecore=ecore)
     dm1, dm2 = solver.make_rdm12(civec, norb, (nalpha, nbeta))
 
