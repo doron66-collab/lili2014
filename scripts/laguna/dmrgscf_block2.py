@@ -303,20 +303,18 @@ class Block2FCISolver:
 
         if self.progress:
             dt, total = time.time() - t_call, time.time() - self._t0
-            # CASSCF calls this ~4x per macro-iteration: once for the actual
-            # CASCI energy (ecore = the frozen-core energy) and several times to
-            # probe the orbital gradient (ecore = 0, active space only). Only the
-            # first kind tracks convergence, and reading that off a flat log means
-            # picking out every fourth line by eye. Mark it, and show the change
-            # from the previous one — that delta is what conv_tol is tested
-            # against, so it is the number that says whether this is progressing.
-            tag = ""
-            if ecore:
-                d = ("" if self._last_macro_e is None
-                     else f"  ΔE={(energy - self._last_macro_e)*1000:+.3f} mHa")
-                self._last_macro_e = energy
-                self._n_macro += 1
-                tag = f"  <- macro-iter {self._n_macro}{d}"
+            # CASSCF calls this several times per macro-iteration (the actual
+            # CASCI energy plus orbital-gradient probes), and the energies
+            # alternate between two very different magnitudes (~-269 / ~-55 Ha
+            # observed here) — clearly two different KINDS of call, not just
+            # noise. A prior version of this guessed the discriminator was
+            # ecore == 0 and tagged accordingly. That guess was WRONG: it tagged
+            # every solve, including the ~-55 Ha ones, against the previous
+            # ~-269 Ha one, producing nonsense deltas like "+214179 mHa" mid-run
+            # on Laguna. Rather than guess again, this prints the actual ecore
+            # value received on every call — ground truth to build the real
+            # discriminator from, not another assumption.
+            tag = f"  ecore={ecore:.6f}"
             # Labelled "solve", NOT "macro-iteration": CASSCF calls the solver
             # several times per macro-iteration (probing the orbital gradient),
             # and with different ecore values — which is why the printed energy
