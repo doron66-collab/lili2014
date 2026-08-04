@@ -1381,10 +1381,17 @@
       });
 
       // Ladder: small sizes always available for quick runs, then up to the
-      // largest selected site. Half-filled CAS(n,n), matching what the dispatch
-      // handlers send (they set nelecas = ncas).
-      var sizes = [6, 8, 10, 12, 16, 20, 24, 30, 40];
-      var fullOrb = Math.round(siteE / 2);      // n electrons in n orbitals
+      // largest selected site. Dispatch sends CAS(n,n) (nelecas = ncas), which
+      // is 2n qubits — and GENE_MAP's own convention is full_qubits = 2 *
+      // active_electrons (gateway.py uses the identical fallback). So reaching
+      // the target's true full site needs n = active_electrons, NOT
+      // active_electrons/2. That divide-by-2 was live here for a few commits —
+      // AXIN2 (active_electrons=24, full_qubits=48) topped out its ladder at
+      // CAS(12,12)=24q, HALF of the 48q its own table cell claimed as "full
+      // site". Caught from the live "largest available (24q) is still under
+      // the 48q this target needs" message, which was correctly describing a
+      // shortfall THIS bug caused, not a pre-existing hardware limit.
+      var fullOrb = siteE;                      // n orbitals = active_electrons
       if(fullOrb > 0){
         sizes = sizes.filter(function(n){ return n < fullOrb; });
         sizes.push(fullOrb);                    // the target's own full site
