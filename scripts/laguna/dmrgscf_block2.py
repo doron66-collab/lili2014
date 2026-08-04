@@ -242,7 +242,14 @@ def validate(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_validate"
     h1e, eri, (nalpha, nbeta) = _random_test_system(norb, nelec, seed)
     ecore = 0.0
 
-    solver = Block2FCISolver(maxM=maxM, scratch=scratch, n_threads=n_threads)
+    # More sweeps than a production run needs. The residual here is DMRG's own
+    # RDM convergence, and at the default 10 sweeps it lands ~8e-7 — under the
+    # tolerance, but close enough to it that a slightly worse-converging build
+    # would fail this check while being perfectly correctly wired. A false alarm
+    # that blocks a working setup is its own kind of failure, so the margin is
+    # bought here rather than by loosening the tolerance.
+    solver = Block2FCISolver(maxM=maxM, scratch=scratch, n_threads=n_threads,
+                             n_sweeps=24)
     e_dmrg, civec = solver.kernel(h1e, eri, norb, (nalpha, nbeta), ecore=ecore)
     dm1, dm2 = solver.make_rdm12(civec, norb, (nalpha, nbeta))
 
