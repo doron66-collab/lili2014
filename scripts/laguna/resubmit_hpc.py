@@ -77,6 +77,11 @@ def main():
     ap.add_argument("--out", default="./out", help="directory holding the saved record JSONs")
     ap.add_argument("--api", default=DEFAULT_API, help="SOLANGE backend base URL")
     ap.add_argument("--dry-run", action="store_true", help="list what would be sent, POST nothing")
+    ap.add_argument("--filter", default=None,
+                    help="only match provenance filenames containing this substring — an --out "
+                         "directory accumulates every run ever done there, and re-submitting all "
+                         "of them (even idempotently) is rarely what a specific --submit-less run "
+                         "calls for. E.g. --filter cas20-20_20260804 to target one run.")
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -86,6 +91,8 @@ def main():
 
     found = []
     for f in sorted(out.glob("provenance_*.json")):
+        if args.filter and args.filter not in f.name:
+            continue
         try:
             rec = json.loads(f.read_text())
         except Exception:
@@ -94,7 +101,8 @@ def main():
             found.append((f, rec))
 
     if not found:
-        print(f"No classical HPC/DMRG-SCF records (phase 3A-HPC) found in {out.resolve()}.")
+        scope = f" matching --filter {args.filter!r}" if args.filter else ""
+        print(f"No classical HPC/DMRG-SCF records{scope} found in {out.resolve()}.")
         return
 
     print(f"Found {len(found)} HPC/DMRG-SCF record(s) in {out.resolve()}:")
