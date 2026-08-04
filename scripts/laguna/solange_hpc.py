@@ -728,9 +728,14 @@ def main():
                     help="SOLANGE backend base URL (agent mode)")
     ap.add_argument("--poll", type=int, default=15, help="agent poll interval (seconds)")
     ap.add_argument("--token", default=None, help="Bearer JWT (agent mode); else log in")
-    ap.add_argument("--email", default="guest@solange.bio", help="login email (agent mode)")
-    ap.add_argument("--password", default="Solange2026", help="login password (agent mode)")
+    ap.add_argument("--email", default=os.environ.get("SOLANGE_EMAIL"),
+                    help="login email (agent mode) — or set SOLANGE_EMAIL")
+    ap.add_argument("--password", default=os.environ.get("SOLANGE_PASSWORD"),
+                    help="login password (agent mode) — or set SOLANGE_PASSWORD")
     args = ap.parse_args()
+    if args.agent and not args.token and (not args.email or not args.password):
+        ap.error("--agent requires --token, or --email/--password (or SOLANGE_EMAIL/"
+                  "SOLANGE_PASSWORD) — the guest account this used to default to is retired and banned.")
 
     Path(args.out).mkdir(parents=True, exist_ok=True)
 

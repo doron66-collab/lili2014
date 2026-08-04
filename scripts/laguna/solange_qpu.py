@@ -662,9 +662,14 @@ def main():
     ap.add_argument("--api", default="https://qcaihpc-simulation-api.onrender.com",
                     help="SOLANGE backend base URL (agent mode)")
     ap.add_argument("--poll", type=int, default=15, help="agent poll interval seconds")
-    ap.add_argument("--email", default="guest@solange.bio", help="SOLANGE login (agent mode)")
-    ap.add_argument("--password", default="Solange2026", help="SOLANGE password (agent mode)")
+    ap.add_argument("--email", default=os.environ.get("SOLANGE_EMAIL"),
+                    help="SOLANGE login (agent mode) — or set SOLANGE_EMAIL")
+    ap.add_argument("--password", default=os.environ.get("SOLANGE_PASSWORD"),
+                    help="SOLANGE password (agent mode) — or set SOLANGE_PASSWORD")
     args = ap.parse_args()
+    if args.agent and (not args.email or not args.password):
+        ap.error("--agent requires --email/--password (or SOLANGE_EMAIL/SOLANGE_PASSWORD) — "
+                  "the guest account this used to default to is retired and banned.")
     Path(args.out).mkdir(parents=True, exist_ok=True)
     token = os.environ.get("QISKIT_IBM_TOKEN")
 
