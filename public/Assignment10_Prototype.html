@@ -1342,30 +1342,73 @@
       if(typeof window.solangeUpdateCasSuggestion === 'function') window.solangeUpdateCasSuggestion();
     };
 
-    // ── CAS-size suggestion from the Gateway's qubits_required ─────────────────
-    // Pre-fills the (still fully editable) CAS dropdown from whatever is checked
-    // right now. Only touches CAS — native/mutant and VQE stay entirely manual,
-    // those aren't evidence-based questions the Gateway has an opinion on.
+    // ── CAS sizes, sized to the SELECTED TARGETS rather than fixed ─────────────
+    // The dropdown used to offer a hardcoded 6/8/10/12. Those numbers came from
+    // the VQE path (statevector memory walls out around 20 qubits), but the same
+    // control also drives DMRG — which is not bound by that at all. The result
+    // was that no run launched from this panel could ever cover a real site:
+    // TP53_C275F's is ~44e, KEAP1_LOF's ~155e, and 12 of 44 is 27%, so the
+    // Gateway's own ≥90% scope gate could never be satisfied by anything this
+    // UI was able to queue. Rebuilding the list per selection is what makes the
+    // larger runs reachable at all.
+    //
+    // Two walls are marked rather than enforced, because which one applies
+    // depends on the button pressed, and the chemist may legitimately want a
+    // small fast run on a big target:
+    //   > 16 orbitals — past FCI's practical limit; needs solange_*.py --dmrg-scf
+    //   > 10 orbitals — past the 20-qubit statevector ceiling, so VQE cannot run
+    var CAS_FCI_ORB_WALL = 16;    // FCI cost is combinatorial in orbitals
+    var CAS_VQE_ORB_WALL = 10;    // 2*10 = 20 qubits, the statevector ceiling
     window.solangeUpdateCasSuggestion = function(){
       var casSel = document.getElementById('hpc-cas');
       var msgEl  = document.getElementById('hpc-cas-suggest');
       if(!casSel) return;
       var checked = Array.prototype.filter.call(document.querySelectorAll('.hpc-chk'), function(c){ return c.checked; });
       var variants = window.__dispatchVariants || [];
-      var maxQ = 0, have = false;
+      var maxQ = 0, siteE = 0, have = false;
       checked.forEach(function(c){
         var v = variants[parseInt(c.getAttribute('data-i'), 10)];
-        var rec = v && v.simId && window.__gatewayRecs && window.__gatewayRecs[v.simId];
+        if(!v) return;
+        if(v.gm && v.gm.active_electrons) siteE = Math.max(siteE, v.gm.active_electrons);
+        var rec = v.simId && window.__gatewayRecs && window.__gatewayRecs[v.simId];
         if(rec && rec.qubits_required != null){ have = true; maxQ = Math.max(maxQ, rec.qubits_required); }
       });
+
+      // Ladder: small sizes always available for quick runs, then up to the
+      // largest selected site. Half-filled CAS(n,n), matching what the dispatch
+      // handlers send (they set nelecas = ncas).
+      var sizes = [6, 8, 10, 12, 16, 20, 24, 30, 40];
+      var fullOrb = Math.round(siteE / 2);      // n electrons in n orbitals
+      if(fullOrb > 0){
+        sizes = sizes.filter(function(n){ return n < fullOrb; });
+        sizes.push(fullOrb);                    // the target's own full site
+      }
+      var prev = casSel.value;
+      casSel.innerHTML = sizes.map(function(n){
+        // Notes ACCUMULATE — "full site" must not hide "needs --dmrg-scf".
+        // The full site of a real target is exactly the case that is past the
+        // FCI wall, so letting the friendlier label win would suppress the
+        // warning precisely where it matters most.
+        var notes = [];
+        if(fullOrb && n === fullOrb) notes.push('full site');
+        if(n > CAS_FCI_ORB_WALL) notes.push('needs --dmrg-scf');
+        else if(n > CAS_VQE_ORB_WALL) notes.push('no VQE');
+        return '<option value="'+n+'">CAS('+n+','+n+') · '+(2*n)+'q'
+             + (notes.length ? ' · ' + notes.join(' · ') : '') + '</option>';
+      }).join('');
+      if(sizes.indexOf(parseInt(prev,10)) !== -1) casSel.value = prev;
+
       if(!have){ if(msgEl) msgEl.textContent=''; return; }
-      var opts = Array.prototype.map.call(casSel.options, function(o){ return {v:o.value, q:2*parseInt(o.value,10)}; });
-      opts.sort(function(a,b){ return a.q-b.q; });
+      // Smallest offered size whose qubit count covers what the Gateway says the
+      // target needs. Falls back to the largest — never silently to a smaller one.
       var pick = null;
-      for(var i=0;i<opts.length;i++){ if(opts[i].q >= maxQ){ pick = opts[i]; break; } }
-      if(!pick) pick = opts[opts.length-1];
-      casSel.value = pick.v;
-      if(msgEl) msgEl.textContent = '← Gateway suggests this from ' + maxQ + 'q required (edit freely)';
+      for(var i=0;i<sizes.length;i++){ if(2*sizes[i] >= maxQ){ pick = sizes[i]; break; } }
+      if(pick === null) pick = sizes[sizes.length-1];
+      casSel.value = String(pick);
+      var short = (2*pick < maxQ);
+      if(msgEl) msgEl.textContent = short
+        ? '← largest available (' + (2*pick) + 'q) is still under the ' + maxQ + 'q this target needs'
+        : '← Gateway suggests this from ' + maxQ + 'q required (edit freely)';
     };
 
     // window hook: loadNGSReport(...) passes the actual loaded variants here.
