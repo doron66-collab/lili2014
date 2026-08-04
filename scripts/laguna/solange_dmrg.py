@@ -372,9 +372,9 @@ def main():
                          "--compound/demo mode. The downstream DMRG sweep (run_dmrg(), at "
                          "--bond-dims) is unaffected either way — this flag only changes how "
                          "the active space's orbitals themselves get optimized.")
-    ap.add_argument("--dmrg-scf-maxm", type=int, default=500,
+    ap.add_argument("--dmrg-scf-maxm", type=int, default=250,
                     help="bond dimension used DURING orbital optimization when --dmrg-scf is "
-                         "set (default 500) — deliberately separate from --bond-dims, which is "
+                         "set (default 250) — deliberately separate from --bond-dims, which is "
                          "the (usually larger) sweep run afterward on the resulting fixed "
                          "integrals for the reported energy/S_max. Raise this only if orbital "
                          "optimization itself fails to converge.")

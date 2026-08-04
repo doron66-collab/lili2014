@@ -760,9 +760,11 @@ def main():
                          "the pyblock2 adapter in dmrgscf_block2.py (which cross-checks itself "
                          "against exact FCI first). Cheapest place to validate the flag before "
                          "pointing solange_dmrg.py --geometry at a real site.")
-    ap.add_argument("--dmrg-scf-maxm", type=int, default=500,
+    ap.add_argument("--dmrg-scf-maxm", type=int, default=250,
                     help="bond dimension used DURING orbital optimization when --dmrg-scf is set "
-                         "(default 500) — separate from any downstream DMRG sweep bond dims.")
+                         "(default 250) — separate from any downstream DMRG sweep bond dims. "
+                         "Orbital optimization only needs M large enough for stable gradients, "
+                         "and DMRG cost grows ~M^3, so this is deliberately modest.")
     ap.add_argument("--dmrg-scf-scratch", default="./tmp_dmrgscf_orb",
                     help="block2 scratch dir for the --dmrg-scf orbital-optimization solver")
     ap.add_argument("--out", default="./out", help="output directory")

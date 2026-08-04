@@ -143,11 +143,19 @@ class Block2FCISolver:
     """
 
     def __init__(self, maxM=500, scratch="./tmp_dmrgscf_orb", n_threads=4,
-                 n_sweeps=10, tol=1e-8, verbose=False, progress=True):
+                 n_sweeps=10, warm_sweeps=4, tol=1e-8, verbose=False, progress=True):
         self.maxM = int(maxM)
         self.scratch = scratch
         self.n_threads = int(n_threads)
+        # n_sweeps applies to the COLD solve, which must converge a random MPS
+        # from scratch. warm_sweeps applies to every solve after it, which
+        # starts from the previous macro-iteration's converged state and only
+        # needs to relax into slightly rotated orbitals. Running the full cold
+        # count on every warm solve is what made CAS(20,20) project to 4+ hours:
+        # the warm start removed the ramp but not the sweep count, so each of
+        # ~120 solves still paid ten full sweeps at maxM.
         self.n_sweeps = int(n_sweeps)
+        self.warm_sweeps = max(2, int(warm_sweeps))
         self.tol = float(tol)
         self.verbose = verbose
         # progress: print one line per CASSCF macro-iteration. On by default and
@@ -197,8 +205,8 @@ class Block2FCISolver:
             # it, so the very first thing the user sees is what is about to
             # happen — not a blank terminal.
             print(f"  [dmrg-scf] solver engaged: CAS({n_elec},{norb}), maxM={self.maxM}, "
-                  f"{self.n_sweeps} sweeps per macro-iteration, {self.n_threads} threads. "
-                  f"One line per macro-iteration follows.", flush=True)
+                  f"{self.n_sweeps} sweeps cold / {self.warm_sweeps} warm, "
+                  f"{self.n_threads} threads. One line per solve follows.", flush=True)
 
         # WARM START. CASSCF calls this once per macro-iteration with slightly
         # rotated orbitals, so the previous macro-iteration's MPS is an excellent
@@ -233,7 +241,7 @@ class Block2FCISolver:
         # state at full M. Noise likewise anneals to zero only on the cold solve;
         # perturbing a converged MPS would just reintroduce the run-to-run
         # variation the warm start exists to remove.
-        n = self.n_sweeps
+        n = self.n_sweeps if cold else self.warm_sweeps
         if cold:
             # Each floor is clamped to maxM: without the clamp a small maxM (say
             # 100) would ramp THROUGH 200 — asking for a larger bond dimension
