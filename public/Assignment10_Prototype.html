@@ -1268,6 +1268,79 @@
         'Load an NGS report to see per-mutation routing. Each detected variant is routed '+
         'by its qubit count using the rule above — nothing is shown until a report is loaded.</div>';
     }
+    // ── Gateway recommendation cell ─────────────────────────────────────────
+    // window.__gatewayRecs[simId] holds the last /api/gateway/recommend response
+    // for that target, populated asynchronously by solangeFetchGatewayRecs()
+    // below. Read-only here — this never dispatches anything, it only displays
+    // what the Gateway said.
+    window.__gatewayRecs = window.__gatewayRecs || {};
+    function gatewayCell(simId){
+      if(!simId) return '<span style="color:var(--gray)">—</span>';
+      var rec = window.__gatewayRecs[simId];
+      if(rec === undefined) return '<span style="color:var(--gray);font-size:10px">…</span>';
+      if(rec === null) return '<span style="color:var(--gray);font-size:10px" title="Could not reach the Gateway">— unavailable</span>';
+      var confColor = rec.confidence==='high' ? 'var(--green)' : rec.confidence==='medium' ? 'var(--gold)' : 'var(--gray)';
+      var lock = rec.requires_human_approval ? ' <span style="color:var(--gold)" title="Spends real quantum time — you must click ▶ Queue for QPU yourself; nothing is sent automatically">🔒</span>' : '';
+      var tip = (rec.rationale||[]).concat(rec.evidence_gaps||[]).concat(rec.limitations||[]).join(' — ').replace(/"/g,'&quot;');
+      return '<span title="'+tip+'" style="color:'+confColor+';font-size:10.5px;font-weight:600">'+(rec.route_label||rec.recommended_route)+'</span>'+
+             ' <span style="color:var(--gray);font-size:9px">·'+rec.confidence+'</span>'+lock;
+    }
+
+    // ── Fetch real Gateway recommendations for every supported variant ─────────
+    // Assembles evidence from what SOLANGE already has for each target (GENE_MAP
+    // active-electron estimate, the latest scope-checked DMRG S_max, correlation
+    // energy from the stored reference set) and asks the Gateway to recommend a
+    // route. Read-only against the Gateway (POST /recommend never dispatches or
+    // stores anything) — this only fills in the "Gateway rec." column above;
+    // the dispatch buttons remain the only way anything actually gets queued.
+    window.solangeFetchGatewayRecs = async function(variants){
+      var supported = (variants||[]).filter(function(v){ return v.supported && v.simId && v.gm; });
+      if(!supported.length) return;
+      var API2 = (window.QCAIHPC_API_BASE||'https://qcaihpc-simulation-api.onrender.com');
+      var dmrgBySimId = {}, refs = null;
+      try {
+        var dr = await (await fetch(API2+'/api/simulate/hpc/dmrg/list?limit=200')).json();
+        (dr.classifications||[]).forEach(function(row){
+          var prev = dmrgBySimId[row.key];
+          if(!prev || new Date(row.created_at) > new Date(prev.created_at)) dmrgBySimId[row.key] = row;
+        });
+      } catch(e){ /* no DMRG evidence available — Gateway will say so itself */ }
+      try {
+        refs = await (await fetch(API2+'/api/simulate/targets/reference')).json();
+      } catch(e){ /* no correlation-energy evidence available */ }
+      await Promise.all(supported.map(async function(v){
+        var ev = {
+          target_ref: v.simId,
+          active_electrons: v.gm.active_electrons,
+          active_electrons_basis: 'literature',
+          full_qubits: v.gm.full_qubits,
+          prior_class: v.bqpCls || null,
+          prior_basis: v.bqpBasis || null,
+        };
+        var dmrg = dmrgBySimId[v.simId];
+        if(dmrg && dmrg.s_max != null){
+          ev.s_max = dmrg.s_max;
+          ev.s_max_scope_e = dmrg.nelecas;
+        }
+        var refEntry = refs && refs.targets && refs.targets[v.simId];
+        var corr = refEntry && (refEntry.mutant || refEntry.native);
+        if(corr && corr.correlation_mha != null){
+          ev.correlation_mha = corr.correlation_mha;
+          ev.correlation_scope_e = 2;               // every stored reference is CAS(2e,2o)
+          ev.correlation_basis_set = 'STO-3G';
+          ev.model_compound = corr.compound;
+        }
+        try {
+          var res = await fetch(API2+'/api/gateway/recommend', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(ev)
+          });
+          window.__gatewayRecs[v.simId] = res.ok ? await res.json() : null;
+        } catch(e){ window.__gatewayRecs[v.simId] = null; }
+        var cellEl = document.getElementById('gwrec-'+v.simId);
+        if(cellEl) cellEl.innerHTML = gatewayCell(v.simId);
+      }));
+    };
+
     // window hook: loadNGSReport(...) passes the actual loaded variants here.
     window.solangeRenderDispatchMuts=function(variants){
       if(!variants||!variants.length){placeholder();return;}
@@ -1278,7 +1351,9 @@
         '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th>'+
         '<th style="'+TH+'" title="Active electrons in the full site — classical exact wall ≈ 18e">Active e⁻</th>'+
         '<th style="'+TH+'">Full site</th>'+
-        '<th style="'+TH+'">Routed to</th><th style="'+TH+'">Phase</th></tr>';
+        '<th style="'+TH+'" title="Size-only heuristic — a fixed rule, not evidence about this specific target">Routed to</th>'+
+        '<th style="'+TH+'" title="Computational Decision Gateway — an evidence-based recommendation (active-electron wall, measured DMRG entanglement, correlation energy where available). A suggestion only: dispatching — especially to QPU, which spends real quantum time — still requires you to click one of the buttons below.">Gateway rec.<span class="info-i" data-tip="Recommends WHERE to run, from actual evidence (DMRG S_max, correlation energy) when it exists for this target, or says explicitly that evidence is missing rather than guessing. Never dispatches anything itself.">i</span></th>'+
+        '<th style="'+TH+'">Phase</th></tr>';
       variants.forEach(function(v,i){
         // Unsupported (extracted from the report but no curated GENE_MAP route yet) —
         // shown greyed-out and unselectable rather than silently dropped, so nothing
@@ -1292,6 +1367,7 @@
              '<td style="'+C+';color:var(--gray)">—</td>'+
              '<td style="'+C+';color:var(--gray)">—</td>'+
              '<td style="'+C+';color:var(--gray);font-size:10px" title="'+(v.unsupportedReason||'')+'">— not simulated ('+(v.unsupportedReason||'unsupported')+')</td>'+
+             '<td style="'+C+';color:var(--gray)">—</td>'+
              '<td style="'+C+';color:var(--gray)">—</td></tr>';
           return;
         }
@@ -1305,6 +1381,7 @@
            '<td style="'+C+'">'+aeCol+'</td>'+
            '<td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
            '<td style="'+C+'">'+badge(r.t,r.c)+' <span style="color:var(--gray);font-size:10px">· '+r.w+'</span></td>'+
+           '<td style="'+C+'" id="gwrec-'+(v.simId||i)+'">'+gatewayCell(v.simId)+'</td>'+
            '<td style="'+C+'">Phase '+r.p+'</td></tr>';
       });
       var controls='<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:11px">'+
@@ -4372,6 +4449,13 @@ function loadNGSReport(ngs) {
   // is silently dropped from view.
   if (typeof window.solangeRenderDispatchMuts === 'function') {
     window.solangeRenderDispatchMuts(allVariants);
+  }
+  // Ask the Computational Decision Gateway for a recommended route per target,
+  // from whatever real evidence (DMRG S_max, correlation energy) already exists
+  // for it. Fills in the "Gateway rec." column asynchronously — does not queue
+  // or dispatch anything; that stays a manual click on the buttons below.
+  if (typeof window.solangeFetchGatewayRecs === 'function') {
+    window.solangeFetchGatewayRecs(allVariants);
   }
 
   const allTargets    = simulatable.map(av => av.simId);
