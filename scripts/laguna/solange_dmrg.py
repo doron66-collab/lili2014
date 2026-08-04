@@ -187,13 +187,13 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     is what sweeps up through the real --bond-dims list for the reported
     energy/S_max).
 
-    UNVERIFIED IN THIS REPO: no Laguna/block2 environment is reachable from
-    where this was written, so the pyscf-dmrgscf import and DMRGCI(...) call
-    below are the standard documented API but have not been run against this
-    project's actual installed block2. If dmrgscf.DMRGCI's constructor
-    signature differs from what is used here, fix it in place — do not
-    silently fall back to plain CASSCF, which would defeat the entire point
-    and misreport orbital_optimization_method in the sealed record below."""
+    The solver itself is dmrgscf_block2.Block2FCISolver — our own adapter over
+    pyblock2, written because the usual pyscf-dmrgscf package shells out to a
+    compiled `block2main` executable that this environment does not have (only
+    the Python API is installed; confirmed empirically on Laguna). Its two
+    verification checks are described in that module's docstring, and
+    validate() is called before every optimization here: a 2-RDM convention
+    error raises rather than converging silently to a wrong energy."""
     from pyscf import gto, scf, ao2mo, fci
     from pyscf.mcscf import avas
     geom = Path(xyz_path).read_text()
@@ -249,10 +249,15 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         # Swap the orbital-optimization solver itself from FCI to DMRG (block2) —
         # see the dmrg_scf docstring above for why this, not just a bigger
         # --bond-dims list downstream, is what actually raises the ncas ceiling.
-        from pyscf import dmrgscf
-        mc.fcisolver = dmrgscf.DMRGCI(mol, maxM=dmrg_scf_maxm, tol=1e-6)
-        mc.fcisolver.threads = n_threads
-        mc.fcisolver.scratchDirectory = dmrg_scf_scratch
+        # Uses our own pyblock2 adapter (dmrgscf_block2.py), not the
+        # pyscf-dmrgscf package — that one needs a compiled `block2main` binary
+        # this environment does not have. validate() cross-checks the adapter
+        # against exact FCI on a small system and raises if it disagrees.
+        from dmrgscf_block2 import Block2FCISolver, validate
+        validate(scratch=dmrg_scf_scratch + "_validate", n_threads=n_threads,
+                 verbose=True)
+        mc.fcisolver = Block2FCISolver(maxM=dmrg_scf_maxm, scratch=dmrg_scf_scratch,
+                                       n_threads=n_threads)
         mc.internal_rotation = True  # DMRG-SCF needs this pyscf CASSCF option on
     if density_fit:
         mc = mc.density_fit(auxbasis=df_auxbasis)  # keep CASSCF's own integral transform DF-accelerated too
@@ -362,7 +367,8 @@ def main():
                     help="use DMRG (block2) as CASSCF's own orbital-optimization solver, "
                          "instead of FCI — this is what actually lets --ncas grow past the "
                          "~16-orbital FCI wall (see integrals_from_geometry()'s docstring); "
-                         "requires the pyscf-dmrgscf package. Applies to both --geometry and "
+                         "uses the pyblock2 adapter in dmrgscf_block2.py, which cross-checks "
+                         "itself against exact FCI before optimizing. Applies to both --geometry and "
                          "--compound/demo mode. The downstream DMRG sweep (run_dmrg(), at "
                          "--bond-dims) is unaffected either way — this flag only changes how "
                          "the active space's orbitals themselves get optimized.")

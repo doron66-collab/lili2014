@@ -128,13 +128,16 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
 
     mc = mcscf.CASSCF(mf, ncas=ncas, nelecas=nelecas)
     if dmrg_scf:
-        # UNVERIFIED IN THIS REPO — see solange_dmrg.py's integrals_from_geometry
-        # docstring: standard pyscf-dmrgscf API, not yet run against this
-        # project's installed block2. Fix the constructor here if it differs.
-        from pyscf import dmrgscf
-        mc.fcisolver = dmrgscf.DMRGCI(mol, maxM=dmrg_scf_maxm, tol=1e-6)
-        mc.fcisolver.threads = n_threads
-        mc.fcisolver.scratchDirectory = dmrg_scf_scratch
+        # Our own adapter, NOT the pyscf-dmrgscf package: that package shells out
+        # to a compiled `block2main` executable which does not exist in this
+        # environment (only the pure-Python pyblock2 API is installed). See
+        # dmrgscf_block2.py for the two verification checks that make a 2-RDM
+        # convention error impossible to miss rather than silent.
+        from dmrgscf_block2 import Block2FCISolver, validate
+        validate(scratch=dmrg_scf_scratch + "_validate", n_threads=n_threads,
+                 verbose=True)     # raises if the adapter disagrees with FCI
+        mc.fcisolver = Block2FCISolver(maxM=dmrg_scf_maxm, scratch=dmrg_scf_scratch,
+                                       n_threads=n_threads)
         mc.internal_rotation = True
     mc.conv_tol        = 1e-9
     mc.conv_tol_grad   = 1e-5
@@ -743,7 +746,8 @@ def main():
                     help="use DMRG (block2) as CASSCF's own orbital-optimization solver instead "
                          "of FCI — see run_casscf()'s docstring / solange_dmrg.py's --dmrg-scf "
                          "help for why this is what actually raises the ncas ceiling. Requires "
-                         "the pyscf-dmrgscf package. Cheapest place to validate the flag before "
+                         "the pyblock2 adapter in dmrgscf_block2.py (which cross-checks itself "
+                         "against exact FCI first). Cheapest place to validate the flag before "
                          "pointing solange_dmrg.py --geometry at a real site.")
     ap.add_argument("--dmrg-scf-maxm", type=int, default=500,
                     help="bond dimension used DURING orbital optimization when --dmrg-scf is set "
