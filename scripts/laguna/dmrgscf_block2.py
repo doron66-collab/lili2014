@@ -36,15 +36,16 @@ So this module carries TWO independent checks, and neither is optional:
      convention breaks this identity, so a silent convention error becomes a
      loud RuntimeError. This works at any active-space size — it needs no FCI.
 
-  2. FCI CROSS-CHECK (small sizes only, and this is the one that matters most).
-     Check 1 has a real blind spot: for real orbitals the electron-repulsion
-     integrals carry full 8-fold permutational symmetry, so certain WRONG index
-     permutations contract to the SAME energy as the right one. Reconstruction
-     cannot distinguish them. An independent FCI solve can. `validate()` below
-     runs both solvers on the same small system and compares — the only way to
-     actually earn confidence in the convention before relying on it where no
-     reference exists. `--dmrg-scf` in solange_hpc.py / solange_dmrg.py runs
-     this once at import-time scale before it will optimize anything.
+  2. FCI CROSS-CHECK, ELEMENT-WISE (small sizes only, and this is the one that
+     matters most). Check 1 has a real blind spot, and it is not theoretical:
+     for real orbitals the electron-repulsion integrals carry full 8-fold
+     permutational symmetry, and on this project's own block2 build EIGHT of
+     the 24 possible axis orderings reconstruct the correct energy exactly.
+     Any check that compares only energies — including comparing DMRG's energy
+     to FCI's — waves all eight through. `validate()` therefore compares the
+     density matrices themselves, entry by entry, against FCI's: a permuted
+     tensor differs element-wise even when every contraction of it agrees.
+     `--dmrg-scf` runs this before it will optimize anything.
 
 Neither check makes this module chemically validated — that still needs a
 computational chemist, and the dissertation says so (§09, Future Work). What
@@ -187,57 +188,83 @@ class Block2FCISolver:
 
 # ── Check 2: the cross-check that actually earns confidence ────────────────
 
-def validate(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_validate",
-             n_threads=4, verbose=True):
-    """Run this solver and an exact FCI solve on the SAME small random system
-    and require them to agree.
+def _random_test_system(norb, nelec, seed):
+    """A small random Hamiltonian for the checks below.
 
-    This is the check that catches what energy reconstruction cannot. For real
-    orbitals the two-electron integrals have full 8-fold permutational
-    symmetry, so several WRONG 2-RDM index orderings reconstruct the correct
-    energy anyway — reconstruction alone cannot tell them apart. An independent
-    FCI solve can, because it never touches the RDMs at all.
-
-    Deliberately uses a random (non-symmetric, non-physical) Hamiltonian rather
-    than a real molecule: accidental degeneracies and spatial symmetry in a
-    tidy molecular system are exactly what can mask an index error.
-
-    Returns (e_dmrg, e_fci). Raises RuntimeError if they disagree.
+    Deliberately random rather than a real molecule: accidental degeneracies
+    and spatial symmetry in a tidy molecular system are exactly what can mask
+    an index error. The two-electron array is symmetrized to carry the same
+    8-fold permutational symmetry real integrals have, so the tests exercise
+    the realistic (harder) case rather than an artificially easy one.
     """
-    from pyscf import fci
-
     rng = np.random.default_rng(seed)
     h1e = rng.normal(size=(norb, norb))
     h1e = 0.5 * (h1e + h1e.T)                  # h1 must be symmetric
-
-    # Build an eri with the 8-fold symmetry real integrals actually have, so
-    # the test exercises the realistic (harder) case rather than an easy one.
     a = rng.normal(size=(norb, norb, norb, norb))
     a = a + a.transpose(1, 0, 2, 3)
     a = a + a.transpose(0, 1, 3, 2)
     eri = a + a.transpose(2, 3, 0, 1)
+    return h1e, eri, _as_alpha_beta(nelec)
 
+
+def validate(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_validate",
+             n_threads=4, verbose=True):
+    """Compare this solver's RDMs, ELEMENT BY ELEMENT, against exact FCI's.
+
+    This is the check that catches what energy reconstruction cannot, and it
+    must compare the density matrices themselves — not energies. Comparing
+    energies would be no test at all here: the DMRG energy comes from block2's
+    own sweep, never touching the RDMs, so it agrees with FCI regardless of how
+    the 2-RDM axes are ordered. (That was a real flaw in an earlier version of
+    this function; the diagnostic scan found 8 axis orderings that all
+    reproduce the correct energy, and an energy-only check would have waved
+    every one of them through.)
+
+    Element-wise comparison has no such blind spot: a wrong axis order permutes
+    the tensor, and a permuted tensor differs from the reference in individual
+    entries even when every contraction of it agrees.
+
+    Returns (max_dm1_error, max_dm2_error). Raises RuntimeError on mismatch.
+    """
+    from pyscf import fci
+
+    h1e, eri, (nalpha, nbeta) = _random_test_system(norb, nelec, seed)
     ecore = 0.0
-    nalpha, nbeta = _as_alpha_beta(nelec)
 
     solver = Block2FCISolver(maxM=maxM, scratch=scratch, n_threads=n_threads)
-    e_dmrg, _ = solver.kernel(h1e, eri, norb, (nalpha, nbeta), ecore=ecore)
+    e_dmrg, civec = solver.kernel(h1e, eri, norb, (nalpha, nbeta), ecore=ecore)
+    dm1, dm2 = solver.make_rdm12(civec, norb, (nalpha, nbeta))
 
-    e_fci = fci.direct_spin1.FCI().kernel(h1e, eri, norb, (nalpha, nbeta),
-                                          ecore=ecore)[0]
+    fci_solver = fci.direct_spin1.FCI()
+    e_fci, fci_civec = fci_solver.kernel(h1e, eri, norb, (nalpha, nbeta), ecore=ecore)
+    dm1_ref, dm2_ref = fci_solver.make_rdm12(fci_civec, norb, (nalpha, nbeta))
 
-    delta = abs(e_dmrg - e_fci)
+    d_e   = abs(e_dmrg - e_fci)
+    d_dm1 = float(np.max(np.abs(dm1 - dm1_ref)))
+    d_dm2 = float(np.max(np.abs(dm2 - dm2_ref)))
     if verbose:
-        print(f"  [validate] DMRG {e_dmrg:.10f} Ha  vs  FCI {e_fci:.10f} Ha  "
-              f"(Δ={delta:.2e}, CAS({nelec},{norb}) random Hamiltonian)")
-    if delta > FCI_AGREEMENT_TOL:
+        print(f"  [validate] CAS({nelec},{norb}) random Hamiltonian · "
+              f"ΔE={d_e:.2e} · max|Δ 1-RDM|={d_dm1:.2e} · max|Δ 2-RDM|={d_dm2:.2e}")
+
+    # Energy first: if the solver itself is wrong, no RDM comparison is meaningful.
+    if d_e > FCI_AGREEMENT_TOL:
         raise RuntimeError(
-            f"Block2FCISolver failed its FCI cross-check: DMRG {e_dmrg:.10f} Ha vs "
-            f"FCI {e_fci:.10f} Ha (Δ={delta:.2e} > {FCI_AGREEMENT_TOL:.0e}) on a "
-            f"CAS({nelec},{norb}) random Hamiltonian. The adapter is mis-wired — most "
-            f"likely the 2-RDM index convention. Do NOT use --dmrg-scf until this "
-            f"passes: past ~16 orbitals there is no FCI reference left to catch it.")
-    return float(e_dmrg), float(e_fci)
+            f"Block2FCISolver energy disagrees with FCI: {e_dmrg:.10f} vs {e_fci:.10f} Ha "
+            f"(Δ={d_e:.2e} > {FCI_AGREEMENT_TOL:.0e}) on a CAS({nelec},{norb}) random "
+            f"Hamiltonian. This is a solver/parameter problem (bond dimension, sweeps, "
+            f"symmetry sector), not an index convention — no axis order can repair it.")
+    if d_dm1 > FCI_AGREEMENT_TOL or d_dm2 > FCI_AGREEMENT_TOL:
+        raise RuntimeError(
+            f"Block2FCISolver's density matrices do not match FCI's, even though the "
+            f"energies agree: max|Δ 1-RDM|={d_dm1:.2e}, max|Δ 2-RDM|={d_dm2:.2e} "
+            f"(tolerance {FCI_AGREEMENT_TOL:.0e}) on a CAS({nelec},{norb}) random "
+            f"Hamiltonian. That combination is the signature of a wrong 2-RDM axis "
+            f"order (_BLOCK2_TO_PYSCF_2PDM_AXES={_BLOCK2_TO_PYSCF_2PDM_AXES}): the "
+            f"energy is a contraction and survives the permutation, the tensor does "
+            f"not. Run `python dmrgscf_block2.py --diagnose` to get the right order "
+            f"from this build. Do NOT use --dmrg-scf until this passes — past ~16 "
+            f"orbitals there is no FCI reference left to catch it.")
+    return d_dm1, d_dm2
 
 
 def diagnose(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_diagnose",
@@ -250,26 +277,19 @@ def diagnose(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_diagnose"
     system, then score all 24 axis permutations of the returned 2-RDM against
     the two independent tests.
 
-    Both tests are applied, in this order, and for the reason given in the
-    module docstring: energy reconstruction alone cannot separate permutations
-    that are equivalent under the integrals' 8-fold symmetry, so any candidate
-    that survives it is then put to an independent FCI solve. Only a
-    permutation that passes BOTH is reported as correct. If several do, they
-    are genuinely indistinguishable on this system and the caller is told so
-    rather than sold an arbitrary pick.
+    Scoring is ELEMENT-WISE against FCI's own 2-RDM, not by reconstructed
+    energy. Energy is a contraction: with the integrals' 8-fold permutational
+    symmetry, many wrong orderings contract to exactly the right number — an
+    earlier version of this scan scored that way and reported 8 equally-good
+    candidates. Comparing the tensors entry by entry has no such degeneracy and
+    normally singles out one answer.
     """
     import itertools
     from pyscf import ao2mo, fci
     from pyblock2.driver.core import DMRGDriver, SymmetryTypes
 
-    rng = np.random.default_rng(seed)
-    h1e = rng.normal(size=(norb, norb))
-    h1e = 0.5 * (h1e + h1e.T)
-    a = rng.normal(size=(norb, norb, norb, norb))
-    a = a + a.transpose(1, 0, 2, 3)
-    a = a + a.transpose(0, 1, 3, 2)
-    eri = a + a.transpose(2, 3, 0, 1)
-    ecore, (nalpha, nbeta) = 0.0, _as_alpha_beta(nelec)
+    h1e, eri, (nalpha, nbeta) = _random_test_system(norb, nelec, seed)
+    ecore = 0.0
 
     eri_full = ao2mo.restore(1, np.asarray(eri), norb)
     driver = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads)
@@ -280,44 +300,56 @@ def diagnose(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_diagnose"
                                noises=[1e-5, 1e-6, 0], thrds=[1e-8] * 3, iprint=0))
     dm1 = np.asarray(driver.get_1pdm(ket))
     dm2_raw = np.asarray(driver.get_2pdm(ket))
-    e_fci = float(fci.direct_spin1.FCI().kernel(h1e, eri_full, norb, (nalpha, nbeta),
-                                                ecore=ecore)[0])
 
-    print(f"  DMRG energy {e_dmrg:.10f} Ha · FCI energy {e_fci:.10f} Ha "
-          f"(Δ={abs(e_dmrg-e_fci):.2e})")
-    if abs(e_dmrg - e_fci) > FCI_AGREEMENT_TOL:
+    fci_solver = fci.direct_spin1.FCI()
+    e_fci, fci_civec = fci_solver.kernel(h1e, eri_full, norb, (nalpha, nbeta), ecore=ecore)
+    dm1_ref, dm2_ref = fci_solver.make_rdm12(fci_civec, norb, (nalpha, nbeta))
+
+    print(f"  DMRG energy {e_dmrg:.10f} Ha · FCI energy {float(e_fci):.10f} Ha "
+          f"(Δ={abs(e_dmrg-float(e_fci)):.2e})")
+    if abs(e_dmrg - float(e_fci)) > FCI_AGREEMENT_TOL:
         print("  WARNING: DMRG and FCI already disagree on the ENERGY, before any RDM is "
               "involved. That is a solver/parameter problem (bond dimension, sweeps, "
               "symmetry sector), not an index convention — fix that first; no axis order "
               "can repair it.")
 
+    d1 = float(np.max(np.abs(dm1 - dm1_ref)))
+    print(f"  1-RDM agrees with FCI to max|Δ|={d1:.2e}"
+          + ("" if d1 <= FCI_AGREEMENT_TOL else "   *** 1-RDM ITSELF IS WRONG — the "
+             "problem is not just the 2-RDM axis order ***"))
+
     print(f"  scanning all 24 axis permutations of the returned 2-RDM "
-          f"(shape {dm2_raw.shape}) …")
-    survivors = []
+          f"(shape {dm2_raw.shape}) against FCI's, element-wise …")
+    scored = []
     for perm in itertools.permutations(range(4)):
-        e_rec = _reconstruct_energy(h1e, eri_full, dm1, dm2_raw.transpose(*perm), ecore)
-        if abs(e_rec - e_dmrg) <= ENERGY_RECONSTRUCTION_TOL:
-            survivors.append(perm)
-            print(f"    {perm} reproduces the energy ({e_rec:.10f} Ha)")
+        err = float(np.max(np.abs(dm2_raw.transpose(*perm) - dm2_ref)))
+        scored.append((err, perm))
+        if err <= FCI_AGREEMENT_TOL:
+            print(f"    {perm}  max|Δ|={err:.2e}   <-- MATCHES")
+    scored.sort()
+    matches = [p for e, p in scored if e <= FCI_AGREEMENT_TOL]
 
     print("-" * 68)
-    if not survivors:
-        print("  NO axis permutation reproduces block2's energy. The problem is NOT the "
-              "index order: get_2pdm here is returning something other than the "
-              "spin-traced 2-RDM this adapter assumes (a spin-resolved array, a "
-              "different normalization, or a different particle convention). Inspect "
-              f"its shape ({dm2_raw.shape}) and pyblock2's own docs for this build "
-              "before going further — do not use --dmrg-scf.")
-    elif len(survivors) == 1:
-        print(f"  UNIQUE match: set _BLOCK2_TO_PYSCF_2PDM_AXES = {survivors[0]}")
+    if not matches:
+        print("  NO axis permutation reproduces FCI's 2-RDM. The problem is not the index")
+        print(f"  order: get_2pdm here returns something other than the spin-traced 2-RDM")
+        print(f"  this adapter assumes (a spin-resolved array, a different normalization,")
+        print(f"  or a different particle convention). Closest candidates, for reference:")
+        for err, perm in scored[:3]:
+            print(f"    {perm}  max|Δ|={err:.2e}")
+        print(f"  Inspect its shape ({dm2_raw.shape}) against pyblock2's docs for this")
+        print("  build before going further — do not use --dmrg-scf.")
+    elif len(matches) == 1:
+        print(f"  UNIQUE match: set _BLOCK2_TO_PYSCF_2PDM_AXES = {matches[0]}")
+        print("  Then run the validation (no --diagnose) to confirm end to end.")
     else:
-        print(f"  {len(survivors)} permutations reproduce the energy: {survivors}")
-        print("  They are indistinguishable by reconstruction because the integrals'")
-        print("  8-fold symmetry makes them contract identically — this is exactly the")
-        print("  blind spot validate()'s FCI cross-check exists for. Set the axes to one")
-        print("  of these, then run validate(); if it passes, that one is correct.")
+        # Possible if the test state happens to be symmetric under a permutation.
+        print(f"  {len(matches)} permutations match element-wise: {matches}")
+        print("  Re-run with a different --seed / size; a state symmetric under one of")
+        print("  these would produce exactly this. Any that matches at several seeds is")
+        print("  correct.")
     print("-" * 68)
-    return survivors
+    return matches
 
 
 if __name__ == "__main__":
