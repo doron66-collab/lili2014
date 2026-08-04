@@ -92,7 +92,13 @@ def detect_gpu(safety_gb: float = 8.0):
 
 # ── PySCF: RHF -> CASSCF(ncas, nelecas)/basis ────────────────────────────────
 
-def run_casscf(compound, basis, ncas, nelecas, verbose=0):
+def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
+               dmrg_scf_maxm=500, dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4):
+    """dmrg_scf: same DMRG-SCF swap as solange_dmrg.py's integrals_from_geometry()
+    — see that docstring for why this (not just a bigger downstream bond-dim
+    list) is what actually raises the ncas ceiling past FCI's ~16-orbital wall.
+    Kept here too (demo/--compound mode) so --dmrg-scf can be validated cheaply
+    on a small proxy compound before ever pointing it at a real --geometry site."""
     from pyscf import gto, scf, mcscf, ao2mo
 
     if compound not in GEOM:
@@ -121,6 +127,15 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0):
         raise RuntimeError(f"RHF did not converge for {compound}/{basis}")
 
     mc = mcscf.CASSCF(mf, ncas=ncas, nelecas=nelecas)
+    if dmrg_scf:
+        # UNVERIFIED IN THIS REPO — see solange_dmrg.py's integrals_from_geometry
+        # docstring: standard pyscf-dmrgscf API, not yet run against this
+        # project's installed block2. Fix the constructor here if it differs.
+        from pyscf import dmrgscf
+        mc.fcisolver = dmrgscf.DMRGCI(mol, maxM=dmrg_scf_maxm, tol=1e-6)
+        mc.fcisolver.threads = n_threads
+        mc.fcisolver.scratchDirectory = dmrg_scf_scratch
+        mc.internal_rotation = True
     mc.conv_tol        = 1e-9
     mc.conv_tol_grad   = 1e-5
     mc.max_cycle_macro = 200
@@ -129,9 +144,12 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0):
         print(f"  WARNING: CASSCF did not fully converge for {compound} "
               f"CAS({nelecas},{ncas})/{basis} (JW terms still valid)", file=sys.stderr)
 
-    if not mc.converged:
+    if not mc.converged and not dmrg_scf:
         # A non-converged CASSCF yields integrals inconsistent with e_casscf —
         # exactly the ARID2 failure. Retry with the second-order (Newton) solver.
+        # (Newton retry is an FCI-solver-only escape hatch — DMRGCI does not
+        # support .newton(); a non-converged DMRG-SCF run should instead be
+        # re-run with a larger dmrg_scf_maxm or more max_cycle_macro.)
         print(f"  CASSCF slow to converge — retrying with second-order (Newton) solver...",
               file=sys.stderr)
         mc = mcscf.CASSCF(mf, ncas=ncas, nelecas=nelecas).newton()
@@ -146,16 +164,23 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0):
     h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
 
     # Consistency gate: active-space FCI of (h1e,h2e) must equal e_casscf - ecore.
-    from pyscf import fci
-    na = nelecas // 2
-    e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelecas - na), ecore=0.0)[0]
-    if abs((ecore + e_fci) - e_casscf) > 1e-3:
-        raise RuntimeError(
-            f"{compound}: active-space FCI ({ecore + e_fci:.6f} Ha) != e_casscf "
-            f"({e_casscf:.6f} Ha) — Hamiltonian inconsistent, refusing to emit.")
+    # Skipped under dmrg_scf — this FCI call is exactly the combinatorial
+    # operation DMRG-SCF exists to avoid; see integrals_from_geometry's
+    # docstring for where the equivalent evidence comes from instead
+    # (run_dmrg()'s own sweep on these same integrals, done by the caller).
+    if not dmrg_scf:
+        from pyscf import fci
+        na = nelecas // 2
+        e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelecas - na), ecore=0.0)[0]
+        if abs((ecore + e_fci) - e_casscf) > 1e-3:
+            raise RuntimeError(
+                f"{compound}: active-space FCI ({ecore + e_fci:.6f} Ha) != e_casscf "
+                f"({e_casscf:.6f} Ha) — Hamiltonian inconsistent, refusing to emit.")
 
     return {
         "e_rhf": float(e_rhf), "e_casscf": float(e_casscf), "ecore": float(ecore),
+        "orbital_optimization_method": (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf
+                                         else "CASSCF (FCI solver)"),
         "e_fci_active": float(e_fci),
         "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelecas),
         "n_ao": int(n_ao), "converged": bool(mc.converged),

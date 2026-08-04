@@ -153,7 +153,8 @@ def classify(active_electrons, energies, s_max):
 
 def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
                              density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit",
-                             max_cycle_macro=20):
+                             max_cycle_macro=20, dmrg_scf=False, dmrg_scf_maxm=500,
+                             dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -165,7 +166,34 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     protein (capped side chains, possibly missing hydrogens on the source
     structure) essentially never satisfies that by accident — get an odd
     electron count with the defaults and pyscf raises "Electron number N and
-    spin 0 are not consistent" rather than guessing wrong silently."""
+    spin 0 are not consistent" rather than guessing wrong silently.
+
+    dmrg_scf: replace CASSCF's internal solver — ordinarily FCI, exact but
+    combinatorial in ncas, impractical past ~16 active orbitals (see the
+    size_note below) — with DMRG (block2) itself. This is DMRG-SCF, not the
+    two-stage "CASSCF/FCI picks orbitals, DMRG only refines the final energy on
+    whatever it was handed" this module otherwise does: here DMRG is inside the
+    orbital-optimization loop, so the WHOLE procedure — orbital selection AND
+    the active-space solve — scales polynomially in ncas, not exponentially.
+    That is what actually lets --ncas grow past 16 toward a real ~44-155e site;
+    plain CASSCF (dmrg_scf=False) cannot, no matter how the bond dims used
+    downstream in run_dmrg() are set, because it never gets a converged active
+    space at that size in the first place.
+
+    dmrg_scf_maxm is deliberately a SEPARATE, usually much smaller bond
+    dimension than --bond-dims: it only needs to be large enough for stable
+    orbital gradients during optimization, not for the final converged energy
+    (run_dmrg(), called afterward in main() on the resulting fixed integrals,
+    is what sweeps up through the real --bond-dims list for the reported
+    energy/S_max).
+
+    UNVERIFIED IN THIS REPO: no Laguna/block2 environment is reachable from
+    where this was written, so the pyscf-dmrgscf import and DMRGCI(...) call
+    below are the standard documented API but have not been run against this
+    project's actual installed block2. If dmrgscf.DMRGCI's constructor
+    signature differs from what is used here, fix it in place — do not
+    silently fall back to plain CASSCF, which would defeat the entire point
+    and misreport orbital_optimization_method in the sealed record below."""
     from pyscf import gto, scf, ao2mo, fci
     from pyscf.mcscf import avas
     geom = Path(xyz_path).read_text()
@@ -208,11 +236,24 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # roughly combinatorial in ncas, so a caller needs this number while they can
     # still Ctrl+C and narrow --avas, not only once the (possibly hours-long) run
     # has already finished or is still silently grinding.
-    size_note = (" *** LARGE for CASSCF (>16 active orbitals is often impractical "
-                 "— consider narrowing --avas) ***" if ncas > 16 else "")
+    size_note = ""
+    if ncas > 16:
+        size_note = (f" *** LARGE for DMRG-SCF orbital optimization (maxM={dmrg_scf_maxm}) — "
+                     f"expect it to be slow, not impossible ***" if dmrg_scf else
+                     " *** LARGE for CASSCF/FCI (>16 active orbitals is often impractical "
+                     "— consider narrowing --avas, or pass --dmrg-scf) ***")
     print(f"  AVAS selected active space: CAS({nelec},{ncas}){size_note}", flush=True)
     from pyscf import mcscf
     mc = mcscf.CASSCF(mf, ncas, nelec)
+    if dmrg_scf:
+        # Swap the orbital-optimization solver itself from FCI to DMRG (block2) —
+        # see the dmrg_scf docstring above for why this, not just a bigger
+        # --bond-dims list downstream, is what actually raises the ncas ceiling.
+        from pyscf import dmrgscf
+        mc.fcisolver = dmrgscf.DMRGCI(mol, maxM=dmrg_scf_maxm, tol=1e-6)
+        mc.fcisolver.threads = n_threads
+        mc.fcisolver.scratchDirectory = dmrg_scf_scratch
+        mc.internal_rotation = True  # DMRG-SCF needs this pyscf CASSCF option on
     if density_fit:
         mc = mc.density_fit(auxbasis=df_auxbasis)  # keep CASSCF's own integral transform DF-accelerated too
     mc.verbose = verbose
@@ -222,17 +263,30 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # even if convergence is slow, at the cost of possibly stopping before full
     # convergence — mc.converged (checked below) reports whether that happened.
     mc.max_cycle_macro = max_cycle_macro
-    if spin == 0:
-        mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell
+    if spin == 0 and not dmrg_scf:
+        mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell — FCI-solver option, not exposed by DMRGCI
     e_casscf = mc.kernel(mo)[0]
     conv_note = "converged" if mc.converged else f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first"
     print(f"  CASSCF {conv_note} · E={e_casscf:.8f}", flush=True)
     h1e, ecore = mc.get_h1eff()
     h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
-    na = nelec // 2
-    e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelec - na), ecore=0.0)[0]
-    return {"e_casscf": float(e_casscf), "ecore": float(ecore), "e_fci_active": float(e_fci),
-            "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec)}
+    if dmrg_scf:
+        # Deliberately NOT re-verified against a full FCI diagonalization here —
+        # that call (fci.direct_spin1.FCI(), below, for the plain-CASSCF path) is
+        # exactly the combinatorial operation dmrg_scf exists to avoid; running
+        # it anyway on a >16-orbital space would defeat the entire feature. The
+        # consistency this loses is regained downstream: run_dmrg() in main()
+        # sweeps the SAME (h1e, h2e, ecore) at the real --bond-dims and reports
+        # its own S_max/convergence — that is this path's evidence, not e_fci.
+        e_fci = None
+    else:
+        na = nelec // 2
+        e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelec - na), ecore=0.0)[0]
+    return {"e_casscf": float(e_casscf), "ecore": float(ecore),
+            "e_fci_active": None if e_fci is None else float(e_fci),
+            "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec),
+            "orbital_optimization_method": (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf
+                                             else "CASSCF (FCI solver)")}
 
 
 # ── LEON seal (self-contained — mirrors backend/routes/leon.py's generic seal
@@ -304,6 +358,24 @@ def main():
                          "(default 16000 — pyscf's own default of 4000 is sized for a "
                          "laptop, not a Laguna largemem node; raise this if you still see "
                          "a 'needs N MB, over max_memory limit' warning)")
+    ap.add_argument("--dmrg-scf", action="store_true",
+                    help="use DMRG (block2) as CASSCF's own orbital-optimization solver, "
+                         "instead of FCI — this is what actually lets --ncas grow past the "
+                         "~16-orbital FCI wall (see integrals_from_geometry()'s docstring); "
+                         "requires the pyscf-dmrgscf package. Applies to both --geometry and "
+                         "--compound/demo mode. The downstream DMRG sweep (run_dmrg(), at "
+                         "--bond-dims) is unaffected either way — this flag only changes how "
+                         "the active space's orbitals themselves get optimized.")
+    ap.add_argument("--dmrg-scf-maxm", type=int, default=500,
+                    help="bond dimension used DURING orbital optimization when --dmrg-scf is "
+                         "set (default 500) — deliberately separate from --bond-dims, which is "
+                         "the (usually larger) sweep run afterward on the resulting fixed "
+                         "integrals for the reported energy/S_max. Raise this only if orbital "
+                         "optimization itself fails to converge.")
+    ap.add_argument("--dmrg-scf-scratch", default="./tmp_dmrgscf_orb",
+                    help="block2 scratch dir for the --dmrg-scf orbital-optimization solver — "
+                         "kept separate from --scratch (the downstream energy-sweep scratch) "
+                         "so the two DMRG runs never collide over the same MPS files.")
     ap.add_argument("--basis", default="6-31g")
     ap.add_argument("--ncas", type=int)
     ap.add_argument("--nelecas", type=int)
@@ -349,7 +421,9 @@ def main():
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
                                        charge=args.charge, spin=args.spin, verbose=args.verbose,
                                        density_fit=not args.no_density_fit, max_memory=args.max_memory,
-                                       df_auxbasis=args.df_auxbasis, max_cycle_macro=args.max_cycle_macro)
+                                       df_auxbasis=args.df_auxbasis, max_cycle_macro=args.max_cycle_macro,
+                                       dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
+                                       dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
     else:
@@ -369,8 +443,10 @@ def main():
         from solange_hpc import run_casscf
         print(f"SOLANGE DMRG classifier · {args.key} · {args.compound}/{args.basis} "
               f"· CAS({args.nelecas},{args.ncas})")
-        cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose)
-    print(f"CASSCF E = {cas['e_casscf']:.8f} Ha")
+        cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose,
+                         dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
+                         dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads)
+    print(f"{cas['orbital_optimization_method']} E = {cas['e_casscf']:.8f} Ha")
 
     t0 = time.time()
     energies, s_max, stop_reason = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
@@ -410,6 +486,7 @@ def main():
         "time_budget_hit": time_budget_hit, "bond_dims_requested": bond_dims,
         "elapsed_s": elapsed_s,
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
+        "orbital_optimization_method": cas["orbital_optimization_method"],
         "provenance_source": "HPC/Laguna (DMRG classifier)",
     }
     # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
