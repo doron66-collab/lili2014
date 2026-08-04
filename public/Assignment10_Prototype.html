@@ -1350,6 +1350,13 @@
         }
         var cas=(el!=null&&orb!=null)?('CAS('+el+','+orb+')'):'—';
         var target=x.mutation_id||x.mutation_name||'—';
+        var compound=x.p2_model_compound;
+        // NAME THE COMPOUND (evidence discipline, CLAUDE.md): compounds are shared
+        // across genes/mutations — two different targets resolving to the same stand-in
+        // molecule (e.g. TP53_C275F native and KEAP1_LOF mutant both → methanethiol)
+        // WILL produce near-identical numbers. Without the compound on the row, that
+        // reads as a bug (or as two independent results agreeing) instead of what it is.
+        if(compound) target+=' <span style="color:var(--gray);font-size:9px" title="Computed on the reference compound '+compound+' — not this target\'s own active site. Two targets sharing a compound will show near-identical numbers.">· '+compound+'</span>';
         var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
         var hbtn=x.id?('<button onclick="downloadHamiltonian(\''+x.id+'\',\''+target.replace(/'/g,"\\'")+'\',this)" title="Download the full source Hamiltonian (Pauli terms) for this run" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JW</button>'):'';
         var dchk=x.id?(isQpu
