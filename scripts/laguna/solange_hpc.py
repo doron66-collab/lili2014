@@ -897,8 +897,15 @@ def main():
         # dict.get(key, default) only falls back when the KEY is absent — cas
         # always HAS 'e_fci_active' (it is just None under --dmrg-scf), so the
         # fallback must be an explicit None-check, not .get()'s default arg.
+        #
+        # The last fallback subtracts ecore deliberately. This field is the
+        # ACTIVE-space energy (every other producer of it excludes the frozen
+        # core), while e_casscf is a TOTAL energy — writing e_casscf here raw
+        # would put -208.0 where -19.4 belongs and silently corrupt every ΔE
+        # the platform computes from this Hamiltonian entry.
         "e_active_exact": (cas["e_fci_active"] if cas.get("e_fci_active") is not None
-                           else (e_active_exact if e_active_exact is not None else cas["e_casscf"])),
+                           else (e_active_exact if e_active_exact is not None
+                                 else cas["e_casscf"] - cas["ecore"])),
         "e_active_rhf":   float(e_active_rhf),
         "n_paulis":       len(terms),
         "terms":          terms,

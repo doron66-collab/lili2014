@@ -226,10 +226,17 @@ class Block2FCISolver:
 
         if self.progress:
             dt, total = time.time() - t_call, time.time() - self._t0
+            # Labelled "solve", NOT "macro-iteration": CASSCF calls the solver
+            # several times per macro-iteration (probing the orbital gradient),
+            # and with different ecore values — which is why the printed energy
+            # alternates between the active-space value and the total. Calling
+            # these macro-iterations, as an earlier version did, overstated the
+            # iteration count roughly threefold and made a converging run look
+            # like a stuck one.
             # stdout, flushed: a `tail -f` on a batch job must show this live,
             # same convention as run_dmrg()'s "DMRG M=" lines.
-            print(f"  [dmrg-scf] macro-iter {self._n_calls:3d}  E={energy:.8f} Ha  "
-                  f"[{dt:.1f}s this solve, {total/60:.1f}m total]", flush=True)
+            print(f"  [dmrg-scf] solve {self._n_calls:4d}  E={energy:.8f} Ha  "
+                  f"[{dt:.1f}s, {total/60:.1f}m total]", flush=True)
 
         self._dm1, self._dm2, self._last_energy = dm1, dm2, energy
         return energy, "block2-mps"      # token; PySCF never inspects it
