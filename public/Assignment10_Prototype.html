@@ -1530,10 +1530,22 @@
           ?('<input type="checkbox" class="qpu-del-chk" data-id="'+x.id+'" onchange="updateQpuDelBtn()" title="Select this QPU run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">')
           :('<input type="checkbox" class="hpc-del-chk" data-id="'+x.id+'" onchange="updateHpcDelBtn()" title="Select this classical HPC run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">')
         ):'';
+        // This column's header calls it "Reference", not "Exact" — the value
+        // (p5_casscf_ref_ha) is genuinely exact ONLY for an FCI-based solve.
+        // For a --dmrg-scf row it is a converged approximation (the entire
+        // reason the flag exists is to reach active spaces FCI cannot), and
+        // labeling that "exact" would be the same false claim the p1_ansatz/
+        // p7_method fields were just caught making. Method-dependent per row,
+        // since one table now holds both kinds of row.
+        var refIsExact=!isQpu && !/dmrg-scf/i.test(x.p1_ansatz||'') && !/dmrg-scf/i.test(x.p7_method||'');
+        var refTitle=refIsExact
+          ? 'Exact active-space diagonalization (FCI)'
+          : 'DMRG-SCF converged energy — an approximation at finite bond dimension, not an exact diagonalization';
+        var refCell='<span title="'+refTitle+'">'+f(ex)+(refIsExact?'':' <span style="color:var(--gray);font-size:9px">·DMRG-SCF</span>')+'</span>';
         return '<tr><td style="'+C+';font-weight:600">'+targetCell+'</td>'+
             '<td style="'+C+';color:var(--gray);font-size:10px" title="When this run was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
             '<td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
-            '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
+            '<td style="'+C+';color:var(--teal)">'+refCell+'</td><td style="'+C+'">'+vqeCell+'</td>'+
             '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
             '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
@@ -1551,7 +1563,7 @@
       var classical=runs.filter(function(x){return (x.phase||'')==='3A-HPC';});
       var qpu=runs.filter(function(x){return /^3B-QPU/.test(x.phase||'');});
       window.__hpcRuns=classical; window.__qpuRuns=qpu;   // cached per-block for CSV export
-      paint(box, mkTable(classical, 'Exact (Ha)', 'VQE-UCCSD (Ha)',
+      paint(box, mkTable(classical, 'Reference (Ha)', 'VQE-UCCSD (Ha)',
         'No classical HPC runs yet. <code>solange_hpc.py --submit</code> posts them here (each P8 seal re-verified first).'));
       paint(qpuBox, mkTable(qpu, 'Exact HF (Ha)', 'QPU ⟨H⟩ (Ha)',
         'No quantum-hardware runs yet. <code>solange_qpu.py --hardware --submit</code> posts them here (LEON re-verifies each seal).'));
@@ -5396,10 +5408,16 @@ function exportHpcCsv() {
   const runs = window.__hpcRuns || [];
   if (!runs.length) { alert('No HPC runs to export.'); return; }
   const cols = ['mutation_id','p2_active_electrons','p2_active_orbitals','p5_casscf_ref_ha','p7_energy_ha','p7_method','p5_elapsed_s','p3_backend','p8_hash','created_at'];
-  const head = ['target','active_electrons','active_orbitals','exact_ha','vqe_ha','method','runtime_s','backend','p8_seal','created_at'];
+  // "reference_ha", not "exact_ha": this column (p5_casscf_ref_ha) is only
+  // truly exact for an FCI-based row — a --dmrg-scf row's value here is a
+  // converged approximation. The "method" column disambiguates; the header
+  // must not claim exactness that isn't universally true (same fix as the
+  // live table's "Exact (Ha)" -> "Reference (Ha)" header, applied to what
+  // this button calls a dissertation-appendix export).
+  const head = ['target','active_electrons','active_orbitals','reference_ha','vqe_ha','method','runtime_s','backend','p8_seal','created_at'];
   const esc = v => { v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
   const rows = runs.map(r => cols.map(c => esc(r[c])).join(','));
-  const csv = solangeCsvProvenanceHeader('Rung 2 — classical HPC ladder (CASSCF/VQE)')
+  const csv = solangeCsvProvenanceHeader('Rung 2 — classical HPC ladder (CASSCF/VQE/DMRG-SCF)')
             + head.join(',') + '\n' + rows.join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
