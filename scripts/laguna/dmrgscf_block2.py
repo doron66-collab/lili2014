@@ -30,11 +30,20 @@ necessarily disappears past 16 orbitals, precisely where this solver is needed.
 
 So this module carries TWO independent checks, and neither is optional:
 
-  1. ENERGY RECONSTRUCTION (every call, every size). The RDMs are contracted
+  1. ENERGY RECONSTRUCTION (every solve, every size). The RDMs are contracted
      back against the very integrals they were computed from, and the resulting
      energy is compared to the energy block2 itself reported. A wrong index
-     convention breaks this identity, so a silent convention error becomes a
-     loud RuntimeError. This works at any active-space size — it needs no FCI.
+     convention breaks this identity, so a silent wiring error becomes a loud
+     RuntimeError. This works at any active-space size — it needs no FCI.
+
+     It is a GROSS-ERROR check by nature, not a precision one. The identity is
+     exact only for an exact MPS; once the bond dimension truncates the state —
+     the normal regime for any active space big enough to want DMRG — the two
+     energies differ by the truncation error. The two causes are far apart
+     (144 Ha for the wrong convention on this build, ~5e-5 Ha for honest
+     truncation at CAS(20,20)/maxM=500), so the threshold sits between them and
+     a gap in the truncation range is reported as what it is: a statement about
+     the bond dimension, not about the wiring.
 
   2. FCI CROSS-CHECK, ELEMENT-WISE (small sizes only, and this is the one that
      matters most). Check 1 has a real blind spot, and it is not theoretical:
@@ -76,10 +85,26 @@ import numpy as np
 # convention fails loudly rather than producing a plausible wrong number.
 _BLOCK2_TO_PYSCF_2PDM_AXES = (0, 3, 1, 2)
 
-# Reconstructed energy must match block2's own reported energy to better than
-# this (Ha). Loose enough not to trip on DMRG's own truncation/rounding at
-# modest bond dimension; far tighter than any convention error could survive.
-ENERGY_RECONSTRUCTION_TOL = 1e-6
+# ── Thresholds for the runtime energy-reconstruction check ────────────────────
+# The reconstructed energy equals the sweep energy EXACTLY only for an exact
+# MPS. Once the bond dimension truncates the state — which is the normal,
+# intended regime for any active space worth using DMRG on — the two differ by
+# the truncation error. So this check cannot be tuned tight: it separates
+# failure modes by ORDER OF MAGNITUDE, not by precision.
+#
+#   wrong index convention : missed by 144 Ha on this build's first attempt
+#   honest truncation      : ~5e-5 Ha at CAS(20,20), maxM=500
+#
+# Anything between those is unambiguous, so the gross threshold sits well clear
+# of both. Precision on the convention itself comes from validate()'s
+# element-wise FCI comparison, which is exact — not from this.
+RECONSTRUCTION_GROSS_TOL = 1e-2    # above this: the wiring is broken, refuse to run
+
+# Between the warn and gross thresholds the gap is consistent with truncation
+# but already larger than the accuracy the result would be quoted to, which
+# means maxM is too low for this active space. Worth saying out loud — it is a
+# statement about the bond dimension, not about the adapter.
+RECONSTRUCTION_WARN_TOL = 1.6e-3   # 1 kcal/mol, the chemical-accuracy target
 
 # Tolerance for the element-wise DMRG-vs-FCI RDM comparison in validate(). What
 # sets this is DMRG's own RDM convergence, not the precision of the wiring: on
@@ -141,6 +166,7 @@ class Block2FCISolver:
         self._last_energy = None
         self._n_calls = 0
         self._t0 = None
+        self._warned_truncation = False
         # Warm-start state, reused across macro-iterations. See kernel().
         self._driver = None
         self._ket = None
@@ -239,19 +265,31 @@ class Block2FCISolver:
         dm2 = np.asarray(driver.get_2pdm(ket)).transpose(*_BLOCK2_TO_PYSCF_2PDM_AXES)
 
         # ── Check 1: energy reconstruction (see module docstring) ──────────
-        # Done HERE, inside every macro-iteration, not once at the end: a
-        # convention error must stop the optimization rather than let it
-        # converge to a confident wrong answer.
+        # Done HERE, on every solve, not once at the end: a wiring error must
+        # stop the optimization rather than let it converge to a confident
+        # wrong answer.
         e_check = _reconstruct_energy(h1e, eri_full, dm1, dm2, ecore)
-        if abs(e_check - energy) > ENERGY_RECONSTRUCTION_TOL:
+        gap = abs(e_check - energy)
+        if gap > RECONSTRUCTION_GROSS_TOL:
             raise RuntimeError(
                 f"Block2FCISolver: RDMs do not reproduce block2's own energy "
-                f"({e_check:.10f} vs {energy:.10f} Ha, Δ={abs(e_check-energy):.2e}). "
-                f"This means the 2-RDM index convention assumed by this adapter "
-                f"(_BLOCK2_TO_PYSCF_2PDM_AXES={_BLOCK2_TO_PYSCF_2PDM_AXES}) does not "
-                f"match what this build of pyblock2 returns. REFUSING to continue — "
-                f"CASSCF would otherwise converge silently to a wrong energy. Fix the "
-                f"axis order in dmrgscf_block2.py and re-run validate() before using it.")
+                f"({e_check:.10f} vs {energy:.10f} Ha, Δ={gap:.2e}). A gap this large is "
+                f"not truncation — it means the 2-RDM index convention assumed by this "
+                f"adapter (_BLOCK2_TO_PYSCF_2PDM_AXES={_BLOCK2_TO_PYSCF_2PDM_AXES}) does "
+                f"not match what this build of pyblock2 returns. REFUSING to continue — "
+                f"CASSCF would otherwise converge silently to a wrong energy. Run "
+                f"`python dmrgscf_block2.py --diagnose` to get the right order from this "
+                f"build.")
+        if gap > RECONSTRUCTION_WARN_TOL and not self._warned_truncation:
+            # Once per solver, not per solve: this is a property of the chosen
+            # bond dimension, so repeating it every macro-iteration would bury
+            # the progress lines without adding information.
+            self._warned_truncation = True
+            print(f"  [dmrg-scf] WARNING: RDMs reproduce the sweep energy only to "
+                  f"{gap:.2e} Ha, beyond chemical accuracy ({RECONSTRUCTION_WARN_TOL:.1e}). "
+                  f"The wiring is fine — this is truncation: maxM={self.maxM} is too low "
+                  f"for CAS({n_elec},{norb}). Raise --dmrg-scf-maxm before treating the "
+                  f"resulting energy as converged.", flush=True)
 
         if self.progress:
             dt, total = time.time() - t_call, time.time() - self._t0
