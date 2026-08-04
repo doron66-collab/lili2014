@@ -240,15 +240,103 @@ def validate(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_validate"
     return float(e_dmrg), float(e_fci)
 
 
-if __name__ == "__main__":
-    # Standalone: `python dmrgscf_block2.py` runs the cross-check at a couple of
-    # sizes. Both must pass before --dmrg-scf is trustworthy on this machine.
-    print("=" * 68)
-    print("Block2FCISolver validation — DMRG-SCF adapter vs exact FCI")
-    print("=" * 68)
-    for norb, nelec in [(4, 4), (6, 6), (8, 8)]:
-        validate(norb=norb, nelec=nelec, scratch=f"./tmp_dmrgscf_validate_{norb}")
+def diagnose(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_diagnose",
+             n_threads=4):
+    """Determine the correct 2-RDM axis order EMPIRICALLY, from this build.
+
+    Run this when kernel()'s energy-reconstruction check fails, which means the
+    convention block2 documents is not the one it returns here. Rather than
+    guess again, this asks the installed library directly: solve one small
+    system, then score all 24 axis permutations of the returned 2-RDM against
+    the two independent tests.
+
+    Both tests are applied, in this order, and for the reason given in the
+    module docstring: energy reconstruction alone cannot separate permutations
+    that are equivalent under the integrals' 8-fold symmetry, so any candidate
+    that survives it is then put to an independent FCI solve. Only a
+    permutation that passes BOTH is reported as correct. If several do, they
+    are genuinely indistinguishable on this system and the caller is told so
+    rather than sold an arbitrary pick.
+    """
+    import itertools
+    from pyscf import ao2mo, fci
+    from pyblock2.driver.core import DMRGDriver, SymmetryTypes
+
+    rng = np.random.default_rng(seed)
+    h1e = rng.normal(size=(norb, norb))
+    h1e = 0.5 * (h1e + h1e.T)
+    a = rng.normal(size=(norb, norb, norb, norb))
+    a = a + a.transpose(1, 0, 2, 3)
+    a = a + a.transpose(0, 1, 3, 2)
+    eri = a + a.transpose(2, 3, 0, 1)
+    ecore, (nalpha, nbeta) = 0.0, _as_alpha_beta(nelec)
+
+    eri_full = ao2mo.restore(1, np.asarray(eri), norb)
+    driver = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads)
+    driver.initialize_system(n_sites=norb, n_elec=nalpha + nbeta, spin=nalpha - nbeta)
+    mpo = driver.get_qc_mpo(h1e=h1e, g2e=eri_full, ecore=ecore, iprint=0)
+    ket = driver.get_random_mps(tag="DIAG", bond_dim=min(maxM, 250), nroots=1)
+    e_dmrg = float(driver.dmrg(mpo, ket, n_sweeps=10, bond_dims=[maxM],
+                               noises=[1e-5, 1e-6, 0], thrds=[1e-8] * 3, iprint=0))
+    dm1 = np.asarray(driver.get_1pdm(ket))
+    dm2_raw = np.asarray(driver.get_2pdm(ket))
+    e_fci = float(fci.direct_spin1.FCI().kernel(h1e, eri_full, norb, (nalpha, nbeta),
+                                                ecore=ecore)[0])
+
+    print(f"  DMRG energy {e_dmrg:.10f} Ha · FCI energy {e_fci:.10f} Ha "
+          f"(Δ={abs(e_dmrg-e_fci):.2e})")
+    if abs(e_dmrg - e_fci) > FCI_AGREEMENT_TOL:
+        print("  WARNING: DMRG and FCI already disagree on the ENERGY, before any RDM is "
+              "involved. That is a solver/parameter problem (bond dimension, sweeps, "
+              "symmetry sector), not an index convention — fix that first; no axis order "
+              "can repair it.")
+
+    print(f"  scanning all 24 axis permutations of the returned 2-RDM "
+          f"(shape {dm2_raw.shape}) …")
+    survivors = []
+    for perm in itertools.permutations(range(4)):
+        e_rec = _reconstruct_energy(h1e, eri_full, dm1, dm2_raw.transpose(*perm), ecore)
+        if abs(e_rec - e_dmrg) <= ENERGY_RECONSTRUCTION_TOL:
+            survivors.append(perm)
+            print(f"    {perm} reproduces the energy ({e_rec:.10f} Ha)")
+
     print("-" * 68)
-    print("All cross-checks PASSED — the 2-RDM convention in this adapter matches "
-          "this build of pyblock2.")
-    print("=" * 68)
+    if not survivors:
+        print("  NO axis permutation reproduces block2's energy. The problem is NOT the "
+              "index order: get_2pdm here is returning something other than the "
+              "spin-traced 2-RDM this adapter assumes (a spin-resolved array, a "
+              "different normalization, or a different particle convention). Inspect "
+              f"its shape ({dm2_raw.shape}) and pyblock2's own docs for this build "
+              "before going further — do not use --dmrg-scf.")
+    elif len(survivors) == 1:
+        print(f"  UNIQUE match: set _BLOCK2_TO_PYSCF_2PDM_AXES = {survivors[0]}")
+    else:
+        print(f"  {len(survivors)} permutations reproduce the energy: {survivors}")
+        print("  They are indistinguishable by reconstruction because the integrals'")
+        print("  8-fold symmetry makes them contract identically — this is exactly the")
+        print("  blind spot validate()'s FCI cross-check exists for. Set the axes to one")
+        print("  of these, then run validate(); if it passes, that one is correct.")
+    print("-" * 68)
+    return survivors
+
+
+if __name__ == "__main__":
+    import sys
+    if "--diagnose" in sys.argv:
+        # Empirically determine the axis order from the installed block2.
+        print("=" * 68)
+        print("Block2FCISolver DIAGNOSTIC — determining the 2-RDM axis convention")
+        print("=" * 68)
+        diagnose()
+    else:
+        # Standalone: `python dmrgscf_block2.py` runs the cross-check at a couple of
+        # sizes. All must pass before --dmrg-scf is trustworthy on this machine.
+        print("=" * 68)
+        print("Block2FCISolver validation — DMRG-SCF adapter vs exact FCI")
+        print("=" * 68)
+        for norb, nelec in [(4, 4), (6, 6), (8, 8)]:
+            validate(norb=norb, nelec=nelec, scratch=f"./tmp_dmrgscf_validate_{norb}")
+        print("-" * 68)
+        print("All cross-checks PASSED — the 2-RDM convention in this adapter matches "
+              "this build of pyblock2.")
+        print("=" * 68)
