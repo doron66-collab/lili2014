@@ -193,17 +193,46 @@ class Block2FCISolver:
             self._system = system
         driver = self._driver
         mpo = driver.get_qc_mpo(h1e=h1e, g2e=eri_full, ecore=ecore, iprint=0)
-        if self._ket is None:
+        cold = self._ket is None
+        if cold:
             self._ket = driver.get_random_mps(tag="CASCI",
                                               bond_dim=min(self.maxM, 250), nroots=1)
         ket = self._ket
-        # Noise anneals to zero on the first (cold) solve to escape the random
-        # start; warm solves skip it — a converged MPS does not need perturbing,
-        # and the noise is what would reintroduce run-to-run variation.
-        noises = [1e-5, 1e-6, 0] if self._n_calls == 1 else [0]
-        energy = float(driver.dmrg(mpo, ket, n_sweeps=self.n_sweeps,
-                                   bond_dims=[self.maxM],
-                                   noises=noises, thrds=[self.tol] * 3,
+
+        # Bond dimension is RAMPED on the cold solve and held flat afterwards.
+        # Jumping straight to full maxM from a random MPS is both slow and badly
+        # conditioned — standard DMRG practice is to grow M across sweeps, and at
+        # 20 orbitals the difference is minutes versus seconds for that first
+        # solve. Warm solves need no ramp: they start from an already-converged
+        # state at full M. Noise likewise anneals to zero only on the cold solve;
+        # perturbing a converged MPS would just reintroduce the run-to-run
+        # variation the warm start exists to remove.
+        n = self.n_sweeps
+        if cold:
+            # Each floor is clamped to maxM: without the clamp a small maxM (say
+            # 100) would ramp THROUGH 200 — asking for a larger bond dimension
+            # than the caller's own ceiling, mid-schedule.
+            ramp = [min(self.maxM, max(f, self.maxM // d))
+                    for f, d in ((50, 8), (50, 8), (100, 4), (100, 4), (200, 2), (200, 2))]
+            bond_dims = (ramp + [self.maxM] * n)[:n]
+            # With fewer sweeps than the ramp is long, the schedule would stop
+            # partway up and never reach maxM — while the sealed record still
+            # says "maxM=500". Force the final sweep to the requested ceiling so
+            # the number that gets recorded is the one actually used.
+            bond_dims[-1] = self.maxM
+            noises = ([1e-4] * 2 + [1e-5] * 2 + [1e-6] * 2 + [0] * n)[:n]
+            noises[-1] = 0        # never end a solve on a noisy sweep
+        else:
+            bond_dims = [self.maxM] * n
+            noises = [0] * n
+
+        if self.progress and cold:
+            print(f"  [dmrg-scf] first (cold) solve: ramping bond dimension "
+                  f"{bond_dims[0]} → {self.maxM} over {n} sweeps. This one is the "
+                  f"slowest; later solves warm-start from it.", flush=True)
+
+        energy = float(driver.dmrg(mpo, ket, n_sweeps=n, bond_dims=bond_dims,
+                                   noises=noises, thrds=[self.tol] * n,
                                    iprint=1 if self.verbose else 0))
 
         dm1 = np.asarray(driver.get_1pdm(ket))
