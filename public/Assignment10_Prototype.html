@@ -1356,14 +1356,17 @@
         // molecule (e.g. TP53_C275F native and KEAP1_LOF mutant both → methanethiol)
         // WILL produce near-identical numbers. Without the compound on the row, that
         // reads as a bug (or as two independent results agreeing) instead of what it is.
-        if(compound) target+=' <span style="color:var(--gray);font-size:9px" title="Computed on the reference compound '+compound+' — not this target\'s own active site. Two targets sharing a compound will show near-identical numbers.">· '+compound+'</span>';
+        // Kept SEPARATE from `target` (plain text) — `target` is also embedded inside
+        // hbtn's onclick attribute below, and HTML/quotes there would corrupt the row.
+        var targetCell=target;
+        if(compound) targetCell+=' <span style="color:var(--gray);font-size:9px" title="Computed on the reference compound '+compound+' — not this target\'s own active site. Two targets sharing a compound will show near-identical numbers.">· '+compound+'</span>';
         var vbtn=x.id?('<button onclick="verifyHpcRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'';
         var hbtn=x.id?('<button onclick="downloadHamiltonian(\''+x.id+'\',\''+target.replace(/'/g,"\\'")+'\',this)" title="Download the full source Hamiltonian (Pauli terms) for this run" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JW</button>'):'';
         var dchk=x.id?(isQpu
           ?('<input type="checkbox" class="qpu-del-chk" data-id="'+x.id+'" onchange="updateQpuDelBtn()" title="Select this QPU run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">')
           :('<input type="checkbox" class="hpc-del-chk" data-id="'+x.id+'" onchange="updateHpcDelBtn()" title="Select this classical HPC run for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">')
         ):'';
-        return '<tr><td style="'+C+';font-weight:600">'+target+'</td>'+
+        return '<tr><td style="'+C+';font-weight:600">'+targetCell+'</td>'+
             '<td style="'+C+';color:var(--gray);font-size:10px" title="When this run was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
             '<td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+f(ex)+'</td><td style="'+C+'">'+vqeCell+'</td>'+
