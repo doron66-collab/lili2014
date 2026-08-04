@@ -107,6 +107,15 @@ ollama pull deepseek-r1:1.5b     # small reasoning
 ollama pull deepseek-r1:8b       # largest / strongest
 ollama pull nomic-embed-text     # optional: semantic retrieval
 ```
+
+**Already have Ollama with other models installed?** The app's model dropdown
+is populated live from your local Ollama server (`/api/tags`) — it is not
+hardcoded to the four models above. Any model you already have pulled will
+show up and work with Mode A, Mode B, chat, and LEON seal verification. The
+four models above are only needed to reproduce the exact numbers in the
+paper's evaluation tables (§5) — for using or grading the app itself, whatever
+you already have installed is enough.
+
 Ollama serves on `http://localhost:11434` automatically. The app detects it.
 
 ### 3. Run the backend (which also serves the UI)
