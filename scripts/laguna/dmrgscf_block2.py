@@ -141,6 +141,10 @@ class Block2FCISolver:
         self._last_energy = None
         self._n_calls = 0
         self._t0 = None
+        # Warm-start state, reused across macro-iterations. See kernel().
+        self._driver = None
+        self._ket = None
+        self._system = None      # (norb, n_elec, spin) the cached driver is for
 
     # ── PySCF fcisolver interface ──────────────────────────────────────────
 
@@ -170,14 +174,36 @@ class Block2FCISolver:
                   f"{self.n_sweeps} sweeps per macro-iteration, {self.n_threads} threads. "
                   f"One line per macro-iteration follows.", flush=True)
 
-        driver = DMRGDriver(scratch=self.scratch, symm_type=SymmetryTypes.SU2,
-                            n_threads=self.n_threads)
-        driver.initialize_system(n_sites=norb, n_elec=n_elec, spin=spin)
+        # WARM START. CASSCF calls this once per macro-iteration with slightly
+        # rotated orbitals, so the previous macro-iteration's MPS is an excellent
+        # starting guess for the next. Building a fresh RANDOM MPS every time
+        # instead was wrong twice over: it threw away that guess (making each
+        # solve start from scratch), and it made the solver NON-DETERMINISTIC —
+        # the returned energy carried random variation, so CASSCF's convergence
+        # test (ΔE below conv_tol) could never be satisfied and the run ground
+        # through every one of its 200 permitted macro-iterations. Only the
+        # driver and MPS are cached; the MPO is rebuilt each call because the
+        # integrals genuinely change as the orbitals rotate.
+        system = (norb, n_elec, spin)
+        if self._driver is None or self._system != system:
+            self._driver = DMRGDriver(scratch=self.scratch, symm_type=SymmetryTypes.SU2,
+                                      n_threads=self.n_threads)
+            self._driver.initialize_system(n_sites=norb, n_elec=n_elec, spin=spin)
+            self._ket = None
+            self._system = system
+        driver = self._driver
         mpo = driver.get_qc_mpo(h1e=h1e, g2e=eri_full, ecore=ecore, iprint=0)
-        ket = driver.get_random_mps(tag="CASCI", bond_dim=min(self.maxM, 250), nroots=1)
+        if self._ket is None:
+            self._ket = driver.get_random_mps(tag="CASCI",
+                                              bond_dim=min(self.maxM, 250), nroots=1)
+        ket = self._ket
+        # Noise anneals to zero on the first (cold) solve to escape the random
+        # start; warm solves skip it — a converged MPS does not need perturbing,
+        # and the noise is what would reintroduce run-to-run variation.
+        noises = [1e-5, 1e-6, 0] if self._n_calls == 1 else [0]
         energy = float(driver.dmrg(mpo, ket, n_sweeps=self.n_sweeps,
                                    bond_dims=[self.maxM],
-                                   noises=[1e-5, 1e-6, 0], thrds=[self.tol] * 3,
+                                   noises=noises, thrds=[self.tol] * 3,
                                    iprint=1 if self.verbose else 0))
 
         dm1 = np.asarray(driver.get_1pdm(ket))

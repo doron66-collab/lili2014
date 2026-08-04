@@ -171,6 +171,7 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
     # operation DMRG-SCF exists to avoid; see integrals_from_geometry's
     # docstring for where the equivalent evidence comes from instead
     # (run_dmrg()'s own sweep on these same integrals, done by the caller).
+    e_fci = None
     if not dmrg_scf:
         from pyscf import fci
         na = nelecas // 2
@@ -184,7 +185,9 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
         "e_rhf": float(e_rhf), "e_casscf": float(e_casscf), "ecore": float(ecore),
         "orbital_optimization_method": (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf
                                          else "CASSCF (FCI solver)"),
-        "e_fci_active": float(e_fci),
+        # None under --dmrg-scf: there is no independent FCI reference in that
+        # mode by construction. Callers must None-check rather than assume.
+        "e_fci_active": None if e_fci is None else float(e_fci),
         "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelecas),
         "n_ao": int(n_ao), "converged": bool(mc.converged),
     }
@@ -385,8 +388,16 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
         energy = cas["ecore"] + e_active_exact
     else:
         energy = cas["e_casscf"]
-    method = "statevector VQE (AllSinglesDoubles UCCSD)" if vqe else \
-             "exact active-space diagonalisation"
+    # P7 method must name what actually produced `energy` above. Under
+    # --dmrg-scf there is no exact diagonalization anywhere in the run (that is
+    # the whole point of the flag), so claiming one here would put a false
+    # statement inside a LEON-sealed record — the one place it must never go.
+    if vqe:
+        method = "statevector VQE (AllSinglesDoubles UCCSD)"
+    elif e_active_exact is not None:
+        method = "exact active-space diagonalisation"
+    else:
+        method = cas.get("orbital_optimization_method", "CASSCF (FCI solver)")
     backend = (f"{gpu_name} · {vram_mb} MiB · "
                f"{vqe['device'] if vqe else 'CPU sparse'}") if gpu_name else "CPU"
 
