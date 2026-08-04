@@ -739,6 +739,17 @@ def main():
     ap.add_argument("--residue", default="", help="residue_note for the JW entry")
     ap.add_argument("--vqe", action="store_true", help="also run statevector VQE (GPU)")
     ap.add_argument("--vqe-steps", type=int, default=80)
+    ap.add_argument("--dmrg-scf", action="store_true",
+                    help="use DMRG (block2) as CASSCF's own orbital-optimization solver instead "
+                         "of FCI — see run_casscf()'s docstring / solange_dmrg.py's --dmrg-scf "
+                         "help for why this is what actually raises the ncas ceiling. Requires "
+                         "the pyscf-dmrgscf package. Cheapest place to validate the flag before "
+                         "pointing solange_dmrg.py --geometry at a real site.")
+    ap.add_argument("--dmrg-scf-maxm", type=int, default=500,
+                    help="bond dimension used DURING orbital optimization when --dmrg-scf is set "
+                         "(default 500) — separate from any downstream DMRG sweep bond dims.")
+    ap.add_argument("--dmrg-scf-scratch", default="./tmp_dmrgscf_orb",
+                    help="block2 scratch dir for the --dmrg-scf orbital-optimization solver")
     ap.add_argument("--out", default="./out", help="output directory")
     ap.add_argument("--submit", nargs="?", const="https://qcaihpc-simulation-api.onrender.com",
                     default=None, metavar="URL",
@@ -812,10 +823,12 @@ def main():
     # per-size runtime IS the classical-wall evidence for the dissertation).
     t_run = time.time()
     t0 = time.time()
-    cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose)
+    cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose,
+                     dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
+                     dmrg_scf_scratch=args.dmrg_scf_scratch)
     casscf_s = time.time() - t0
     print(f"RHF     E = {cas['e_rhf']:.8f} Ha  ({cas['n_ao']} AOs)")
-    print(f"CASSCF  E = {cas['e_casscf']:.8f} Ha  (ecore {cas['ecore']:.8f})  "
+    print(f"{cas['orbital_optimization_method']}  E = {cas['e_casscf']:.8f} Ha  (ecore {cas['ecore']:.8f})  "
           f"[done in {_fmt(casscf_s)}]")
 
     # The JW Pauli Hamiltonian is only needed to RUN the VQE. For an exact-reference
@@ -833,8 +846,17 @@ def main():
               + f"  [built in {_fmt(jw_s)}]")
     else:
         terms, e_active_exact = [], None
-        print(f"Exact-reference run (no VQE) — skipping JW Hamiltonian build "
-              f"(reference from PySCF FCI = {cas.get('e_fci_active'):.8f} Ha)")
+        # cas['e_fci_active'] is None under --dmrg-scf (the consistency-gate FCI
+        # call is skipped there deliberately — see run_casscf()'s dmrg_scf
+        # docstring) — format only when there actually is a reference to show.
+        if cas.get("e_fci_active") is not None:
+            print(f"Exact-reference run (no VQE) — skipping JW Hamiltonian build "
+                  f"(reference from PySCF FCI = {cas['e_fci_active']:.8f} Ha)")
+        else:
+            print(f"Exact-reference run (no VQE, {cas['orbital_optimization_method']}) — "
+                  f"skipping JW Hamiltonian build. No independent FCI reference is available "
+                  f"in this mode (that FCI call is exactly what --dmrg-scf exists to avoid); "
+                  f"pass --vqe if you want a comparison point.")
 
     vqe = None
     if args.vqe:
@@ -857,8 +879,11 @@ def main():
         "residue_note":   args.residue,
         "ecore":          cas["ecore"],
         "e_casscf":       cas["e_casscf"],
-        "e_active_exact": cas.get("e_fci_active",
-                                  e_active_exact if e_active_exact is not None else cas["e_casscf"]),
+        # dict.get(key, default) only falls back when the KEY is absent — cas
+        # always HAS 'e_fci_active' (it is just None under --dmrg-scf), so the
+        # fallback must be an explicit None-check, not .get()'s default arg.
+        "e_active_exact": (cas["e_fci_active"] if cas.get("e_fci_active") is not None
+                           else (e_active_exact if e_active_exact is not None else cas["e_casscf"])),
         "e_active_rhf":   float(e_active_rhf),
         "n_paulis":       len(terms),
         "terms":          terms,
