@@ -426,8 +426,16 @@ def build_provenance(args, cas, jw_terms, e_active_exact, vqe, gpu_name, vram_mb
         "p1_qubit_count":  n_qubits,
         "p1_gate_count":   vqe["gate_count"] if vqe else 0,
         "p1_depth":        vqe["depth"] if vqe else 0,
-        "p1_ansatz":       ("AllSinglesDoubles UCCSD (HPC statevector)"
-                            if vqe else "none — exact diagonalisation"),
+        # Same false-claim risk as P7's `method` above, and the same fix: this
+        # field described "no VQE -> exact diagonalisation" unconditionally,
+        # missing that --dmrg-scf runs no exact diagonalization either. Found
+        # live — the first real submitted DMRG-SCF record showed
+        # "none — exact diagonalisation" here despite the P7 fix already being
+        # in place, because P1 and P7 name the method independently and only
+        # one of the two had been corrected.
+        "p1_ansatz":       ("AllSinglesDoubles UCCSD (HPC statevector)" if vqe
+                            else "none — exact diagonalisation" if e_active_exact is not None
+                            else method),
         "p1_circuit_hash": hashlib.sha256(json.dumps(
             {"key": args.key, "side": args.side, "ncas": cas["ncas"],
              "nelecas": cas["nelecas"], "basis": args.basis},
