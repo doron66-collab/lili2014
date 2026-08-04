@@ -236,7 +236,7 @@ python scripts/laguna/solange_qpu.py --key <KEY> --side native --hardware --back
 |---------|-------|-----|
 | `CondaError: Run 'conda init'` | conda hook not loaded | it's in the `solange` function now — just type `solange` |
 | `command not found: solange` in a new terminal | login shell didn't source `~/.bashrc` | already patched into your login file; if it recurs, `cd ~/lili2014` works (base is active) |
-| `cannot open libmkl_def.so.1` / `undefined symbol` | block2 packaging | use `run_dmrg.sh` — it builds the LD_PRELOAD automatically |
+| `cannot open libmkl_def.so.1` / `undefined symbol` | block2 packaging | never run a block2 script with a bare `python` — prefix it: `bash scripts/laguna/with_block2.sh python <script> …` (this is what `run_dmrg.sh` does for you) |
 | agent dot red, `1 queued` | no agent running | start it: `agent_keepalive.sh start` (HPC) / `solange_qpu.py --agent` (QPU) |
 | `Provided API key could not be found` | wrong/expired API key | create a **new** IBM Cloud API key, copy once, `save_account` again |
 | `not a valid instance name` | hidden char in the CRN, or wrong value | re-copy the CRN with the copy button; `save_account` again |
