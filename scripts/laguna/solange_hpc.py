@@ -822,9 +822,25 @@ def main():
         print(f"--nelecas not given → default nelecas={args.nelecas}")
 
     n_qubits = 2 * args.ncas
-    if gpu_name and max_qubits and n_qubits > max_qubits:
-        print(f"ERROR: requested {n_qubits} qubits exceeds GPU ceiling {max_qubits}. "
-              f"Reduce --ncas to ≤ {max_qubits // 2}.", file=sys.stderr)
+    # This ceiling is a STATEVECTOR memory limit — 2**n complex amplitudes must
+    # fit in VRAM — so it binds only on runs that actually build a statevector:
+    # --vqe, and the exact-diagonalisation reference path. It does not apply to
+    # DMRG-SCF, whose entire purpose is to represent the state as an MPS instead
+    # and so reach active spaces no statevector could hold. Gating --dmrg-scf on
+    # it blocked exactly the runs the flag exists to make possible.
+    if args.vqe and gpu_name and max_qubits and n_qubits > max_qubits:
+        print(f"ERROR: requested {n_qubits} qubits exceeds the GPU statevector ceiling "
+              f"{max_qubits}. Reduce --ncas to ≤ {max_qubits // 2}, or drop --vqe "
+              f"(--dmrg-scf needs no statevector and is not bound by this).",
+              file=sys.stderr)
+        sys.exit(2)
+    if not args.vqe and not args.dmrg_scf and gpu_name and max_qubits and n_qubits > max_qubits:
+        # Plain CASSCF/FCI: no statevector, but the FCI consistency gate below is
+        # combinatorial and will not finish at this size either. Say which wall
+        # is being hit, rather than quoting a GPU number at a CPU-bound problem.
+        print(f"ERROR: CAS({args.nelecas},{args.ncas}) is past the practical FCI limit "
+              f"(~16 active orbitals) for the exact-reference path. Pass --dmrg-scf to "
+              f"solve this active space with DMRG instead.", file=sys.stderr)
         sys.exit(2)
 
     print(f"Active space: CAS({args.nelecas},{args.ncas}) → {n_qubits} qubits")
