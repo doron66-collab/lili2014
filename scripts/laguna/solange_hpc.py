@@ -733,6 +733,21 @@ def run_agent(api, poll_s, token, out_dir):
                        "--out", out_dir, "--submit", api]
                 if job.get("run_vqe"):
                     cmd += ["--vqe", "--vqe-steps", "200"]
+                if job.get("dmrg_scf"):
+                    cmd += ["--dmrg-scf", "--dmrg-scf-maxm", str(job.get("dmrg_scf_maxm") or 250)]
+                    # dmrgscf_block2.py imports block2, which needs the LD_PRELOAD
+                    # with_block2.sh builds (RUN_GUIDE.md's documented fix for
+                    # "cannot open libmkl_def.so.1") — the agent process itself may
+                    # have been started with a bare `python solange_hpc.py --agent`
+                    # (still what agent_keepalive.sh/the UI's Wake-agent modal show),
+                    # which would NOT have that LD_PRELOAD set, so a DMRG-SCF job's
+                    # subprocess would crash on import regardless of the queued job
+                    # being otherwise perfectly fine. Wrap only this subprocess call,
+                    # rather than requiring every agent operator to have started the
+                    # whole agent through with_block2.sh — the job_type=='dmrg' branch
+                    # above gets this for free via run_dmrg.sh's own delegation; this
+                    # is the equivalent for a --dmrg-scf HPC-ladder job.
+                    cmd = ["bash", str(_HERE.parent / "with_block2.sh")] + cmd
             # Run the job with a background heartbeat thread (keeps the agent green
             # for the whole run) + live stage-note streaming. See _run_with_progress.
             res = _run_with_progress(cmd, api, hdr, did, job_type)

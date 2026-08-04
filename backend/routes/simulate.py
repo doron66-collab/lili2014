@@ -884,6 +884,14 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         "run_vqe":  bool(payload.get("run_vqe", False)),
         "residue":  payload.get("residue", ""),
     }
+    # Only attached when set — same reasoning as job_type below: a fresh column
+    # (dmrg_scf, dmrg_scf_maxm) may not exist in hpc_dispatch yet on every
+    # deployment, and every dispatch that never asks for DMRG-SCF (still the
+    # overwhelming majority — only CAS>16 selections turn this on client-side)
+    # must keep working even before that migration runs.
+    if payload.get("dmrg_scf"):
+        row["dmrg_scf"] = True
+        row["dmrg_scf_maxm"] = int(payload.get("dmrg_scf_maxm", 250))
     # job_type routes the job to the right agent: 'hpc' (default, classical Laguna)
     # or 'qpu' (real IBM hardware, pulled by the QPU agent). Only attach it for the
     # non-default type so classical dispatch keeps working even before the job_type

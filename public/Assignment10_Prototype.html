@@ -1357,7 +1357,13 @@
     // small fast run on a big target:
     //   > 16 orbitals — past FCI's practical limit; needs solange_*.py --dmrg-scf
     //   > 10 orbitals — past the 20-qubit statevector ceiling, so VQE cannot run
-    var CAS_FCI_ORB_WALL = 16;    // FCI cost is combinatorial in orbitals
+    // Exposed on window, not just a local var: dispatchSelectedToHpc() (a
+    // separate <script> block/closure, ~3800 lines below) needs the same
+    // constant to decide whether to send dmrg_scf on a queued job. A bare
+    // `var` here would have been invisible there — ReferenceError at the
+    // first click, caught before ever reaching Laguna.
+    window.CAS_FCI_ORB_WALL = 16;    // FCI cost is combinatorial in orbitals
+    var CAS_FCI_ORB_WALL = window.CAS_FCI_ORB_WALL;
     var CAS_VQE_ORB_WALL = 10;    // 2*10 = 20 qubits, the statevector ceiling
     window.solangeUpdateCasSuggestion = function(){
       var casSel = document.getElementById('hpc-cas');
@@ -5121,11 +5127,17 @@ async function dispatchSelectedToHpc() {
   const ncas = parseInt(document.getElementById('hpc-cas').value, 10);
   const side = document.getElementById('hpc-side').value;   // native | mutant
   const runVqe = document.getElementById('hpc-vqe').checked;
+  // Automatic, not a checkbox: the CAS dropdown already labels any option past
+  // CAS_FCI_ORB_WALL "needs --dmrg-scf" (solangeUpdateCasSuggestion above) —
+  // plain FCI-based CASSCF cannot converge there at all, so asking the operator
+  // to separately remember to also tick a box would just reproduce the wall as
+  // a silently-hung job the moment they forgot to.
+  const dmrgScf = ncas > (window.CAS_FCI_ORB_WALL || 16);
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const { data: { session } } = await supa.auth.getSession();
   if (!session?.access_token) { alert('Please log in first.'); return; }
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` };
-  setMsg('queuing…');
+  setMsg(dmrgScf ? 'queuing (DMRG-SCF — past the FCI wall)…' : 'queuing…');
   let ok = 0, fail = 0;
   for (const c of checked) {
     const v = vars[parseInt(c.dataset.i, 10)];
@@ -5134,7 +5146,8 @@ async function dispatchSelectedToHpc() {
       const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
         method: 'POST', headers,
         body: JSON.stringify({ key: v.simId, side, ncas, nelecas: ncas,
-                               basis: '6-31g', run_vqe: runVqe, residue: v.mutation || '' })
+                               basis: '6-31g', run_vqe: runVqe, residue: v.mutation || '',
+                               dmrg_scf: dmrgScf })
       });
       const out = await res.json();
       out.queued ? ok++ : fail++;
