@@ -41,6 +41,7 @@ API  = ROOT / "backend" / "routes" / "simulate.py"
 DISS = ROOT / "public" / "dissertation_revised.html"
 JW   = ROOT / "jw_hamiltonians.json"
 SRC  = ROOT / "targets.json"
+PDBPY = ROOT / "backend" / "routes" / "pdb.py"
 
 
 def gene_map():
@@ -100,6 +101,22 @@ def mutation_configs():
                   "bqp_class": bc.group(1) if bc else None,
                   "jw_source": (js.group(1), js.group(2)) if js else None}
     return out
+
+
+def pdb_map():
+    """MUTATION_PDB_MAP literals in backend/routes/pdb.py: key -> PDB ID.
+
+    This file was a fifth independent home for a target fact and drifted exactly
+    as that predicts — STK11_LKB1 was 2QK7 here while targets.json said 2WTK,
+    with nothing forcing agreement and this checker not looking. pdb.py now
+    overlays targets.json at import, so a stale literal is corrected at runtime;
+    this check exists so it is also corrected at SOURCE, rather than being
+    silently papered over on every boot.
+    """
+    s = PDBPY.read_text(encoding="utf-8")
+    blk = s[s.find("MUTATION_PDB_MAP = {"):]
+    blk = blk[:blk.find("}")]
+    return dict(re.findall(r'"(\w+)":\s*"(\w{4})"', blk))
 
 
 def dissertation_claims():
@@ -244,6 +261,25 @@ def main():
             print(f"    MISSING   {key:14} -> {k}/{side}")
         else:
             print(f"    ok        {key:14} -> {k}/{side} ({jw[k][side].get('compound')})")
+
+    # ── 6. pdb.py's PDB IDs must match targets.json ───────────────────────────
+    print("\n[6] pdb.py MUTATION_PDB_MAP -> targets.json 'pdb'")
+    src_muts = (json.loads(SRC.read_text(encoding="utf-8")).get("mutations") or {})
+    pm = pdb_map()
+    for key, pid in sorted(pm.items()):
+        want = (src_muts.get(key) or {}).get("pdb")
+        if want is None:
+            # Not a contradiction: targets.json has no record for this key
+            # (CDKN2A has a gene entry but no mutation entry), so pdb.py is
+            # legitimately its only source. Reported so it stays visible.
+            print(f"    only-here {key:14} {pid}  (no targets.json mutation record)")
+            continue
+        checked += 1
+        if pid != want:
+            problems.append(f"{key}: pdb.py says {pid}, targets.json says {want}")
+            print(f"    MISMATCH  {key:14} {pid} != {want}")
+        else:
+            print(f"    ok        {key:14} {pid}")
 
     print("\n" + "=" * 78)
     print(f"{checked} comparisons made · {len(problems)} contradiction(s) found")

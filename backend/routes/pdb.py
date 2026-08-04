@@ -3,8 +3,11 @@ PDB proxy — fetches real protein structure data from RCSB PDB REST API.
 Also proxies UniProt gene lookup and AlphaFold predictions.
 Caches responses for 24 h to avoid hammering external APIs.
 """
+import json
+import logging
 import time
 from functools import lru_cache
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -17,18 +20,50 @@ PDB_DOWNLOAD   = "https://files.rcsb.org/download"
 UNIPROT_SEARCH = "https://rest.uniprot.org/uniprotkb/search"
 ALPHAFOLD_API  = "https://alphafold.ebi.ac.uk/api/prediction"
 
-# PDB IDs relevant to the five NSCLC mutations in this study
+# ── PDB IDs per mutation — targets.json is authoritative ──────────────────────
+# This map used to be a standalone literal, which made it a FIFTH independent
+# home for target facts alongside GENE_MAP, MUTATION_CLASS, MUTATION_CONFIGS and
+# the dissertation. It drifted exactly as that arrangement predicts: STK11_LKB1
+# was 2QK7 here while targets.json said 2WTK, with nothing structurally forcing
+# them to agree and verify_consistency.py not covering this file at all.
+#
+# Now targets.json wins, overlaid at import the same way simulate.py overlays
+# MUTATION_CONFIGS. The literals below survive only as (a) a fallback if the
+# file cannot be read, and (b) entries targets.json genuinely lacks — CDKN2A_LOF
+# has a gene record but no mutation record, so its PDB ID has no home there yet.
 MUTATION_PDB_MAP = {
     "TP53_C275F":  "2OCJ",
     "TP53_Y220C":  "2VUK",
     "KEAP1_LOF":   "2FLU",
-    "STK11_LKB1":  "2QK7",
+    "STK11_LKB1":  "2WTK",
     # Frontend's resolveSimId() always resolves CDKN2A's generic LOF/deletion
     # variant to "CDKN2A_LOF" (no named-mutation table entry for this gene) —
     # the key here must match that, not the old "CDKN2A_P16" which nothing
-    # ever looks up.
+    # ever looks up. NOT in targets.json (CDKN2A has no mutations entry), so
+    # this line is the only source for it; move it there if one is ever added.
     "CDKN2A_LOF":  "2A5E",
 }
+
+_TARGETS_CANDIDATES = [
+    Path(__file__).parent.parent / "targets.json",           # backend/ (symlink)
+    Path(__file__).parent.parent.parent / "targets.json",    # repo root (the real file)
+]
+_TARGETS_PATH = next((p for p in _TARGETS_CANDIDATES if p.exists()), _TARGETS_CANDIDATES[0])
+try:
+    with open(_TARGETS_PATH) as _tf:
+        _muts = (json.load(_tf).get("mutations") or {})
+    for _key, _src in _muts.items():
+        _pdb = _src.get("pdb")
+        if not _pdb:
+            continue
+        if _key in MUTATION_PDB_MAP and MUTATION_PDB_MAP[_key] != _pdb:
+            logging.warning("targets.json overrides MUTATION_PDB_MAP[%s]: %r -> %r "
+                            "(the literal in pdb.py is stale)",
+                            _key, MUTATION_PDB_MAP[_key], _pdb)
+        MUTATION_PDB_MAP[_key] = _pdb
+except FileNotFoundError:
+    logging.error("targets.json NOT FOUND at %s — pdb.py is using its own literals. "
+                  "Cross-file consistency is NOT guaranteed in this state.", _TARGETS_PATH)
 
 
 @lru_cache(maxsize=32)
