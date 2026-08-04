@@ -41,11 +41,25 @@ _supervisor() {
     conda activate "$CONDA_ENV" 2>/dev/null || source activate "$CONDA_ENV" 2>/dev/null || true
   fi
   cd "$REPO_DIR" || { echo "[keepalive] repo not found: $REPO_DIR"; exit 1; }
+  # SOLANGE_EMAIL/SOLANGE_PASSWORD must be set in the environment BEFORE calling
+  # this script (`export SOLANGE_EMAIL=... SOLANGE_PASSWORD=...` then `start`) —
+  # the guest@solange.bio account this used to fall back to is retired and
+  # banned. Checked once, loudly, here: without it the loop below would silently
+  # restart every 10s forever (solange_hpc.py --agent argparse-errors instantly
+  # on missing credentials), which reads as "the agent won't wake up" with
+  # nothing in the log to explain why — exactly the failure this project spent
+  # a session earlier today making --agent refuse to guess through.
+  if [[ -z "${SOLANGE_EMAIL:-}" || -z "${SOLANGE_PASSWORD:-}" ]]; then
+    echo "[keepalive $(date '+%F %T')] FATAL: SOLANGE_EMAIL/SOLANGE_PASSWORD not set." \
+         "Stop this (agent_keepalive.sh stop), export both, then start again."
+    exit 1
+  fi
   while true; do
-    echo "[keepalive $(date '+%F %T')] starting agent (env=$CONDA_ENV)"
+    echo "[keepalive $(date '+%F %T')] starting agent (env=$CONDA_ENV, login=$SOLANGE_EMAIL)"
     # -u = unbuffered, so the agent's login/poll/heartbeat lines reach the log file
     # live instead of sitting in a buffer (which made the log look empty/stuck).
-    python -u scripts/laguna/solange_hpc.py --agent --out ./out
+    python -u scripts/laguna/solange_hpc.py --agent --out ./out \
+      --email "$SOLANGE_EMAIL" --password "$SOLANGE_PASSWORD"
     echo "[keepalive $(date '+%F %T')] agent exited (rc=$?); restarting in 10s"
     sleep 10
   done
