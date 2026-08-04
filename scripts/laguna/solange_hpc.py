@@ -139,8 +139,22 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
         mc.fcisolver = Block2FCISolver(maxM=dmrg_scf_maxm, scratch=dmrg_scf_scratch,
                                        n_threads=n_threads)
         mc.internal_rotation = True
-    mc.conv_tol        = 1e-9
-    mc.conv_tol_grad   = 1e-5
+    if dmrg_scf:
+        # A convergence criterion tighter than the solver's own noise floor is
+        # not a strict standard — it is an unsatisfiable one, and the run pays
+        # for it by grinding to max_cycle_macro and reporting "did not
+        # converge" on a result that actually stopped improving long before.
+        # DMRG's RDMs carry a truncation floor (validate() measures ~5e-7 per
+        # element on this build at maxM=250), so an energy criterion below
+        # roughly 1e-7 can never be met no matter how many macro-iterations
+        # run. These are the standard DMRG-SCF settings: loose enough to be
+        # reachable, still an order of magnitude inside chemical accuracy
+        # (1.6e-3 Ha), which is the accuracy any of this is quoted to.
+        mc.conv_tol      = 1e-6
+        mc.conv_tol_grad = 1e-3
+    else:
+        mc.conv_tol      = 1e-9
+        mc.conv_tol_grad = 1e-5
     mc.max_cycle_macro = 200
     e_casscf = mc.kernel()[0]
     if not mc.converged:

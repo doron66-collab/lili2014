@@ -268,6 +268,12 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # even if convergence is slow, at the cost of possibly stopping before full
     # convergence — mc.converged (checked below) reports whether that happened.
     mc.max_cycle_macro = max_cycle_macro
+    if dmrg_scf:
+        # Match run_casscf()'s DMRG-SCF settings — see the comment there. pyscf's
+        # defaults are tighter than DMRG's own RDM truncation floor, so they can
+        # never be met and the run just burns macro-iterations.
+        mc.conv_tol      = 1e-6
+        mc.conv_tol_grad = 1e-3
     if spin == 0 and not dmrg_scf:
         mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell — FCI-solver option, not exposed by DMRGCI
     e_casscf = mc.kernel(mo)[0]
