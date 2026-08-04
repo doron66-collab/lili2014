@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Header, HTTPException
 from supabase import create_client
 
+from routes.security_log import log_denied
+
 router = APIRouter()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
@@ -21,8 +23,11 @@ def get_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-def _require_admin(authorization: str | None, sb) -> str:
-    """Verify the JWT belongs to a user with role='admin'. Returns user_id."""
+def _require_admin(authorization: str | None, sb, endpoint: str = "admin") -> str:
+    """Verify the JWT belongs to a user with role='admin'. Returns user_id.
+
+    `endpoint` names the caller for the security log only — it changes nothing
+    about the check itself, just what a reviewer sees a denial was aimed at."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization header required")
     import base64, json as _json
@@ -32,6 +37,7 @@ def _require_admin(authorization: str | None, sb) -> str:
         payload_b64 += "=" * (-len(payload_b64) % 4)
         payload = _json.loads(base64.urlsafe_b64decode(payload_b64))
         user_id = payload.get("sub")
+        email = payload.get("email")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
     except HTTPException:
@@ -42,7 +48,11 @@ def _require_admin(authorization: str | None, sb) -> str:
     # Check users_profile role
     if sb:
         res = sb.table("users_profile").select("role").eq("id", user_id).single().execute()
-        if not res.data or res.data.get("role") != "admin":
+        role = (res.data or {}).get("role") if res.data else None
+        if role != "admin":
+            log_denied(sb, event="admin_denied", uid=user_id, email=email, role=role,
+                      endpoint=f"/admin/{endpoint}",
+                      detail="non-admin account attempted to reach an admin-only endpoint")
             raise HTTPException(status_code=403, detail="Admin role required")
     return user_id
 
@@ -51,7 +61,7 @@ def _require_admin(authorization: str | None, sb) -> str:
 async def admin_all_runs(limit: int = 50, authorization: str | None = Header(None)):
     """All simulation runs across all users, newest first."""
     sb = get_supabase()
-    _require_admin(authorization, sb)
+    _require_admin(authorization, sb, "runs")
     res = (sb.table("simulation_runs")
              .select("id, created_at, user_id, mutation_id, mutation_name, p7_energy_ha, p8_hash, phase")
              .order("created_at", desc=True)
@@ -64,7 +74,7 @@ async def admin_all_runs(limit: int = 50, authorization: str | None = Header(Non
 async def admin_users(authorization: str | None = Header(None)):
     """All user profiles."""
     sb = get_supabase()
-    _require_admin(authorization, sb)
+    _require_admin(authorization, sb, "users")
     res = sb.table("users_profile").select("*").order("created_at", desc=True).execute()
     return {"data": res.data, "count": len(res.data)}
 
@@ -73,7 +83,7 @@ async def admin_users(authorization: str | None = Header(None)):
 async def admin_access_log(limit: int = 100, authorization: str | None = Header(None)):
     """Provenance audit log — simulation runs as audit trail."""
     sb = get_supabase()
-    _require_admin(authorization, sb)
+    _require_admin(authorization, sb, "access-log")
     res = (sb.table("simulation_runs")
              .select("id, created_at, user_id, mutation_name, mutation_id, p7_energy_ha, p8_hash, phase")
              .order("created_at", desc=True)
@@ -94,11 +104,35 @@ async def admin_access_log(limit: int = 100, authorization: str | None = Header(
     return {"data": audit, "count": len(audit)}
 
 
+@router.get("/security-events")
+async def admin_security_events(limit: int = 100, authorization: str | None = Header(None)):
+    """Denied access attempts — the IT/Security view's actual signal.
+
+    Not a general activity log (that is /access-log, which shows successful
+    runs) and not a request log (every allowed call would be noise). This is
+    specifically overreach: an executive account trying to dispatch real
+    HPC/DMRG/QPU work, or a non-admin account trying to reach an admin-only
+    endpoint — both rejected by _require_dispatch_allowed / _require_admin,
+    and both logged there via security_log.log_denied. If this table is
+    empty, that is the honest, correct state: no one has attempted an action
+    outside their role."""
+    sb = get_supabase()
+    _require_admin(authorization, sb, "security-events")
+    if not sb:
+        return {"data": [], "count": 0}
+    try:
+        res = (sb.table("access_denied_log").select("*")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"data": res.data or [], "count": len(res.data or [])}
+    except Exception as e:
+        return {"data": [], "count": 0, "error": str(e)}
+
+
 @router.get("/stats")
 async def admin_stats(authorization: str | None = Header(None)):
     """Summary stats for the admin dashboard."""
     sb = get_supabase()
-    _require_admin(authorization, sb)
+    _require_admin(authorization, sb, "stats")
     runs  = sb.table("simulation_runs").select("id, mutation_id, created_at, user_id").execute()
     users = sb.table("users_profile").select("id, role").execute()
     data  = runs.data or []

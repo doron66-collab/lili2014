@@ -2160,6 +2160,21 @@
     </div>
   </div>
 
+  <!-- Security events — denied access attempts. This is the IT/Security view's
+       actual signal, distinct from the Provenance Audit Log below (which shows
+       successful, notarized runs): overreach attempts that were REJECTED —
+       an executive account trying to dispatch real HPC/DMRG/QPU work, or a
+       non-admin account trying to reach an admin-only endpoint. An empty table
+       here is the correct, honest state, not a sign the panel is broken. -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="color:#f87171">Security Events — Denied Access Attempts</div>
+    <div style="font-size:10.5px;color:var(--gray);margin:-4px 0 8px">
+      Overreach only — not a request log. Every row here is a 403 the platform already
+      enforced; this is the record that it did.
+    </div>
+    <div id="admin-security-table" style="color:var(--gray);font-size:12px;padding:8px 0">Loading…</div>
+  </div>
+
   <!-- All runs table -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">All Simulation Runs</div>
@@ -2500,6 +2515,36 @@ async function loadAdminView() {
     if (el('admin-stat-last'))      el('admin-stat-last').textContent      = s.last_run_at
       ? new Date(s.last_run_at).toLocaleString() : '—';
   } catch { /* non-fatal */ }
+
+  // Security events — denied access attempts
+  try {
+    const sec = await fetch(`${API_BASE}/api/admin/security-events`, { headers }).then(r => r.json());
+    const tbl = document.getElementById('admin-security-table');
+    if (tbl && sec.data?.length) {
+      tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr style="color:var(--gray);text-transform:uppercase;font-size:10px">
+          <th style="text-align:left;padding:4px 8px">Time</th>
+          <th style="text-align:left;padding:4px 8px">Event</th>
+          <th style="text-align:left;padding:4px 8px">Account</th>
+          <th style="text-align:left;padding:4px 8px">Role</th>
+          <th style="text-align:left;padding:4px 8px">Endpoint</th>
+          <th style="text-align:left;padding:4px 8px">Detail</th>
+        </tr>
+        ${sec.data.map(row => `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:5px 8px;color:var(--gray)">${new Date(row.created_at).toLocaleString()}</td>
+          <td style="padding:5px 8px;color:#f87171;font-weight:700">✗ ${row.event ?? '—'}</td>
+          <td style="padding:5px 8px;color:var(--white)">${row.email ?? row.uid ?? '—'}</td>
+          <td style="padding:5px 8px;color:var(--gold)">${row.role ?? '—'}</td>
+          <td style="padding:5px 8px;color:var(--gray);font-family:monospace;font-size:10px">${row.endpoint ?? '—'}</td>
+          <td style="padding:5px 8px;color:var(--gray);font-size:10px">${row.detail ?? '—'}</td>
+        </tr>`).join('')}
+      </table>`;
+    } else if (tbl) tbl.innerHTML =
+      '<span style="color:var(--green)">✓ No denied access attempts recorded. Every request so far stayed within its role.</span>';
+  } catch(e) {
+    const tbl = document.getElementById('admin-security-table');
+    if (tbl) tbl.textContent = `Error: ${e.message}`;
+  }
 
   // All runs
   try {

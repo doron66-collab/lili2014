@@ -513,6 +513,7 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
 # and query-time re-verification in routes.provenance.
 from routes import leon
 from routes.leon import build_p8_payload, build_p8_seal
+from routes.security_log import log_denied
 
 _SEAL_EXCLUDE = leon._SEAL_EXCLUDE
 
@@ -776,6 +777,9 @@ def _require_dispatch_allowed(authorization: str | None, sb) -> str:
         except Exception:
             role = None
         if role == "executive":
+            log_denied(sb, event="dispatch_denied", uid=uid, email=claims.get("email"),
+                      role=role, endpoint="/hpc/dispatch",
+                      detail="executive role attempted to dispatch real HPC/DMRG/QPU work")
             raise HTTPException(status_code=403,
                 detail="Executive accounts cannot dispatch jobs that spend real HPC/DMRG/QPU time.")
     return uid
