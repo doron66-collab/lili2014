@@ -2057,16 +2057,23 @@
            Rewritten item-by-item rather than blanket-removed, because some individual claims
            ARE backed by real evidence gathered this session and some are not — collapsing that
            distinction would trade one dishonesty for another. -->
-      <div style="padding:12px;border-radius:8px;background:rgba(148,163,184,0.06);border:1px solid var(--border)">
+      <!-- Frame colour matches PQ's own convention (amber = real partial progress, not
+           "nothing here"), rather than the flat slate-gray both cards had a moment ago —
+           that read as "everything below is equally worthless", which buried the items
+           that DO have genuine evidence behind exactly the same fix that removed the
+           items that had none. Per-line colour now carries the actual per-item status:
+           green check = real evidence, red cross = a specific claim that was false, gray
+           question mark = simply untested. -->
+      <div style="padding:12px;border-radius:8px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.22)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-weight:700;font-size:13px;color:var(--gray)">IQ — Installation</div>
+          <div style="font-weight:700;font-size:13px;color:var(--gold)">IQ — Installation</div>
           <span class="badge badge-gray">NOT FORMALLY EXECUTED</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <div>◐ Software stack — runs in production (Render + Netlify); no signed installation record</div>
-          <div>◐ Hardware connectivity — exercised repeatedly (Laguna, IBM Heron) this session; not a controlled IQ test</div>
-          <div>? Dependency versions locked — not independently checked</div>
-          <div>? Environment isolation — asserted, not tested</div>
+          <div><span style="color:var(--gold)">◐</span> Software stack — runs in production (Render + Netlify); no signed installation record</div>
+          <div><span style="color:var(--gold)">◐</span> Hardware connectivity — exercised repeatedly (Laguna, IBM Heron) this session; not a controlled IQ test</div>
+          <div><span style="color:var(--gray)">?</span> Dependency versions locked — not independently checked</div>
+          <div><span style="color:var(--gray)">?</span> Environment isolation — asserted, not tested</div>
         </div>
         <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
           No IQ protocol has been executed or signed. A real one is scoped in the Regulatory
@@ -2074,16 +2081,16 @@
         </div>
       </div>
 
-      <div style="padding:12px;border-radius:8px;background:rgba(148,163,184,0.06);border:1px solid var(--border)">
+      <div style="padding:12px;border-radius:8px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.22)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-weight:700;font-size:13px;color:var(--gray)">OQ — Operational</div>
+          <div style="font-weight:700;font-size:13px;color:var(--gold)">OQ — Operational</div>
           <span class="badge badge-gray">NOT FORMALLY EXECUTED</span>
         </div>
         <div style="font-size:11px;line-height:2;color:var(--light)">
-          <div>✓ VQE convergence — real evidence: N<sub>2</sub> CAS(6,6)/cc-pVDZ reproduced to 0.00 mHa classically, 0.471 mHa on 12-qubit VQE</div>
-          <div>✗ ZNE error mitigation — <strong>not implemented</strong>. Real QPU runs are a raw estimator with no mitigation (solange_qpu.py: <code>p6_note="hardware smoke test — no error mitigation"</code>). This item was previously asserted as verified; it was false.</div>
-          <div>✓ Audit log integrity — real evidence: leon_audit is append-only, seals independently re-verifiable on demand (DP1), denied-access logging added and tested this session</div>
-          <div>? Backend failover — not tested</div>
+          <div><span style="color:var(--green)">✓</span> VQE convergence — real evidence: N<sub>2</sub> CAS(6,6)/cc-pVDZ reproduced to 0.00 mHa classically, 0.471 mHa on 12-qubit VQE</div>
+          <div><span style="color:#f87171">✗</span> ZNE error mitigation — <strong style="color:#f87171">not implemented</strong>. Real QPU runs are a raw estimator with no mitigation (solange_qpu.py: <code>p6_note="hardware smoke test — no error mitigation"</code>). This item was previously asserted as verified; it was false.</div>
+          <div><span style="color:var(--green)">✓</span> Audit log integrity — real evidence: leon_audit is append-only, seals independently re-verifiable on demand (DP1), denied-access logging added and tested this session</div>
+          <div><span style="color:var(--gray)">?</span> Backend failover — not tested</div>
         </div>
         <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
           No OQ protocol has been executed or signed. Two items above have genuine supporting
