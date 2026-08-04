@@ -63,20 +63,31 @@ import numpy as np
 #       dm2[p,q,r,s] = <p† r† s q>
 #       E = Σ_pq h1[p,q]·dm1[p,q] + ½ Σ_pqrs eri[p,q,r,s]·dm2[p,q,r,s] + ecore
 #
-# pyblock2's spin-traced get_2pdm (SU2) returns <p† q† s r>, which is the same
-# tensor with axes 1 and 2 exchanged. Both checks above exist to catch this
-# being wrong for a given block2 version rather than to assert it is right.
-_BLOCK2_TO_PYSCF_2PDM_AXES = (0, 2, 1, 3)
+# The value below was NOT taken from documentation — the documented ordering
+# (0,2,1,3) was tried first and failed check 1 outright on this build. It was
+# measured by `--diagnose`, which scores all 24 orderings element-wise against
+# FCI's own 2-RDM on this machine's actual pyblock2. Four orderings match, and
+# --diagnose verifies they map the raw array onto the identical tensor: that is
+# the 2-RDM's own symmetry (dm2[p,q,r,s] = dm2[r,s,p,q] = dm2[q,p,s,r] for a
+# real wavefunction), not an ambiguity, so any of the four serves.
+#
+# Re-run `python dmrgscf_block2.py --diagnose` after any block2 upgrade. The
+# checks below are what make that instruction safe to forget: a changed
+# convention fails loudly rather than producing a plausible wrong number.
+_BLOCK2_TO_PYSCF_2PDM_AXES = (0, 3, 1, 2)
 
 # Reconstructed energy must match block2's own reported energy to better than
 # this (Ha). Loose enough not to trip on DMRG's own truncation/rounding at
 # modest bond dimension; far tighter than any convention error could survive.
 ENERGY_RECONSTRUCTION_TOL = 1e-6
 
-# Tolerance for the DMRG-vs-FCI cross-check in validate(). Chemical accuracy is
-# 1.6 mHa; a correctly-wired DMRG at a decent bond dimension on a small system
-# should agree with FCI far more tightly than that, so this is deliberately
-# stricter — it is testing the wiring, not the chemistry.
+# Tolerance for the element-wise DMRG-vs-FCI RDM comparison in validate(). What
+# sets this is DMRG's own RDM convergence, not the precision of the wiring: on
+# this build a correctly-wired CAS(6,6) lands around 3e-7 (1-RDM) and 6e-7
+# (2-RDM), while the energy agrees to ~1e-11. The placement is not delicate,
+# because the two outcomes are orders of magnitude apart — a wrong axis order
+# does not miss by 1e-5, it misses by O(1). Anything between ~1e-8 and ~1e-3
+# separates them equally well.
 FCI_AGREEMENT_TOL = 1e-6
 
 
@@ -343,11 +354,27 @@ def diagnose(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_diagnose"
         print(f"  UNIQUE match: set _BLOCK2_TO_PYSCF_2PDM_AXES = {matches[0]}")
         print("  Then run the validation (no --diagnose) to confirm end to end.")
     else:
-        # Possible if the test state happens to be symmetric under a permutation.
+        # Several matches is the EXPECTED result, not a failure, and does not mean
+        # the answer is ambiguous. The 2-RDM has its own permutational symmetry —
+        # dm2[p,q,r,s] = dm2[r,s,p,q] always, and = dm2[q,p,s,r] for a real
+        # wavefunction — so a set of axis orders map the raw array onto the very
+        # same tensor. Verify that here rather than assert it: if every match
+        # produces an identical array, any one of them is correct.
+        first = dm2_raw.transpose(*matches[0])
+        spread = max(float(np.max(np.abs(dm2_raw.transpose(*p) - first)))
+                     for p in matches[1:])
         print(f"  {len(matches)} permutations match element-wise: {matches}")
-        print("  Re-run with a different --seed / size; a state symmetric under one of")
-        print("  these would produce exactly this. Any that matches at several seeds is")
-        print("  correct.")
+        if spread <= FCI_AGREEMENT_TOL:
+            print(f"  They produce the SAME tensor (max pairwise |Δ|={spread:.2e}) — this is")
+            print("  the 2-RDM's own permutational symmetry (dm2[p,q,r,s] = dm2[r,s,p,q] =")
+            print("  dm2[q,p,s,r] for a real wavefunction), not an ambiguity. Any one is")
+            print("  correct.")
+            print(f"  USE: _BLOCK2_TO_PYSCF_2PDM_AXES = {matches[0]}")
+        else:
+            print(f"  They do NOT produce the same tensor (max pairwise |Δ|={spread:.2e}),")
+            print("  so this is a real ambiguity: the test state is accidentally symmetric.")
+            print("  Re-run with a different --seed; whichever matches at several seeds is")
+            print("  the correct one.")
     print("-" * 68)
     return matches
 
