@@ -111,6 +111,16 @@
     padding: 20px 22px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.15);
   }
+  /* ── PERSONA BADGE ── names which of the four stakeholder views a screen
+     serves (Scientist / Quality-Regulatory / IT-Security / Executive). The
+     screens themselves already existed and are already gated per role by the
+     RBAC in showPlatform() — this only makes the mapping explicit rather than
+     leaving four personas implicit across five differently-titled tabs. */
+  .persona-badge {
+    display: inline-flex; align-items: center; font-size: 9px; font-weight: 800;
+    letter-spacing: .5px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid; cursor: default;
+  }
   .card-title {
     font-size: 11px; font-weight: 600; color: var(--white);
     text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
@@ -538,7 +548,9 @@
 <div class="screen active" id="s1">
   <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div>
-      <h2 style="color:var(--white)">Clinical Target Dashboard</h2>
+      <span class="persona-badge" style="color:var(--teal);background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.4)"
+            title="Results, comparisons, uncertainty, and the evidence behind a computational-chemistry decision — for the researcher actually running and reading the science.">Scientist View</span>
+      <h2 style="color:var(--white);margin-top:6px">Clinical Target Dashboard</h2>
       <p id="dash-subtitle" style="color:var(--white)">NSCLC Non-Druggable Mutation Profiles · Source: TCGA · COSMIC · ClinVar · NGS Report MI25-0349</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1004,7 +1016,9 @@
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="s2">
   <div class="section-header">
-    <h2 style="color:var(--white)">Orchestration Engine</h2>
+    <span class="persona-badge" style="color:var(--teal);background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.4)"
+          title="Results, comparisons, uncertainty, and the evidence behind a computational-chemistry decision — for the researcher actually running and reading the science.">Scientist View</span>
+    <h2 style="color:var(--white);margin-top:6px">Orchestration Engine</h2>
     <p style="color:var(--white)">Quantum kernel · HPC dispatch · AI binding affinity pipeline</p>
   </div>
 
@@ -1915,7 +1929,9 @@
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="s3">
   <div class="section-header">
-    <h2 style="color:var(--white)">Results & Benchmarking</h2>
+    <span class="persona-badge" style="color:var(--teal);background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.4)"
+          title="Results, comparisons, uncertainty, and the evidence behind a computational-chemistry decision — for the researcher actually running and reading the science.">Scientist View</span>
+    <h2 style="color:var(--white);margin-top:6px">Results &amp; Benchmarking</h2>
     <p id="s3-header-sub" style="color:var(--white)">VQE Ground-State Energy · Phase 3A Live Results</p>
   </div>
 
@@ -2161,7 +2177,9 @@
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="s4">
   <div class="section-header">
-    <h2 style="color:var(--white)">Compliance & Audit Trail</h2>
+    <span class="persona-badge" style="color:#a78bfa;background:rgba(167,139,250,0.12);border-color:rgba(167,139,250,0.5)"
+          title="Provenance, exceptions, approvals, and the audit trail — for quality assurance and regulatory review, independent of who ran the science or what it cost.">Quality / Regulatory View</span>
+    <h2 style="color:var(--white);margin-top:6px">Compliance &amp; Audit Trail</h2>
     <p style="color:var(--white)">FDA 21 CFR Part 11 · Reproducibility Engine · Provenance Metadata</p>
   </div>
 
@@ -2350,7 +2368,9 @@
 <div class="screen" id="s5">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <div>
-      <div style="font-size:18px;font-weight:700;color:#dc2626">🛡 Admin Console</div>
+      <span class="persona-badge" style="color:#dc2626;background:rgba(220,38,38,0.12);border-color:rgba(220,38,38,0.4)"
+            title="Permissions, infrastructure, connections, and security events — who tried to do what they weren't allowed to, and what the platform did about it.">IT / Security View</span>
+      <div style="font-size:18px;font-weight:700;color:#dc2626;margin-top:6px">🛡 Admin Console</div>
       <div style="font-size:11px;color:var(--white);margin-top:3px">Platform access log · Simulation runs · User management</div>
     </div>
     <button onclick="show('s1')" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);padding:7px 16px;border-radius:6px;font-size:11px;cursor:pointer">← Back</button>
@@ -2425,6 +2445,8 @@
      ══════════════════════════════════════════════════════════════════════════ -->
 <div class="screen" id="s6">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="persona-badge" style="color:var(--green);background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)"
+          title="Time, consumption, risk, and evidence standing — portfolio-level oversight without operating the science or the infrastructure directly.">Executive View</span>
     <h2 style="color:var(--white);margin:0">Executive View</h2>
     <span style="font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
                  color:var(--green);background:rgba(34,197,94,0.12);
