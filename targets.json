@@ -6,6 +6,15 @@
     "public/Assignment10_Prototype.html (GENE_MAP, MUTATION_CLASS)",
     "scripts/laguna/verify_consistency.py (verifies all of the above agree)"
   ],
+  "_class_definitions": {
+    "_source": "dissertation §06.i, verbatim: \"Class A (quantum-necessary) — no classical path to chemical accuracy exists at the active-space boundary, so quantum simulation is the only route; Class B (quantum-advantaged) — classical methods are insufficient at the required accuracy, and quantum simulation supplies the advantage; and Class C (filtered out) — classical methods are sufficient, so the target is filtered out of the quantum pipeline as not quantum-relevant.\"",
+    "_ordering": "The scale runs A (hardest, no classical path) -> B (classical insufficient, quantum advantaged) -> C (classical sufficient, filtered out). A is the quantum end; C is the classical end. Written down because this was inverted in discussion once — read as if C were the hard class — and nothing in the repo stated the direction explicitly.",
+    "_routing": "Class A and B enter the quantum queue; Class C is filtered out of it.",
+    "_evidence_basis": "The deciding physical quantity is the maximum von Neumann entanglement entropy (S_max) over bipartitions of the active space, not the electron count: DMRG's required bond dimension scales as M ~ e^(S_max) and its cost as M^3. Low S_max that saturates as the active space grows toward full site coverage (area law) is evidence FOR Class C — classically tractable. S_max that keeps climbing without saturating (volume law) is evidence toward B/A. FeMoco's CAS(113,76) was classically solved precisely because its S_max saturated at M=6000, despite 113 electrons — size is not the criterion.",
+    "A": "quantum-necessary — no classical path to chemical accuracy at the active-space boundary",
+    "B": "quantum-advantaged — classical methods insufficient at the required accuracy; quantum supplies the advantage",
+    "C": "filtered out — classical methods are sufficient; not quantum-relevant"
+  },
   "_class_granularity": "A gene carries bqp_class only where the dissertation records it as having 'no single-residue anchor' (KEAP1, CDKN2A, STK11) — there the class is a property of the domain. Genes whose mutations genuinely differ (TP53) carry none, and their classes live under mutations.",
   "genes": {
     "TP53": {
