@@ -34,6 +34,28 @@
 # actually raises the ncas ceiling past ~16 orbitals; the FCI path this script
 # used before cannot reach a real site's active-space size at all. Unset it
 # (--export=DMRG_SCF=) to fall back to plain FCI-based CASSCF.
+#
+# MAX_MINUTES (below) matters as much as --time does. solange_dmrg.py's own
+# run_dmrg() already knows how to stop gracefully and save a PROVISIONAL
+# classification once a wall-clock budget is spent — but only if TOLD that
+# budget via --max-minutes. Without it (the state this template shipped in
+# until now), the only limit is SBATCH's --time, which SLURM enforces with a
+# hard SIGKILL: no result written, nothing submitted, hours of RHF+AVAS+CASSCF
+# gone with it, exactly what happened on the first real-geometry run (TP53
+# Cys275 cluster, CAS(18,12)) — it never got past validate() in the surviving
+# log because the job was killed partway through the bond-dimension sweep,
+# not because anything was wrong scientifically. Default here (215 min) is
+# --time's 240 with a 25-minute margin for the final write + --submit to
+# complete before SLURM's own clock runs out; adjust both together if you
+# override --time.
+#
+# --scratch's default was tied to $SLURM_JOB_ID until now, which meant a job
+# stopped by --max-minutes (or, before that fix, killed outright by --time)
+# could never actually resume on resubmission — a fresh sbatch call gets a
+# fresh job ID, hence a fresh, empty scratch dir, hence bond_dims[0] again
+# every time, exactly the outcome run_dmrg()'s own resume-by-reusing-scratch
+# design was meant to avoid. Now keyed on the target instead, so re-running
+# this same template for the same KEY picks the MPS up where it left off.
 
 set -euo pipefail
 echo "Job $SLURM_JOB_ID on $(hostname)  $(date)"
@@ -77,8 +99,9 @@ bash scripts/laguna/run_dmrg.sh \
     --max-memory "${MAX_MEMORY:-16000}" \
     --df-auxbasis "${DF_AUXBASIS:-def2-universal-jkfit}" \
     ${NO_DENSITY_FIT_FLAG:-} \
-    --scratch   "${SCRATCH:-./tmp_dmrg_$SLURM_JOB_ID}" \
+    --scratch   "${SCRATCH:-./tmp_dmrg_${KEY:-TP53_C275F}}" \
     --bond-dims "${BOND_DIMS:-250,500,1000,2000}" \
+    --max-minutes "${MAX_MINUTES:-215}" \
     "${DMRG_SCF_ARGS[@]}" \
     --submit
 
