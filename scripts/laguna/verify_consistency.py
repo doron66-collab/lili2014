@@ -148,7 +148,12 @@ def main():
     # ── 1. Class letters: code vs the dissertation ────────────────────────────
     print("\n[1] BQP class — code vs dissertation")
     for name, cls in sorted(dc["classes"].items()):
-        gene = re.match(r"[A-Z]+[0-9]*[A-Z]*", name).group(0)
+        # A prose sentence can match the claim regex without naming a gene (an
+        # earlier §06.i rewrite produced "...entanglement is Class B"). Treat that
+        # as "no gene", not as a crash: the lookups below then find nothing and
+        # the entry is skipped rather than taking the whole checker down.
+        m = re.match(r"[A-Z]+[0-9]*[A-Z]*", name)
+        gene = m.group(0) if m else name
         gene = gene if gene in gm else next((g for g in gm if name.startswith(g)), None)
         for src, val in (("GENE_MAP", gm.get(gene, {}).get("bqp_class") if gene else None),
                          ("simulate.py", next((v["bqp_class"] for k, v in mc.items()
