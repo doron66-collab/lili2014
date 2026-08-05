@@ -94,18 +94,55 @@ _VALIDATED = [False]
 
 def build_integrals(r, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
                     dmrg_scf_maxm=250, dmrg_scf_scratch="./tmp_calib_orb", n_threads=4,
-                    max_cycle_macro=None):
-    """CASSCF at bond length r, returning the active-space integrals.
+                    max_cycle_macro=None, orb_ncas=None):
+    """Active-space integrals for N2 at bond length r.
 
-    CASSCF rather than CASCI on RHF orbitals: at stretched geometries the RHF
-    reference is qualitatively wrong, and orbitals optimised in the presence of
-    the active space are what make the S_max at each point comparable to the
-    others. Convergence is reported per point rather than assumed.
+    Orbitals must be obtained the same way at every geometry, so that the S_max
+    values along the series are comparable. They do NOT have to be variationally
+    optimal in the space being measured, and insisting on that was a costly
+    mistake: this calibration measures a property of a *representation* — how
+    much bond dimension a state of given entanglement needs — not a chemical
+    energy. Any consistent, reasonable orbital set gives valid (S_max,
+    M_required) pairs, and optimising them changes the runtime by an order of
+    magnitude while leaving the fitted relation alone.
+
+    Hence three modes, cheapest first:
+
+      orb_ncas=k  CASSCF in a small k-orbital space, then the integrals taken
+                  over the full ncas space on those orbitals. Seconds per
+                  geometry, and it avoids optimising orbitals in a space large
+                  enough for the optimisation itself to be the bottleneck.
+                  This is the recommended path.
+      dmrg_scf    orbitals optimised by DMRG across the whole ncas space. Fully
+                  rigorous and roughly two orders of magnitude slower; at
+                  CAS(10,16) a single geometry did not converge within thirty
+                  macro-iterations.
+      neither     conventional CASSCF across ncas, bounded by the exact solver's
+                  ~16-orbital wall.
     """
     from pyscf import gto, scf, mcscf, ao2mo
 
     mol = gto.M(atom=f"N 0 0 0; N 0 0 {r}", basis=basis, verbose=verbose, spin=0, charge=0)
     mf = scf.RHF(mol).run()
+
+    if orb_ncas:
+        # Orbitals from a small CASSCF, integrals over the large space. The large
+        # space is what keeps M_required from being capped by the Hilbert space
+        # at the cut; the small one is all the orbital optimisation needs.
+        mc_orb = mcscf.CASSCF(mf, orb_ncas, nelecas)
+        mc_orb.fix_spin_(ss=0)
+        mc_orb.max_cycle_macro = max_cycle_macro or 100
+        mc_orb.run()
+        mc = mcscf.CASCI(mf, ncas, nelecas)
+        mc.mo_coeff = mc_orb.mo_coeff
+        h1e, ecore = mc.get_h1eff()
+        h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
+        return {
+            "h1e": h1e, "h2e": h2e, "ecore": float(ecore),
+            "e_casscf": float(mc_orb.e_tot), "casscf_converged": bool(mc_orb.converged),
+            "orbital_source": f"CASSCF({nelecas},{orb_ncas}) orbitals, CASCI({nelecas},{ncas}) integrals",
+        }
+
     mc = mcscf.CASSCF(mf, ncas, nelecas)
     if dmrg_scf:
         # Past ~16 active orbitals CASSCF's FCI solver is combinatorially out of
@@ -140,6 +177,7 @@ def build_integrals(r, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
     return {
         "h1e": h1e, "h2e": h2e, "ecore": float(ecore),
         "e_casscf": float(mc.e_tot), "casscf_converged": bool(mc.converged),
+        "orbital_source": ("DMRG-SCF" if dmrg_scf else "CASSCF") + f"({nelecas},{ncas})",
     }
 
 
@@ -198,6 +236,14 @@ def main():
     ap.add_argument("--nelecas", type=int, default=10,
                     help="active electrons (default 10 — full valence for N2)")
     ap.add_argument("--bond-dims", default=",".join(str(x) for x in DEFAULT_BOND_DIMS))
+    ap.add_argument("--orb-ncas", type=int, default=None,
+                    help="RECOMMENDED. Optimise orbitals by CASSCF in this many "
+                         "orbitals, then take the integrals over the full --ncas "
+                         "space on them. The large space is what stops M_required "
+                         "being capped by the Hilbert space; the small one is all "
+                         "the orbital optimisation needs, since this calibration "
+                         "measures a representation property rather than an energy. "
+                         "Seconds per geometry against tens of minutes.")
     ap.add_argument("--dmrg-scf", action="store_true",
                     help="optimise the orbitals with DMRG instead of FCI, so --ncas "
                          "can exceed the ~16-orbital exact-solver wall. Needed for a "
@@ -222,6 +268,9 @@ def main():
     print("=" * 74)
     print("Bond-dimension calibration — N2 stretch series")
     print(f"  active space CAS({args.nelecas},{args.ncas}) / {args.basis}")
+    print("  orbitals     " + (f"CASSCF({args.nelecas},{args.orb_ncas}) then CASCI"
+                               if args.orb_ncas else
+                               ("DMRG-SCF" if args.dmrg_scf else "CASSCF") + " in the full space"))
     print(f"  bond dims    {bond_dims[0]}..{bond_dims[-1]} ({len(bond_dims)} steps)")
     print(f"  lengths      {lengths}")
     print("=" * 74)
@@ -234,7 +283,8 @@ def main():
                                   dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
                                   dmrg_scf_scratch=args.dmrg_scf_scratch,
                                   n_threads=args.threads,
-                                  max_cycle_macro=args.max_cycle_macro)
+                                  max_cycle_macro=args.max_cycle_macro,
+                                  orb_ncas=args.orb_ncas)
         except Exception as exc:                          # noqa: BLE001
             print(f"  SKIP — CASSCF failed: {exc}")
             continue
@@ -272,6 +322,7 @@ def main():
             "r_angstrom": r, "s_max": float(s_max), "m_required": m_req,
             "quality": quality, "e_casscf": cas["e_casscf"],
             "casscf_converged": cas["casscf_converged"],
+            "orbital_source": cas.get("orbital_source"),
             "e_dmrg_final": float(energies[-1][1]),
             "energies": [[int(M), float(e)] for M, e in energies],
             "stop_reason": stop_reason,
