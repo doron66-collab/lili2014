@@ -11,9 +11,12 @@
     "_ordering": "The scale runs A (hardest, no classical path) -> B (classical insufficient, quantum advantaged) -> C (classical sufficient, filtered out). A is the quantum end; C is the classical end. Written down because this was inverted in discussion once — read as if C were the hard class — and nothing in the repo stated the direction explicitly.",
     "_routing": "Class A and B enter the quantum queue; Class C is filtered out of it.",
     "_evidence_basis": "The deciding physical quantity is the maximum von Neumann entanglement entropy (S_max) over bipartitions of the active space, not the electron count: DMRG's required bond dimension scales as M ~ e^(S_max) and its cost as M^3. Low S_max that saturates as the active space grows toward full site coverage (area law) is evidence FOR Class C — classically tractable. S_max that keeps climbing without saturating (volume law) is evidence toward B/A. FeMoco's CAS(113,76) was classically solved precisely because its S_max saturated at M=6000, despite 113 electrons — size is not the criterion.",
-    "A": "quantum-necessary — no classical path to chemical accuracy at the active-space boundary",
-    "B": "quantum-advantaged — classical methods insufficient at the required accuracy; quantum supplies the advantage",
-    "C": "filtered out — classical methods are sufficient; not quantum-relevant"
+    "A": "quantum-necessary — >18 active electrons and S_max above the threshold",
+    "B": "quantum-advantaged — >18 active electrons and S_max at or below the threshold",
+    "C": "filtered out — at or below 18 active electrons, whatever the entanglement",
+    "_rule": "Two measured inputs: active electrons, and S_max measured over the site. <=18 active electrons -> C regardless of S_max (exact diagonalisation settles the space and is indifferent to entanglement, so S_max is not consulted). >18 active electrons -> B if S_max <= threshold, A if above it.",
+    "_evidence_rule": "A class follows only from measurement. Electron count is known from the structure; S_max requires a run covering >=90% of the active site. Without it the entry carries a prior, not a classification, and bqp_class_source must say so. Electron count may motivate a prior; it cannot discharge one.",
+    "_threshold": "S_HARD = 1.5, calibrated between N2 at equilibrium (0.42) and stretched (2.86). A policy of this pipeline, not a constant of nature: it marks where this pipeline's committed bond dimension runs out. Under calibration via scripts/laguna/calibrate_bond_dimension.py, which measures the prefactor C in M ~ C*e^S and so lets the threshold be derived as ln(PRACTICAL_M / C) rather than chosen."
   },
   "_class_granularity": "A gene carries bqp_class only where the dissertation records it as having 'no single-residue anchor' (KEAP1, CDKN2A, STK11) — there the class is a property of the domain. Genes whose mutations genuinely differ (TP53) carry none, and their classes live under mutations.",
   "genes": {
@@ -28,14 +31,16 @@
       "full_qubits": 310,
       "badge_type": "PPI",
       "color": "#b47fd4",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement."
     },
     "STK11": {
       "active_electrons": 152,
       "full_qubits": 304,
       "badge_type": "SL",
       "color": "#60a5fa",
-      "bqp_class": "A"
+      "bqp_class": "A",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires."
     },
     "KRAS": {
       "active_electrons": 40,
@@ -108,7 +113,8 @@
       "full_qubits": 60,
       "badge_type": "Helicase LOF",
       "color": "#f97316",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "IDH1": {
       "active_electrons": 22,
@@ -139,14 +145,16 @@
       "full_qubits": 56,
       "badge_type": "Chromatin LOF",
       "color": "#817cdb",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "POLE": {
       "active_electrons": 24,
       "full_qubits": 48,
       "badge_type": "Exonuclease LOF",
       "color": "#9e6af5",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "BRCA1": {
       "active_electrons": 32,
@@ -183,7 +191,8 @@
       "full_qubits": 56,
       "badge_type": "RasGAP LOF",
       "color": "#c87210",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "NF2": {
       "active_electrons": 22,
@@ -202,7 +211,8 @@
       "full_qubits": 48,
       "badge_type": "WNT Scaffold",
       "color": "#1e9b4d",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "CDKN2A": {
       "active_electrons": 18,
@@ -214,7 +224,8 @@
         14,
         18
       ],
-      "active_electrons_source": "dissertation §06.i — hydrophobic core disruption, 14-18e"
+      "active_electrons_source": "dissertation §06.i — hydrophobic core disruption, 14-18e",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "MET": {
       "active_electrons": 46,
@@ -281,7 +292,8 @@
       "full_qubits": 64,
       "badge_type": "Phosphatase LOF",
       "color": "#0a988b",
-      "bqp_class": "B"
+      "bqp_class": "B",
+      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "SMAD4": {
       "active_electrons": 28,
@@ -345,7 +357,8 @@
       "local_electrons": 104,
       "local_qubits": 208,
       "bqp_class": "B",
-      "hardware_era": "fault_tolerant"
+      "hardware_era": "fault_tolerant",
+      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement."
     },
     "KEAP1_G333C": {
       "name": "KEAP1 p.Gly333Cys",
@@ -359,7 +372,8 @@
       "local_electrons": 104,
       "local_qubits": 208,
       "bqp_class": "B",
-      "hardware_era": "fault_tolerant"
+      "hardware_era": "fault_tolerant",
+      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement."
     },
     "KEAP1_R320Q": {
       "name": "KEAP1 p.Arg320Gln",
@@ -373,7 +387,8 @@
       "local_electrons": 80,
       "local_qubits": 160,
       "bqp_class": "B",
-      "hardware_era": "fault_tolerant"
+      "hardware_era": "fault_tolerant",
+      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement."
     },
     "STK11_LKB1": {
       "name": "STK11/LKB1 Loss-of-Function",
@@ -387,7 +402,8 @@
       "local_electrons": 76,
       "local_qubits": 152,
       "bqp_class": "A",
-      "hardware_era": "fault_tolerant"
+      "hardware_era": "fault_tolerant",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires."
     },
     "STK11_F354L": {
       "name": "STK11 p.Phe354Leu",
@@ -401,7 +417,8 @@
       "local_electrons": 48,
       "local_qubits": 96,
       "bqp_class": "A",
-      "hardware_era": "near_term"
+      "hardware_era": "near_term",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires."
     },
     "STK11_D194N": {
       "name": "STK11 p.Asp194Asn",
@@ -415,7 +432,8 @@
       "local_electrons": 76,
       "local_qubits": 152,
       "bqp_class": "A",
-      "hardware_era": "fault_tolerant"
+      "hardware_era": "fault_tolerant",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires."
     }
   }
 }
