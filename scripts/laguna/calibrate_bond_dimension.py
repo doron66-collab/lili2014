@@ -89,7 +89,11 @@ DEFAULT_BOND_DIMS = [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768
 DEFAULT_LENGTHS = [1.098, 1.30, 1.60, 2.00, 2.50, 3.00]
 
 
-def build_integrals(r, basis, ncas, nelecas, verbose=0):
+_VALIDATED = [False]
+
+
+def build_integrals(r, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
+                    dmrg_scf_maxm=250, dmrg_scf_scratch="./tmp_calib_orb", n_threads=4):
     """CASSCF at bond length r, returning the active-space integrals.
 
     CASSCF rather than CASCI on RHF orbitals: at stretched geometries the RHF
@@ -102,6 +106,26 @@ def build_integrals(r, basis, ncas, nelecas, verbose=0):
     mol = gto.M(atom=f"N 0 0 0; N 0 0 {r}", basis=basis, verbose=verbose, spin=0, charge=0)
     mf = scf.RHF(mol).run()
     mc = mcscf.CASSCF(mf, ncas, nelecas)
+    if dmrg_scf:
+        # Past ~16 active orbitals CASSCF's FCI solver is combinatorially out of
+        # reach, and a large active space is exactly what this calibration needs:
+        # while the space is small enough for DMRG to be near-exact at trivial
+        # bond dimension, M_required is set by the Hilbert space and carries no
+        # information about S. Same adapter the classifier rung uses, and the
+        # same tolerances — pyscf's defaults sit below DMRG's own RDM noise floor
+        # and can never be met.
+        from dmrgscf_block2 import Block2FCISolver, validate
+        if not _VALIDATED[0]:
+            validate(scratch=dmrg_scf_scratch + "_validate", n_threads=n_threads,
+                     verbose=True)
+            _VALIDATED[0] = True
+        mc.fcisolver = Block2FCISolver(maxM=dmrg_scf_maxm, scratch=dmrg_scf_scratch,
+                                       n_threads=n_threads)
+        mc.internal_rotation = True
+        mc.conv_tol = 1e-6
+        mc.conv_tol_grad = 1e-3
+    else:
+        mc.fix_spin_(ss=0)
     mc.max_cycle_macro = 100
     mc.run()
 
@@ -168,6 +192,13 @@ def main():
     ap.add_argument("--nelecas", type=int, default=10,
                     help="active electrons (default 10 — full valence for N2)")
     ap.add_argument("--bond-dims", default=",".join(str(x) for x in DEFAULT_BOND_DIMS))
+    ap.add_argument("--dmrg-scf", action="store_true",
+                    help="optimise the orbitals with DMRG instead of FCI, so --ncas "
+                         "can exceed the ~16-orbital exact-solver wall. Needed for a "
+                         "clean fit: at small --ncas the bond dimension DMRG requires "
+                         "is capped by the Hilbert space rather than driven by S.")
+    ap.add_argument("--dmrg-scf-maxm", type=int, default=250)
+    ap.add_argument("--dmrg-scf-scratch", default="./tmp_calib_orb")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--scratch", default="./tmp_calib")
     ap.add_argument("--out", default="./out/calibration.json")
@@ -188,7 +219,10 @@ def main():
     for r in lengths:
         print(f"\n--- N2 at r = {r:.3f} A " + "-" * 40)
         try:
-            cas = build_integrals(r, args.basis, args.ncas, args.nelecas, args.verbose)
+            cas = build_integrals(r, args.basis, args.ncas, args.nelecas, args.verbose,
+                                  dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
+                                  dmrg_scf_scratch=args.dmrg_scf_scratch,
+                                  n_threads=args.threads)
         except Exception as exc:                          # noqa: BLE001
             print(f"  SKIP — CASSCF failed: {exc}")
             continue
@@ -240,7 +274,33 @@ def main():
     # undefined R^2 — which reads like a failed model but is really a failed
     # measurement, and the two must not be confused.
     distinct = len({p["m_required"] for p in usable})
-    if usable and distinct < 3:
+
+    # A series can clear the "3 distinct values" bar and still be worthless: the
+    # requirement rises over the easy geometries, then pins against the largest
+    # bond dimension the active space can even use and stops responding to S
+    # entirely. Fitting through that plateau averages a real slope together with
+    # a flat tail and reports neither. Detect it, and fit the responsive part.
+    plateau = []
+    if usable:
+        m_top = max(p["m_required"] for p in usable)
+        plateau = [p for p in usable if p["m_required"] == m_top]
+    if usable and distinct >= 3 and len(plateau) >= 3:
+        responsive = [p for p in usable if p not in plateau] + plateau[:1]
+        print(f"\n  M_required PINNED at {m_top} for {len(plateau)} of {len(usable)} "
+              "geometries. Past that point the active space, not the entanglement, "
+              "is setting the requirement: DMRG is already exact there and cannot "
+              "need more than the Hilbert space at the cut allows. A fit across the "
+              "plateau mixes a real slope with a flat tail.")
+        if len(responsive) >= 3:
+            r_slope, _, r_C, r_r2 = fit(responsive)
+            print(f"  Over the {len(responsive)} responsive point(s) only: "
+                  f"slope = {r_slope:.3f}, C = {r_C:.2f}, R^2 = {r_r2:.4f}")
+        print("  To measure this properly the space must be large enough that "
+              "M_required never reaches its own ceiling: re-run with a bigger "
+              "--ncas (16, then 20) together with --dmrg-scf, which is what lets "
+              "the orbital optimisation past the exact solver's ~16-orbital wall.")
+        result_note = "requirement_pinned_active_space_bounds_it"
+    elif usable and distinct < 3:
         print("\n  MEASUREMENT FAILED, NOT THE MODEL. Only "
               f"{distinct} distinct M_required value(s) across the series, so there "
               "is nothing for a slope to be fitted to. This is the signature of an "
@@ -263,7 +323,7 @@ def main():
         "wall_seconds": round(time.time() - t0, 1),
     }
 
-    if len(usable) >= 3 and distinct >= 3:
+    if len(usable) >= 3 and distinct >= 3 and len(plateau) < 3:
         slope, intercept, C, r2 = fit(usable)
         result["fit"] = {"slope": slope, "intercept": intercept, "C": C, "r2": r2,
                          "n_points": len(usable)}
