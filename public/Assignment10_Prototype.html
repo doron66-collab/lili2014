@@ -5121,13 +5121,24 @@ function updatePQAfterRun(mutationId) {
     if (card)  { card.style.background = 'rgba(232,160,32,0.06)'; card.style.borderColor = 'rgba(232,160,32,0.22)'; }
   }
 
-  // PASSED only when activeTargets is non-empty AND every target is completed
+  // What actually happens here: every activeTarget has been run through the
+  // Phase 3A DEMO simulator — 4-qubit CAS(2,2), in-browser, not dispatched to
+  // any real compute resource. That is a real, honest fact worth showing —
+  // but it is not a Performance Qualification, and the badge/footer must not
+  // read like one. This used to say "PASSED · Signed: D. Cohen · Doc:
+  // PQ-v1.0" the moment every target finished, with today's real date
+  // stamped in — a signed-looking regulatory claim generated from four
+  // browser-demo clicks, the same fabrication already found and fixed on
+  // this card's IQ/OQ neighbors. Fixed the same way: name what happened,
+  // not what it resembles.
   if (activeTargets.length > 0 && activeTargets.every(id => pqCompleted.has(id))) {
-    if (badge) { badge.textContent = 'PASSED'; badge.className = 'badge badge-green'; }
-    if (title) title.style.color = 'var(--green)';
-    if (card)  { card.style.background = 'rgba(34,197,94,0.06)'; card.style.borderColor = 'rgba(34,197,94,0.22)'; }
+    if (badge) { badge.textContent = 'DEMO COMPLETE'; badge.className = 'badge badge-teal'; }
+    if (title) title.style.color = 'var(--teal)';
+    if (card)  { card.style.background = 'rgba(6,182,212,0.06)'; card.style.borderColor = 'rgba(6,182,212,0.22)'; }
     const footer = document.getElementById('pq-footer');
-    if (footer) footer.textContent = `Completed: ${new Date().toLocaleDateString()} · Signed: D. Cohen · Doc: PQ-v1.0`;
+    if (footer) footer.textContent =
+      `Phase 3A demo-simulator smoke test complete for ${activeTargets.length}/${activeTargets.length} `
+      + `anchor mutations (4-qubit CAS(2,2), in-browser) — not a Performance Qualification. Not signed.`;
   }
 }
 
