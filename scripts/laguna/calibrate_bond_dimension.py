@@ -248,10 +248,14 @@ def main():
         # early_stop must be OFF: the whole measurement is where on the ladder the
         # energy settles, and early stop would truncate the ladder at exactly that
         # point, leaving no reference beyond it to measure the requirement against.
-        # One scratch directory per bond length, so block2 never resumes an MPS
-        # from a different geometry. It must be created here: block2 creates only
-        # the final component of a scratch path, not the parent chain.
-        scratch = os.path.join(args.scratch, f"r{r:.3f}")
+        # One scratch directory per (active space, geometry), so block2 never
+        # resumes an MPS built for a different system. Keying on the geometry
+        # alone is not enough: block2 is designed to pick up a saved state from a
+        # reused scratch path, so a CAS(10,16) run would land on whatever a
+        # CAS(10,12) run left behind at the same bond length. It must be created
+        # here too — block2 creates only the final component of a path, not the
+        # parent chain.
+        scratch = os.path.join(args.scratch, f"cas{args.nelecas}_{args.ncas}", f"r{r:.3f}")
         os.makedirs(scratch, exist_ok=True)
 
         energies, s_max, stop_reason = run_dmrg(
