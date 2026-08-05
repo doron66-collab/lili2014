@@ -93,7 +93,8 @@ _VALIDATED = [False]
 
 
 def build_integrals(r, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
-                    dmrg_scf_maxm=250, dmrg_scf_scratch="./tmp_calib_orb", n_threads=4):
+                    dmrg_scf_maxm=250, dmrg_scf_scratch="./tmp_calib_orb", n_threads=4,
+                    max_cycle_macro=None):
     """CASSCF at bond length r, returning the active-space integrals.
 
     CASSCF rather than CASCI on RHF orbitals: at stretched geometries the RHF
@@ -126,7 +127,12 @@ def build_integrals(r, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
         mc.conv_tol_grad = 1e-3
     else:
         mc.fix_spin_(ss=0)
-    mc.max_cycle_macro = 100
+    # CASSCF calls its solver roughly four times per macro-iteration. With FCI
+    # that is cheap and a high cap costs nothing; with DMRG each call is a full
+    # sweep set, so the same cap means up to four hundred sweeps per geometry and
+    # six geometries behind it. Default accordingly, and report convergence either
+    # way rather than inferring it from the run having stopped.
+    mc.max_cycle_macro = max_cycle_macro if max_cycle_macro is not None else (30 if dmrg_scf else 100)
     mc.run()
 
     h1e, ecore = mc.get_h1eff()
@@ -198,6 +204,11 @@ def main():
                          "clean fit: at small --ncas the bond dimension DMRG requires "
                          "is capped by the Hilbert space rather than driven by S.")
     ap.add_argument("--dmrg-scf-maxm", type=int, default=250)
+    ap.add_argument("--max-cycle-macro", type=int, default=None,
+                    help="CASSCF orbital macro-iteration cap (default: 30 under "
+                         "--dmrg-scf, 100 otherwise). Each macro-iteration is about "
+                         "four solver calls, which is free under FCI and a full sweep "
+                         "set each under DMRG.")
     ap.add_argument("--dmrg-scf-scratch", default="./tmp_calib_orb")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--scratch", default="./tmp_calib")
@@ -222,12 +233,17 @@ def main():
             cas = build_integrals(r, args.basis, args.ncas, args.nelecas, args.verbose,
                                   dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
                                   dmrg_scf_scratch=args.dmrg_scf_scratch,
-                                  n_threads=args.threads)
+                                  n_threads=args.threads,
+                                  max_cycle_macro=args.max_cycle_macro)
         except Exception as exc:                          # noqa: BLE001
             print(f"  SKIP — CASSCF failed: {exc}")
             continue
         if not cas["casscf_converged"]:
-            print("  WARNING — CASSCF did not converge; point flagged, not dropped")
+            print("  WARNING — orbital optimisation hit the macro-iteration cap "
+                  "without converging. The point is flagged, not dropped: raise "
+                  "--max-cycle-macro if several geometries report this, since "
+                  "unconverged orbitals make this geometry's S_max not strictly "
+                  "comparable to the others.")
 
         # early_stop must be OFF: the whole measurement is where on the ladder the
         # energy settles, and early stop would truncate the ladder at exactly that
