@@ -79,7 +79,10 @@ from solange_dmrg import run_dmrg, CHEM_ACC_MHA          # noqa: E402
 # Geometric ladder. Fine enough that ln(M_required) is resolved rather than
 # quantised into a few steps, which a coarse 250/500/1000/2000 ladder would do —
 # the fit is in log space, so resolution there is what the slope estimate needs.
-DEFAULT_BOND_DIMS = [20, 28, 40, 56, 80, 112, 160, 224, 320, 448, 640, 900, 1280, 1800]
+# The floor starts low because the first calibration run found every geometry
+# converged at or below M=28: the requirement was pinned against the bottom of
+# the ladder, not measured.
+DEFAULT_BOND_DIMS = [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536]
 
 # N2 bond lengths in Angstrom. 1.098 is equilibrium; the rest walk out toward
 # dissociation, where the sigma bond breaks and static correlation takes over.
@@ -153,8 +156,15 @@ def main():
     ap.add_argument("--lengths", default=",".join(str(x) for x in DEFAULT_LENGTHS),
                     help="comma-separated N2 bond lengths in Angstrom")
     ap.add_argument("--basis", default="cc-pVDZ")
-    ap.add_argument("--ncas", type=int, default=8,
-                    help="active orbitals (default 8 — full valence for N2)")
+    ap.add_argument("--ncas", type=int, default=12,
+                    help="active orbitals (default 12). NOT the full-valence 8: at "
+                         "eight orbitals the middle cut spans only 4^4 states, so "
+                         "the bond dimension DMRG needs is set by the size of the "
+                         "Hilbert space rather than by the entanglement, and the "
+                         "exponential relation this script measures cannot appear. "
+                         "The first run confirmed exactly that — every geometry "
+                         "landed on the same M. Raise further if M_required still "
+                         "does not vary across the series.")
     ap.add_argument("--nelecas", type=int, default=10,
                     help="active electrons (default 10 — full valence for N2)")
     ap.add_argument("--bond-dims", default=",".join(str(x) for x in DEFAULT_BOND_DIMS))
@@ -218,6 +228,31 @@ def main():
     print(f"{len(points)} point(s) run, {len(usable)} usable for the fit "
           f"({len(points) - len(usable)} at the ladder's floor or ceiling)")
 
+    if points:
+        s_vals = [p["s_max"] for p in points]
+        m_vals = [p["m_required"] for p in points if p["m_required"]]
+        print(f"  S_max spanned      {min(s_vals):.3f} .. {max(s_vals):.3f}")
+        print(f"  M_required spanned {min(m_vals)} .. {max(m_vals)} "
+              f"({len(set(m_vals))} distinct value(s))")
+
+    # A fit needs the dependent variable to actually move. If every geometry
+    # converged at the same bond dimension, the regression returns slope 0 and an
+    # undefined R^2 — which reads like a failed model but is really a failed
+    # measurement, and the two must not be confused.
+    distinct = len({p["m_required"] for p in usable})
+    if usable and distinct < 3:
+        print("\n  MEASUREMENT FAILED, NOT THE MODEL. Only "
+              f"{distinct} distinct M_required value(s) across the series, so there "
+              "is nothing for a slope to be fitted to. This is the signature of an "
+              "active space too small for the relation to appear: when the middle "
+              "cut spans few enough states, DMRG is near-exact at trivial bond "
+              "dimension no matter how entangled the state is, and the requirement "
+              "tracks the Hilbert space instead of the entropy. Raise --ncas (12 -> "
+              "16 -> 20) until M_required varies across the geometries.")
+        result_note = "measurement_failed_active_space_too_small"
+    else:
+        result_note = None
+
     result = {
         "system": "N2 stretch series",
         "active_space": f"CAS({args.nelecas},{args.ncas})",
@@ -228,7 +263,7 @@ def main():
         "wall_seconds": round(time.time() - t0, 1),
     }
 
-    if len(usable) >= 3:
+    if len(usable) >= 3 and distinct >= 3:
         slope, intercept, C, r2 = fit(usable)
         result["fit"] = {"slope": slope, "intercept": intercept, "C": C, "r2": r2,
                          "n_points": len(usable)}
@@ -245,6 +280,8 @@ def main():
               "end that failed: 'at_floor' means the ladder starts too high, "
               "'at_ceiling' means it stops too low.")
 
+    if result_note:
+        result["note"] = result_note
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2))
