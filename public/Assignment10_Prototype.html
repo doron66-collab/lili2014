@@ -3739,7 +3739,15 @@ window.solangeMutationType = function(mutation) {
   const low = m.toLowerCase();
   // Order matters: check the specific patterns before the generic substitution one.
   if (/\bc\.\d+[+-]\d+/.test(m))                       return 'splice';   // intronic offset, e.g. c.375+2T>G
-  if (/\b(ins|del|dup|fs)\b|del[A-Z]*\d*|\bdeletion\b|\bhomozygous deletion\b/i.test(m)) return 'indel';
+  // "fs" deliberately has NO leading \b: real HGVS frameshift notation glues it
+  // directly onto the new-frame residue code with no boundary at all — p.Cys196Leufs*
+  // — so \bfs\b (word-bounded) never matches real frameshift notation and every such
+  // mutation silently fell through to 'other', losing LOF-scope eligibility for genes
+  // like KEAP1 that explicitly accept LOF (BQP_CLASS_SCOPE.acceptsLof). Matched instead
+  // by what follows "fs" in the standard notation: a stop codon (*), "Ter", a digit
+  // (fsTer12), or end of string — which also keeps this from matching "fs" inside an
+  // unrelated word like "offset".
+  if (/\b(ins|del|dup)\b|fs(?=\*|Ter|\d|$)|del[A-Z]*\d*|\bdeletion\b|\bhomozygous deletion\b/i.test(m)) return 'indel';
   if (/loss of function|\blof\b|\bloss\b/i.test(low))  return 'lof';
   if (/^p\.[A-Za-z]{3}\d+[A-Za-z]{3}$/.test(m))        return 'missense'; // p.Cys275Phe
   if (/^[A-Z]\d+[A-Z]$/.test(m))                       return 'missense'; // C275F
