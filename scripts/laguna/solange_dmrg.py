@@ -56,8 +56,17 @@ S_HARD       = 1.5          # max bipartite entanglement entropy above which the
                             # S_max=2.86 (strongly correlated). 1.5 sits between them.
 
 
+# block2 pre-allocates its own memory pool and aborts with "exceeding allowed
+# memory" when a sweep outgrows it. That pool is NOT the cluster's limit: the
+# default is about 1 GB, roughly an eighth of the per-user cgroup ceiling here,
+# and every run before this default was set was silently capped by it rather than
+# by the machine. Sized to leave generous headroom under the cgroup ceiling.
+DEFAULT_STACK_MEM_GB = 4.0
+
+
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
-             n_threads=4, max_minutes=None, early_stop=True):
+             n_threads=4, max_minutes=None, early_stop=True,
+             stack_mem_gb=DEFAULT_STACK_MEM_GB):
     """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max.
 
     HPC-ticket-aware: prints live per-M timing (so `tail -f` shows real progress,
@@ -69,7 +78,8 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     from where a prior run left off instead of restarting from bond_dims[0].
     """
     from pyblock2.driver.core import DMRGDriver, SymmetryTypes
-    drv = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads)
+    drv = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads,
+                     stack_mem=int(stack_mem_gb * (1 << 30)))
     drv.initialize_system(n_sites=ncas, n_elec=nelecas, spin=0)
     mpo = drv.get_qc_mpo(h1e=h1e, g2e=h2e, ecore=ecore, iprint=0)
     ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)

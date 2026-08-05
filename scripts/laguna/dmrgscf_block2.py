@@ -115,6 +115,13 @@ RECONSTRUCTION_WARN_TOL = 1.6e-3   # 1 kcal/mol, the chemical-accuracy target
 # separates them equally well.
 FCI_AGREEMENT_TOL = 1e-6
 
+# block2 pre-allocates its own memory pool and aborts with "exceeding allowed
+# memory" the moment a sweep outgrows it. That pool is not the machine's limit
+# and not the scheduler's: its default is about 1 GB, and until it was set
+# explicitly every run here was bounded by it rather than by the cluster —
+# a ceiling roughly an eighth of the per-user cgroup limit, hit silently.
+DEFAULT_STACK_MEM_GB = 4.0
+
 
 def _as_alpha_beta(nelec):
     """PySCF passes nelec as either a total count or an (nalpha, nbeta) pair."""
@@ -143,10 +150,12 @@ class Block2FCISolver:
     """
 
     def __init__(self, maxM=500, scratch="./tmp_dmrgscf_orb", n_threads=4,
-                 n_sweeps=10, warm_sweeps=4, tol=1e-8, verbose=False, progress=True):
+                 n_sweeps=10, warm_sweeps=4, tol=1e-8, verbose=False, progress=True,
+                 stack_mem_gb=DEFAULT_STACK_MEM_GB):
         self.maxM = int(maxM)
         self.scratch = scratch
         self.n_threads = int(n_threads)
+        self.stack_mem_gb = float(stack_mem_gb)
         # n_sweeps applies to the COLD solve, which must converge a random MPS
         # from scratch. warm_sweeps applies to every solve after it, which
         # starts from the previous macro-iteration's converged state and only
@@ -223,6 +232,7 @@ class Block2FCISolver:
         system = (norb, n_elec, spin)
         if self._driver is None or self._system != system:
             self._driver = DMRGDriver(scratch=self.scratch, symm_type=SymmetryTypes.SU2,
+                                      stack_mem=int(self.stack_mem_gb * (1 << 30)),
                                       n_threads=self.n_threads)
             self._driver.initialize_system(n_sites=norb, n_elec=n_elec, spin=spin)
             self._ket = None
@@ -462,7 +472,8 @@ def diagnose(norb=6, nelec=6, seed=0, maxM=500, scratch="./tmp_dmrgscf_diagnose"
     ecore = 0.0
 
     eri_full = ao2mo.restore(1, np.asarray(eri), norb)
-    driver = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads)
+    driver = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads,
+                        stack_mem=int(DEFAULT_STACK_MEM_GB * (1 << 30)))
     driver.initialize_system(n_sites=norb, n_elec=nalpha + nbeta, spin=nalpha - nbeta)
     mpo = driver.get_qc_mpo(h1e=h1e, g2e=eri_full, ecore=ecore, iprint=0)
     ket = driver.get_random_mps(tag="DIAG", bond_dim=min(maxM, 250), nroots=1)

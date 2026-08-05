@@ -256,6 +256,11 @@ def main():
                          "four solver calls, which is free under FCI and a full sweep "
                          "set each under DMRG.")
     ap.add_argument("--dmrg-scf-scratch", default="./tmp_calib_orb")
+    ap.add_argument("--stack-mem-gb", type=float, default=4.0,
+                    help="block2's own pre-allocated memory pool, in GB. Its "
+                         "library default of ~1 GB is what aborts a sweep with "
+                         "'exceeding allowed memory' — a limit internal to block2, "
+                         "unrelated to the machine's or the scheduler's.")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--scratch", default="./tmp_calib")
     ap.add_argument("--out", default="./out/calibration.json")
@@ -310,7 +315,8 @@ def main():
 
         energies, s_max, stop_reason = run_dmrg(
             cas["h1e"], cas["h2e"], cas["ecore"], args.ncas, args.nelecas, bond_dims,
-            scratch=scratch, n_threads=args.threads, early_stop=False)
+            scratch=scratch, n_threads=args.threads, early_stop=False,
+            stack_mem_gb=args.stack_mem_gb)
 
         if s_max is None:
             print("  SKIP — S_max unavailable from the converged MPS")
