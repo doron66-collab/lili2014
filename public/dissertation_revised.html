@@ -3267,13 +3267,13 @@
     <!-- ========== APPENDIX A — COMPLETE GLOSSARY ========== -->
     <section class="doc-section reveal" id="appendix-a">
       <div class="section-number">Appendix A <span class="dash"></span> Complete Glossary</div>
-      <h2 class="section-title">Seventy-Seven Entries.</h2>
+      <h2 class="section-title">Ninety-Five Entries.</h2>
 
       <p><em>A Translational QC·AI·HPC Orchestration Platform for Non-druggable NSCLC Tumor-Suppressor Mutations</em></p>
 
       <p>This glossary consolidates every acronym and technical term that appears across the dissertation proposal, conference poster, deployed prototype (<code>solange-platform.bio</code>), and supporting coursework artifacts. Each entry pairs the standard definition with the term's specific role in this dissertation, so a reader unfamiliar with quantum computing, computational chemistry, FDA regulation, or oncology can follow the work without external reference. Terms are listed alphabetically.</p>
 
-      <p><strong>Total entries:</strong> <strong>77</strong></p>
+      <p><strong>Total entries:</strong> <strong>95</strong></p>
 
       <div class="table-wrap">
         <table>
@@ -3296,9 +3296,19 @@
               <td>A CNN extended to three-dimensional input grids. Architecture of the Nvidia Ising QEC decoder, applied to syndrome lattices in real-time error correction. Layer 2 commodity; provenance recorded in P9.</td>
             </tr>
             <tr>
+              <td><strong>ACCESS</strong></td>
+              <td><em>Advanced Cyberinfrastructure Coordination Ecosystem: Services &amp; Support (NSF)</em></td>
+              <td>The U.S. National Science Foundation's national programme allocating time on academic supercomputers. Named alongside USC CARC as the classical HPC substrate on which the Phase 3A state-vector run (~20e/40q, ~17.6&nbsp;TB) is within multi-node reach (&sect;08).</td>
+            </tr>
+            <tr>
               <td><strong>ALK</strong></td>
               <td><em>Anaplastic Lymphoma Kinase</em></td>
               <td>An oncogene whose rearrangements drive ~5% of NSCLC cases. ALK has FDA-approved targeted therapies (crizotinib, alectinib) and therefore represents the druggable counterpart to the tumor-suppressor mutations addressed in this dissertation. Cited in the Problem Statement to delineate the clinical gap.</td>
+            </tr>
+            <tr>
+              <td><strong>AlphaFold</strong></td>
+              <td><em>DeepMind protein-structure prediction system</em></td>
+              <td>Source of a predicted structure where no experimental one exists. Supplies the STK11 F354L local site (UniProt Q15831), and is named alongside experimental PDB entries as an admissible structure input for carving a quantum-mechanical cluster around a mutated residue (&sect;09).</td>
             </tr>
             <tr>
               <td><strong>API</strong></td>
@@ -3311,6 +3321,11 @@
               <td>The principal energy-carrying molecule in cells; binds to kinase active sites. Relevant to STK11 - one of the four target mutations - whose kinase domain coordinates ATP and contributes to the active-space electron count requiring quantum-grade simulation.</td>
             </tr>
             <tr>
+              <td><strong>AVAS</strong></td>
+              <td><em>Atomic Valence Active Space</em></td>
+              <td>An automated procedure for choosing which orbitals enter a correlated calculation, by projecting the mean-field orbitals onto selected atomic valence functions. Used on the DMRG rung to derive the active space around the mutated residue rather than fixing it by hand.</td>
+            </tr>
+            <tr>
               <td><strong>B3LYP</strong></td>
               <td><em>Becke 3-parameter Lee-Yang-Parr (DFT functional)</em></td>
               <td>A widely used hybrid density functional in classical computational chemistry. The poster's results section reports B3LYP at -8.4 kcal/mol with 2.8 kcal/mol error - outside the chemical accuracy threshold of ≤2 kcal/mol - establishing why classical DFT is insufficient for C275F at the active-space boundary.</td>
@@ -3319,6 +3334,11 @@
               <td><strong>BAA</strong></td>
               <td><em>Business Associate Agreement</em></td>
               <td>A HIPAA-mandated contract between a covered entity (hospital, clinic) and any external party that handles Protected Health Information on its behalf. Out of scope for this dissertation because the platform uses fully de-identified single-case reference data (MI25-0349) but would become relevant in any future multi-patient extension.</td>
+            </tr>
+            <tr>
+              <td><strong>bond dimension</strong></td>
+              <td><em>M &mdash; the rank retained in a matrix-product-state representation</em></td>
+              <td>The single parameter controlling DMRG's accuracy and cost. It must grow roughly as e<sup>S</sup> with the entanglement entropy S across the most strongly correlated bipartition of the active space, while cost scales as M&sup3;. This is why entanglement, not electron count, decides whether a target is classically tractable &mdash; the physical basis of the &sect;06.i classification.</td>
             </tr>
             <tr>
               <td><strong>BPR</strong></td>
@@ -3339,6 +3359,11 @@
               <td><strong>C275F</strong></td>
               <td><em>TP53 p.Cys275Phe (cysteine-to-phenylalanine substitution at position 275)</em></td>
               <td>A non-druggable TP53 missense mutation in which Cys275 is replaced by Phe. The mutation introduces a rigid aromatic π-system into the hydrophobic β-sandwich core of the p53 DNA-binding domain, disrupting DNA-contact geometry without creating an exploitable drug-binding cavity. C275F is the dissertation's primary demonstration case - sourced from patient NGS report MI25-0349 - and the focal point of the Phase 3A and 3B simulations. C275F is classified as a structural mutant: the Cys→Phe substitution destabilizes the hydrophobic core of the DNA-binding domain rather than directly abolishing a DNA-phosphate contact. No crystallographic structure of C275F exists in PDB, consistent with the conformational heterogeneity expected from a structural mutation.</td>
+            </tr>
+            <tr>
+              <td><strong>CARC</strong></td>
+              <td><em>USC Center for Advanced Research Computing</em></td>
+              <td>The University of Southern California's research-computing centre and operator of the Laguna cluster, on which this dissertation's classical HPC and DMRG rungs execute. Its mandatory interactive multi-factor authentication is the concrete security posture that motivates DP2's pull architecture (&sect;06.ii).</td>
             </tr>
             <tr>
               <td><strong>CASSCF</strong></td>
@@ -3401,6 +3426,11 @@
               <td>A classical numerical method exceptionally accurate for one-dimensional or weakly entangled systems. Listed in Layer 2 alongside DFT as a classical pre/post-processing tool: provides classical baselines and treats fragments outside the quantum active space.</td>
             </tr>
             <tr>
+              <td><strong>DMRG-SCF</strong></td>
+              <td><em>Density Matrix Renormalization Group Self-Consistent Field</em></td>
+              <td>A CASSCF calculation in which the DMRG sweep, rather than full configuration interaction, performs the orbital optimization. Because FCI's cost is combinatorial in the number of active orbitals and becomes impractical past roughly sixteen, DMRG-SCF is the step that lets a classifier realize DMRG's own premise of handling a large active space at polynomial rather than exponential cost (&sect;09).</td>
+            </tr>
+            <tr>
               <td><strong>DSR</strong></td>
               <td><em>Design Science Research</em></td>
               <td>The methodological framework anchoring this dissertation, after Hevner et al. (2004). DSR positions the work as the design and evaluation of an artifact (the platform) rather than as hypothesis-testing science. Phase 4 implements DSR-prescribed expert evaluation with an n=4–6 panel, OSF pre-registered, against four criteria (utility, novelty, rigor, feasibility).</td>
@@ -3414,6 +3444,11 @@
               <td><strong>EWF-SQD</strong></td>
               <td><em>Embedded Wave Function - Sample-based Quantum Diagonalization</em></td>
               <td>A hybrid quantum-classical workflow announced by IBM and Cleveland Clinic in March 2026, demonstrated on the 303-atom Trp-cage miniprotein. Combines wave-function-based fragment embedding with SQD on each cluster. Recognized late in the dissertation cycle as an adjacent methodology with potential application to scaffold-perturbation mutations like C275F; its convergence guarantees are weaker than SqDRIFT's, which becomes a design consideration if the methods are hybridized.</td>
+            </tr>
+            <tr>
+              <td><strong>FastAPI</strong></td>
+              <td><em>Python asynchronous web framework</em></td>
+              <td>The framework implementing the SOLANGE backend &mdash; dispatch queue, LEON notarization endpoints, and the Computational Decision Gateway. Deployed on Render and named in the deployment topology (&sect;06.ii).</td>
             </tr>
             <tr>
               <td><strong>FCI</strong></td>
@@ -3444,6 +3479,11 @@
               <td><strong>GPU</strong></td>
               <td><em>Graphics Processing Unit</em></td>
               <td>A massively parallel processor originally designed for graphics, now central to scientific computing. NVQLink provides the GPU↔QPU interconnect at the heart of Layer 2; classical pre/post-processing (DFT, DMRG, GNN inference) runs on GPU clusters.</td>
+            </tr>
+            <tr>
+              <td><strong>Hartree-Fock</strong></td>
+              <td><em>HF &mdash; mean-field electronic-structure method</em></td>
+              <td>The single-determinant approximation in which each electron experiences only the averaged field of the others. It is the reference state on which the executed quantum-hardware runs measure &lang;H&rang; (&sect;07.4), and the zero-entanglement baseline against which every correlated method is defined.</td>
             </tr>
             <tr>
               <td><strong>HIPAA</strong></td>
@@ -3481,6 +3521,11 @@
               <td>One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged). The Kelch-domain binding pocket — which mediates the Nrf2 interaction disrupted in cancer — spans a full active site of ~155 active electrons (~310 qubits under Jordan-Wigner encoding), well beyond the classical tractability ceiling (~18e). Designated fault-tolerant QPU target (~2030+); coordinate-verified from PDB structures 1U6D and 2FLU.</td>
             </tr>
             <tr>
+              <td><strong>Kelch</strong></td>
+              <td><em>Kelch domain &mdash; KEAP1's substrate-binding &beta;-propeller</em></td>
+              <td>The KEAP1 domain mediating the Nrf2 interaction disrupted in cancer. Its binding pocket defines KEAP1's ~155-electron active site, and the fact that loss of function arises across the pocket rather than at one residue is why KEAP1 carries no single-residue anchor and is classified at gene level (&sect;06.i).</td>
+            </tr>
+            <tr>
               <td><strong>KRAS</strong></td>
               <td><em>Kirsten Rat Sarcoma viral oncogene homolog</em></td>
               <td>An oncogene mutated in ~25% of NSCLC. KRAS G12C now has an FDA-approved targeted therapy (sotorasib), placing it among the druggable mutations referenced in the Problem Statement. Most other KRAS variants and the four mutations addressed in this dissertation remain non-druggable.</td>
@@ -3489,6 +3534,11 @@
               <td><strong>L2 / L3 (loops)</strong></td>
               <td><em>L2 and L3 loops of the p53 DNA-binding domain</em></td>
               <td>Structural loops in the p53 DBD that stabilize Zn²⁺ tetrahedral coordination via Cys176, His179, Cys238, Cys242. The loop-sheet-helix motif containing C275 is structurally adjacent. Relevant to active-space selection: the local 24-electron Phase 3A space and the full 44-electron Phase 3B space differ in how much of L2/L3 they include.</td>
+            </tr>
+            <tr>
+              <td><strong>Laguna</strong></td>
+              <td><em>USC CARC compute cluster</em></td>
+              <td>The SLURM-managed cluster on which the classical HPC and DMRG rungs of the orchestration ladder execute. Its prohibition on inbound connections is the security boundary the bounded execution agent runs inside, and therefore the environment DP2's pull architecture is designed against (&sect;06.ii).</td>
             </tr>
             <tr>
               <td><strong>ML</strong></td>
@@ -3514,6 +3564,11 @@
               <td><strong>NEJM</strong></td>
               <td><em>New England Journal of Medicine</em></td>
               <td>A leading medical journal. Cited as the venue (February 2026) for the rezatapopt Phase 1 results in TP53 Y220C - the publication that confirms Y220C's transition from non-druggable to druggable, prompting its removal from the dissertation's mutation list.</td>
+            </tr>
+            <tr>
+              <td><strong>Netlify</strong></td>
+              <td><em>Static-site hosting and continuous-deployment service</em></td>
+              <td>Hosts the SOLANGE front end and the deployed dissertation, deploying automatically from the repository's main branch. Appears in the deployment topology alongside Render and Supabase (&sect;06.ii).</td>
             </tr>
             <tr>
               <td><strong>NGS</strong></td>
@@ -3581,6 +3636,11 @@
               <td>The clinical trial demonstrating rezatapopt's efficacy in Y220C-mutated cancers (33% ORR across 8 tumor types as of August 2025). Cited as the evidence base for removing Y220C from the dissertation's non-druggable-mutation list.</td>
             </tr>
             <tr>
+              <td><strong>PySCF</strong></td>
+              <td><em>Python-based Simulations of Chemistry Framework</em></td>
+              <td>The open-source quantum-chemistry library behind the platform's classical electronic-structure work: mean-field solutions, active-space construction, and the CASSCF/FCI reference energies against which computed results are checked.</td>
+            </tr>
+            <tr>
               <td><strong>QC</strong></td>
               <td><em>Quantum Computing</em></td>
               <td>Computation exploiting quantum-mechanical phenomena (superposition, entanglement) to solve problems intractable for classical hardware. The first pillar of the QC·AI·HPC architecture; Layer 1 of the platform houses the quantum kernel (SqDRIFT on IBM Heron r3).</td>
@@ -3599,6 +3659,11 @@
               <td><strong>QEM</strong></td>
               <td><em>Quantum Error Mitigation</em></td>
               <td>Techniques (ZNE, probabilistic error cancellation, readout correction) that reduce - but do not eliminate - the impact of noise on quantum computations, without the qubit overhead of full QEC. Recorded in audit-trail field P6 (error-mitigation lineage). Distinguished from QEC: mitigation is post-processing; correction operates during execution.</td>
+            </tr>
+            <tr>
+              <td><strong>Qiskit</strong></td>
+              <td><em>IBM's open-source quantum computing SDK</em></td>
+              <td>The stack through which quantum circuits are constructed, transpiled, and submitted to IBM hardware. Qiskit Runtime supplies the production primitives for fermionic Hamiltonian construction, sample-state preparation, and classical diagonalization on which the Phase 3B SqDRIFT path depends (&sect;02).</td>
             </tr>
             <tr>
               <td><strong>QM</strong></td>
@@ -3621,14 +3686,29 @@
               <td>An IBM-defined benchmark capturing combined qubit count, connectivity, and gate fidelity. The poster lists IBM Heron r3 at QV ≥ 2048 - establishing that the hardware regime of the IBM Research 2026 anchor (32 electrons, 100 qubits) is reproducible at Phase 3B scale.</td>
             </tr>
             <tr>
+              <td><strong>RCSB PDB</strong></td>
+              <td><em>Research Collaboratory for Structural Bioinformatics Protein Data Bank</em></td>
+              <td>The public repository of experimentally determined macromolecular structures, and the source of the coordinate files behind the target registry (e.g. 2OCJ, the p53 DNA-binding domain at 2.05&nbsp;&Aring;). Also the basis of the observation that no crystallographic structure of the C275F mutant itself has been deposited (&sect;03).</td>
+            </tr>
+            <tr>
               <td><strong>RP2D</strong></td>
               <td><em>Recommended Phase 2 Dose</em></td>
               <td>The drug dose level chosen from Phase 1 results to take into Phase 2 trials. Mentioned in clinical-trial context (rezatapopt PYNNACLE) and out of dissertation scope; relevant only to the rationale for removing Y220C from the mutation list.</td>
             </tr>
             <tr>
+              <td><strong>sbatch</strong></td>
+              <td><em>SLURM batch-submission command</em></td>
+              <td>The command by which a researcher submits a non-interactive job to the cluster queue. It is one of the two entry modes the DMRG classification rung admits &mdash; the other being an execution agent claiming work from the platform's dispatch queue (&sect;06.ii, Figure 6.2).</td>
+            </tr>
+            <tr>
               <td><strong>SC150</strong></td>
               <td><em>Stabilization Concentration 150 (50% protein-stabilization endpoint)</em></td>
               <td>A biochemical potency measure for protein-stabilizing drugs. Cited in the rezatapopt context (SC150 = 9 nM for Y220C binding) - the kind of experimental ground-truth value that, were Y220C retained as a positive control, the dissertation's quantum platform could be benchmarked against.</td>
+            </tr>
+            <tr>
+              <td><strong>SLURM</strong></td>
+              <td><em>Simple Linux Utility for Resource Management</em></td>
+              <td>The batch scheduler allocating compute nodes on the Laguna cluster. Its queue is the boundary at which the orchestration layer hands a classical job over to institutional infrastructure and waits for a sealed provenance record to come back (&sect;08).</td>
             </tr>
             <tr>
               <td><strong>SQD</strong></td>
@@ -3649,6 +3729,11 @@
               <td><strong>TP53</strong></td>
               <td><em>Tumor Protein 53 (the p53 tumor suppressor gene)</em></td>
               <td>The most frequently mutated gene in human cancers (~59% of solid tumors). The dissertation focuses on TP53 structural (DNA-interface) mutants - particularly C275F - that disrupt DNA-binding geometry without creating druggable pockets. TP53's Zn²⁺ tetrahedral coordination site (Cys176/His179/Cys238/Cys242) requires ~22–28 active electrons, the paradigmatic case for SqDRIFT-grade simulation.</td>
+            </tr>
+            <tr>
+              <td><strong>Supabase</strong></td>
+              <td><em>Hosted PostgreSQL platform with authentication and row-level security</em></td>
+              <td>The database and identity layer behind the platform: P1&ndash;P9 provenance records, the LEON audit table, the dispatch queue, and per-user authentication. Its append-only audit policy &mdash; insert and read permitted, update and delete denied &mdash; is what makes the Part 11 claim testable in running code rather than asserted (&sect;06.iii).</td>
             </tr>
             <tr>
               <td><strong>Trp-cage</strong></td>
