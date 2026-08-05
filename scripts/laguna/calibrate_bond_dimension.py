@@ -188,10 +188,15 @@ def main():
         # early_stop must be OFF: the whole measurement is where on the ladder the
         # energy settles, and early stop would truncate the ladder at exactly that
         # point, leaving no reference beyond it to measure the requirement against.
+        # One scratch directory per bond length, so block2 never resumes an MPS
+        # from a different geometry. It must be created here: block2 creates only
+        # the final component of a scratch path, not the parent chain.
+        scratch = os.path.join(args.scratch, f"r{r:.3f}")
+        os.makedirs(scratch, exist_ok=True)
+
         energies, s_max, stop_reason = run_dmrg(
             cas["h1e"], cas["h2e"], cas["ecore"], args.ncas, args.nelecas, bond_dims,
-            scratch=os.path.join(args.scratch, f"r{r:.3f}"),
-            n_threads=args.threads, early_stop=False)
+            scratch=scratch, n_threads=args.threads, early_stop=False)
 
         if s_max is None:
             print("  SKIP — S_max unavailable from the converged MPS")
