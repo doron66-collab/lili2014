@@ -689,314 +689,184 @@
     </div>
   </div>
 
-  <!-- Quantum Advantage Scaling Chart — DYNAMIC: curves computed from the actual
-       complexity formulas (not hand-drawn), overlaid with real measured runtimes
-       pulled live from /hpc/runs (LEON-verified). See renderScalingChart() below. -->
+  <!-- Classical Tractability Plane — replaces the earlier cost-vs-size chart,
+       which plotted four methods against one axis when only one of them is
+       actually governed by it. Walls are drawn on the variable that governs
+       each: size for exact diagonalisation, entanglement for DMRG. Measured
+       points come from window.__dmrgRows (S_max per run, LEON-sealed). -->
   <div class="card" style="margin-bottom:16px;margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-      <div class="card-title" style="margin-bottom:0"><span class="info-wrap"><span class="info-i">i</span><div class="footnote info-panel" id="scaling-footnote"></div></span> Computational Cost Scaling vs. System Size</div>
+      <div class="card-title" style="margin-bottom:0"><span class="info-wrap"><span class="info-i">i</span><div class="footnote info-panel" id="scaling-footnote"></div></span> Classical Tractability Plane — Size vs. Measured Entanglement</div>
       <div id="scaling-legend" style="display:flex;gap:14px;font-size:10px;flex-wrap:wrap"></div>
     </div>
     <div id="scaling-chart"></div>
   </div>
   <script>
   (function(){
-    // ── Computational Cost Scaling — DYNAMIC ────────────────────────────────
-    // Left axis: relative cost of each METHOD, computed from its actual complexity
-    // formula (not hand-drawn pixels) — CCSD(T) O(N^7), FCI O(2^N), DMRG
-    // O(poly(N)·e^S), sqDRIFT O(poly(N)). All four are normalized to 1 at N=4 so
-    // their GROWTH RATES are visually comparable on one log axis; this is an
-    // asymptotic-order illustration, not a fit to timed data.
-    // Right axis (only where data exists): REAL measured wall-clock runtimes from
-    // LEON-verified HPC runs (/hpc/runs) — kept on its own axis/units so a
-    // theoretical order-of-growth curve is never conflated with a timed second.
-    var chartEl = document.getElementById('scaling-chart');
-    var legendEl = document.getElementById('scaling-legend');
-    var footEl = document.getElementById('scaling-footnote');
-    if (!chartEl) return;
-    var API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
-
-    // ── Custom tooltip for measured points (replaces the slow/unstyled native
-    // SVG <title>) — shows which MUTATION a green point belongs to. Delegated on
-    // chartEl once, so it keeps working across re-renders (the SVG is replaced
-    // wholesale on every render() call).
-    var ptTip = document.createElement('div');
-    ptTip.style.cssText = 'display:none;position:fixed;z-index:9999;background:#0b1220;' +
-      'color:var(--white);border:1px solid rgba(120,220,150,0.5);border-radius:7px;' +
-      'padding:7px 10px;font-size:11px;line-height:1.5;pointer-events:none;' +
-      'box-shadow:0 8px 24px rgba(0,0,0,0.5);white-space:nowrap';
-    document.body.appendChild(ptTip);
-    chartEl.addEventListener('mouseover', function(e){
-      var t = e.target.closest && e.target.closest('.measured-pt');
-      if (!t) return;
-      ptTip.innerHTML = '<div style="color:rgba(120,220,150,0.95);font-weight:700">' + t.dataset.label + '</div>' +
-        '<div style="color:var(--gray)">' + t.dataset.n + 'e active · ' + t.dataset.s + 's runtime · LEON-verified</div>';
-      ptTip.style.display = 'block';
-    });
-    chartEl.addEventListener('mousemove', function(e){
-      if (ptTip.style.display !== 'block') return;
-      ptTip.style.left = (e.clientX + 14) + 'px';
-      ptTip.style.top  = (e.clientY + 14) + 'px';
-    });
-    chartEl.addEventListener('mouseout', function(e){
-      var t = e.target.closest && e.target.closest('.measured-pt');
-      if (t) ptTip.style.display = 'none';
-    });
-
-    var N_MIN = 4, N_MAX = 48, N0 = 4;
-    var W = 500, H = 150, PAD_L = 34, PAD_R = 34, PAD_T = 14, PAD_B = 24;
+    // ---------------------------------------------------------------------
+    // Two axes, because the classical walls do not share a governing variable.
+    //
+    //   x = active-space size (electrons). Exact diagonalisation walls HERE:
+    //       its determinant count is combinatorial in the space and does not
+    //       depend on entanglement at all, so its wall is VERTICAL at ~18e.
+    //
+    //   y = measured entanglement S_max. DMRG walls HERE: bond dimension grows
+    //       as e^S and cost as M^3, with no electron count in the expression,
+    //       so its threshold is HORIZONTAL.
+    //
+    // The previous version of this chart plotted cost against size alone and
+    // drew a vertical "DMRG breaks ~33e" wall. That was not a wrong number —
+    // it was the wrong orientation, and FeMoco at CAS(113,76) is the published
+    // counterexample. Nothing here is indexed on electron count except the one
+    // wall that genuinely is.
+    // ---------------------------------------------------------------------
+    var S_HARD      = 1.5;    // backend/routes/gateway.py + scripts/laguna/solange_dmrg.py
+    var EXACT_WALL  = 18;     // active electrons up to which exact classical (FCI) is fine
+    var CEIL_CONST  = 6.5;    // affordability ceiling S ~ CEIL_CONST - ln(orbitals).
+                              // The SHAPE is derived (cost ~ M^3 * poly(k), M ~ e^S).
+                              // The HEIGHT is NOT calibrated — no (S_max, M_required)
+                              // pair has been measured yet to fix the prefactor. Drawn
+                              // as an explicitly uncalibrated band, never read off the axis.
+    var N_MIN = 0, N_MAX = 120, S_MIN = 0, S_AX = 5;
+    var W = 900, H = 430, PAD_L = 64, PAD_R = 30, PAD_T = 28, PAD_B = 48;
     var plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
-    // Complexity models (order-of-growth, relative to N0=4). DMRG's S(N) is an
-    // ILLUSTRATIVE linear entanglement-growth model calibrated only so the "DMRG
-    // breaking point" (S crosses the code's own S_HARD=1.5 threshold, see
-    // scripts/laguna/solange_dmrg.py) lands past the classical exact wall — it is
-    // not fitted to any measurement, and the chart says so explicitly below.
-    var S_HARD = 1.5, S0 = 0.20, S_SLOPE = 0.045;
-    function sOf(N){ return S0 + S_SLOPE * (N - N0); }
-    function dmrgBreakN(){ return N0 + (S_HARD - S0) / S_SLOPE; }
-    // OFFSET_k: each curve is anchored below FCI at N0, respecting the one fact that
-    // IS well-established regardless of any timed measurement — FCI (exact, no terms
-    // dropped) costs more than any approximation of it (CCSD(T), DMRG) at every N;
-    // sqDRIFT is the projected quantum alternative, cheapest by design intent.
-    // Without this, normalizing every curve to the SAME value at N0 (as an earlier
-    // version of this chart did) let CCSD(T)'s N⁷ term visually outrun FCI's 2ᴺ term
-    // for a stretch near N0 — a normalization artifact that read as "CCSD(T) costs
-    // more than exact FCI", which is backwards. These offsets are illustrative
-    // orders-of-magnitude, not measured ratios — verified below to keep FCI strictly
-    // highest across the whole N=4..48 domain.
-    var OFFSET = { fci: 1, ccsdt: 0.1, dmrg: 0.05, sqdrift: 0.01 };
-    var CURVES = {
-      ccsdt:  { label: 'CCSD(T) · O(N⁷)',        color: 'rgba(239,68,68,0.95)',
-                f: function(N){ return OFFSET.ccsdt * Math.pow(N / N0, 7); },
-                breaksAt: 18, note: 'exact classical wall — breaks down past ~18 active electrons' },
-      fci:    { label: 'FCI · O(2ᴺ)',             color: 'rgba(241,245,249,0.75)', dash: '4,3',
-                f: function(N){ return OFFSET.fci * Math.pow(2, N - N0); },
-                breaksAt: null, note: 'brute-force exact — the most expensive method at every N; exponential from the start' },
-      dmrg:   { label: 'DMRG · O(poly·eˢ) — illustrative', color: 'rgba(255,196,0,0.9)',
-                f: function(N){ return OFFSET.dmrg * Math.pow(N / N0, 3) * Math.exp(sOf(N) - sOf(N0)); },
-                breaksAt: dmrgBreakN(),
-                note: 'classical tensor-network shortcut — breaks when entanglement (S) crosses the threshold where its own bond dimension blows up (S>' + S_HARD + '). The break point shown is a function of N ONLY for this illustrative chart; in reality it depends on the specific molecule\'s entanglement, not its electron count — run solange_dmrg.py per target to measure it.' },
-      sqdrift:{ label: 'sqDRIFT · O(poly N) — projected', color: 'rgba(0,168,214,0.95)',
-                f: function(N){ return OFFSET.sqdrift * Math.pow(N / N0, 2); },
-                // breaksAt here does NOT mean the method breaks (unlike CCSD(T)/DMRG) —
-                // it marks where DIRECT EVIDENCE ends. The only real sqDRIFT execution is
-                // IBM's 2026 demonstration at 32e/100q (C₁₃Cl₂, arXiv:2603.08696). Past
-                // that, including C275F's own 44e target, the O(poly N) shape is an
-                // ASSUMPTION carried from the algorithm's complexity class — nobody has
-                // run it there. The chart must not draw that region with the same visual
-                // confidence as the demonstrated part.
-                breaksAt: 32,
-                note: 'quantum sampling — Phase 3B target. Solid only to 32e: the one real sqDRIFT execution to date (IBM Heron, 2026, C₁₃Cl₂). Beyond 32e — including C275F at 44e — the polynomial shape is assumed from the complexity class, not measured; nobody has run sqDRIFT there.' },
-    };
+    // Platform calibration constants — real measured values, not illustration.
+    // Same molecule, same six orbitals, 7x the entanglement: the clearest
+    // demonstration that system size does not determine difficulty.
+    var CALIB = [
+      { n: 6, s: 0.42, label: 'N₂ equilibrium' },
+      { n: 6, s: 2.86, label: 'N₂ stretched' }
+    ];
 
     function xPix(N){ return PAD_L + (N - N_MIN) / (N_MAX - N_MIN) * plotW; }
-    // Theoretical curves share one log-relative-cost axis, spanning decades
-    // Y_MIN_DEC..Y_MAX_DEC. Y_MIN_DEC is negative (not 0) specifically so the
-    // fractional starting OFFSETs (ccsdt=0.1, dmrg=0.05, sqdrift=0.01 — see OFFSET
-    // above) render at their OWN distinct heights at N=4 instead of all being
-    // clamped to the same floor and overlapping right at the origin.
-    var Y_MIN_DEC = -2.3, Y_MAX_DEC = 14;
-    function yPixTheory(relCost){
-      var logv = Math.log10(Math.max(relCost, 1e-6));
-      logv = Math.max(Y_MIN_DEC, Math.min(Y_MAX_DEC, logv));
-      var frac = (logv - Y_MIN_DEC) / (Y_MAX_DEC - Y_MIN_DEC);
-      return PAD_T + plotH - frac * plotH;
-    }
+    function yPix(S){ return PAD_T + (S_AX - S) / (S_AX - S_MIN) * plotH; }
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function curvePath(curve){
-      var pts = [];
-      for (var N = N_MIN; N <= N_MAX; N += 1) pts.push([N, curve.f(N)]);
-      // DMRG's breaksAt (~32.9, from S(N) crossing S_HARD) falls BETWEEN integer
-      // samples — without inserting the exact break point, the solid segment stops at
-      // N=32 and the dashed segment starts at N=33, leaving a visible gap that doesn't
-      // reach the vertical break-marker line at all. Insert the precise breakpoint into
-      // the sample set so both segments share it and the line is continuous, changing
-      // style exactly where the marker says it breaks.
-      if (curve.breaksAt != null && curve.breaksAt > N_MIN && curve.breaksAt < N_MAX) {
-        pts.push([curve.breaksAt, curve.f(curve.breaksAt)]);
-        pts.sort(function(a, b){ return a[0] - b[0]; });
+    function ceilingPath(){
+      var pts = [], N, s, y;
+      for (N = 3; N <= N_MAX; N += 1.5){
+        s = CEIL_CONST - Math.log(N);
+        y = yPix(s);
+        if (y < PAD_T) continue;                 // clipped off the top of the plot
+        pts.push(xPix(N).toFixed(1) + ',' + y.toFixed(1));
       }
-      var solid = pts.filter(function(p){ return curve.breaksAt == null || p[0] <= curve.breaksAt; });
-      var rest  = pts.filter(function(p){ return curve.breaksAt != null && p[0] >= curve.breaksAt; });
-      var toPoly = function(arr){ return arr.map(function(p){ return xPix(p[0]) + ',' + yPixTheory(p[1]); }).join(' '); };
-      // curve.dash marks a method that is ALWAYS conceptual/impractical (FCI: brute-force,
-      // never actually used past a handful of electrons) — dashed for its whole domain,
-      // not just past a break point. Without this, FCI (which never "breaks", it's
-      // exponential from N=4) rendered as one long solid diagonal — the straight-line
-      // signature of pure O(2^N) growth on a linear-x/log-y plot — which read as the
-      // "main" curve instead of the conceptual reference it is meant to be.
-      var solidDash = curve.dash ? ' stroke-dasharray="' + curve.dash + '"' : '';
-      var out = '<polyline points="' + toPoly(solid) + '" fill="none" stroke="' + curve.color +
-                '" stroke-width="2.25" stroke-linecap="round"' + solidDash + '/>';
-      if (rest.length > 1) {
-        out += '<polyline points="' + toPoly(rest) + '" fill="none" stroke="' + curve.color +
-               '" stroke-width="1.75" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.45"/>';
-      }
-      return out;
+      return pts;
     }
 
     function render(measured){
-      var svg = [];
-      svg.push('<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="display:block">');
-      // gridlines + left axis (theoretical, log decades)
-      for (var d = Math.ceil(Y_MIN_DEC); d <= Y_MAX_DEC; d += 4) {
-        var gy = yPixTheory(Math.pow(10, d));
-        svg.push('<line x1="' + PAD_L + '" y1="' + gy + '" x2="' + (W - PAD_R) + '" y2="' + gy +
-                  '" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>');
-        svg.push('<text x="' + (PAD_L - 4) + '" y="' + (gy + 3) + '" fill="rgba(136,153,187,0.55)" font-size="7" text-anchor="end">10^' + d + '</text>');
-      }
-      svg.push('<text x="' + (PAD_L - 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(136,153,187,0.5)" font-size="7" text-anchor="end">Relative cost ↑ (log)</text>');
-      // Axis lines — deliberately more opaque than the faint gridlines above so the
-      // plot boundary (and the x-axis in particular) stays visible at any zoom level.
-      svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.3)" stroke-width="1.25"/>');
-      svg.push('<line x1="' + PAD_L + '" y1="' + (H - PAD_B) + '" x2="' + (W - PAD_R) + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,255,255,0.3)" stroke-width="1.25"/>');
-      // Permanent, unmissable log-axis warning: a STRAIGHT line here means EXPONENTIAL
-      // growth (cost multiplies each step), not linear growth (cost adding a fixed
-      // amount) — the whole point of a log axis is to make exponential curves readable
-      // as straight lines, which can otherwise look deceptively "calm".
-      svg.push('<text x="' + PAD_L + '" y="' + (PAD_T - 2) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="700" text-anchor="start">' +
-               '⚠ log axis: a straight line = exponential (×2 each step), not linear (+fixed)' +
-               '<title>This chart\'s y-axis is logarithmic. A straight diagonal line (like FCI) is the visual signature of pure exponential growth O(2^N) — the cost DOUBLES with each added electron, it does not add a fixed amount. On a normal (linear) axis this would shoot up almost vertically instead.</title></text>');
-      // x ticks
-      [8,16,24,32,40,48].forEach(function(N){
-        svg.push('<text x="' + xPix(N) + '" y="' + (H - PAD_B + 11) + '" fill="rgba(136,153,187,0.5)" font-size="7.5" text-anchor="middle">' + N + 'e</text>');
+      var svg = [], i;
+      svg.push('<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;overflow:visible">');
+      svg.push('<defs><pattern id="sc-hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+             + '<line x1="0" y1="0" x2="0" y2="7" stroke="rgba(239,68,68,.28)" stroke-width="2.5"/></pattern>'
+             + '<pattern id="sc-hatchw" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+             + '<line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,163,184,.22)" stroke-width="2"/></pattern></defs>');
+
+      var ceil = ceilingPath();
+      var wallX = xPix(EXACT_WALL), hardY = yPix(S_HARD);
+
+      // zone: beyond any budget (above the sloping ceiling)
+      svg.push('<path d="M' + ceil.join(' L') + ' L' + xPix(N_MAX).toFixed(1) + ',' + PAD_T
+             + ' L' + ceil[0].split(',')[0] + ',' + PAD_T + ' Z" fill="url(#sc-hatch)"/>');
+      // zone: the budget band (between our gate and the ceiling)
+      svg.push('<path d="M' + wallX.toFixed(1) + ',' + hardY.toFixed(1) + ' L' + xPix(N_MAX).toFixed(1) + ',' + hardY.toFixed(1)
+             + ' L' + ceil.slice().reverse().filter(function(p){ return parseFloat(p.split(',')[0]) >= wallX; }).join(' L')
+             + ' Z" fill="rgba(245,158,11,.10)"/>');
+      // zone: our pipeline delivers
+      svg.push('<rect x="' + wallX.toFixed(1) + '" y="' + hardY.toFixed(1) + '" width="' + (xPix(N_MAX)-wallX).toFixed(1)
+             + '" height="' + (yPix(S_MIN)-hardY).toFixed(1) + '" fill="rgba(34,197,94,.07)"/>');
+      // zone: Class C — at or below the exact wall, any entanglement
+      svg.push('<rect x="' + PAD_L + '" y="' + PAD_T + '" width="' + (wallX-PAD_L).toFixed(1)
+             + '" height="' + plotH + '" fill="rgba(34,197,94,.10)"/>');
+
+      // axes
+      svg.push('<line x1="' + PAD_L + '" y1="' + (H-PAD_B) + '" x2="' + (W-PAD_R) + '" y2="' + (H-PAD_B) + '" stroke="rgba(203,213,225,.35)"/>');
+      svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H-PAD_B) + '" stroke="rgba(203,213,225,.35)"/>');
+      [0,30,60,90,120].forEach(function(N){
+        svg.push('<text x="' + xPix(N).toFixed(1) + '" y="' + (H-PAD_B+14) + '" fill="rgba(136,153,187,.7)" font-size="9" text-anchor="middle">' + N + 'e</text>');
       });
-      // theoretical curves
-      Object.keys(CURVES).forEach(function(k){ svg.push(curvePath(CURVES[k])); });
-      // classical exact wall marker
-      var wallX = xPix(18);
-      svg.push('<line x1="' + wallX + '" y1="' + PAD_T + '" x2="' + wallX + '" y2="' + (H - PAD_B) + '" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="3,3"/>');
-      svg.push('<text x="' + wallX + '" y="' + (PAD_T + 8) + '" fill="rgba(239,68,68,0.75)" font-size="7" font-weight="600" text-anchor="middle">exact wall ~18e</text>');
-      // DMRG breaking point marker — illustrative only. The real breaking point is NOT
-      // a function of electron count N; it depends entirely on the entanglement (S) of
-      // the SPECIFIC molecule (see scripts/laguna/solange_dmrg.py: the S_HARD=1.5 gate
-      // is measured per-target, never assumed from size). A "hard" 30-electron system
-      // can break DMRG; a "easy" 60-electron one may not. This N-indexed line exists
-      // only so the chart's narrative (DMRG extends, then also breaks) is visible —
-      // it is not a claim about any specific molecule, including C275F or IBM's C₁₃Cl₂.
-      var dmrgX = xPix(Math.min(CURVES.dmrg.breaksAt, N_MAX));
-      svg.push('<line x1="' + dmrgX + '" y1="' + PAD_T + '" x2="' + dmrgX + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,196,0,0.4)" stroke-width="1" stroke-dasharray="3,3"/>');
-      svg.push('<text x="' + dmrgX + '" y="' + (PAD_T + 17) + '" fill="rgba(255,196,0,0.85)" font-size="7" font-weight="600" text-anchor="middle">DMRG breaks ~' + Math.round(CURVES.dmrg.breaksAt) + 'e (illustrative)' +
-               '<title>Illustrative only — DMRG breaking depends on entanglement (S), not electron count. Run solange_dmrg.py on a specific target to measure its real S_max and A/B/C class.</title></text>');
-      // sqDRIFT evidence boundary — NOT a breakdown; this is where direct measurement
-      // ends. Staggered to a third label row since it lands numerically close to the
-      // (unrelated, illustrative) DMRG break point and would otherwise collide with it.
-      var sqEvX = xPix(CURVES.sqdrift.breaksAt);
-      svg.push('<line x1="' + sqEvX + '" y1="' + PAD_T + '" x2="' + sqEvX + '" y2="' + (H - PAD_B) + '" stroke="rgba(0,168,214,0.5)" stroke-width="1" stroke-dasharray="2,4"/>');
-      svg.push('<text x="' + sqEvX + '" y="' + (PAD_T + 26) + '" fill="rgba(0,168,214,0.9)" font-size="7" font-weight="600" text-anchor="middle">sqDRIFT evidence ends ' + CURVES.sqdrift.breaksAt + 'e</text>');
-      // C275F marker — sits PAST the sqDRIFT evidence boundary: the projection at this
-      // point (and the "projected class" DMRG-A/B/C label) is extrapolated, not measured.
-      var c275x = xPix(Math.min(44, N_MAX));
-      svg.push('<line x1="' + c275x + '" y1="' + PAD_T + '" x2="' + c275x + '" y2="' + (H - PAD_B) + '" stroke="rgba(255,221,34,0.55)" stroke-width="1.2" stroke-dasharray="4,3"/>');
-      svg.push('<text x="' + c275x + '" y="' + (PAD_T + 8) + '" fill="rgba(255,221,34,0.95)" font-size="7" font-weight="700" text-anchor="middle">C275F 44e·88q</text>');
-      svg.push('<text x="' + c275x + '" y="' + (H - PAD_B - 6) + '" fill="rgba(255,221,34,0.7)" font-size="6.5" text-anchor="middle">(projected — beyond sqDRIFT’s 32e evidence)</text>');
+      svg.push('<text x="' + (PAD_L+plotW/2).toFixed(1) + '" y="' + (H-10) + '" fill="var(--gray)" font-size="10.5" text-anchor="middle" font-weight="600">active-space size (electrons) &mdash; a resource-planning variable</text>');
+      [0,1,2,3,4,5].forEach(function(S){
+        svg.push('<text x="' + (PAD_L-8) + '" y="' + (yPix(S)+3).toFixed(1) + '" fill="rgba(136,153,187,.7)" font-size="9" text-anchor="end">' + S + '</text>');
+      });
+      svg.push('<text x="16" y="' + (PAD_T+plotH/2).toFixed(1) + '" fill="var(--gray)" font-size="10.5" text-anchor="middle" font-weight="600" transform="rotate(-90 16 ' + (PAD_T+plotH/2).toFixed(1) + ')">measured entanglement S_max &mdash; the classification criterion</text>');
 
-      // ── Measured overlay: real LEON-verified runtimes, own right-axis/units ──
-      if (measured && measured.length) {
-        var secs = measured.map(function(m){ return m.s; });
-        var minS = Math.max(0.1, Math.min.apply(null, secs));
-        var maxS = Math.max.apply(null, secs) * 1.4;
-        var logMin = Math.log10(minS), logMax = Math.max(Math.log10(maxS), logMin + 0.5);
-        var yMeas = function(s){
-          var l = Math.log10(Math.max(s, minS));
-          var frac = (l - logMin) / (logMax - logMin);
-          return PAD_T + plotH - frac * plotH;
-        };
-        // Group by target (mutation_id) BEFORE connecting with a line. Different
-        // targets at similar electron counts can have wildly different real
-        // runtimes (different molecular structure, different entanglement) — a
-        // single line sorted only by N zigzags between unrelated molecules and
-        // reads as a noisy "scaling trend" that doesn't exist. Each target gets
-        // its own connected trace (its OWN points sorted by N); markers alone
-        // (no line) for a target with only one data point.
-        var groups = {};
-        measured.forEach(function(m){
-          var k = m.label || '(unlabeled)';
-          (groups[k] = groups[k] || []).push(m);
-        });
-        Object.keys(groups).forEach(function(k){
-          var pts = groups[k].slice().sort(function(a,b){ return a.n - b.n; });
-          if (pts.length > 1) {
-            var poly = pts.map(function(m){ return xPix(m.n) + ',' + yMeas(m.s); }).join(' ');
-            svg.push('<polyline points="' + poly + '" fill="none" stroke="rgba(120,220,150,0.9)" stroke-width="1.5" stroke-dasharray="1,3" stroke-linecap="round"/>');
-          }
-          pts.forEach(function(m){
-            var lbl = (m.label || 'unlabeled run').replace(/"/g, '&quot;');
-            // A larger invisible circle widens the hit area (the visible dot is only
-            // r=3.2, hard to land a cursor on) — same center, transparent fill.
-            svg.push('<circle class="measured-pt" cx="' + xPix(m.n) + '" cy="' + yMeas(m.s) + '" r="9" fill="transparent" ' +
-                      'data-label="' + lbl + '" data-n="' + m.n + '" data-s="' + m.s.toFixed(1) + '" style="cursor:pointer"/>');
-            svg.push('<circle cx="' + xPix(m.n) + '" cy="' + yMeas(m.s) + '" r="3.2" fill="rgba(120,220,150,0.95)" stroke="#0B1E3D" stroke-width="1" pointer-events="none"/>');
-          });
-        });
-        // right-axis ticks for measured seconds (2 nice values spanning the data)
-        [minS, maxS/1.4].forEach(function(s){
-          svg.push('<text x="' + (W - PAD_R + 4) + '" y="' + (yMeas(s) + 3) + '" fill="rgba(120,220,150,0.7)" font-size="7" text-anchor="start">' + (s<60? s.toFixed(0)+'s' : (s/60).toFixed(1)+'m') + '</text>');
-        });
-        svg.push('<text x="' + (W - PAD_R + 4) + '" y="' + (PAD_T - 2) + '" fill="rgba(120,220,150,0.7)" font-size="7" text-anchor="start">measured →</text>');
-      }
-      svg.push('</svg>');
-      chartEl.innerHTML = svg.join('');
+      // wall 1 — vertical: exact diagonalisation
+      svg.push('<line x1="' + wallX.toFixed(1) + '" y1="' + PAD_T + '" x2="' + wallX.toFixed(1) + '" y2="' + (H-PAD_B) + '" stroke="rgba(239,68,68,.75)" stroke-width="1.6" stroke-dasharray="5,4"/>');
+      svg.push('<text x="' + (wallX+6).toFixed(1) + '" y="' + (H-PAD_B-6) + '" fill="rgba(239,68,68,.9)" font-size="9" font-weight="700">exact-classical wall &middot; ' + EXACT_WALL + 'e'
+             + '<title>VERTICAL. Exact diagonalisation cost is combinatorial in the size of the active space and carries no dependence on entanglement whatever, so this is the one wall genuinely indexed on electron count.</title></text>');
 
-      legendEl.innerHTML = Object.keys(CURVES).map(function(k){
-        var c = CURVES[k];
-        return '<span style="color:' + c.color + '" title="' + c.note.replace(/"/g,'&quot;') + '">━ ' + c.label + '</span>';
-      }).join('') + (measured && measured.length
-        ? '<span style="color:rgba(120,220,150,0.9)" title="Real wall-clock runtimes from LEON-verified HPC runs (own axis, seconds — not the theoretical relative-cost axis)">● measured (LEON)</span>'
-        : '');
+      // wall 2 — horizontal: this platform's operational gate
+      svg.push('<line x1="' + PAD_L + '" y1="' + hardY.toFixed(1) + '" x2="' + (W-PAD_R) + '" y2="' + hardY.toFixed(1) + '" stroke="rgba(245,158,11,.85)" stroke-width="1.8" stroke-dasharray="5,4"/>');
+      svg.push('<text x="' + (wallX+70).toFixed(1) + '" y="' + (hardY-5).toFixed(1) + '" fill="var(--amber)" font-size="9" font-weight="700">S_HARD = ' + S_HARD + ' &mdash; our gate, at our bond dimension. Policy, not physics.'
+             + '<title>HORIZONTAL. DMRG bond dimension grows as e^S and cost as M^3, with no electron count in the expression. This threshold is calibrated on N2 and tied to this pipeline\'s practical bond dimension — it marks where THIS pipeline stops, not where DMRG stops.</title></text>');
 
-      // Small, labeled blocks with spacing (not one long paragraph) — legible at
-      // panel width, and scannable: a reader can find the one note they want.
-      var noteBlock = function(label, html){
-        return '<div style="margin-bottom:11px"><div style="color:var(--teal);font-weight:700;' +
-          'font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">' + label +
-          '</div><div>' + html + '</div></div>';
-      };
-      footEl.innerHTML =
-        noteBlock('Log axis', 'A straight diagonal line (FCI, white) means cost <strong>doubles</strong> ' +
-          'with every added electron, not that it grows by a fixed amount — exponential growth looks ' +
-          '"calm" on a log axis precisely because that\'s what a log axis is for. On an ordinary axis, ' +
-          'FCI would shoot up almost vertically.') +
-        noteBlock('Curve basis', 'Curves are computed from each method\'s complexity order, not hand-drawn. ' +
-          'Each curve is anchored below FCI at N=4 (illustrative orders-of-magnitude, not measured) so the ' +
-          'one well-established fact — <strong>exact FCI costs more than any approximation of it</strong> ' +
-          '(CCSD(T), DMRG) at every N — always holds. Only each curve\'s own slope (growth rate) is a ' +
-          'quantitative claim.') +
-        noteBlock('DMRG analogy', 'DMRG is a shortcut that works when electrons mostly "talk to their ' +
-          'neighbors" (like a bank queue) — cheap. It breaks when they all interact at once (like a room ' +
-          'of dancers all reacting to each other) — the shortcut\'s core assumption fails and cost jumps ' +
-          'back toward the FCI ceiling. That break point (illustrative model, S&gt;' + S_HARD + ') is shown ' +
-          'at ~' + Math.round(CURVES.dmrg.breaksAt) + 'e, past the classical exact wall (~18e).') +
-        noteBlock('sqDRIFT evidence boundary', '<strong>Beyond 32e — including C275F at 44e — is not ' +
-          'measured.</strong> The only real sqDRIFT execution to date is IBM\'s 2026 demonstration at 32 ' +
-          'electrons / 100 qubits (C₁₃Cl₂, Heron, arXiv:2603.08696); the sqDRIFT line turns dashed/faded past ' +
-          'that point. Its O(poly N) shape from 33e onward is <em>assumed</em> from the algorithm\'s proven ' +
-          'complexity class, not observed — which is why the C275F marker, and the HPC ladder\'s own class ' +
-          'label, both read "projected."') +
-        noteBlock('Measured data', measured && measured.length
-          ? 'Green points are <strong>real, LEON-verified</strong> classical (Phase 3A) runtimes from the ' +
-            'HPC ladder — on their own seconds axis (right), never mixed with the theoretical relative-cost ' +
-            'axis (left). Each <strong>target</strong> gets its own connected line — different molecules at ' +
-            'a similar electron count can have very different real runtimes, so points are never connected ' +
-            'across targets.'
-          : 'No HPC runs yet — dispatch and run one to see real measured runtimes overlaid here.');
+      // affordability ceiling — shape derived, height uncalibrated
+      svg.push('<polyline points="' + ceil.join(' ') + '" fill="none" stroke="rgba(239,68,68,.85)" stroke-width="2" stroke-dasharray="7,4"/>');
+      svg.push('<text x="' + xPix(66).toFixed(1) + '" y="' + (yPix(CEIL_CONST-Math.log(66))-8).toFixed(1) + '" fill="rgba(239,68,68,.9)" font-size="9" font-weight="700">affordability ceiling &asymp; const &minus; ln(orbitals) &mdash; SLOPES DOWN'
+             + '<title>Cost runs as M^3 times a polynomial in orbital count, and M grows as e^S. Solving for the largest affordable S at fixed budget puts the orbital count inside a logarithm, so the ceiling falls as the system grows. SHAPE is derived; HEIGHT is not calibrated — fixing it needs one measured (S_max, bond dimension required) pair.</title></text>');
+      svg.push('<text x="' + xPix(66).toFixed(1) + '" y="' + (yPix(CEIL_CONST-Math.log(66))+3).toFixed(1) + '" fill="rgba(239,68,68,.6)" font-size="8">shape derived &middot; height NOT calibrated &mdash; do not read a value off the axis</text>');
+
+      // zone captions
+      svg.push('<text x="' + (PAD_L+(wallX-PAD_L)/2).toFixed(1) + '" y="' + (PAD_T+14) + '" fill="rgba(34,197,94,.9)" font-size="9.5" font-weight="700" text-anchor="middle">CLASS C</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-8).toFixed(1) + '" fill="rgba(34,197,94,.85)" font-size="9.5" font-weight="700" text-anchor="end">our pipeline delivers</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-16).toFixed(1) + '" fill="rgba(245,158,11,.9)" font-size="9.5" font-weight="700" text-anchor="end">THE BUDGET BAND &mdash; classically solvable, above what we spend</text>');
+      svg.push('<text x="' + xPix(30).toFixed(1) + '" y="' + (PAD_T+16) + '" fill="rgba(239,68,68,.9)" font-size="9.5" font-weight="700">BEYOND ANY BUDGET</text>');
+
+      // calibration pair — the platform's own constants
+      svg.push('<line x1="' + xPix(6).toFixed(1) + '" y1="' + yPix(0.42).toFixed(1) + '" x2="' + xPix(6).toFixed(1) + '" y2="' + yPix(2.86).toFixed(1) + '" stroke="rgba(6,182,212,.35)"/>');
+      CALIB.forEach(function(c){
+        svg.push('<circle cx="' + xPix(c.n).toFixed(1) + '" cy="' + yPix(c.s).toFixed(1) + '" r="4.5" fill="var(--teal)">'
+               + '<title>' + esc(c.label) + ' — S_max = ' + c.s + '. Same molecule, same six orbitals, seven times the entanglement. This pair is why size cannot be the criterion, and why the ceiling must slope: stretched N2 sits far above our gate yet solves instantly, because at six orbitals its own ceiling is enormous.</title></circle>');
+      });
+      svg.push('<text x="' + (xPix(6)+9).toFixed(1) + '" y="' + (yPix(2.86)-4).toFixed(1) + '" fill="var(--teal)" font-size="8.5" font-weight="600">N₂ stretched 2.86 / equilibrium 0.42 &mdash; same 6 orbitals</text>');
+
+      // anchor target — known x, unmeasured y
+      var c275 = xPix(44);
+      svg.push('<rect x="' + (c275-4).toFixed(1) + '" y="' + PAD_T + '" width="8" height="' + plotH + '" fill="url(#sc-hatchw)"/>');
+      svg.push('<line x1="' + c275.toFixed(1) + '" y1="' + PAD_T + '" x2="' + c275.toFixed(1) + '" y2="' + (H-PAD_B) + '" stroke="rgba(241,245,249,.5)" stroke-width="1.3" stroke-dasharray="2,4">'
+             + '<title>TP53 C275F — 44 active electrons. Its S_max has never been measured at the >=90% site coverage the Gateway requires as evidence, so no y position is known. The bar spans every value it could still take, and it crosses all three zones. That is precisely what Class B records.</title></line>');
+      svg.push('<text x="' + (c275+7).toFixed(1) + '" y="' + (yPix(0.55)).toFixed(1) + '" fill="var(--white)" font-size="9" font-weight="700">TP53 C275F &middot; 44e &mdash; S_max unmeasured</text>');
+
+      // measured DMRG runs, LEON-verified
+      (measured || []).forEach(function(m){
+        if (m.n == null || m.s == null) return;
+        var mx = xPix(Math.max(N_MIN, Math.min(N_MAX, m.n))), my = yPix(Math.max(S_MIN, Math.min(S_AX, m.s)));
+        svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="4" fill="var(--green)" stroke="rgba(6,15,34,.8)" stroke-width="1">'
+               + '<title>' + esc(m.key || 'run') + ' — CAS active space ' + m.n + 'e, measured S_max = ' + Number(m.s).toFixed(2)
+               + (m.cls ? ' — classified ' + esc(m.cls) : '') + '. Measured on this platform and sealed by LEON.</title></circle>');
+      });
+
+      document.getElementById('scaling-chart').innerHTML = svg.join('');
+
+      var leg = document.getElementById('scaling-legend');
+      if (leg) leg.innerHTML =
+          '<span style="color:rgba(239,68,68,.9)">&#9472; exact wall (vertical &middot; size)</span>'
+        + '<span style="color:var(--amber)">&#9472; S_HARD (horizontal &middot; entanglement)</span>'
+        + '<span style="color:rgba(239,68,68,.9)">&#9472; affordability ceiling (uncalibrated)</span>'
+        + '<span style="color:var(--teal)">&#9679; platform calibration (N₂)</span>'
+        + '<span style="color:var(--green)">&#9679; measured (LEON)</span>';
+
+      var fn = document.getElementById('scaling-footnote');
+      if (fn) fn.innerHTML =
+          '<strong>Why two axes.</strong> The classical walls do not share a governing variable, so a single size axis cannot show both. '
+        + 'Exact diagonalisation is combinatorial in the size of the active space and indifferent to entanglement &mdash; its wall is vertical, at ' + EXACT_WALL + 'e. '
+        + 'DMRG needs a bond dimension growing as e<sup>S</sup> at a cost of M<sup>3</sup>, with no electron count in the expression &mdash; its threshold is horizontal. '
+        + 'The earlier version of this chart drew the DMRG wall vertically at 33e; FeMoco, solved classically at CAS(113,76), is the published counterexample.<br><br>'
+        + '<strong>The three zones.</strong> At or below the exact wall a target is Class C, whatever its entanglement, because exact diagonalisation already suffices. '
+        + 'Above the wall and below S_HARD, this pipeline delivers. Between S_HARD and the ceiling lies the budget band: classically solvable, but only above the effort committed here &mdash; '
+        + 'whether such a target gets solved is a budget decision, not a physics one.<br><br>'
+        + '<strong>What is not calibrated.</strong> The ceiling&rsquo;s shape is derived; its height is not. Fixing it requires one measured pair &mdash; a system where both S_max and the bond dimension '
+        + 'actually needed for chemical accuracy were recorded together, which pins the missing prefactor. Until then the ceiling is a labelled structure, not a measurement, and no value should be read off the axis for it.';
     }
 
     function loadMeasured(){
-      fetch(API + '/api/simulate/hpc/runs?limit=200').then(function(r){ return r.json(); }).then(function(d){
-        var runs = (d && d.runs) || [];
-        var measured = runs
-          .filter(function(r){ return r.p2_active_electrons != null && r.p5_elapsed_s != null; })
-          .map(function(r){ return { n: r.p2_active_electrons, s: r.p5_elapsed_s, label: r.mutation_id || '' }; });
-        render(measured);
-      }).catch(function(){ render([]); });
+      var rows = (window.__dmrgRows || []).filter(function(x){ return x && x.s_max != null && x.nelecas != null; });
+      render(rows.map(function(x){ return { n: Number(x.nelecas), s: Number(x.s_max), key: x.key, cls: x.bqp_class }; }));
     }
-    loadMeasured();
+
+    render([]);
     window.solangeRefreshScalingChart = loadMeasured;   // called after a dispatch so new runs show up
-    // Reset hook (mirrors solangeResetDispatch): clears the measured overlay from
-    // the VIEW only. Archived HPC runs remain stored & verified server-side and
-    // reappear — with their green points — on the next page load.
     window.solangeResetScalingChart = function(){ render([]); };
   })();
   </script>
