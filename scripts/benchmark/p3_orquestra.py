@@ -75,10 +75,25 @@ def main():
     e_casci, e_hf = data["e_casci"], data["e_hf"]
 
     # Pauli strings -> Orquestra's own operator type.
+    #
+    # The index is NOT reversed, and getting this wrong is silent. The first
+    # version mapped qiskit's string position i to qubit n-1-i, on the reasoning
+    # that qiskit prints qubit 0 rightmost. The resulting operator had exactly
+    # the right spectrum - its lowest eigenvalue matched CASCI to eight decimals,
+    # because relabelling qubits is a permutation and a permutation does not move
+    # eigenvalues - so a spectrum check passed it. What it broke was the STATE:
+    # the Hartree-Fock preparation X(0)X(1) then pointed at a basis state of the
+    # relabelled operator carrying 0.459 Ha instead of -1.117, and VQE spent its
+    # whole budget climbing back to a reference it should have started from.
+    #
+    # The check that catches this is below and now runs on every execution:
+    # evaluate the prepared HF state against the assembled operator and require
+    # it to reproduce the mean-field energy. An operator can be right and a
+    # convention still wrong, and only a state-level test can tell them apart.
     terms = []
     for t in data["terms"]:
-        s = t["pauli"]                       # qiskit order: qubit 0 is rightmost
-        label = "*".join(f"{c}{n_qubits - 1 - i}" for i, c in enumerate(s) if c != "I")
+        s = t["pauli"]
+        label = "*".join(f"{c}{i}" for i, c in enumerate(s) if c != "I")
         terms.append(PauliTerm(label, t["coeff"]) if label else PauliTerm("I0", t["coeff"]))
     H = PauliSum(terms)
 
@@ -88,6 +103,19 @@ def main():
     # both slow and pointless - the Hamiltonian does not change with the
     # parameters.
     H_sparse = get_sparse_operator(H)
+
+    # Convention gate. Prepare Hartree-Fock and require the assembled operator to
+    # return the mean-field energy PySCF computed. Everything downstream is
+    # meaningless if this fails, so it aborts rather than warns.
+    hf_circ = circuits.Circuit([circuits.X(0), circuits.X(1)], n_qubits=n_qubits)
+    psi_hf = np.asarray(runner.get_wavefunction(hf_circ).amplitudes, dtype=complex)
+    e_hf_check = float(np.real(np.conj(psi_hf) @ (H_sparse @ psi_hf)))
+    if abs(e_hf_check - e_hf) > 1e-8:
+        sys.exit(f"ABORT: qubit convention mismatch. <HF|H|HF> = {e_hf_check:.8f} Ha "
+                 f"but PySCF gives {e_hf:.8f} Ha. The operator's spectrum can still be "
+                 f"correct while the basis ordering is not.")
+    print(f"  convention check  <HF|H|HF> = {e_hf_check:.8f} Ha == PySCF HF  OK")
+
     calls = {"n": 0}
 
     def energy(theta):
