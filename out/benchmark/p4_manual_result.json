@@ -1,0 +1,45 @@
+{
+  "pathway": "P4 fully manual",
+  "e_hf": -1.1166843870853405,
+  "e_ground_qubit_hamiltonian": -1.1372701746609024,
+  "e_casci": -1.137270174660903,
+  "agreement_mha": 6.661338147750939e-13,
+  "part11_satisfied": 1,
+  "part11": {
+    "E1": {
+      "name": "attributable",
+      "satisfied": false,
+      "note": "no identity is captured; the shell user is whoever ran it"
+    },
+    "E2": {
+      "name": "timestamped",
+      "satisfied": false,
+      "note": "nothing records when this ran unless the operator notes it"
+    },
+    "E3": {
+      "name": "tamper-evident",
+      "satisfied": false,
+      "note": "stdout can be edited afterwards and nothing detects it"
+    },
+    "E4": {
+      "name": "complete inputs",
+      "satisfied": true,
+      "note": "geometry, basis and active space are fixed in this file"
+    },
+    "E5": {
+      "name": "device state",
+      "satisfied": false,
+      "note": "no backend state is captured"
+    },
+    "E6": {
+      "name": "re-verifiable",
+      "satisfied": false,
+      "note": "a third party must trust the operator's copy of the output"
+    },
+    "E7": {
+      "name": "append-only trail",
+      "satisfied": false,
+      "note": "no audit record of any kind is written"
+    }
+  }
+}
