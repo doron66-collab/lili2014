@@ -66,8 +66,32 @@ CHEM_ACC_MHA = 1.6      # 1 kcal/mol — the accuracy the whole tractability arg
 # diagonalisation settles the space regardless of how entangled the state is.
 # Above it that shortcut is gone and S_max decides.
 EXACT_WALL_E = 18   # active electrons up to which exact diagonalisation is routine
-S_HARD       = 1.5      # max bipartite entanglement above which DMRG stops being practical
-PRACTICAL_M  = 2000     # bond dimension beyond which DMRG is deemed impractical here
+# Max bipartite entanglement above which DMRG stops being practical AT
+# PRACTICAL_M. Calibrated, not derived: N2 at equilibrium measures S_max = 0.42
+# (weakly correlated) and stretched N2 measures 2.86 (strongly correlated), and
+# 1.5 sits between them. A policy of this pipeline, not a constant of nature -
+# it marks where this pipeline's committed bond dimension runs out.
+#
+# Deliberately NOT replaced by a value derived from M ~ C*e^S. Calibration
+# (results/calibration/N2_CAS10-16_ccpvdz_2026-08-05.json) measured that
+# relation directly and found a growth exponent of 0.31, not 1: the exponential
+# form is an upper bound, following from a flat entanglement spectrum, and real
+# spectra decay. Both its prefactor and its exponent depend on the chemistry and
+# on the size of the active space, so a fit on N2 does not transfer to a
+# 44-electron site.
+S_HARD       = 1.5
+
+# The bond dimension this pipeline is willing to spend. Not derived: a stated
+# commitment, and the value that gives "practical" its meaning everywhere below.
+# For scale, cost runs as M^3, so 2000 is 512x the M=250 the DMRG-SCF solver
+# uses by default, and roughly what a single node reaches in hours; the largest
+# published chemistry DMRG runs go to M=6000 on thousands of cores for weeks
+# (FeMoco, CAS(113,76)). Calibration on an N2 stretch series at CAS(10,16)
+# found the requirement in the 160-256 range, an order of magnitude under this
+# ceiling - so it is generous for small systems and untested against large ones.
+# Raising it does not make a target classically tractable; it changes what this
+# pipeline is prepared to pay before it says so.
+PRACTICAL_M  = 2000
 
 # Largest usable width on the quantum hardware actually available to this project.
 # IBM Heron r2/r3 are 156-qubit devices; a target needing more than this cannot be
