@@ -1,0 +1,50 @@
+{
+  "pathway": "P3 Orquestra",
+  "availability": "confirmed \u2014 orquestra-core 0.12.0, isolated environment required",
+  "n_qubits": 4,
+  "pauli_terms": 15,
+  "ansatz_reps": 3,
+  "simulator_calls": 3437,
+  "e_hf": -1.1166843870853405,
+  "e_vqe": -1.1372701193401944,
+  "e_casci": -1.137270174660903,
+  "error_mha": 5.532070868063954e-05,
+  "part11_satisfied": 1,
+  "part11": {
+    "E1": {
+      "name": "attributable",
+      "satisfied": false,
+      "note": "no identity is captured by the SDK"
+    },
+    "E2": {
+      "name": "timestamped",
+      "satisfied": false,
+      "note": "workflow runs can be timestamped by the platform service, which is what ceased operating; the local SDK writes none"
+    },
+    "E3": {
+      "name": "tamper-evident",
+      "satisfied": false,
+      "note": "results are plain values with no integrity check"
+    },
+    "E4": {
+      "name": "complete inputs",
+      "satisfied": true,
+      "note": "operator and circuit are fixed in this file, the Hamiltonian in the file it reads"
+    },
+    "E5": {
+      "name": "device state",
+      "satisfied": false,
+      "note": "the simulator reports none"
+    },
+    "E6": {
+      "name": "re-verifiable",
+      "satisfied": false,
+      "note": "nothing a third party can check without trusting the operator"
+    },
+    "E7": {
+      "name": "append-only trail",
+      "satisfied": false,
+      "note": "no audit record is written locally"
+    }
+  }
+}
