@@ -52,7 +52,20 @@ router = APIRouter()
 # component that actually measures these quantities. If they ever diverge, the
 # Gateway would recommend a route the classifier disagrees with. ────────────────
 CHEM_ACC_MHA = 1.6      # 1 kcal/mol — the accuracy the whole tractability argument is phrased in
-EXACT_WALL_E = 18       # active electrons up to which exact classical (FCI/CCSD(T)) is fine
+# Exact diagonalisation builds every determinant in the active space, so its
+# cost is combinatorial in the size of that space and carries no dependence on
+# entanglement whatever. For CAS(n,n) at singlet spin the determinant count is
+# C(n, n/2)^2:  16e -> 1.7e8,  18e -> 2.4e9,  20e -> 3.4e10,  22e -> 5.0e11.
+# Eighteen is where routine exact diagonalisation stops being routine — a few
+# billion determinants is reachable with effort, tens of billions is not.
+#
+# It is a practical convention, not a derived constant, and it is NOT "the
+# classical wall": DMRG carries the classical frontier far past it (FeMoco at
+# CAS(113,76)). What this boundary marks is where the classifier must START
+# ASKING about entanglement. Below it the question is moot, because exact
+# diagonalisation settles the space regardless of how entangled the state is.
+# Above it that shortcut is gone and S_max decides.
+EXACT_WALL_E = 18   # active electrons up to which exact diagonalisation is routine
 S_HARD       = 1.5      # max bipartite entanglement above which DMRG stops being practical
 PRACTICAL_M  = 2000     # bond dimension beyond which DMRG is deemed impractical here
 
