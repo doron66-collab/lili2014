@@ -798,7 +798,7 @@
 
       // wall 2 — horizontal: this platform's operational gate
       svg.push('<line x1="' + PAD_L + '" y1="' + hardY.toFixed(1) + '" x2="' + (W-PAD_R) + '" y2="' + hardY.toFixed(1) + '" stroke="rgba(245,158,11,.85)" stroke-width="1.8" stroke-dasharray="5,4"/>');
-      svg.push('<text x="' + (wallX+70).toFixed(1) + '" y="' + (hardY-5).toFixed(1) + '" fill="var(--amber)" font-size="9" font-weight="700">S_HARD = ' + S_HARD + ' &mdash; our gate, at our bond dimension. Policy, not physics.'
+      svg.push('<text x="' + (wallX+70).toFixed(1) + '" y="' + (hardY-5).toFixed(1) + '" fill="var(--amber)" font-size="9" font-weight="700">S_HARD = ' + S_HARD + ' &mdash; the Class B / Class A boundary. Our gate, at our bond dimension: policy, not physics.'
              + '<title>HORIZONTAL. DMRG bond dimension grows as e^S and cost as M^3, with no electron count in the expression. This threshold is calibrated on N2 and tied to this pipeline\'s practical bond dimension — it marks where THIS pipeline stops, not where DMRG stops.</title></text>');
 
       // affordability ceiling — shape derived, height uncalibrated
@@ -807,11 +807,20 @@
              + '<title>Cost runs as M^3 times a polynomial in orbital count, and M grows as e^S. Solving for the largest affordable S at fixed budget puts the orbital count inside a logarithm, so the ceiling falls as the system grows. SHAPE is derived; HEIGHT is not calibrated — fixing it needs one measured (S_max, bond dimension required) pair.</title></text>');
       svg.push('<text x="' + xPix(66).toFixed(1) + '" y="' + (yPix(CEIL_CONST-Math.log(66))+3).toFixed(1) + '" fill="rgba(239,68,68,.6)" font-size="8">shape derived &middot; height NOT calibrated &mdash; do not read a value off the axis</text>');
 
-      // zone captions
-      svg.push('<text x="' + (PAD_L+(wallX-PAD_L)/2).toFixed(1) + '" y="' + (PAD_T+14) + '" fill="rgba(34,197,94,.9)" font-size="9.5" font-weight="700" text-anchor="middle">CLASS C</text>');
-      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-8).toFixed(1) + '" fill="rgba(34,197,94,.85)" font-size="9.5" font-weight="700" text-anchor="end">our pipeline delivers</text>');
-      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-16).toFixed(1) + '" fill="rgba(245,158,11,.9)" font-size="9.5" font-weight="700" text-anchor="end">THE BUDGET BAND &mdash; classically solvable, above what we spend</text>');
-      svg.push('<text x="' + xPix(30).toFixed(1) + '" y="' + (PAD_T+16) + '" fill="rgba(239,68,68,.9)" font-size="9.5" font-weight="700">BEYOND ANY BUDGET</text>');
+      // Zone captions carry the class letters, so the plane reads as the same rule
+      // the registry applies rather than as a separate picture. The S_HARD line IS
+      // the B/A boundary; the affordability ceiling subdivides A rather than
+      // bounding it, since a target above the threshold is Class A whether or not
+      // a larger budget could still have cracked it.
+      svg.push('<text x="' + (PAD_L+(wallX-PAD_L)/2).toFixed(1) + '" y="' + (PAD_T+14) + '" fill="rgba(34,197,94,.95)" font-size="10" font-weight="700" text-anchor="middle">CLASS C</text>');
+      svg.push('<text x="' + (PAD_L+(wallX-PAD_L)/2).toFixed(1) + '" y="' + (PAD_T+25) + '" fill="rgba(34,197,94,.6)" font-size="8" text-anchor="middle">filtered out</text>');
+
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-18).toFixed(1) + '" fill="rgba(34,197,94,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS B &mdash; quantum-advantaged</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-7).toFixed(1) + '" fill="rgba(34,197,94,.6)" font-size="8" text-anchor="end">tensor-network methods still converge here</text>');
+
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-26).toFixed(1) + '" fill="rgba(239,68,68,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS A &mdash; quantum-necessary</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-15).toFixed(1) + '" fill="rgba(245,158,11,.85)" font-size="8" text-anchor="end">&hellip; but inside this band a larger budget could still crack it</text>');
+      svg.push('<text x="' + xPix(28).toFixed(1) + '" y="' + (PAD_T+16) + '" fill="rgba(239,68,68,.9)" font-size="9" font-weight="700">CLASS A &mdash; and beyond any budget</text>');
 
       // calibration pair — the platform's own constants
       svg.push('<line x1="' + xPix(6).toFixed(1) + '" y1="' + yPix(0.42).toFixed(1) + '" x2="' + xPix(6).toFixed(1) + '" y2="' + yPix(2.86).toFixed(1) + '" stroke="rgba(6,182,212,.35)"/>');
