@@ -733,8 +733,23 @@ def run_agent(api, poll_s, token, out_dir):
                     # run_dmrg.sh passes every argument straight through to
                     # solange_dmrg.py, which has supported dmrg_scf in --compound
                     # mode all along — the flag just never reached it from here.
+                    #
+                    # --dmrg-scf-scratch is ALSO required, not just --dmrg-scf: its
+                    # default ("./tmp_dmrgscf_orb", set on both solange_dmrg.py and
+                    # solange_hpc.py's argparse) is a single fixed relative path with
+                    # no per-run identity, so validate() and the solver both resume
+                    # from whatever a PRIOR --dmrg-scf invocation left there — same
+                    # collision the calibration script hit earlier today with an
+                    # unkeyed scratch dir, here between agent-dispatched jobs instead
+                    # of between geometries. The very first agent-side use of this
+                    # branch died silently within ~9s, before printing a single
+                    # "[dmrg-scf] solve" line — consistent with validate() resuming a
+                    # stale/incompatible state rather than running its own fresh
+                    # random-Hamiltonian check. Keying by dispatch id makes every job
+                    # get its own directory, so two jobs can never collide.
                     cmd += ["--dmrg-scf", "--dmrg-scf-maxm",
-                            str(job.get("dmrg_scf_maxm") or 250)]
+                            str(job.get("dmrg_scf_maxm") or 250),
+                            "--dmrg-scf-scratch", f"./tmp_dmrgscf_orb_{did}"]
             else:
                 compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
                 cmd = [sys.executable, "-u", str(_HERE),
@@ -746,7 +761,10 @@ def run_agent(api, poll_s, token, out_dir):
                 if job.get("run_vqe"):
                     cmd += ["--vqe", "--vqe-steps", "200"]
                 if job.get("dmrg_scf"):
-                    cmd += ["--dmrg-scf", "--dmrg-scf-maxm", str(job.get("dmrg_scf_maxm") or 250)]
+                    # Same collision as the dmrg-branch fix above: an unkeyed
+                    # scratch dir lets one job's --dmrg-scf resume another's state.
+                    cmd += ["--dmrg-scf", "--dmrg-scf-maxm", str(job.get("dmrg_scf_maxm") or 250),
+                            "--dmrg-scf-scratch", f"./tmp_dmrgscf_orb_{did}"]
                     # dmrgscf_block2.py imports block2, which needs the LD_PRELOAD
                     # with_block2.sh builds (RUN_GUIDE.md's documented fix for
                     # "cannot open libmkl_def.so.1") — the agent process itself may
