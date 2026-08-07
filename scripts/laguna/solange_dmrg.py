@@ -180,6 +180,19 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     return energies, s_max, stop_reason
 
 
+# METHODOLOGICAL LIMITATION, recorded rather than fixed here: this test is
+# single-method. A high S_max means DMRG (an MPS/tensor-network method)
+# specifically cannot represent the state at a practical bond dimension. It
+# does NOT by itself rule out other classical families with different
+# sensitivity to entanglement — selected CI, FCIQMC, non-MPS tensor-network
+# geometries, neural quantum states. The dissertation's own prose already
+# states the classification is "conditional on the current state of classical
+# methods... and revisable as those methods advance" (§06.i) — this comment
+# exists because that hedge was in the prose but not reflected anywhere in
+# the code that actually decides a class. A Class A verdict here is accurate
+# to what it claims to be: DMRG-specific evidence, not a cross-method
+# exclusion. Treated as a genuinely open question, not one this platform
+# currently answers.
 def classify(active_electrons, energies, s_max):
     """Map DMRG behaviour to an A/B/C class with an explicit rationale.
 

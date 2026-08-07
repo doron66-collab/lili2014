@@ -271,12 +271,23 @@ def recommend(ev: dict) -> dict:
         if s_max > S_HARD:
             route = "qpu"
             quantum_value = True
-            confidence = "high"
+            # NOT "high": this is an absence claim (DMRG cannot represent the state),
+            # relative to one classical method family (MPS/tensor-network). It does not
+            # by itself rule out selected CI, FCIQMC, non-MPS tensor-network geometries,
+            # or neural quantum states, whose sensitivity to entanglement differs. The
+            # dissertation's own §06.i already states the classification is "conditional
+            # on the current state of classical methods... and revisable as those
+            # methods advance" — this asymmetry is that hedge, reflected in the number
+            # a caller actually sees rather than only in prose. The s_max <= S_HARD
+            # branch below stays "high": DMRG succeeding is a positive, demonstrated
+            # result, not dependent on which other methods were or weren't tried.
+            confidence = "medium"
             rationale.append(
                 f"Measured S_max = {s_max:.2f} exceeds {S_HARD}: the state carries more "
                 f"entanglement than DMRG can represent at a practical bond dimension "
-                f"(M ≤ {PRACTICAL_M}). This is the regime where classical methods do not "
-                f"reach chemical accuracy and quantum simulation is the justified route.")
+                f"(M ≤ {PRACTICAL_M}). This is single-method evidence — DMRG specifically, "
+                f"not classical computation in general — so confidence is capped at medium "
+                f"pending a cross-check against a non-tensor-network classical method.")
         else:
             route = "dmrg"
             quantum_value = False
