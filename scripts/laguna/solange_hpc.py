@@ -723,6 +723,18 @@ def run_agent(api, poll_s, token, out_dir):
                        "--ncas", ncas, "--nelecas", str(job.get("nelecas") or ncas),
                        "--bond-dims", str(job.get("bond_dims") or "250,500,1000,2000"),
                        "--submit", api]
+                if job.get("dmrg_scf"):
+                    # Without this, orbital optimisation for a "Queue DMRG" job
+                    # ALWAYS falls back to plain CASSCF/FCI, no matter how large
+                    # --ncas is: this branch had no path to --dmrg-scf at all until
+                    # now, unlike the HPC-ladder branch below. CAS(16,16) is 166M
+                    # FCI determinants and crashed twice in production with no
+                    # traceback (an OOM kill leaves none) before this was wired.
+                    # run_dmrg.sh passes every argument straight through to
+                    # solange_dmrg.py, which has supported dmrg_scf in --compound
+                    # mode all along — the flag just never reached it from here.
+                    cmd += ["--dmrg-scf", "--dmrg-scf-maxm",
+                            str(job.get("dmrg_scf_maxm") or 250)]
             else:
                 compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
                 cmd = [sys.executable, "-u", str(_HERE),

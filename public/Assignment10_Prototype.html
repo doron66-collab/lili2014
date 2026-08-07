@@ -1304,7 +1304,7 @@
         // warning precisely where it matters most.
         var notes = [];
         if(fullOrb && n === fullOrb) notes.push('full site');
-        if(n > CAS_FCI_ORB_WALL) notes.push('needs --dmrg-scf');
+        if(n >= CAS_FCI_ORB_WALL) notes.push('needs --dmrg-scf');  // >= not > — CAS(16,16) plain-FCI crashed live in production
         else if(n > CAS_VQE_ORB_WALL) notes.push('no VQE');
         return '<option value="'+n+'">CAS('+n+','+n+') · '+(2*n)+'q'
              + (notes.length ? ' · ' + notes.join(' · ') : '') + '</option>';
@@ -1576,8 +1576,16 @@
                 noteEsc.replace(/"/g,'&quot;')+'">⚛ '+noteEsc+'</div>';
             });
           }
-          if(lastFail) line+='<div style="color:#f87171;font-size:10px;margin-top:2px">⚠ last failure: '+
-            String(lastFail.note).replace(/</g,'&lt;').slice(0,160)+'</div>';
+          if(lastFail){
+            // Was sliced to 160 chars with no way to see the rest — the exact
+            // gap that made a real diagnosis (§ above) require pulling the raw
+            // API response by hand. The full note is now in title= as well, so
+            // hovering shows it without leaving the page.
+            var lfEsc = String(lastFail.note).replace(/</g,'&lt;');
+            line += '<div style="color:#f87171;font-size:10px;margin-top:2px;cursor:help" title="'+
+              lfEsc.replace(/"/g,'&quot;')+'">⚠ last failure: '+lfEsc.slice(0,160)+
+              (lfEsc.length>160?'…':'')+'</div>';
+          }
           el.innerHTML=line; el.style.display='block';
         });
       }).catch(function(){ el.style.display='none'; });
@@ -5066,7 +5074,7 @@ async function dispatchSelectedToHpc() {
   // plain FCI-based CASSCF cannot converge there at all, so asking the operator
   // to separately remember to also tick a box would just reproduce the wall as
   // a silently-hung job the moment they forgot to.
-  const dmrgScf = ncas > (window.CAS_FCI_ORB_WALL || 16);
+  const dmrgScf = ncas >= (window.CAS_FCI_ORB_WALL || 16);  // >= not > — CAS(16,16) crashed live, see dispatchSelectedToDmrg()
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const { data: { session } } = await supa.auth.getSession();
   if (!session?.access_token) { alert('Please log in first.'); return; }
@@ -5147,6 +5155,14 @@ async function dispatchSelectedToDmrg() {
   if (!checked.length) { setMsg('<span style="color:#f87171">Select at least one mutation.</span>'); return; }
   const ncas = parseInt(document.getElementById('hpc-cas').value, 10);
   const side = document.getElementById('hpc-side').value;
+  // CAS(16,16) is 166 million FCI determinants — plain CASSCF/FCI orbital
+  // optimization crashed on it twice in production (silent kill, no traceback,
+  // ~10-30s in), because this dispatch path built its command with no way to
+  // ever request --dmrg-scf: run_dmrg.sh passes every argument straight through
+  // to solange_dmrg.py, which already supports dmrg_scf in --compound mode, but
+  // nothing upstream of it ever set the flag. dispatchSelectedToHpc() already
+  // computes this same condition; it just was never mirrored here.
+  const dmrgScf = ncas >= (window.CAS_FCI_ORB_WALL || 16);
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const { data: { session } } = await supa.auth.getSession();
   if (!session?.access_token) { alert('Please log in first.'); return; }
@@ -5159,7 +5175,8 @@ async function dispatchSelectedToDmrg() {
     try {
       const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
         method: 'POST', headers,
-        body: JSON.stringify({ key: v.simId, side, job_type: 'dmrg', ncas, nelecas: ncas, residue: v.mutation || '' })
+        body: JSON.stringify({ key: v.simId, side, job_type: 'dmrg', ncas, nelecas: ncas,
+                              residue: v.mutation || '', dmrg_scf: dmrgScf, dmrg_scf_maxm: 250 })
       });
       const out = await res.json();
       out.queued ? ok++ : fail++;
