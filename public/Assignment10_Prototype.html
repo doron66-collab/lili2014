@@ -1262,6 +1262,13 @@
       var casSel = document.getElementById('hpc-cas');
       var msgEl  = document.getElementById('hpc-cas-suggest');
       if(!casSel) return;
+      // BASE LADDER. This was referenced (.filter/.push/.map/.indexOf below)
+      // but never declared anywhere in this file — every call threw a silent
+      // ReferenceError, so the dropdown never rebuilt and the four options
+      // baked into the static HTML (6/8/10/12) were all any target ever
+      // offered, including ones whose full site is 44e or 155e. Declaring it
+      // here is the fix; the extension logic below was already correct.
+      var sizes = [6, 8, 10, 12, 16, 20, 24];
       var checked = Array.prototype.filter.call(document.querySelectorAll('.hpc-chk'), function(c){ return c.checked; });
       var variants = window.__dispatchVariants || [];
       var maxQ = 0, siteE = 0, have = false;
