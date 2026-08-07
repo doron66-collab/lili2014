@@ -919,11 +919,25 @@ async def list_dispatch(limit: int = 20):
     try:
         res = (sb.table("hpc_dispatch")
                  .select("id, created_at, status, key, side, compound, basis, "
-                         "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note, job_type")
+                         "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note, job_type, "
+                         "dmrg_scf, dmrg_scf_maxm")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"jobs": res.data or []}
     except Exception as e:
-        return {"jobs": [], "error": str(e)}
+        # dmrg_scf/dmrg_scf_maxm were added to the select list above without
+        # confirming the migration (backend/migrations — alter table hpc_dispatch
+        # add column dmrg_scf boolean, dmrg_scf_maxm integer) had actually been
+        # run against this deployment's database. If it has not, this SELECT
+        # itself now fails with Postgres's own "column does not exist" — which is
+        # the fastest, most direct way to settle whether that's what has been
+        # silently blocking --dmrg-scf from ever reaching a "Queue DMRG" job.
+        msg = str(e)
+        if "dmrg_scf" in msg or "does not exist" in msg.lower():
+            msg += (" — hint: backend/migrations needs 'alter table hpc_dispatch "
+                    "add column if not exists dmrg_scf boolean, "
+                    "add column if not exists dmrg_scf_maxm integer' run against "
+                    "this deployment's Supabase instance.")
+        return {"jobs": [], "error": msg}
 
 
 @router.post("/hpc/dispatch/clear")
