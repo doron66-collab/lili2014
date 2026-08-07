@@ -446,6 +446,14 @@ def main():
                     help="comma-separated increasing bond dimensions")
     ap.add_argument("--out", default="./out")
     ap.add_argument("--verbose", type=int, default=0)
+    ap.add_argument("--stack-mem-gb", type=float, default=DEFAULT_STACK_MEM_GB,
+                    help=f"block2's own pre-allocated memory pool in GB (default "
+                         f"{DEFAULT_STACK_MEM_GB}). This is internal to block2 and unrelated "
+                         "to --max-memory, which bounds pyscf: exceeding it aborts the "
+                         "process with 'exceeding allowed memory' and no dmesg trace. The "
+                         "default was chosen to sit under a per-user cgroup ceiling that no "
+                         "longer applies, so raise it for large sites - the reachable bond "
+                         "dimension scales with it.")
     ap.add_argument("--threads", type=int, default=4,
                     help="CPU threads for block2 (was hard-coded to 4; raise this to use "
                          "more of a largemem node's cores and finish faster)")
@@ -508,7 +516,8 @@ def main():
                                args.ncas, args.nelecas, bond_dims,
                                scratch=args.scratch, n_threads=args.threads,
                                max_minutes=args.max_minutes,
-                               early_stop=not args.no_early_stop)
+                               early_stop=not args.no_early_stop,
+                               stack_mem_gb=args.stack_mem_gb)
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
     # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
