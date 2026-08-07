@@ -581,9 +581,24 @@ def main():
         from solange_hpc import run_casscf
         print(f"SOLANGE DMRG classifier · {args.key} · {args.compound}/{args.basis} "
               f"· CAS({args.nelecas},{args.ncas})")
+        # Same split as the --geometry branch above, and for the same reason: this
+        # branch had NO orbital-phase time guard at all until a live --compound run
+        # (ARID2_LOF, CAS(16,16)) ground past macro-iteration 170 with the energy
+        # frozen — conv_tol was already satisfied, but conv_tol_grad, computed from
+        # DMRG's own RDM noise floor, may never fall below its threshold, so the
+        # loop had no way to stop short of the 200-macro-iteration cap.
+        compound_orbital_deadline = None
+        if args.orbital_max_minutes is not None:
+            compound_orbital_deadline = time.time() + args.orbital_max_minutes * 60
+        elif args.max_minutes is not None:
+            compound_orbital_deadline = time.time() + 0.6 * args.max_minutes * 60
         cas = run_casscf(args.compound, args.basis, args.ncas, args.nelecas, args.verbose,
                          dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
-                         dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads)
+                         dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads,
+                         orbital_deadline=compound_orbital_deadline)
+        if cas.get("orbital_optimization_truncated"):
+            print("  *** orbital optimisation hit its time budget — orbitals are usable but "
+                  "NOT converged; the classification below is PROVISIONAL on that basis too ***")
     print(f"{cas['orbital_optimization_method']} E = {cas['e_casscf']:.8f} Ha")
 
     t0 = time.time()

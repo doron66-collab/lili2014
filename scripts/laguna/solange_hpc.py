@@ -92,8 +92,20 @@ def detect_gpu(safety_gb: float = 8.0):
 
 # ── PySCF: RHF -> CASSCF(ncas, nelecas)/basis ────────────────────────────────
 
+class OrbitalTimeBudgetExceeded(Exception):
+    """Same guard as solange_dmrg.py's --geometry path, added here after a live
+    --compound run (ARID2_LOF, CAS(16,16)) ground past macro-iteration 170 with
+    the energy frozen bit-for-bit for 20+ iterations — the energy criterion was
+    already satisfied, but conv_tol_grad, computed from DMRG's own RDM noise
+    floor, may never fall below its threshold, so the loop had no way to stop
+    short of the 200-macro-iteration cap (potentially another 1-2 hours from
+    where it was killed). --orbital-max-minutes existed only in the --geometry
+    path; --compound mode had no time-based exit at all until now."""
+
+
 def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
-               dmrg_scf_maxm=500, dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4):
+               dmrg_scf_maxm=500, dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4,
+               orbital_deadline=None):
     """dmrg_scf: same DMRG-SCF swap as solange_dmrg.py's integrals_from_geometry()
     — see that docstring for why this (not just a bigger downstream bond-dim
     list) is what actually raises the ncas ceiling past FCI's ~16-orbital wall.
@@ -156,12 +168,27 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
         mc.conv_tol      = 1e-9
         mc.conv_tol_grad = 1e-5
     mc.max_cycle_macro = 200
-    e_casscf = mc.kernel()[0]
-    if not mc.converged:
-        print(f"  WARNING: CASSCF did not fully converge for {compound} "
-              f"CAS({nelecas},{ncas})/{basis} (JW terms still valid)", file=sys.stderr)
+    # Same guard as integrals_from_geometry(): checked once per macro-iteration,
+    # the only point where stopping leaves a coherent set of orbitals to hand off.
+    truncated = False
+    if orbital_deadline is not None:
+        def _budget_callback(envs, _dl=orbital_deadline):
+            if time.time() > _dl:
+                raise OrbitalTimeBudgetExceeded(envs.get("imacro"))
+        mc.callback = _budget_callback
+    try:
+        e_casscf = mc.kernel()[0]
+        if not mc.converged:
+            print(f"  WARNING: CASSCF did not fully converge for {compound} "
+                  f"CAS({nelecas},{ncas})/{basis} (JW terms still valid)", file=sys.stderr)
+    except OrbitalTimeBudgetExceeded as exc:
+        truncated = True
+        e_casscf = float(mc.e_tot)
+        print(f"  STOPPED {compound} CAS({nelecas},{ncas})/{basis} at the orbital time "
+              f"budget after macro-iteration {exc.args[0]} — orbitals are usable but "
+              f"NOT converged", file=sys.stderr)
 
-    if not mc.converged and not dmrg_scf:
+    if not mc.converged and not dmrg_scf and not truncated:
         # A non-converged CASSCF yields integrals inconsistent with e_casscf —
         # exactly the ARID2 failure. Retry with the second-order (Newton) solver.
         # (Newton retry is an FCI-solver-only escape hatch — DMRGCI does not
@@ -172,7 +199,7 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
         mc = mcscf.CASSCF(mf, ncas=ncas, nelecas=nelecas).newton()
         mc.max_cycle_macro = 300
         e_casscf = mc.kernel()[0]
-    if not mc.converged:
+    if not mc.converged and not truncated:
         raise RuntimeError(
             f"CASSCF failed to converge for {compound}/{basis} CAS({nelecas},{ncas}) "
             f"even with the Newton solver — refusing to emit an inconsistent Hamiltonian.")
@@ -197,6 +224,7 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
 
     return {
         "e_rhf": float(e_rhf), "e_casscf": float(e_casscf), "ecore": float(ecore),
+        "orbital_optimization_truncated": bool(truncated),
         "orbital_optimization_method": (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf
                                          else "CASSCF (FCI solver)"),
         # None under --dmrg-scf: there is no independent FCI reference in that
@@ -747,9 +775,17 @@ def run_agent(api, poll_s, token, out_dir):
                     # stale/incompatible state rather than running its own fresh
                     # random-Hamiltonian check. Keying by dispatch id makes every job
                     # get its own directory, so two jobs can never collide.
+                    # 30 minutes is a judgment call, not a measured constant: today's
+                    # live run had its energy frozen bit-for-bit by ~30 minutes in and
+                    # was still grinding at 40+ with no formal convergence in sight
+                    # (conv_tol_grad, not conv_tol, was the holdout — see
+                    # OrbitalTimeBudgetExceeded's docstring in solange_hpc.py). Without
+                    # this, a "Queue DMRG" job with no operator watching it could run for
+                    # hours past the point its answer had already stopped changing.
                     cmd += ["--dmrg-scf", "--dmrg-scf-maxm",
                             str(job.get("dmrg_scf_maxm") or 250),
-                            "--dmrg-scf-scratch", f"./tmp_dmrgscf_orb_{did}"]
+                            "--dmrg-scf-scratch", f"./tmp_dmrgscf_orb_{did}",
+                            "--orbital-max-minutes", str(job.get("orbital_max_minutes") or 30)]
             else:
                 compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
                 cmd = [sys.executable, "-u", str(_HERE),
