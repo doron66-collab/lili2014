@@ -760,7 +760,18 @@
       svg.push('<defs><pattern id="sc-hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
              + '<line x1="0" y1="0" x2="0" y2="7" stroke="rgba(239,68,68,.28)" stroke-width="2.5"/></pattern>'
              + '<pattern id="sc-hatchw" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
-             + '<line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,163,184,.22)" stroke-width="2"/></pattern></defs>');
+             + '<line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,163,184,.22)" stroke-width="2"/></pattern>'
+             // Whole Class A region (both sub-zones) is single-method evidence — S_max
+             // measured via DMRG/MPS specifically, not a cross-method classical
+             // exclusion (see gateway.py recommend(), confidence capped at "medium" on
+             // this branch for exactly this reason). Class C's solid fill is left alone
+             // deliberately: below the exact wall, EVERY classical method works, so
+             // nothing there is method-specific and it earns the solid, certain fill.
+             // Class A gets a fill of its own rather than reusing sc-hatch, so it reads
+             // as "uncertain evidence" and not as "impossible", which is what sc-hatch
+             // (the affordability ceiling) already means.
+             + '<pattern id="sc-hatchA" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+             + '<line x1="0" y1="0" x2="0" y2="8" stroke="rgba(239,68,68,.16)" stroke-width="3"/></pattern></defs>');
 
       var ceil = ceilingPath();
       var wallX = xPix(EXACT_WALL), hardY = yPix(S_HARD);
@@ -771,7 +782,7 @@
       // zone: the budget band (between our gate and the ceiling)
       svg.push('<path d="M' + wallX.toFixed(1) + ',' + hardY.toFixed(1) + ' L' + xPix(N_MAX).toFixed(1) + ',' + hardY.toFixed(1)
              + ' L' + ceil.slice().reverse().filter(function(p){ return parseFloat(p.split(',')[0]) >= wallX; }).join(' L')
-             + ' Z" fill="rgba(245,158,11,.10)"/>');
+             + ' Z" fill="url(#sc-hatchA)"/>');
       // zone: our pipeline delivers
       svg.push('<rect x="' + wallX.toFixed(1) + '" y="' + hardY.toFixed(1) + '" width="' + (xPix(N_MAX)-wallX).toFixed(1)
              + '" height="' + (yPix(S_MIN)-hardY).toFixed(1) + '" fill="rgba(34,197,94,.07)"/>');
@@ -819,8 +830,9 @@
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-7).toFixed(1) + '" fill="rgba(34,197,94,.6)" font-size="8" text-anchor="end">tensor-network methods still converge here</text>');
 
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-26).toFixed(1) + '" fill="rgba(239,68,68,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS A &mdash; quantum-necessary</text>');
-      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-15).toFixed(1) + '" fill="rgba(245,158,11,.85)" font-size="8" text-anchor="end">&hellip; but inside this band a larger budget could still crack it</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-15).toFixed(1) + '" fill="rgba(245,158,11,.85)" font-size="8" text-anchor="end">single-method (DMRG) evidence &middot; confidence: medium &middot; a larger budget could still crack it</text>');
       svg.push('<text x="' + xPix(28).toFixed(1) + '" y="' + (PAD_T+16) + '" fill="rgba(239,68,68,.9)" font-size="9" font-weight="700">CLASS A &mdash; and beyond any budget</text>');
+      svg.push('<text x="' + xPix(28).toFixed(1) + '" y="' + (PAD_T+27) + '" fill="rgba(239,68,68,.7)" font-size="8">single-method (DMRG) evidence, not a cross-method exclusion</text>');
 
       // calibration pair — the platform's own constants
       svg.push('<line x1="' + xPix(6).toFixed(1) + '" y1="' + yPix(0.42).toFixed(1) + '" x2="' + xPix(6).toFixed(1) + '" y2="' + yPix(2.86).toFixed(1) + '" stroke="rgba(6,182,212,.35)"/>');
