@@ -97,6 +97,26 @@ S_HARD       = 1.5
 DEFAULT_STACK_MEM_GB = 4.0
 
 
+class OrbitalTimeBudgetExceeded(Exception):
+    """Raised from the CASSCF callback when the orbital phase outruns its budget.
+
+    --max-minutes was written to protect the bond-dimension ladder, and it does.
+    What it never covered was the phase BEFORE the ladder: DMRG-SCF orbital
+    optimisation, which on a real protein cluster is the expensive part. On a
+    163-atom site the DMRG solves themselves took under two seconds each while
+    the macro-iterations around them took nearly four minutes, because CASSCF
+    re-transforms integrals over 491 basis functions every time. Twenty
+    macro-iterations of that overruns a four-hour allocation, and the scheduler
+    then kills the job before the ladder starts - which is to say before the
+    mechanism meant to save a partial result ever runs. Exactly the failure the
+    budget was added to prevent, one stage earlier than it was looking.
+
+    Stopping this way keeps whatever orbitals the optimisation had reached. They
+    are usable and they are not converged, so every record built from them is
+    marked accordingly rather than presented as a finished optimisation.
+    """
+
+
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
              n_threads=4, max_minutes=None, early_stop=True,
              stack_mem_gb=DEFAULT_STACK_MEM_GB):
@@ -197,7 +217,8 @@ def classify(active_electrons, energies, s_max):
 def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
                              density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit",
                              max_cycle_macro=20, dmrg_scf=False, dmrg_scf_maxm=500,
-                             dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4):
+                             dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4,
+                             orbital_deadline=None):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -319,8 +340,23 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         mc.conv_tol_grad = 1e-3
     if spin == 0 and not dmrg_scf:
         mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell — FCI-solver option, not exposed by DMRGCI
-    e_casscf = mc.kernel(mo)[0]
-    conv_note = "converged" if mc.converged else f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first"
+    # Wall-clock guard on the orbital phase. Checked once per macro-iteration,
+    # which is the only point where stopping leaves a coherent set of orbitals.
+    truncated = False
+    if orbital_deadline is not None:
+        def _budget_callback(envs, _dl=orbital_deadline):
+            if time.time() > _dl:
+                raise OrbitalTimeBudgetExceeded(envs.get("imacro"))
+        mc.callback = _budget_callback
+    try:
+        e_casscf = mc.kernel(mo)[0]
+        conv_note = ("converged" if mc.converged else
+                     f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first")
+    except OrbitalTimeBudgetExceeded as exc:
+        truncated = True
+        e_casscf = float(mc.e_tot)
+        conv_note = (f"STOPPED at the orbital time budget after macro-iteration {exc.args[0]} "
+                     f"— orbitals are usable but NOT converged")
     print(f"  CASSCF {conv_note} · E={e_casscf:.8f}", flush=True)
     h1e, ecore = mc.get_h1eff()
     h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
@@ -339,8 +375,11 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     return {"e_casscf": float(e_casscf), "ecore": float(ecore),
             "e_fci_active": None if e_fci is None else float(e_fci),
             "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec),
-            "orbital_optimization_method": (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf
-                                             else "CASSCF (FCI solver)")}
+            "orbital_optimization_truncated": bool(truncated),
+            "orbital_optimization_method": (
+                (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf else "CASSCF (FCI solver)")
+                + (" — orbital optimisation STOPPED at its time budget, not converged"
+                   if truncated else ""))}
 
 
 # ── LEON seal (self-contained — mirrors backend/routes/leon.py's generic seal
@@ -461,6 +500,14 @@ def main():
                     help="block2 scratch dir. Reuse the SAME path across separate HPC-ticket "
                          "submissions to resume an interrupted MPS instead of restarting from "
                          "bond_dims[0] each time.")
+    ap.add_argument("--orbital-max-minutes", type=float, default=None,
+                    help="wall-clock budget for the ORBITAL phase specifically, checked once "
+                         "per CASSCF macro-iteration. Defaults to 60%% of --max-minutes. "
+                         "--max-minutes alone never covered this phase: it bounds the "
+                         "bond-dimension ladder, which runs afterwards, so an orbital "
+                         "optimisation that overran simply got the whole job killed before "
+                         "the ladder - and before the mechanism meant to save a partial "
+                         "result - ever started.")
     ap.add_argument("--max-minutes", type=float, default=None,
                     help="stop requesting larger bond dimensions once this wall-clock budget "
                          "is exceeded, and return/save whatever completed so far — for "
@@ -481,14 +528,29 @@ def main():
             ap.error("--geometry requires --avas (target AOs for active-space selection)")
         print(f"SOLANGE DMRG classifier · {args.key} · geometry={args.geometry} "
               f"· AVAS[{args.avas}]/{args.basis} · charge={args.charge} spin={args.spin}")
+        # Default: 60% of --max-minutes to the orbital phase, the rest to the
+        # bond-dimension ladder — a split, not a guess free of consequence, chosen
+        # because the ladder's own early-stop makes it the cheaper phase to cut
+        # short if the split is wrong, while a truncated orbital phase produces no
+        # coherent handoff to the ladder at all.
+        orbital_deadline = None
+        if args.orbital_max_minutes is not None:
+            orbital_deadline = time.time() + args.orbital_max_minutes * 60
+        elif args.max_minutes is not None:
+            orbital_deadline = time.time() + 0.6 * args.max_minutes * 60
+
         cas = integrals_from_geometry(args.geometry, args.basis, args.avas,
                                        charge=args.charge, spin=args.spin, verbose=args.verbose,
                                        density_fit=not args.no_density_fit, max_memory=args.max_memory,
                                        df_auxbasis=args.df_auxbasis, max_cycle_macro=args.max_cycle_macro,
                                        dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
-                                       dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads)
+                                       dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads,
+                                       orbital_deadline=orbital_deadline)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
+        if cas.get("orbital_optimization_truncated"):
+            print("  *** orbital optimisation hit its time budget — orbitals are usable but "
+                  "NOT converged; the classification below is PROVISIONAL on that basis too ***")
     else:
         # Auto-resolve the model compound from key/side (same mapping the HPC agent
         # uses) so a run needs only --key/--side/--ncas/--nelecas — the caller does
