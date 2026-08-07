@@ -102,6 +102,7 @@ bash scripts/laguna/run_dmrg.sh \
     --scratch   "${SCRATCH:-./tmp_dmrg_${KEY:-TP53_C275F}}" \
     --bond-dims "${BOND_DIMS:-250,500,1000,2000}" \
     --max-minutes "${MAX_MINUTES:-215}" \
+    --stack-mem-gb "${STACK_MEM_GB:-4}" \
     "${DMRG_SCF_ARGS[@]}" \
     --submit
 
