@@ -1471,7 +1471,17 @@
             '<td style="'+C+';color:var(--gray);font-size:10px" title="When this run was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
             '<td style="'+C+'">'+cas+'</td><td style="'+C+'">'+(q?q+'q':'—')+'</td>'+
             '<td style="'+C+';color:var(--teal)">'+refCell+'</td><td style="'+C+'">'+vqeCell+'</td>'+
-            '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+rt(x.p5_elapsed_s)+'</td>'+
+            // p5_elapsed_s is deliberately null for QPU rows (solange_qpu.py's
+            // build_record() — wall clock there is mostly IBM queue time, not
+            // billable execution, so conflating them would overstate usage).
+            // That correctness left the Runtime cell blank for every QPU row
+            // with no indication why. The real number lives in p5_qpu_seconds
+            // (already used platform-wide for the QPU-seconds usage total) —
+            // shown here instead, labeled, rather than duplicating a
+            // wall-clock figure this codebase specifically chose not to trust.
+            '<td style="'+C+'">'+de+'</td><td style="'+C+'">'+(isQpu
+              ? (x.p5_qpu_seconds!=null ? rt(x.p5_qpu_seconds)+' <span style="color:var(--gray);font-size:9px">QPU</span>' : '—')
+              : rt(x.p5_elapsed_s))+'</td>'+
             '<td style="'+C+';color:'+r.c+';font-size:10px">'+(x.p3_backend||'—')+'</td>'+
             '<td style="'+C+'"><span style="color:var(--green)" title="Notarized by LEON · '+(x.p8_hash||'')+'">✓ '+(x.p8_hash?String(x.p8_hash).slice(0,8):'—')+'…</span></td>'+
             '<td style="'+C+'">'+vbtn+hbtn+dchk+'</td></tr>';
