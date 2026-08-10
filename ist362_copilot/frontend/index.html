@@ -54,6 +54,11 @@
   .cmpcard .lat{font-size:12px;color:var(--gray);font-weight:400}
   .cmpcard .ans{font-size:13px;line-height:1.5;margin-top:8px;white-space:pre-wrap;max-height:300px;overflow:auto}
   .cmpcard .csrc{font-size:11.5px;color:var(--gray);margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+  .cmpcard details{margin-top:6px}
+  .cmpcard summary{font-size:11.5px;color:var(--teal);cursor:pointer;user-select:none}
+  .cmpcard .src{padding:8px 10px;margin-top:6px}
+  .cmpcard .src .t{font-size:12px}
+  .cmpcard .src .snip{max-height:140px}
   .badge-fast{background:var(--green);color:var(--navy);font-size:10px;padding:2px 7px;border-radius:6px;font-weight:700}
   .answer{white-space:pre-wrap;line-height:1.55;font-size:14.5px}
   .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--gray);
@@ -264,8 +269,15 @@ async function runCompare(btn){
       results.push({m, lat:r.latency_s});
       card.querySelector(".lat").textContent = r.latency_s+"s";
       card.querySelector(".ans").textContent = r.answer||"(no answer)";
-      const s=document.createElement("div"); s.className="csrc"; s.textContent=`grounded in ${(r.sources||[]).length} source(s) · backend ${r.backend}`;
+      const srcs = r.sources || [];
+      const s=document.createElement("div"); s.className="csrc"; s.textContent=`grounded in ${srcs.length} source(s) · backend ${r.backend}`;
       card.appendChild(s);
+      if(srcs.length){
+        const det=document.createElement("details");
+        det.innerHTML = `<summary>Show sources (${srcs.length})</summary>` +
+          srcs.map(src=>`<div class="src"><div class="t">${src.title}</div><div class="s">${src.source} · relevance ${src.score}</div><div class="snip">${src.text || src.snippet}</div></div>`).join("");
+        card.appendChild(det);
+      }
     }catch(e){ card.querySelector(".ans").textContent="Error: "+e; card.querySelector(".lat").textContent="failed"; }
   }
   if(results.length){
