@@ -1740,7 +1740,8 @@
         var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
           '<th style="'+TH+'">Target</th><th style="'+TH+'">Time</th><th style="'+TH+'">CAS</th>'+
           '<th style="'+TH+'">S_max</th><th style="'+TH+'">Class</th>'+
-          '<th style="'+TH+'">Rationale</th><th style="'+TH+'">Runtime</th><th style="'+TH+'">(P8)LEON</th><th style="'+TH+'"></th></tr>';
+          '<th style="'+TH+'">Rationale</th><th style="'+TH+'">Runtime</th><th style="'+TH+'">Hardware</th>'+
+          '<th style="'+TH+'">(P8)LEON</th><th style="'+TH+'"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
           var provisional = x.time_budget_hit ? ' <span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
@@ -1765,6 +1766,7 @@
                 '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+scopeNote+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.5">'+(x.class_rationale||'—')+'</td>'+
                 '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)" title="'+(x.hardware?String(x.hardware).replace(/"/g,'&quot;'):'')+'">'+(x.hardware?String(x.hardware).split(' · ')[0]:'—')+'</td>'+
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
                 '<td style="'+C+'">'+(x.id?('<button onclick="verifyDmrgRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
                 (x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+

@@ -36,6 +36,8 @@ On the tiny model compounds it demonstrates the diagnostic, not a full-site verd
 import argparse
 import hashlib
 import json
+import socket
+import subprocess
 import sys
 import time
 import uuid
@@ -95,6 +97,42 @@ S_HARD       = 1.5
 # and every run before this default was set was silently capped by it rather than
 # by the machine. Sized to leave generous headroom under the cgroup ceiling.
 DEFAULT_STACK_MEM_GB = 4.0
+
+
+def detect_hardware(n_threads: int) -> str:
+    """CPU/node identity for this run, added because dmrg_classifications carried
+    no hardware column at all — unlike simulation_runs' p3_backend, which records
+    the GPU actually used by the 3A-HPC CASSCF/VQE path (solange_hpc.py's
+    detect_gpu(), via nvidia-smi). DMRGDriver here is constructed with only
+    n_threads, no GPU/CUDA argument (see run_dmrg()) — DMRG in this pipeline is
+    CPU-only. A GPU may still be physically present on the node (Laguna's HPC
+    nodes carry NVIDIA L40S cards for the VQE path); this reports that presence
+    for honesty, explicitly labelled unused, rather than letting it be read as
+    the hardware this classification actually ran on."""
+    host = socket.gethostname()
+    cpu_model = None
+    try:
+        with open("/proc/cpuinfo") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    cpu_model = line.split(":", 1)[1].strip()
+                    break
+    except Exception:
+        pass
+    cpu_desc = cpu_model or "CPU (model unavailable)"
+
+    gpu_note = ""
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            stderr=subprocess.DEVNULL, timeout=10).decode().strip()
+        if out:
+            gpu_note = (f" · GPU present ({out.splitlines()[0]}) but NOT used — "
+                        f"block2's DMRGDriver here is CPU-only")
+    except Exception:
+        pass
+
+    return f"{cpu_desc} · {n_threads} threads · host={host}{gpu_note}"
 
 
 class OrbitalTimeBudgetExceeded(Exception):
@@ -642,6 +680,7 @@ def main():
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
         "orbital_optimization_method": cas["orbital_optimization_method"],
         "provenance_source": "HPC/Laguna (DMRG classifier)",
+        "hardware": detect_hardware(args.threads),
     }
     # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
     # trusted). dmrg_seal_payload is stored verbatim so re-verification later is

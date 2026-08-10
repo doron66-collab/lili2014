@@ -1160,11 +1160,23 @@ _DMRG_DB_COLUMNS = frozenset({
     "id", "created_at", "key", "compound", "basis", "ncas", "nelecas",
     "e_casscf", "dmrg_energies", "s_max", "bqp_class", "class_rationale",
     "time_budget_hit", "bond_dims_requested", "method", "elapsed_s",
-    "dmrg_seal_payload", "dmrg_hash", "provenance_source",
+    "dmrg_seal_payload", "dmrg_hash", "provenance_source", "hardware",
 })
-# NOTE: "elapsed_s" requires the matching Supabase column to exist first —
-# see the one-time migration in scripts/laguna/RUN_GUIDE.md §2 (or run:
+# NOTE: "elapsed_s" and "hardware" each require their matching Supabase column
+# to exist first — see the one-time migration in scripts/laguna/RUN_GUIDE.md §2
+# (or run:
 #   alter table public.dmrg_classifications add column if not exists elapsed_s numeric;
+#   alter table public.dmrg_classifications add column if not exists hardware text;
+# ). There is no partial-insert fallback below (unlike simulation_runs'
+# p8_seal_payload retry): a submit against a column that does not yet exist
+# fails the WHOLE insert with Postgres's "column does not exist" (db_status=
+# "error", LEON's own audit/notarize step still succeeds independently — only
+# the DB row is lost). Run the migration BEFORE the first --submit carrying
+# "hardware". "hardware" was added because this table had no hardware column at
+# all — unlike simulation_runs' p3_backend, which records the GPU the 3A-HPC
+# CASSCF/VQE path actually used. DMRG here is CPU-only (solange_dmrg.py's
+# detect_hardware()).
+# run submitted before this migration silently drops the field until it is run.
 # ). Until that migration runs, any submit carrying elapsed_s will insert-fail
 # (caught below, db_status="error") — LEON's seal is still verified and audited,
 # but the record silently will not land in the table. Run the migration BEFORE
@@ -1234,10 +1246,21 @@ async def list_dmrg_classifications(limit: int = 50):
                  .select("id, created_at, key, compound, basis, ncas, nelecas, "
                          "e_casscf, s_max, bqp_class, class_rationale, "
                          "time_budget_hit, bond_dims_requested, dmrg_energies, "
-                         "elapsed_s, method, provenance_source, dmrg_hash")
+                         "elapsed_s, method, provenance_source, dmrg_hash, hardware")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"classifications": res.data or []}
     except Exception as e:
+        # "hardware" was added to this SELECT without confirming the migration
+        # (alter table dmrg_classifications add column if not exists hardware
+        # text) had actually been run — same reasoning as hpc_dispatch's
+        # dmrg_scf column below. If it hasn't, this SELECT itself now fails with
+        # Postgres's own "column does not exist", which settles the question
+        # directly instead of the dashboard silently showing stale rows forever.
+        msg = str(e)
+        if "hardware" in msg or "does not exist" in msg.lower():
+            msg += (" — hint: run 'alter table public.dmrg_classifications add "
+                    "column if not exists hardware text;' in the Supabase SQL editor")
+            return {"classifications": [], "error": msg}
         return {"classifications": [], "error": str(e)}
 
 
