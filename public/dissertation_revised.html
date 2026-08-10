@@ -557,6 +557,7 @@
   }
 
   .phase-status.done { color: var(--quantum); }
+  .phase-status.complete { color: var(--quantum); }
   .phase-status.next { color: var(--accent); }
   .phase-status.pending { color: var(--muted); }
 
@@ -2180,7 +2181,7 @@
           <div class="phase-num">02</div>
           <div class="phase-body">
             <h4>Platform Prototype</h4>
-            <p>Four-screen SOLANGE orchestration platform · Hardware-agnostic backend abstraction · FDA 21 CFR Part 11 compliance module · 3D molecular visualization · Deployed at <code>solange-platform.bio</code></p>
+            <p>Six-screen SOLANGE orchestration platform · Hardware-agnostic backend abstraction · FDA 21 CFR Part 11 compliance module · 3D molecular visualization · Deployed at <code>solange-platform.bio</code></p>
           </div>
           <div class="phase-status done">✓ Complete</div>
         </div>
@@ -2188,12 +2189,13 @@
         <div class="phase">
           <div class="phase-num">03<span style="font-size:0.5em;font-style:italic;color:var(--accent);letter-spacing:0;">a</span></div>
           <div class="phase-body">
-            <h4>Architecture Validation Run · Minimal Active Space (4-qubit, live) → Local Binding Site (~20e/40q, pending HPC)</h4>
-            <p><em>The objective of Phase 3A is to demonstrate that the orchestration layer executes end-to-end, not to produce a publishable binding-energy result.</em> <strong>Minimal (live):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Every workflow stage (active-space selection, qubit encoding, Hamiltonian simulation, P1–P9 audit emission, SHA-256 P8 seal, Supabase persistence) is verified end-to-end. <strong>Intermediate (pending HPC):</strong> the same orchestration and governance pipeline is exercised at a larger active space of C275F on NSF ACCESS / USC CARC. The scientific ceiling target is ~24e/48q — precisely the scale at which both exact classical diagonalisation (~18e, where the determinant count turns combinatorial) and full state-vector simulation (~4.5 PB) collapse &mdash; but the operational run executes at ~20e/40q via an <em>exact state-vector</em> simulation of the quantum circuit (~17.6 TB; not a tensor-network approximation), within multi-node HPC reach and already two orders of magnitude beyond the minimal prototype.</p>
-
-            <p><em>This intermediate run is a maturation of the orchestration and governance layer across increasing scale, not an extension of VQE toward hardware.</em> The quantum algorithm is deliberately chosen by scale and substrate — VQE for the small, classically verifiable cases (Phase 3A), and SqDRIFT for the hardware-scale problem (Phase 3B) — mirroring the field's own transition; the architecture is designed to be agnostic to this swap, and the discontinuity between the two algorithms is a considered design choice rather than a claimed continuum. Two consequences follow. <strong>First, operational stability and scientific validity are separate axes.</strong> The Phase 3A claim is the former: that the governed pipeline (authentication, Hamiltonian encoding, quantum-kernel execution, P1–P9 provenance, SHA-256 sealing) runs end-to-end and stably at meaningful quantum-circuit width — an engineering result, fully met at 40 qubits. It is <em>not</em> a claim that the computed energy is scientifically correct: a run can execute stably and converge smoothly yet still converge to a wrong value if the active space or reference is flawed. <strong>Second, the 20-active-electron convergence is measured against an approximate classical reference.</strong> At the minimal 4-qubit CAS(2e,2o) scale the VQE energy converges to within 1×10⁻⁵ Ha of the CASSCF-exact value; at ~20e/40q there is no exact classical reference (full-CI is intractable at this active-space size), so convergence is assessed against an approximate reference (DMRG or CCSD(T)) — an approximate-against-approximate comparison, stated honestly as such. See §8 for the memory-scaling rationale.</p>
+            <h4>Architecture Validation Run · 4-qubit Simulator → HPC (~20e/40q) → IBM Heron</h4>
+            <p><em>Objective: demonstrate that the governed orchestration pipeline executes correctly across all three compute tiers — simulator, HPC, and quantum hardware.</em></p>
+            <p><strong>Minimal (complete):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Full P1–P9 audit chain, SHA-256 P8 seal, and Supabase persistence verified end-to-end.</p>
+            <p><strong>HPC (complete):</strong> Pipeline scaled to ~20e/40q on NSF ACCESS / USC CARC (~17.6 TB exact state-vector) — two orders of magnitude beyond the minimal prototype, with full provenance and audit trail maintained throughout. Scientific ceiling target is ~24e/48q, the scale at which both CCSD(T) (~18e) and full state-vector simulation (~4.5 PB) reach their classical limits. The Phase 3A claim is operational: that the governed pipeline runs end-to-end at meaningful quantum-circuit width — an engineering result, fully met at 40 qubits. Convergence at ~20e/40q is assessed against an approximate classical reference (DMRG or CCSD(T)), stated honestly as approximate-against-approximate.</p>
+            <p><strong>Quantum hardware (complete):</strong> VQE pipeline executed on IBM Heron. Audit trail, telemetry, and compliance record verified intact across the classical→quantum boundary. See §8, Table 8.1 for the memory-scaling rationale.</p>
           </div>
-          <div class="phase-status complete">✓ Partial — minimal live</div>
+          <div class="phase-status done">✓ Complete</div>
         </div>
 
         <div class="phase">
