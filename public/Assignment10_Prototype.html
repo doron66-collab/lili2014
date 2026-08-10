@@ -1744,12 +1744,12 @@
         // narrow, badly-broken-up column instead of scrolling the row sideways.
         var hh = '<table style="width:100%;min-width:1180px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:90px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:80px">CAS</th>'+
-          '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:60px">Class</th>'+
-          '<th style="'+TH+';width:340px">Rationale</th><th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
+          '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:110px">Class</th>'+
+          '<th style="'+TH+';width:290px">Rationale</th><th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
           '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:150px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
-          var provisional = x.time_budget_hit ? ' <span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
+          var provisional = x.time_budget_hit ? '<br><span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
           // "provisional" means the sweep was cut short. This is a different caveat:
           // the sweep completed, but over an active space far smaller than the target's
           // own site — so the verdict is about that fragment. Flagged here, on the
@@ -1758,7 +1758,7 @@
           var _scopedRow = !!_avRow && typeof window.solangeDmrgCoversSite === 'function'
                            && !window.solangeDmrgCoversSite(x, _avRow.activeElectrons);
           var scopeNote = _scopedRow
-            ? ' <span style="color:var(--gold);font-size:9px" title="This run covered ' + x.nelecas
+            ? '<br><span style="color:var(--gold);font-size:9px;white-space:normal" title="This run covered ' + x.nelecas
               + 'e against a ~' + _avRow.activeElectrons + 'e site. It classifies that fragment, not the target — '
               + 'the target keeps its own classification until a run of commensurate scope is available.">(scope-limited)</span>'
             : '';
