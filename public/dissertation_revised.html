@@ -2189,11 +2189,10 @@
         <div class="phase">
           <div class="phase-num">03<span style="font-size:0.5em;font-style:italic;color:var(--accent);letter-spacing:0;">a</span></div>
           <div class="phase-body">
-            <h4>Architecture Validation Run · 4-qubit Simulator → HPC (~20e/40q) → IBM Heron</h4>
-            <p><em>Objective: demonstrate that the governed orchestration pipeline executes correctly across all three compute tiers — simulator, HPC, and quantum hardware.</em></p>
-            <p><strong>Minimal (complete):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Full P1–P9 audit chain, SHA-256 P8 seal, and Supabase persistence verified end-to-end.</p>
-            <p><strong>HPC (complete):</strong> Pipeline scaled to ~20e/40q on NSF ACCESS / USC CARC (~17.6 TB exact state-vector) — two orders of magnitude beyond the minimal prototype, with full provenance and audit trail maintained throughout. Scientific ceiling target is ~24e/48q, the scale at which both CCSD(T) (~18e) and full state-vector simulation (~4.5 PB) reach their classical limits. The Phase 3A claim is operational: that the governed pipeline runs end-to-end at meaningful quantum-circuit width — an engineering result, fully met at 40 qubits. Convergence at ~20e/40q is assessed against an approximate classical reference (DMRG or CCSD(T)), stated honestly as approximate-against-approximate.</p>
-            <p><strong>Quantum hardware (complete):</strong> VQE pipeline executed on IBM Heron. Audit trail, telemetry, and compliance record verified intact across the classical→quantum boundary. See §8, Table 8.1 for the memory-scaling rationale.</p>
+            <h4>Architecture Validation Run · 4-qubit Simulator + HPC Surrogate</h4>
+            <p><em>Objective: demonstrate that the governed orchestration pipeline executes correctly across simulator and HPC compute tiers before first quantum hardware contact.</em></p>
+            <p><strong>Simulator (complete):</strong> 347 runs across 15+ mutation targets on PennyLane <code>default.qubit</code> v0.38.0 — including TP53_C275F (116 runs), KEAP1_LOF (39), STK11_LKB1 (44), and twelve additional targets. 4-qubit VQE, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — convergence to within 1×10⁻⁵ Ha of CASSCF-exact, ~7 s on Render cloud. Full P1–P9 audit chain, SHA-256 P8 seal, and Supabase persistence verified 100% PASS across all 347 runs.</p>
+            <p><strong>HPC (complete):</strong> 4 runs on NVIDIA L40S / Laguna (CPU sparse and <code>lightning.gpu</code> backends) — surrogate and native molecules at 8–12 active electrons, validating that the orchestration pipeline, provenance chain, and DMRG classifier remain intact when execution shifts from cloud to GPU cluster. DMRG class=C confirmed (S<sub>max</sub> &lt; 0.5, classically sufficient at surrogate scale) on all HPC runs. Full audit trail, SHA-256 P8 seal, and Supabase persistence 100% PASS.</p>
           </div>
           <div class="phase-status done">✓ Complete</div>
         </div>
@@ -2201,10 +2200,13 @@
         <div class="phase">
           <div class="phase-num">03<span style="font-size:0.5em;font-style:italic;color:var(--accent);letter-spacing:0;">b</span></div>
           <div class="phase-body">
-            <h4>Architecture Scaling Run · Full Binding Site (~44e)</h4>
-            <p><em>The objective of Phase 3B is to demonstrate that the architecture scales without re-derivation when the active-space boundary changes.</em> Re-execute the same orchestration workflow on the full binding site, incorporating the Zn²⁺ coordination environment (C176, H179, C238, C242) and the DNA-guanine interface. The IT-side test is whether the audit trail, telemetry, and compliance record retain integrity across the boundary change. Requires approximately 88 qubits under Jordan-Wigner encoding, placing it within IBM Heron r3 capacity. Designated as a near-term post-proof-of-concept target, contingent on IBM Quantum Network institutional access.</p>
+            <h4>Architecture Scaling Run · Real QPU Pipeline + Full Binding Site (~44e/88q)</h4>
+            <p><em>The objective of Phase 3B is to demonstrate that the architecture scales without re-derivation — first across the classical→quantum hardware boundary, then across the active-space boundary to the full clinical target.</em></p>
+            <p><strong>Dry-run (complete):</strong> 3 local statevector trials (3B-QPU-dryrun) completed before first real hardware contact — verifying circuit compilation, telemetry, and audit chain behaviour in QPU-mode without consuming QPU credits.</p>
+            <p><strong>Real QPU (complete — 4-qubit proxy):</strong> 15 runs on ibm_marrakesh, ibm_kingston, and ibm_fez (IBM Quantum v2, real superconducting QPUs) — 4 qubits, 4,096 shots, ~21 QPU seconds each. Targets: TP53_C275F mutant/native (7 runs), KEAP1_LOF mutant (4), STK11_LKB1 native (1), CDKN2A_LOF native (1), ARID2_LOF native (1), H₂ smoketest (1). All 15 runs 100% PASS, seal_ok=true, notarized via QPU/IBM ingestion pipeline. Architecture, audit trail, and compliance record verified intact across the classical→quantum boundary.</p>
+            <p><strong>Full binding site — IBM Heron r3 (~88q):</strong> Pending. Re-execute the same orchestration workflow on the full binding site, incorporating the Zn²⁺ coordination environment (C176, H179, C238, C242) and the DNA-guanine interface (~44e/~88 qubits under Jordan-Wigner encoding). The IT-side test is whether the audit trail and compliance record retain integrity across the active-space boundary change. Contingent on IBM Quantum Network institutional access.</p>
           </div>
-          <div class="phase-status pending">Near-term</div>
+          <div class="phase-status next">QPU Proven · Heron r3 Pending</div>
         </div>
 
         <div style="margin:32px 0 28px 0; padding:24px 28px; background:rgba(6,182,212,0.06); border-left:3px solid var(--teal); border-radius:6px;">
