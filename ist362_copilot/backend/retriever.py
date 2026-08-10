@@ -51,6 +51,11 @@ _SUFFIXES = ("izations", "ization", "ational", "ations", "ation", "izing",
 
 
 def _stem(t: str) -> str:
+    # Strip the negation prefix "un-" so e.g. "undruggable" and "non-druggable"
+    # (which tokenizes as "non", "druggable") share a stem. Guarded to a long
+    # enough remainder so short words like "until"/"unit" are left alone.
+    if t.startswith("un") and len(t) - 2 >= 4:
+        t = t[2:]
     for suf in _SUFFIXES:
         if t.endswith(suf) and len(t) - len(suf) >= 3:
             return t[:-len(suf)]
