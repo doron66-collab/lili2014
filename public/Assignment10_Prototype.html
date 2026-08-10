@@ -1737,11 +1737,16 @@
         // rt(): same runtime formatter as the HPC/QPU table (Rung 2/4) — seconds under
         // a minute as "12.3s", otherwise "MmSSs" — so the three rungs read identically.
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
-        var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
-          '<th style="'+TH+'">Target</th><th style="'+TH+'">Time</th><th style="'+TH+'">CAS</th>'+
-          '<th style="'+TH+'">S_max</th><th style="'+TH+'">Class</th>'+
-          '<th style="'+TH+'">Rationale</th><th style="'+TH+'">Runtime</th><th style="'+TH+'">Hardware</th>'+
-          '<th style="'+TH+'">(P8)LEON</th><th style="'+TH+'"></th></tr>';
+        // min-width on the table (not just width:100%) lets the .table-scroll
+        // container's overflow-x:auto do its job — without it, auto table layout
+        // has nowhere to put the extra width this many columns need and starves
+        // whichever column wraps easiest (Rationale), squeezing it into a tall,
+        // narrow, badly-broken-up column instead of scrolling the row sideways.
+        var hh = '<table style="width:100%;min-width:1180px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:90px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:80px">CAS</th>'+
+          '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:60px">Class</th>'+
+          '<th style="'+TH+';width:340px">Rationale</th><th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
+          '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:150px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
           var provisional = x.time_budget_hit ? ' <span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
