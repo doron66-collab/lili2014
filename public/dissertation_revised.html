@@ -557,6 +557,7 @@
   }
 
   .phase-status.done { color: var(--quantum); }
+  .phase-status.complete { color: var(--quantum); }
   .phase-status.next { color: var(--accent); }
   .phase-status.pending { color: var(--muted); }
 
@@ -2164,7 +2165,7 @@
           <div class="phase-num">02</div>
           <div class="phase-body">
             <h4>Platform Prototype</h4>
-            <p>Four-screen SOLANGE orchestration platform · Hardware-agnostic backend abstraction · FDA 21 CFR Part 11 compliance module · 3D molecular visualization · Deployed at <code>solange-platform.bio</code></p>
+            <p>Six-screen SOLANGE orchestration platform · Hardware-agnostic backend abstraction · FDA 21 CFR Part 11 compliance module · 3D molecular visualization · Deployed at <code>solange-platform.bio</code></p>
           </div>
           <div class="phase-status done">✓ Complete</div>
         </div>
@@ -2172,10 +2173,13 @@
         <div class="phase">
           <div class="phase-num">03<span style="font-size:0.5em;font-style:italic;color:var(--accent);letter-spacing:0;">a</span></div>
           <div class="phase-body">
-            <h4>Architecture Validation Run · Minimal Active Space (4-qubit, live) → Local Binding Site (~20e/40q, pending HPC)</h4>
-            <p><em>The objective of Phase 3A is to demonstrate that the orchestration layer executes end-to-end, not to produce a publishable binding-energy result.</em> <strong>Minimal (live):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Every workflow stage (active-space selection, qubit encoding, Hamiltonian simulation, P1–P9 audit emission, SHA-256 P8 seal, Supabase persistence) is verified end-to-end. <strong>Intermediate (pending HPC):</strong> scale to the local binding site of C275F on NSF ACCESS / USC CARC; same pipeline, expanded active space. The scientific ceiling target is ~24e/48q — precisely the scale at which both CCSD(T) classical chemistry (~18e) and full state-vector simulation (~4.5 PB) collapse — but the operational run executes at ~20e/40q (~17.6 TB state-vector), which is within multi-node HPC reach and already two orders of magnitude beyond the minimal prototype. The architectural objective — demonstrating that the full orchestration pipeline (authentication, Hamiltonian encoding, VQE, P1–P9 provenance, SHA-256 sealing) functions correctly at quantum-circuit scale — is fully met at 40 qubits. See §8 for the memory-scaling rationale.</p>
+            <h4>Architecture Validation Run · 4-qubit Simulator → HPC (~20e/40q) → IBM Heron</h4>
+            <p><em>Objective: demonstrate that the governed orchestration pipeline executes correctly across all three compute tiers — simulator, HPC, and quantum hardware.</em></p>
+            <p><strong>Minimal (complete):</strong> 4-qubit VQE on PennyLane <code>default.qubit</code>, CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz, 80 Adam steps — converges to within 1×10⁻⁵ Ha of CASSCF-exact in ~7 s on Render cloud. Full P1–P9 audit chain, SHA-256 P8 seal, and Supabase persistence verified end-to-end.</p>
+            <p><strong>HPC (complete):</strong> Pipeline scaled to ~20e/40q on NSF ACCESS / USC CARC (~17.6 TB state-vector) — two orders of magnitude beyond the minimal prototype, with full provenance and audit trail maintained throughout. Scientific ceiling target is ~24e/48q, the scale at which both CCSD(T) (~18e) and full state-vector simulation (~4.5 PB) reach their classical limits.</p>
+            <p><strong>Quantum hardware (complete):</strong> VQE pipeline executed on IBM Heron. Audit trail, telemetry, and compliance record verified intact across the classical→quantum boundary. See §8, Table 8.1 for the memory-scaling rationale.</p>
           </div>
-          <div class="phase-status complete">✓ Partial — minimal live</div>
+          <div class="phase-status done">✓ Complete</div>
         </div>
 
         <div class="phase">
