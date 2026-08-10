@@ -81,7 +81,7 @@ sys.path.insert(0, str(_HERE.parent))   # for solange_qpu
 
 from solange_qpu import (  # noqa: E402
     check_ibm_credentials, jw_target, h2_target, _exact, _backend_telemetry,
-    _billable_qpu_seconds, submit,
+    _billable_qpu_seconds, submit, retrieve,
 )
 
 
@@ -182,17 +182,36 @@ def measure_theta(obs, theta, hardware, backend_name, shots, token, instance,
              "qpu_seconds_source": qpu_src, "theta": theta})
 
 
-def fit_and_confirm(obs, hardware, backend_name, shots, token, instance, budget_seconds):
+def fit_and_confirm(obs, hardware, backend_name, shots, token, instance, budget_seconds,
+                    resume_theta0_job=None):
     """3 measurements -> exact closed-form fit -> 1 confirmation measurement.
     Returns (theta_star, e_fit_min, e_confirm, all_points, spent_tracker, telemetry)
-    — telemetry is from the confirmation job (the one the reported energy comes from)."""
+    — telemetry is from the confirmation job (the one the reported energy comes from).
+
+    resume_theta0_job: if given, an IBM job id for a theta=0 job that was already
+    SUBMITTED (e.g. by a run whose local process then crashed/segfaulted) — its
+    result is RETRIEVED, not re-run, costing no additional QPU time. The local
+    process dying does not cancel a job already accepted by IBM; see
+    solange_qpu.py's own retrieve(), written for exactly this failure mode."""
     spent = {"total": 0.0, "max_job": 0.0, "jobs": []}
     pts = []
     thetas = [0.0, math.pi / 2, -math.pi / 2]
     energies = []
-    for th in thetas:
-        e, label, tel, meta = measure_theta(obs, th, hardware, backend_name, shots,
-                                            token, instance, spent, budget_seconds)
+    for i, th in enumerate(thetas):
+        if i == 0 and resume_theta0_job:
+            print(f"  theta={th:+.4f}  RETRIEVING already-submitted job "
+                  f"{resume_theta0_job} (no new QPU time)...")
+            e, label, tel, meta = retrieve(resume_theta0_job, backend_name, token, instance)
+            qpu_s = float(meta.get("qpu_seconds") or 0.0)
+            spent["total"] += qpu_s
+            spent["max_job"] = max(spent["max_job"], qpu_s)
+            spent["jobs"].append({"theta": th, "job_id": resume_theta0_job,
+                                  "qpu_seconds": qpu_s, "retrieved": True})
+            print(f"    energy={e:.8f}  qpu_seconds={qpu_s:.2f}  "
+                  f"cumulative={spent['total']:.2f}/{budget_seconds}s")
+        else:
+            e, label, tel, meta = measure_theta(obs, th, hardware, backend_name, shots,
+                                                token, instance, spent, budget_seconds)
         energies.append(e)
         pts.append({"theta": th, "energy": e, "meta": meta})
     E0, E1, E2 = energies
@@ -306,6 +325,10 @@ def main():
     ap.add_argument("--out", default="./out")
     ap.add_argument("--submit", nargs="?", const="https://qcaihpc-simulation-api.onrender.com",
                     help="POST the sealed record to SOLANGE")
+    ap.add_argument("--resume-theta0-job", metavar="JOB_ID", default=None,
+                    help="an already-submitted theta=0 IBM job id whose result should be "
+                         "RETRIEVED (no new QPU time) instead of re-measured — for resuming "
+                         "after a local crash (segfault etc.) with a job still alive on IBM")
     args = ap.parse_args()
 
     if args.hardware == args.dry_run:
@@ -316,8 +339,11 @@ def main():
         if not ok:
             ap.error(f"IBM credentials not available: {detail}")
         token = os.environ.get("QISKIT_IBM_TOKEN")
+        n_new = 3 if args.resume_theta0_job else 4
         print(f"HARDWARE RUN — backend={args.backend}  budget_seconds={args.budget_seconds}  "
-              f"shots={args.shots}  (4 jobs planned: 3-point fit + 1 confirmation)")
+              f"shots={args.shots}  ({n_new} new job(s) planned"
+              + (f" + 1 retrieved (theta=0, job {args.resume_theta0_job})" if args.resume_theta0_job else "")
+              + ")")
     else:
         token = None
         print("DRY RUN — free local exact statevector, no hardware, no budget spent")
@@ -327,7 +353,7 @@ def main():
 
     theta_star, e_fit, e_confirm, pts, spent, telemetry = fit_and_confirm(
         target["obs"], args.hardware, args.backend, args.shots, token, args.instance,
-        args.budget_seconds)
+        args.budget_seconds, resume_theta0_job=args.resume_theta0_job)
 
     hf_exact, ground = _exact(target["obs"], target["circuit"])
     ecore = target.get("ecore") or 0.0
