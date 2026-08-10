@@ -172,6 +172,21 @@ const API = (location.port === "5173" || location.protocol === "file:")
   ? "http://localhost:8000" : "";   // dev vs served-from-backend
 const $ = s => document.querySelector(s);
 
+// Display-only label: uppercase the parameter-count suffix (e.g. "0.6b" ->
+// "0.6B"), and fall back to a small known-model table for tags with no size
+// in them at all (e.g. "llama3.2:latest"). The raw Ollama tag is untouched
+// and still used for every API call — this only changes what's shown.
+const _KNOWN_MODEL_SIZES = { "llama3.2": "3B" };
+function formatModelLabel(name){
+  const [base, tag] = name.split(":");
+  if(tag){
+    const m = tag.match(/^(\d+(?:\.\d+)?)b$/i);
+    if(m) return `${base} (${m[1]}B)`;
+  }
+  if(_KNOWN_MODEL_SIZES[base]) return `${base} (${_KNOWN_MODEL_SIZES[base]})`;
+  return name;
+}
+
 async function loadHealth(){
   try{
     const h = await fetch(API + "/api/health").then(r=>r.json());
@@ -181,13 +196,13 @@ async function loadHealth(){
     const models = h.models && h.models.length ? h.models : ["(default)"];
     ["explain","drug","chat"].forEach(m=>{
       const sel = $("#model-"+m); sel.innerHTML = "";
-      models.forEach(mn=>{const o=document.createElement("option");o.value=mn;o.textContent=mn;sel.appendChild(o);});
+      models.forEach(mn=>{const o=document.createElement("option");o.value=mn;o.textContent=formatModelLabel(mn);sel.appendChild(o);});
     });
     // compare-tab checkboxes (default-check up to the first two to bound runtime)
     const cm = $("#compareModels"); cm.innerHTML = "";
     models.forEach((mn,idx)=>{
       const l = document.createElement("label");
-      l.innerHTML = `<input type="checkbox" value="${mn}" ${idx<2?"checked":""}> ${mn}`;
+      l.innerHTML = `<input type="checkbox" value="${mn}" ${idx<2?"checked":""}> ${formatModelLabel(mn)}`;
       cm.appendChild(l);
     });
     if(h.backend === "mock"){
@@ -252,7 +267,7 @@ async function runCompare(btn){
   const cards = {};
   models.forEach(m=>{
     const d=document.createElement("div"); d.className="cmpcard";
-    d.innerHTML=`<div class="m"><span>${m}</span><span class="lat">…running</span></div><div class="ans">waiting…</div>`;
+    d.innerHTML=`<div class="m"><span>${formatModelLabel(m)}</span><span class="lat">…running</span></div><div class="ans">waiting…</div>`;
     grid.appendChild(d); cards[m]=d;
   });
   btn.disabled=true; const old=btn.textContent; btn.textContent="Running locally…";
