@@ -100,7 +100,24 @@ class OrbitalTimeBudgetExceeded(Exception):
     floor, may never fall below its threshold, so the loop had no way to stop
     short of the 200-macro-iteration cap (potentially another 1-2 hours from
     where it was killed). --orbital-max-minutes existed only in the --geometry
-    path; --compound mode had no time-based exit at all until now."""
+    path; --compound mode had no time-based exit at all until now.
+
+    Carries e_tot (the last completed macro-iteration's energy) alongside
+    imacro. A live TP53_C275F CAS(14,14) run hit this guard cleanly at
+    macro-iteration 9, then crashed on float(mc.e_tot) -> TypeError: NoneType.
+    mc.e_tot is never assigned during mc1step.kernel() — 'e_tot' there is a
+    plain local variable, only copied onto the CASSCF object by the wrapper
+    AFTER kernel() returns normally (confirmed by reading mc1step.py directly:
+    every 'e_tot' in the function body is a bare local, no 'self.e_tot'
+    assignment exists before the final return). Interrupting the loop early
+    means that copy never happens, so mc.e_tot stays at its object-creation
+    default (None) no matter how many macro-iterations actually completed.
+    The energy has to come from envs['e_tot'] — the callback's own locals(),
+    captured at the moment of the raise — not from the mc object afterward."""
+    def __init__(self, imacro, e_tot=None):
+        super().__init__(imacro)
+        self.imacro = imacro
+        self.e_tot = e_tot
 
 
 def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
@@ -174,7 +191,11 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
     if orbital_deadline is not None:
         def _budget_callback(envs, _dl=orbital_deadline):
             if time.time() > _dl:
-                raise OrbitalTimeBudgetExceeded(envs.get("imacro"))
+                # envs['e_tot'] is set from the FIRST callback invocation onward
+                # (mc1step.kernel's initial casci() runs before the macro loop
+                # starts, then updates it after every completed macro-iteration)
+                # — so even a stop at imacro=1 has a real number here, never None.
+                raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"))
         mc.callback = _budget_callback
     try:
         e_casscf = mc.kernel()[0]
@@ -183,9 +204,12 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
                   f"CAS({nelecas},{ncas})/{basis} (JW terms still valid)", file=sys.stderr)
     except OrbitalTimeBudgetExceeded as exc:
         truncated = True
-        e_casscf = float(mc.e_tot)
+        # NOT mc.e_tot — see the class docstring: that attribute is only ever
+        # populated by copying the wrapper's local e_tot AFTER kernel() returns
+        # normally, which an interrupted run never reaches, leaving it None.
+        e_casscf = float(exc.e_tot)
         print(f"  STOPPED {compound} CAS({nelecas},{ncas})/{basis} at the orbital time "
-              f"budget after macro-iteration {exc.args[0]} — orbitals are usable but "
+              f"budget after macro-iteration {exc.imacro} — orbitals are usable but "
               f"NOT converged", file=sys.stderr)
 
     if not mc.converged and not dmrg_scf and not truncated:

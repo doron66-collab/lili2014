@@ -152,7 +152,26 @@ class OrbitalTimeBudgetExceeded(Exception):
     Stopping this way keeps whatever orbitals the optimisation had reached. They
     are usable and they are not converged, so every record built from them is
     marked accordingly rather than presented as a finished optimisation.
+
+    Carries e_tot (the last completed macro-iteration's energy) alongside
+    imacro. mc.e_tot is never assigned during mc1step.kernel() — 'e_tot' there
+    is a plain local variable, only copied onto the CASSCF object by the
+    wrapper AFTER kernel() returns normally (confirmed by reading mc1step.py
+    directly: every 'e_tot' in the function body is a bare local, no
+    'self.e_tot' assignment exists before the final return). Interrupting the
+    loop early means that copy never happens, so mc.e_tot stays at its
+    object-creation default (None) regardless of how many macro-iterations
+    actually completed — float(mc.e_tot) then raises TypeError, turning a
+    working guard into a crash (hit live on solange_hpc.py's identical
+    --compound-path copy of this class, TP53_C275F CAS(14,14), macro-iteration
+    9). The energy has to come from envs['e_tot'] — the callback's own
+    locals(), captured at the moment of the raise — not from the mc object
+    afterward.
     """
+    def __init__(self, imacro, e_tot=None):
+        super().__init__(imacro)
+        self.imacro = imacro
+        self.e_tot = e_tot
 
 
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
@@ -397,7 +416,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     if orbital_deadline is not None:
         def _budget_callback(envs, _dl=orbital_deadline):
             if time.time() > _dl:
-                raise OrbitalTimeBudgetExceeded(envs.get("imacro"))
+                raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"))
         mc.callback = _budget_callback
     try:
         e_casscf = mc.kernel(mo)[0]
@@ -405,8 +424,11 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                      f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first")
     except OrbitalTimeBudgetExceeded as exc:
         truncated = True
-        e_casscf = float(mc.e_tot)
-        conv_note = (f"STOPPED at the orbital time budget after macro-iteration {exc.args[0]} "
+        # NOT mc.e_tot — see the class docstring: never populated on an
+        # interrupted run, so float(mc.e_tot) raises TypeError on None instead
+        # of the guard doing its job.
+        e_casscf = float(exc.e_tot)
+        conv_note = (f"STOPPED at the orbital time budget after macro-iteration {exc.imacro} "
                      f"— orbitals are usable but NOT converged")
     print(f"  CASSCF {conv_note} · E={e_casscf:.8f}", flush=True)
     h1e, ecore = mc.get_h1eff()
