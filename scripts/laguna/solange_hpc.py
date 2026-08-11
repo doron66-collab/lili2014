@@ -114,10 +114,22 @@ class OrbitalTimeBudgetExceeded(Exception):
     default (None) no matter how many macro-iterations actually completed.
     The energy has to come from envs['e_tot'] — the callback's own locals(),
     captured at the moment of the raise — not from the mc object afterward."""
-    def __init__(self, imacro, e_tot=None):
+    def __init__(self, imacro, e_tot=None, mo=None):
         super().__init__(imacro)
         self.imacro = imacro
         self.e_tot = e_tot
+        # Same story as e_tot, same fix, one level deeper: mc.mo_coeff is ALSO
+        # never touched inside mc1step.kernel() — 'mo' is a bare local there
+        # too (kernel(casscf, mo_coeff, ...): mo = mo_coeff at the top, updated
+        # after every completed macro-iteration, never written back to
+        # self.mo_coeff). An interrupted run leaves mc.mo_coeff at its
+        # PRE-OPTIMIZATION value — get_h1eff()/get_h2eff() called without an
+        # explicit mo_coeff= silently read that stale value, producing
+        # integrals for the wrong orbitals entirely. Caught by this file's own
+        # active-space-FCI consistency gate (RuntimeError: active-space FCI !=
+        # e_casscf) rather than failing silently — but only because that gate
+        # exists; the fix is to hand the CURRENT mo through explicitly.
+        self.mo = mo
 
 
 def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
@@ -188,14 +200,17 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
     # Same guard as integrals_from_geometry(): checked once per macro-iteration,
     # the only point where stopping leaves a coherent set of orbitals to hand off.
     truncated = False
+    truncated_mo = None
     if orbital_deadline is not None:
         def _budget_callback(envs, _dl=orbital_deadline):
             if time.time() > _dl:
-                # envs['e_tot'] is set from the FIRST callback invocation onward
-                # (mc1step.kernel's initial casci() runs before the macro loop
-                # starts, then updates it after every completed macro-iteration)
-                # — so even a stop at imacro=1 has a real number here, never None.
-                raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"))
+                # envs['e_tot']/['mo'] are set from the FIRST callback invocation
+                # onward (mc1step.kernel's initial casci() runs before the macro
+                # loop starts, then updates both after every completed
+                # macro-iteration) — so even a stop at imacro=1 has real values
+                # here, never None/stale.
+                raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"),
+                                                envs.get("mo"))
         mc.callback = _budget_callback
     try:
         e_casscf = mc.kernel()[0]
@@ -208,6 +223,7 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
         # populated by copying the wrapper's local e_tot AFTER kernel() returns
         # normally, which an interrupted run never reaches, leaving it None.
         e_casscf = float(exc.e_tot)
+        truncated_mo = exc.mo   # likewise: mc.mo_coeff is stale (pre-optimization)
         print(f"  STOPPED {compound} CAS({nelecas},{ncas})/{basis} at the orbital time "
               f"budget after macro-iteration {exc.imacro} — orbitals are usable but "
               f"NOT converged", file=sys.stderr)
@@ -228,8 +244,13 @@ def run_casscf(compound, basis, ncas, nelecas, verbose=0, dmrg_scf=False,
             f"CASSCF failed to converge for {compound}/{basis} CAS({nelecas},{ncas}) "
             f"even with the Newton solver — refusing to emit an inconsistent Hamiltonian.")
 
-    h1e, ecore = mc.get_h1eff()
-    h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
+    # Explicit mo_coeff=truncated_mo when the run was cut short — mc.mo_coeff
+    # itself would silently give the PRE-OPTIMIZATION orbitals in that case
+    # (see OrbitalTimeBudgetExceeded's docstring), which the consistency gate
+    # right below this WOULD catch (as it did, live), but there is no reason
+    # to trigger a false alarm when the correct orbitals are sitting right here.
+    h1e, ecore = mc.get_h1eff(mo_coeff=truncated_mo)
+    h2e = ao2mo.restore(1, mc.get_h2eff(truncated_mo), mc.ncas)
 
     # Consistency gate: active-space FCI of (h1e,h2e) must equal e_casscf - ecore.
     # Skipped under dmrg_scf — this FCI call is exactly the combinatorial

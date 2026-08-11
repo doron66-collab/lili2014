@@ -168,10 +168,20 @@ class OrbitalTimeBudgetExceeded(Exception):
     locals(), captured at the moment of the raise — not from the mc object
     afterward.
     """
-    def __init__(self, imacro, e_tot=None):
+    def __init__(self, imacro, e_tot=None, mo=None):
         super().__init__(imacro)
         self.imacro = imacro
         self.e_tot = e_tot
+        # Same story as e_tot, one level deeper: mc.mo_coeff is ALSO never
+        # touched inside mc1step.kernel() — 'mo' is a bare local there too,
+        # never written back to self.mo_coeff. An interrupted run leaves
+        # mc.mo_coeff at its PRE-OPTIMIZATION value; get_h1eff()/get_h2eff()
+        # called without an explicit mo_coeff= would silently read that stale
+        # value. Caught live on solange_hpc.py's --compound-path copy of this
+        # exact bug by that file's active-space-FCI consistency gate
+        # (RuntimeError: active-space FCI != e_casscf) — the fix is to hand
+        # the CURRENT mo through explicitly, here too.
+        self.mo = mo
 
 
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
@@ -413,10 +423,12 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # Wall-clock guard on the orbital phase. Checked once per macro-iteration,
     # which is the only point where stopping leaves a coherent set of orbitals.
     truncated = False
+    truncated_mo = None
     if orbital_deadline is not None:
         def _budget_callback(envs, _dl=orbital_deadline):
             if time.time() > _dl:
-                raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"))
+                raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"),
+                                                envs.get("mo"))
         mc.callback = _budget_callback
     try:
         e_casscf = mc.kernel(mo)[0]
@@ -428,11 +440,15 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         # interrupted run, so float(mc.e_tot) raises TypeError on None instead
         # of the guard doing its job.
         e_casscf = float(exc.e_tot)
+        truncated_mo = exc.mo   # likewise: mc.mo_coeff is stale (pre-optimization)
         conv_note = (f"STOPPED at the orbital time budget after macro-iteration {exc.imacro} "
                      f"— orbitals are usable but NOT converged")
     print(f"  CASSCF {conv_note} · E={e_casscf:.8f}", flush=True)
-    h1e, ecore = mc.get_h1eff()
-    h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
+    # Explicit mo_coeff=truncated_mo when cut short — see OrbitalTimeBudgetExceeded's
+    # docstring; None (the normal-completion case) is identical to omitting the
+    # argument, since get_h1eff/get_h2eff both default to self.mo_coeff when None.
+    h1e, ecore = mc.get_h1eff(mo_coeff=truncated_mo)
+    h2e = ao2mo.restore(1, mc.get_h2eff(truncated_mo), ncas)
     if dmrg_scf:
         # Deliberately NOT re-verified against a full FCI diagonalization here —
         # that call (fci.direct_spin1.FCI(), below, for the plain-CASSCF path) is
