@@ -21,4 +21,15 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # the agent's stdout stream instead of block-buffering until exit (which hid them
 # from the live view). PYTHONUNBUFFERED can get reset across the conda activation
 # inside with_block2.sh, so pass -u explicitly here.
-exec bash "$HERE/with_block2.sh" python -u scripts/laguna/solange_dmrg.py "$@"
+#
+# Every line gets a wall-clock [HH:MM:SS] prefix — asked for twice tonight while
+# watching a live --verbose 4 CASSCF run with no way to tell how much time had
+# actually passed between macro-iterations, and twice forgotten because it was a
+# manual shell pipe the user had to remember to type on top of this command. Baked
+# in here instead, so it happens automatically no matter how this script is called
+# (interactively or from the agent). Not `exec`: exec can't head a pipeline, and
+# `set -o pipefail` (already on, line 16) makes `$?` after a piped command still
+# reflect solange_dmrg.py's real exit code, not the timestamp loop's — the agent's
+# success/failure check downstream depends on that being unbroken.
+bash "$HERE/with_block2.sh" python -u scripts/laguna/solange_dmrg.py "$@" 2>&1 \
+  | while IFS= read -r line; do printf '[%s] %s\n' "$(date +%T)" "$line"; done
