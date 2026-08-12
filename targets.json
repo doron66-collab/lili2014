@@ -502,6 +502,17 @@
       "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2J21, Joerger et al. 2006); residue 282 sits in the H2 helix within the resolved DNA-binding domain. A separate, unrelated region (residues 117–121) is disordered in this structure — does not affect residue 282. Checked 2026-08-12.",
       "annual_patients_estimate": "~42,000",
       "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~1%; H2-helix structural mutant, most destabilizing of the four (>3 kcal/mol)."
+    },
+    "ARID2_LOF": {
+      "name": "ARID2 p.Gln1118* (nonsense/truncating)",
+      "pdb": "AlphaFold-Q68CP9",
+      "full_electrons": 28,
+      "full_qubits": 56,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "UNMEASURED PRIOR, matching genes.ARID2 — no dissertation classification and no S_max run exists for this target.",
+      "structure_caveat": "UNRESOLVED, on two independent grounds. (1) p.Gln1118* is a nonsense/truncating mutation, not a point substitution — it removes ARID2's C-terminal C2H2 zinc-finger domains entirely (Li et al. 2011 Science 333:1157), so there is no single mutant residue for an active space to be built around, the same failure mode as KEAP1_LOF/RB1/ATRX frameshifts found in this session's NGS-report audit. (2) The cited structure itself (AlphaFold-Q68CP9) is a COMPUTATIONAL PREDICTION, not an experimental crystal or cryo-EM structure — a different and weaker category of evidence than every other PDB citation in this file, with no per-residue confidence (pLDDT) check performed. generate_expansion_jw.py's own code comment for this target's 'mutant' compound (formamide) says explicitly: 'backbone only — truncation abolishes the sidechain/C-terminus' — the model acknowledges it is not representing a real mutant residue, only a generic proxy standing in for 'everything downstream is gone.' Checked 2026-08-12, same pass that added the STK11_F354L/KEAP1_R320Q findings.",
+      "annual_patients_source": "Not in dissertation § 01 Table 2 — ARID2 has no stated NSCLC patient-burden estimate anywhere in this codebase; do not infer one from the eleven-gene list, which does not include it."
     }
   }
 }
