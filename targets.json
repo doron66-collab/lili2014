@@ -511,7 +511,7 @@
       "bqp_class": "B",
       "hardware_era": "current",
       "bqp_class_source": "UNMEASURED PRIOR, matching genes.ARID2 — no dissertation classification and no S_max run exists for this target.",
-      "structure_caveat": "UNRESOLVED, on two independent grounds. (1) p.Gln1118* is a nonsense/truncating mutation, not a point substitution — it removes ARID2's C-terminal C2H2 zinc-finger domains entirely (Li et al. 2011 Science 333:1157), so there is no single mutant residue for an active space to be built around, the same failure mode as KEAP1_LOF/RB1/ATRX frameshifts found in this session's NGS-report audit. (2) The cited structure itself (AlphaFold-Q68CP9) is a COMPUTATIONAL PREDICTION, not an experimental crystal or cryo-EM structure — a different and weaker category of evidence than every other PDB citation in this file, with no per-residue confidence (pLDDT) check performed. generate_expansion_jw.py's own code comment for this target's 'mutant' compound (formamide) says explicitly: 'backbone only — truncation abolishes the sidechain/C-terminus' — the model acknowledges it is not representing a real mutant residue, only a generic proxy standing in for 'everything downstream is gone.' Checked 2026-08-12, same pass that added the STK11_F354L/KEAP1_R320Q findings.",
+      "structure_caveat": "UNRESOLVED, on two independent grounds. (1) p.Gln1118* is a nonsense/truncating mutation, not a point substitution — it removes ARID2's C-terminal C2H2 zinc-finger domains entirely (Li et al. 2011 Science 333:1157), so there is no single mutant residue for an active space to be built around, the same failure mode as KEAP1_LOF/RB1/ATRX frameshifts found in this session's NGS-report audit. (2) NO EXPERIMENTAL STRUCTURE OF ARID2 EXISTS AT ALL — confirmed by a dedicated search (2026-08-12): the cited AlphaFold-Q68CP9 is a computational prediction with no per-residue confidence (pLDDT) check performed, and the only real crystal/NMR structures findable under similar names (1RYU, 2CXY) belong to the related-but-distinct paralogs ARID1A (BAF250a) and ARID1B (BAF250b), not ARID2 (BAF200) itself — a name-similarity trap, not a stand-in. This is a different and weaker category of evidence than every other PDB citation in this file. generate_expansion_jw.py's own code comment for this target's 'mutant' compound (formamide) says explicitly: 'backbone only — truncation abolishes the sidechain/C-terminus' — the model acknowledges it is not representing a real mutant residue, only a generic proxy standing in for 'everything downstream is gone.' Checked 2026-08-12, same pass that added the STK11_F354L/KEAP1_R320Q findings.",
       "annual_patients_source": "Not in dissertation § 01 Table 2 — ARID2 has no stated NSCLC patient-burden estimate anywhere in this codebase; do not infer one from the eleven-gene list, which does not include it."
     },
     "SETD2_R1625C": {
@@ -561,6 +561,19 @@
       "structure_caveat": "UNRESOLVED — same finding as U2AF1_S34F (identical residue, different substitution): no confirmed human structure resolves residue 34. Split into its own entry rather than combined 'S34F/Y' because S34F and S34Y are independently recurrent substitutions at the same codon with different amino-acid chemistry (Phe vs Tyr), the same reasoning already applied to keeping TP53 C275F and TP53 Y220C as separate entries rather than one. Found 2026-08-12.",
       "druggability_note": "Not druggable — same as S34F; no substitution-specific studies found distinguishing S34Y's druggability from S34F's.",
       "annual_patients_source": "Not in dissertation § 01 Table 2 as a split figure — see U2AF1_S34F; S34Y is the minority (~20%) of the combined 'S34F/Y' ~64,000 patients/yr figure."
+    },
+    "ARID1A_R1020S": {
+      "name": "ARID1A p.Arg1020Ser",
+      "pdb": "1RYU",
+      "full_electrons": 28,
+      "full_qubits": 56,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — genes.ARID1A lists 28 active electrons (56 qubits) as a generic gene-level estimate; no residue-specific estimate or DMRG/S_max run exists for this mutation.",
+      "structure_caveat": "VERIFIED — 1RYU (NMR solution structure of the ARID/DNA-binding domain) resolves residues ~1000-1119, the only experimentally-solved fragment of ARID1A's 2285-residue length (the rest is largely intrinsically disordered, unlike the ARID domain). R1020 sits within that resolved span, alongside a cluster of related hotspots (M1022K, K1047Q, G1063V, A1089T) also inside it. Checked 2026-08-12.",
+      "nsclc_relevance": "* NOT AN NSCLC TARGET — flagged explicitly so this entry is never read as lung-relevant. This ARID-domain missense cluster is reported from pan-TCGA data in hepatocellular, cutaneous (skin), uterine, and gastric (stomach) carcinomas — not lung. ARID1A's own NSCLC-specific alterations (Q515*, Q1519*) are themselves nonsense/truncating, same failure mode as ARID2, and are NOT this entry. Included here only because the user asked to see it on structural grounds alone, independent of cancer type.",
+      "druggability_note": "No direct-restoration small molecule for ARID1A LOF. Synthetic-lethality approach: EZH2 inhibition (tazemetostat) in ARID1A-deficient tumors, active trials (e.g. NCT05023655) — deficiency-based, not mutation-specific, not approved for this variant.",
+      "annual_patients_source": "No NSCLC patient-burden figure applies — this variant is not observed in lung cancer in the literature reviewed. Dissertation Table 2's 'ARID1A LOF ~106,000/yr' figure is for lung-cancer LOF generally (truncating-dominated) and must not be attributed to R1020S."
     }
   }
 }
