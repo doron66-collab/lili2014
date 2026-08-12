@@ -329,7 +329,8 @@
       "local_qubits": 48,
       "bqp_class": "B",
       "hardware_era": "current",
-      "bqp_class_source": "dissertation: \"Under this template C275F is Class B: it sits in the empirically "
+      "bqp_class_source": "dissertation: \"Under this template C275F is Class B: it sits in the empirically ",
+      "structure_caveat": "VERIFIED — residue 275 falls well within the crystallized region of the cited PDB entry. 2OCJ (human p53 core domain, apo/no DNA, 2.05A) resolves residues 96-289, matching the conventional DNA-binding-domain range (94-292); C275 sits centrally within it, not near an edge. Checked 2026-08-12 as the first of a pass over all 8 targets.json PDB citations, prompted by the STK11_F354L finding (that target's own cited PDB does not cover its mutation site) and by Molly Schmid / Animesh Ray raising IDR (intrinsically disordered regions) as a general risk for structure-dependent classification. This is the anchor target and it passes."
     },
     "TP53_Y220C": {
       "name": "TP53 p.Tyr220Cys",
