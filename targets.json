@@ -513,6 +513,54 @@
       "bqp_class_source": "UNMEASURED PRIOR, matching genes.ARID2 — no dissertation classification and no S_max run exists for this target.",
       "structure_caveat": "UNRESOLVED, on two independent grounds. (1) p.Gln1118* is a nonsense/truncating mutation, not a point substitution — it removes ARID2's C-terminal C2H2 zinc-finger domains entirely (Li et al. 2011 Science 333:1157), so there is no single mutant residue for an active space to be built around, the same failure mode as KEAP1_LOF/RB1/ATRX frameshifts found in this session's NGS-report audit. (2) The cited structure itself (AlphaFold-Q68CP9) is a COMPUTATIONAL PREDICTION, not an experimental crystal or cryo-EM structure — a different and weaker category of evidence than every other PDB citation in this file, with no per-residue confidence (pLDDT) check performed. generate_expansion_jw.py's own code comment for this target's 'mutant' compound (formamide) says explicitly: 'backbone only — truncation abolishes the sidechain/C-terminus' — the model acknowledges it is not representing a real mutant residue, only a generic proxy standing in for 'everything downstream is gone.' Checked 2026-08-12, same pass that added the STK11_F354L/KEAP1_R320Q findings.",
       "annual_patients_source": "Not in dissertation § 01 Table 2 — ARID2 has no stated NSCLC patient-burden estimate anywhere in this codebase; do not infer one from the eleven-gene list, which does not include it."
+    },
+    "SETD2_R1625C": {
+      "name": "SETD2 p.Arg1625Cys",
+      "pdb": "5JJY",
+      "full_electrons": 30,
+      "full_qubits": 60,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — genes.SETD2 lists 30 active electrons (60 qubits) as a generic gene-level estimate; no residue-specific estimate or DMRG/S_max run exists for this mutation yet.",
+      "structure_caveat": "VERIFIED — R1625 is the single most recurrent missense residue in SETD2 across COSMIC/cBioPortal, sitting inside the catalytic SET domain (residues 1550-1667). 5JJY (SETD2 catalytic domain bound to H3.3 K36M peptide, Yang et al. 2016) resolves residues 1434-1711 (AWS 1494-1549, SET 1550-1667, post-SET 1674-1690) — R1625 sits centrally within the SET domain, not near an edge. Additional structures of the same domain exist (5V21, 5V22, 6VDB). Found 2026-08-12 while auditing the eleven dissertation Table-2 genes beyond TP53/KEAP1/STK11 for real NSCLC point-mutation hotspots; SETD2 is the most frequently mutated epigenetic modifier in lung adenocarcinoma (~9%).",
+      "druggability_note": "No approved or late-phase therapy. EZM0414 (oral SETD2 inhibitor) has FDA Fast Track but is Phase 1/1b, for relapsed/refractory DLBCL — not approved, not NSCLC. A WEE1-inhibitor (adavosertib) trial in SETD2-altered solid tumors showed no objective responses.",
+      "annual_patients_source": "Not in dissertation § 01 Table 2 as a mutation-level figure — Table 2 gives SETD2 LOF collectively at ~5% NSCLC frequency / ~106,000 patients/yr, but that figure is not specific to the R1625C point mutation; do not attribute the gene-level number to this variant without checking what fraction of SETD2 LOF is R1625C specifically."
+    },
+    "SMARCA4_R1192C": {
+      "name": "SMARCA4 p.Arg1192Cys",
+      "pdb": "7VDT / 7VDV",
+      "full_electrons": 28,
+      "full_qubits": 56,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — genes.SMARCA4 lists 28 active electrons (56 qubits) as a generic gene-level estimate; no residue-specific estimate or DMRG/S_max run exists for this mutation yet.",
+      "structure_caveat": "PLAUSIBLE, NOT FULLY VERIFIED — RCSB and EBI/PDBe were both network-egress-blocked in this session, so the exact deposited residue range for 7VDT/7VDV (human PBAF-nucleosome cryo-EM complex, He et al., Nature 2022) could not be confirmed directly, unlike every other structure_caveat in this file. Secondary evidence only: SMARCA4's ATPase domain is generally annotated as residues ~750-1250, R1192 falls within that span, and the source paper explicitly states the motor-nucleosome structure 'reveals clustering of multiple disease-associated mutations at the interfaces essential for chromatin-remodelling activity' — consistent with, but not proof of, R1192 coverage. T910 (an alternative ATPase-domain hotspot, also within 750-1250) is a fallback candidate if R1192 turns out uncovered. MUST be confirmed against the deposited PDB coordinate file directly (residue-level SEQRES/ATOM records) before this entry's bqp_class or hardware_era is trusted the way TP53/KEAP1/STK11/SETD2 entries can be. Found 2026-08-12 during the same eleven-gene audit as SETD2_R1625C.",
+      "druggability_note": "No approved or late-phase therapy directly restoring/targeting mutant SMARCA4. Active synthetic-lethality approach: PRT3789 (SMARCA2 degrader, exploiting SMARCA4/SMARCA2 paralog dependency) is in Phase 1/2 trials — not approved.",
+      "annual_patients_source": "Not in dissertation § 01 Table 2 as a mutation-level figure — Table 2 gives SMARCA4 LOF collectively at ~6% NSCLC frequency / ~127,000 patients/yr, not specific to R1192C; more than half of SMARCA4 alterations in NSCLC are missense generally, but frank protein-loss cases are still truncating-dominated (81% vs 0% for missense per functional studies) — do not read the gene-level patient count as this variant's own burden."
+    },
+    "U2AF1_S34F": {
+      "name": "U2AF1 p.Ser34Phe",
+      "pdb": null,
+      "full_electrons": null,
+      "full_qubits": null,
+      "bqp_class": null,
+      "hardware_era": null,
+      "bqp_class_source": "NOT CLASSIFIED — deliberately left unclassified rather than given a size proxy. See structure_caveat for why this is excluded.",
+      "structure_caveat": "UNRESOLVED — no confirmed experimental structure (crystal, NMR, or cryo-EM) of human U2AF1 resolves residue 34. The only human U2AF1 crystal structure found (1JMT, core U2AF65/U2AF35 heterodimer) covers residues 43-146 only (the UHM domain) — residue 34 sits in the N-terminal zinc finger (ZnF1, ~residues 14-41), outside that construct entirely. Zinc-finger structures exist only for the fission-yeast homolog, not sequence-identical at this position. Human spliceosome cryo-EM complexes were not confirmed to model U2AF1's ZnF1, which is often flexible/disordered in those maps. Despite being a real, well-documented, NSCLC-recurrent point mutation (~81% of U2AF1 mutations in LUAD are S34F specifically, ~3% of all LUAD, per cBioPortal/TRACERx), this target fails the structural-coverage gate the same way KEAP1_R320Q and STK11_F354L did. Found 2026-08-12; direct RCSB/EBI verification was blocked by network egress in this session and should be re-attempted before treating this as final.",
+      "druggability_note": "Not druggable. Splicing modulators (sudemycins, H3B-8800) show preclinical/early-clinical selectivity toward U2AF1-S34F cells; H3B-8800 Phase I (MDS/AML/CMML) showed no CR/PR. No approved or late-phase agent, none NSCLC-specific.",
+      "annual_patients_source": "Not in dissertation § 01 Table 2 as a split figure — Table 2 gives 'U2AF1 S34F/Y' combined at ~3% NSCLC frequency / ~64,000 patients/yr; S34F is reported as the dominant ~80% of that combined figure, S34Y the remaining ~20%, per the literature that first characterized the split in MDS."
+    },
+    "U2AF1_S34Y": {
+      "name": "U2AF1 p.Ser34Tyr",
+      "pdb": null,
+      "full_electrons": null,
+      "full_qubits": null,
+      "bqp_class": null,
+      "hardware_era": null,
+      "bqp_class_source": "NOT CLASSIFIED — deliberately left unclassified rather than given a size proxy. See structure_caveat for why this is excluded.",
+      "structure_caveat": "UNRESOLVED — same finding as U2AF1_S34F (identical residue, different substitution): no confirmed human structure resolves residue 34. Split into its own entry rather than combined 'S34F/Y' because S34F and S34Y are independently recurrent substitutions at the same codon with different amino-acid chemistry (Phe vs Tyr), the same reasoning already applied to keeping TP53 C275F and TP53 Y220C as separate entries rather than one. Found 2026-08-12.",
+      "druggability_note": "Not druggable — same as S34F; no substitution-specific studies found distinguishing S34Y's druggability from S34F's.",
+      "annual_patients_source": "Not in dissertation § 01 Table 2 as a split figure — see U2AF1_S34F; S34Y is the minority (~20%) of the combined 'S34F/Y' ~64,000 patients/yr figure."
     }
   }
 }
