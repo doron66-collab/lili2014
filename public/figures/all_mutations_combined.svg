@@ -172,7 +172,7 @@
     <rect width="385" height="363" fill="#060e1a" stroke="#880e4f" stroke-width="1.5" rx="2"/>
     <line x1="0" y1="30" x2="385" y2="30" stroke="#880e4f" stroke-width="0.4" opacity="0.4"/>
     <text x="12" y="21" fill="#c2185b" font-size="10.5" font-weight="bold" font-family="Courier New,monospace" letter-spacing="1">STK11 / LKB1</text>
-    <text x="373" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2QK7</text>
+    <text x="373" y="21" fill="rgba(100,180,215,0.5)" font-size="8" font-family="Courier New,monospace" text-anchor="end">PDB 2WTK</text>
 
     <!-- Kinase domain: multiple parallel diagonal lines, lime (helix) and pink (sheet) -->
     <!-- Loop blob -->
