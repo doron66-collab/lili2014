@@ -330,7 +330,9 @@
       "bqp_class": "B",
       "hardware_era": "current",
       "bqp_class_source": "dissertation: \"Under this template C275F is Class B: it sits in the empirically ",
-      "structure_caveat": "VERIFIED — residue 275 falls well within the crystallized region of the cited PDB entry. 2OCJ (human p53 core domain, apo/no DNA, 2.05A) resolves residues 96-289, matching the conventional DNA-binding-domain range (94-292); C275 sits centrally within it, not near an edge. Checked 2026-08-12 as the first of a pass over all 8 targets.json PDB citations, prompted by the STK11_F354L finding (that target's own cited PDB does not cover its mutation site) and by Molly Schmid / Animesh Ray raising IDR (intrinsically disordered regions) as a general risk for structure-dependent classification. This is the anchor target and it passes."
+      "structure_caveat": "VERIFIED — residue 275 falls well within the crystallized region of the cited PDB entry. 2OCJ (human p53 core domain, apo/no DNA, 2.05A) resolves residues 96-289, matching the conventional DNA-binding-domain range (94-292); C275 sits centrally within it, not near an edge. Checked 2026-08-12 as the first of a pass over all 8 targets.json PDB citations, prompted by the STK11_F354L finding (that target's own cited PDB does not cover its mutation site) and by Molly Schmid / Animesh Ray raising IDR (intrinsically disordered regions) as a general risk for structure-dependent classification. This is the anchor target and it passes.",
+      "annual_patients_estimate": "~42,000",
+      "annual_patients_source": "NSCLC frequency ~2% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
     },
     "TP53_Y220C": {
       "name": "TP53 p.Tyr220Cys",
@@ -360,7 +362,9 @@
       "local_qubits": 208,
       "bqp_class": "B",
       "hardware_era": "fault_tolerant",
-      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement."
+      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement.",
+      "annual_patients_estimate": "~360,000",
+      "annual_patients_source": "NSCLC frequency ~17% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
     },
     "KEAP1_G333C": {
       "name": "KEAP1 p.Gly333Cys",
@@ -376,7 +380,9 @@
       "bqp_class": "B",
       "hardware_era": "fault_tolerant",
       "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement.",
-      "structure_caveat": "VERIFIED — residue 333 falls well within the crystallized Kelch domain. 1U6D (Sun/Kobayashi/Chan et al.) resolves continuous backbone density from residue 322-609; G333 sits shortly inside that boundary. Checked 2026-08-12 as part of the same pass that found STK11_F354L and KEAP1_R320Q unresolved."
+      "structure_caveat": "VERIFIED — residue 333 falls well within the crystallized Kelch domain. 1U6D (Sun/Kobayashi/Chan et al.) resolves continuous backbone density from residue 322-609; G333 sits shortly inside that boundary. Checked 2026-08-12 as part of the same pass that found STK11_F354L and KEAP1_R320Q unresolved.",
+      "annual_patients_estimate": "~360,000",
+      "annual_patients_source": "NSCLC frequency ~17% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
     },
     "KEAP1_R320Q": {
       "name": "KEAP1 p.Arg320Gln",
@@ -392,7 +398,9 @@
       "bqp_class": "B",
       "hardware_era": "fault_tolerant",
       "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement.",
-      "structure_caveat": "UNRESOLVED — residue 320 falls just outside the crystallized Kelch domain. The Kelch construct's continuous backbone density begins at residue 322 (1U6D/2FLU); R320 sits 2 residues before that boundary, in the flexible linker region preceding the resolved beta-propeller, not inside it. Checked 2026-08-12 in the same pass that found STK11_F354L unresolved. Needs confirmation via a disorder predictor before any bqp_class here is trusted, same as F354L."
+      "structure_caveat": "UNRESOLVED — residue 320 falls just outside the crystallized Kelch domain. The Kelch construct's continuous backbone density begins at residue 322 (1U6D/2FLU); R320 sits 2 residues before that boundary, in the flexible linker region preceding the resolved beta-propeller, not inside it. Checked 2026-08-12 in the same pass that found STK11_F354L unresolved. Needs confirmation via a disorder predictor before any bqp_class here is trusted, same as F354L.",
+      "annual_patients_estimate": "~360,000",
+      "annual_patients_source": "NSCLC frequency ~17% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
     },
     "STK11_LKB1": {
       "name": "STK11/LKB1 Loss-of-Function",
@@ -407,7 +415,9 @@
       "local_qubits": 152,
       "bqp_class": "A",
       "hardware_era": "fault_tolerant",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires."
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires.",
+      "annual_patients_estimate": "~424,000",
+      "annual_patients_source": "NSCLC frequency ~20% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
     },
     "STK11_F354L": {
       "name": "STK11 p.Phe354Leu",
@@ -423,7 +433,9 @@
       "bqp_class": "A",
       "hardware_era": "near_term",
       "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires.",
-      "structure_caveat": "UNRESOLVED — residue 354 falls outside the crystallized region of the cited PDB entry. 2WTK (LKB1-STRADalpha-MO25alpha complex, Zeqiraj et al. 2009) resolves LKB1 only across residues 43-347; F354 sits just past that boundary, in LKB1's C-terminal non-catalytic region (~310-433), which the literature describes as having no identifiable folded domain (PMC11155146) — i.e. likely intrinsically disordered. This target's own cited PDB does not actually cover its mutation site. Flagged 2026-08-12 after Molly Schmid / Animesh Ray raised IDR (intrinsically disordered regions) as a general blind spot for structure-dependent classification; D194N (same gene, residue 194) sits within the resolved 43-347 kinase domain and is unaffected. Unresolved: whether this target should be reclassified as 'not classifiable by this method' rather than carrying a Class A size-prior — needs confirmation via a disorder predictor (e.g. AlphaFold pLDDT) before any bqp_class here is trusted."
+      "structure_caveat": "UNRESOLVED — residue 354 falls outside the crystallized region of the cited PDB entry. 2WTK (LKB1-STRADalpha-MO25alpha complex, Zeqiraj et al. 2009) resolves LKB1 only across residues 43-347; F354 sits just past that boundary, in LKB1's C-terminal non-catalytic region (~310-433), which the literature describes as having no identifiable folded domain (PMC11155146) — i.e. likely intrinsically disordered. This target's own cited PDB does not actually cover its mutation site. Flagged 2026-08-12 after Molly Schmid / Animesh Ray raised IDR (intrinsically disordered regions) as a general blind spot for structure-dependent classification; D194N (same gene, residue 194) sits within the resolved 43-347 kinase domain and is unaffected. Unresolved: whether this target should be reclassified as 'not classifiable by this method' rather than carrying a Class A size-prior — needs confirmation via a disorder predictor (e.g. AlphaFold pLDDT) before any bqp_class here is trusted.",
+      "annual_patients_estimate": "~424,000",
+      "annual_patients_source": "NSCLC frequency ~20% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
     },
     "STK11_D194N": {
       "name": "STK11 p.Asp194Asn",
@@ -439,7 +451,57 @@
       "bqp_class": "A",
       "hardware_era": "fault_tolerant",
       "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — the dissertation records STK11's full active site at ~152 active electrons (~304 qubits under Jordan-Wigner encoding) and designates it a fault-tolerant QPU target (~2030+). No entanglement measurement meeting the Gateway's 90% site-coverage gate exists for any STK11 variant, so this Class A is an unmeasured prior awaiting the S_max measurement the classification rule requires.",
-      "structure_caveat": "VERIFIED — residue 194 falls well within the crystallized LKB1 kinase domain. 2WTK (LKB1-STRADalpha-MO25alpha complex, Zeqiraj et al. 2009) resolves LKB1 residues 43-347; D194 sits centrally within that range, well clear of either edge. Checked 2026-08-12 in the same pass that found STK11_F354L unresolved."
+      "structure_caveat": "VERIFIED — residue 194 falls well within the crystallized LKB1 kinase domain. 2WTK (LKB1-STRADalpha-MO25alpha complex, Zeqiraj et al. 2009) resolves LKB1 residues 43-347; D194 sits centrally within that range, well clear of either edge. Checked 2026-08-12 in the same pass that found STK11_F354L unresolved.",
+      "annual_patients_estimate": "~424,000",
+      "annual_patients_source": "NSCLC frequency ~20% of 2.12M/yr diagnoses (GLOBOCAN 2022). dissertation § 01 Table 2 — Annual Patient Burden by Mutation (per-mutation figures for TP53; gene-level KEAP1/STK11/CDKN2A LOF figures applied to each variant under that gene, since Table 2 does not split those further). GLOBOCAN 2022 NSCLC incidence base."
+    },
+    "TP53_R175H": {
+      "name": "TP53 p.Arg175His",
+      "pdb": "2OCJ",
+      "full_electrons": 44,
+      "full_qubits": 88,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — dissertation Table 1 estimates ~44 active electrons (~88 qubits), the same order as TP53_C275F. No DMRG/S_max run exists for this target; Class B here records only that it sits past the ~18e exact-classical wall, not a measured entanglement verdict.",
+      "structure_caveat": "VERIFIED (via WT domain, not a mutant-specific structure) — residue 175 falls within the p53 DNA-binding domain resolved by 2OCJ (residues 96–289). No R175H-specific crystal structure has been solved despite attempts (even arsenic-trioxide-stabilized crystallization did not succeed) — R175H is the most globally destabilizing common TP53 hotspot, which is the likely reason. Structural coverage of the residue's location is nonetheless established via the WT/apo structure, the same standard applied to C275F. Checked 2026-08-12.",
+      "annual_patients_estimate": "~105,000",
+      "annual_patients_source": "dissertation § 01 Table 2. Most frequent TP53 hotspot by NSCLC frequency (~5%); global destabilization mechanism, gain-of-function activity reported in the literature."
+    },
+    "TP53_G245S": {
+      "name": "TP53 p.Gly245Ser",
+      "pdb": "2J1Y",
+      "full_electrons": 40,
+      "full_qubits": 80,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — dissertation Table 1 estimates ~40 active electrons (~80 qubits). No DMRG/S_max run exists for this target.",
+      "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2J1Y, Joerger et al.); residue 245 sits in the L3 loop within the resolved DNA-binding domain. Checked 2026-08-12.",
+      "annual_patients_estimate": "~64,000",
+      "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~3%; L3-loop structural mutant."
+    },
+    "TP53_R249S": {
+      "name": "TP53 p.Arg249Ser",
+      "pdb": "2BIO",
+      "full_electrons": 40,
+      "full_qubits": 80,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — dissertation Table 1 estimates ~40 active electrons (~80 qubits). No DMRG/S_max run exists for this target.",
+      "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2BIO, Joerger et al. 2005); residue 249 sits in the L3 loop within the resolved DNA-binding domain. Checked 2026-08-12.",
+      "annual_patients_estimate": "~42,000",
+      "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~2%; also associated with hepatocellular carcinoma (aflatoxin-signature hotspot)."
+    },
+    "TP53_R282W": {
+      "name": "TP53 p.Arg282Trp",
+      "pdb": "2J21",
+      "full_electrons": 42,
+      "full_qubits": 84,
+      "bqp_class": "B",
+      "hardware_era": "current",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — dissertation Table 1 estimates ~42 active electrons (~84 qubits). No DMRG/S_max run exists for this target.",
+      "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2J21, Joerger et al. 2006); residue 282 sits in the H2 helix within the resolved DNA-binding domain. A separate, unrelated region (residues 117–121) is disordered in this structure — does not affect residue 282. Checked 2026-08-12.",
+      "annual_patients_estimate": "~42,000",
+      "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~1%; H2-helix structural mutant, most destabilizing of the four (>3 kcal/mol)."
     }
   }
 }
