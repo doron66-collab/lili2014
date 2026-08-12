@@ -4430,6 +4430,19 @@ function loadNGSReport(ngs) {
     return `${g}_LOF`;
   }
 
+  // Structural coverage audit (2026-08-12, see targets.json structure_caveat and
+  // dissertation §01 Table 1 note): these simIds cite a PDB structure that does not
+  // actually resolve the mutated residue, or (KEAP1_LOF / CDKN2A_LOF) have no single
+  // point residue for an active space to be built around at all. Blocked here from
+  // new dispatch rather than only footnoted, because a checkbox the user can still
+  // click reads as tacit endorsement regardless of what a tooltip elsewhere says.
+  const STRUCTURALLY_UNRESOLVED = {
+    'KEAP1_R320Q': 'residue 320 falls 2 residues before the Kelch domain\'s resolved boundary (322–609, PDB 1U6D/2FLU) — inside a documented flexible IVR-Kelch linker, not the resolved propeller',
+    'STK11_F354L': 'residue 354 falls outside LKB1\'s resolved kinase domain (43–347, PDB 2WTK) — in a C-terminal region with no identifiable folded domain',
+    'KEAP1_LOF':   'frameshift at residue 196 (pre-Kelch domain) — no single mutant residue to anchor an active space to; the modeled Hamiltonian is borrowed from the unrelated point mutation G333C',
+    'CDKN2A_LOF':  'homozygous deletion, not a point mutation — no residue to anchor an active space to',
+  };
+
   // Build one simulation target per distinct variant (gene-level dedup).
   // Every variant the report actually contains gets a row — genes SOLANGE has no
   // curated route for are NOT dropped, they're marked unsupported (rendered greyed
@@ -4454,6 +4467,15 @@ function loadNGSReport(ngs) {
       return;
     }
     const simId = resolveSimId(gene, v.mutation);
+    if (STRUCTURALLY_UNRESOLVED[simId]) {
+      const key = gene + '|' + (v.mutation || '');
+      if (seenUnsupported.has(key)) return;
+      seenUnsupported.add(key);
+      allVariants.push({ gene, mutation: v.mutation || '—', simId: null, gm: null, bqpCls: null,
+        allele_frequency: v.allele_frequency, phase3a: false, source: (v.source || 'ngs'),
+        supported: false, unsupportedReason: 'structurally unresolved — ' + STRUCTURALLY_UNRESOLVED[simId] });
+      return;
+    }
     if (seenSimIds.has(simId)) return;
     seenSimIds.add(simId);
     // Authoritative class (matches backend/dissertation) when defined; the size
