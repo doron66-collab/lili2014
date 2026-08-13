@@ -298,7 +298,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                              density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit",
                              max_cycle_macro=20, dmrg_scf=False, dmrg_scf_maxm=500,
                              dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4,
-                             orbital_deadline=None):
+                             orbital_deadline=None, stack_mem_gb=None):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -400,8 +400,18 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         from dmrgscf_block2 import Block2FCISolver, validate
         validate(scratch=dmrg_scf_scratch + "_validate", n_threads=n_threads,
                  verbose=True)
-        mc.fcisolver = Block2FCISolver(maxM=dmrg_scf_maxm, scratch=dmrg_scf_scratch,
-                                       n_threads=n_threads)
+        # stack_mem_gb was previously NOT threaded through here, so this solver
+        # silently used dmrgscf_block2's own DEFAULT_STACK_MEM_GB (4.0) no matter
+        # what --stack-mem-gb was set to on the CLI -- that flag only ever reached
+        # the FINAL run_dmrg() sweep below, not this orbital-optimization solver.
+        # Invisible at small active spaces; at CAS(48,28) it crashed block2 itself
+        # (std::length_error: cannot create std::vector larger than max_size()) on
+        # the second solve, which is a memory-pool exhaustion, not a wiring bug.
+        fci_kwargs = {"maxM": dmrg_scf_maxm, "scratch": dmrg_scf_scratch,
+                      "n_threads": n_threads}
+        if stack_mem_gb is not None:
+            fci_kwargs["stack_mem_gb"] = stack_mem_gb
+        mc.fcisolver = Block2FCISolver(**fci_kwargs)
         mc.internal_rotation = True  # DMRG-SCF needs this pyscf CASSCF option on
     if density_fit:
         mc = mc.density_fit(auxbasis=df_auxbasis)  # keep CASSCF's own integral transform DF-accelerated too
@@ -634,7 +644,7 @@ def main():
                                        df_auxbasis=args.df_auxbasis, max_cycle_macro=args.max_cycle_macro,
                                        dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
                                        dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads,
-                                       orbital_deadline=orbital_deadline)
+                                       orbital_deadline=orbital_deadline, stack_mem_gb=args.stack_mem_gb)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
         if cas.get("orbital_optimization_truncated"):
