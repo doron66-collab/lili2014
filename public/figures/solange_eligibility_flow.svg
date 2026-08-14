@@ -1,144 +1,157 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1420" role="img" aria-label="Flowchart: a candidate mutation passes through six gates — mutation type, PDB structural coverage, active-electron count past the classical wall, existing druggability, measured S_max entanglement class, and current hardware reach — before becoming a prioritized SOLANGE-eligible candidate; each gate has a labeled exit branch for mutations that fail it, citing a real example found during the structural coverage audit.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 1980" role="img" aria-label="Flowchart: a candidate mutation passes through seven gates — mutation type, PDB structural position coverage, deposited-residue identity match (new), active-electron count past the classical wall, existing druggability, measured S_max entanglement class, and current hardware reach — before becoming a prioritized SOLANGE-eligible candidate; each gate has a labeled exit branch for mutations that fail it, citing a real example found during the structural coverage audit.">
+  <rect x="0" y="0" width="1460" height="1980" fill="#ffffff"/>
   <defs>
-    <marker id="sef-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#111111"/>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#a31414"/>
     </marker>
   </defs>
-  <rect x="0" y="0" width="1040" height="1420" fill="#ffffff"/>
 
-  <!-- ============ START ============ -->
-  <rect x="180" y="14" width="400" height="64" rx="10" fill="none" stroke="#111111" stroke-width="1.6"/>
-  <text x="380" y="38" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">CANDIDATE MUTATION</text>
-  <text x="380" y="58" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#444444">gene + variant — NGS, COSMIC, or literature hotspot</text>
-  <line x1="380" y1="78" x2="380" y2="112" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
+  <!-- box 1: candidate -->
+  <rect x="290" y="10" width="520" height="70" rx="10" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="550" y="38" text-anchor="middle" font-weight="700" font-size="15">CANDIDATE MUTATION</text>
+  <text x="550" y="58" text-anchor="middle" font-size="11.5" fill="#444">gene + variant — NGS, COSMIC, or literature hotspot</text>
+  <line x1="550" y1="80" x2="550" y2="115" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <!-- ============ GATE 1: mutation type ============ -->
-  <rect x="160" y="112" width="440" height="72" rx="10" fill="none" stroke="#111111" stroke-width="1.6"/>
-  <text x="380" y="140" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">Is it a point / missense mutation?</text>
-  <text x="380" y="158" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#444444">one residue, one substitution — not frameshift, nonsense, or splice</text>
-  <text x="380" y="175" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">truncation leaves no single residue to anchor a space to</text>
+  <!-- box 2: point mutation -->
+  <rect x="255" y="115" width="590" height="80" rx="10" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="550" y="143" text-anchor="middle" font-weight="700" font-size="14.5">Is it a point / missense mutation?</text>
+  <text x="550" y="163" text-anchor="middle" font-size="11" fill="#444">one residue, one substitution — not frameshift, nonsense, or splice</text>
+  <text x="550" y="178" text-anchor="middle" font-size="11" fill="#444">truncation leaves no single residue to anchor a space to</text>
+  <line x1="845" y1="155" x2="1015" y2="155" stroke="#a31414" stroke-width="1.6" marker-end="url(#arrowRed)"/>
+  <text x="880" y="147" font-size="11.5" fill="#a31414" font-weight="700">no</text>
+  <rect x="1020" y="118" width="410" height="76" rx="6" fill="#fdecec" stroke="#a31414" stroke-width="1.3"/>
+  <text x="1225" y="138" text-anchor="middle" font-size="12" font-weight="700" fill="#a31414">EXITS — no anchor residue</text>
+  <text x="1225" y="156" text-anchor="middle" font-size="10.5" fill="#333">frameshift / nonsense / splice garbles everything downstream</text>
+  <text x="1225" y="171" text-anchor="middle" font-size="10" fill="#777">e.g. KEAP1 LOF, RB1, ATRX (all frameshift)</text>
+  <text x="565" y="212" font-size="11.5" fill="#0a7a0a" font-weight="700">yes</text>
+  <line x1="550" y1="195" x2="550" y2="235" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <line x1="380" y1="184" x2="380" y2="218" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="392" y="204" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#0a7a0a">yes</text>
+  <!-- box 3: PDB position resolved -->
+  <rect x="255" y="235" width="590" height="82" rx="10" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="550" y="262" text-anchor="middle" font-weight="700" font-size="14.5">Does a cited PDB structure resolve</text>
+  <text x="550" y="280" text-anchor="middle" font-weight="700" font-size="14.5">this exact residue's POSITION?</text>
+  <text x="550" y="300" text-anchor="middle" font-size="11" fill="#444">checked against the structure's own resolved range — not just a citation</text>
+  <line x1="845" y1="276" x2="1015" y2="276" stroke="#a31414" stroke-width="1.6" marker-end="url(#arrowRed)"/>
+  <text x="880" y="268" font-size="11.5" fill="#a31414" font-weight="700">no</text>
+  <rect x="1020" y="238" width="410" height="80" rx="6" fill="#fdecec" stroke="#a31414" stroke-width="1.3"/>
+  <text x="1225" y="258" text-anchor="middle" font-size="12" font-weight="700" fill="#a31414">EXITS — unresolved / IDR</text>
+  <text x="1225" y="276" text-anchor="middle" font-size="10.5" fill="#333">residue sits outside the crystallized domain,</text>
+  <text x="1225" y="291" text-anchor="middle" font-size="10.5" fill="#333">often a flexible linker</text>
+  <text x="1225" y="308" text-anchor="middle" font-size="10" fill="#777">e.g. KEAP1 R320Q, STK11 F354L, U2AF1 S34F</text>
+  <text x="565" y="335" font-size="11.5" fill="#0a7a0a" font-weight="700">yes</text>
+  <line x1="550" y1="317" x2="550" y2="358" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <line x1="600" y1="148" x2="742" y2="148" stroke="#a31414" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="612" y="141" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#a31414">no</text>
-  <rect x="742" y="106" width="270" height="86" rx="10" fill="#fdf0f0" stroke="#a31414" stroke-width="1.4"/>
-  <text x="877" y="128" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#a31414">EXITS — no anchor residue</text>
-  <text x="877" y="146" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">frameshift / nonsense / splice garbles</text>
-  <text x="877" y="161" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">everything downstream of the site</text>
-  <text x="877" y="180" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#666666">e.g. KEAP1 LOF, RB1, ATRX (all frameshift)</text>
+  <!-- NEW box 3b: residue identity -->
+  <rect x="255" y="358" width="590" height="92" rx="10" fill="#fff8e8" stroke="#a36a00" stroke-width="1.8"/>
+  <text x="550" y="382" text-anchor="middle" font-weight="700" font-size="14.5" fill="#7a5200">NEW — Does the deposited residue's IDENTITY</text>
+  <text x="550" y="400" text-anchor="middle" font-weight="700" font-size="14.5" fill="#7a5200">match what the position claims (WT or mutant)?</text>
+  <text x="550" y="418" text-anchor="middle" font-size="11" fill="#5a4000">checked via the structure's own SEQADV record — position ≠ identity;</text>
+  <text x="550" y="433" text-anchor="middle" font-size="11" fill="#5a4000">engineered crystallization constructs (kinase-dead, etc.) can occupy the same position</text>
+  <line x1="845" y1="404" x2="1015" y2="404" stroke="#a31414" stroke-width="1.6" marker-end="url(#arrowRed)"/>
+  <text x="880" y="396" font-size="11.5" fill="#a31414" font-weight="700">no</text>
+  <rect x="1020" y="362" width="410" height="84" rx="6" fill="#fdecec" stroke="#a31414" stroke-width="1.3"/>
+  <text x="1225" y="382" text-anchor="middle" font-size="12" font-weight="700" fill="#a31414">EXITS — identity mismatch</text>
+  <text x="1225" y="400" text-anchor="middle" font-size="10.5" fill="#333">position covered, but the actual residue there</text>
+  <text x="1225" y="415" text-anchor="middle" font-size="10.5" fill="#333">is not the WT or mutant claimed</text>
+  <text x="1225" y="432" text-anchor="middle" font-size="10" fill="#777">e.g. SMARCA4 T910M (Gly, not Thr); flagged, not silently used</text>
+  <text x="565" y="467" font-size="11.5" fill="#0a7a0a" font-weight="700">yes / WT-approximation noted</text>
+  <line x1="550" y1="450" x2="550" y2="490" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <!-- ============ GATE 2: PDB coverage ============ -->
-  <rect x="160" y="218" width="440" height="82" rx="10" fill="none" stroke="#111111" stroke-width="1.6"/>
-  <text x="380" y="246" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">Does a cited PDB structure resolve</text>
-  <text x="380" y="263" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">this exact residue?</text>
-  <text x="380" y="282" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">checked against the structure's own resolved range — not just a citation</text>
+  <!-- box 4 (dashed): build AVAS -->
+  <rect x="255" y="490" width="590" height="96" rx="10" fill="#fff" stroke="#111" stroke-width="1.6" stroke-dasharray="6,4"/>
+  <text x="550" y="514" text-anchor="middle" font-weight="700" font-size="14.5">Build the real active space (AVAS on the resolved site)</text>
+  <text x="550" y="534" text-anchor="middle" font-size="11" fill="#444">turns "~44e, estimated" into a REAL COMPUTED RANGE —</text>
+  <text x="550" y="549" text-anchor="middle" font-size="11" fill="#444">not a single number: depends on which orbitals are targeted</text>
+  <text x="550" y="564" text-anchor="middle" font-size="11" fill="#a36a00" font-weight="700">final criterion still needs a computational chemist's sign-off</text>
+  <line x1="550" y1="586" x2="550" y2="622" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <line x1="380" y1="300" x2="380" y2="334" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="392" y="320" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#0a7a0a">yes</text>
+  <!-- box 5: >18e -->
+  <rect x="255" y="622" width="590" height="80" rx="10" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="550" y="650" text-anchor="middle" font-weight="700" font-size="14.5">More than ~18 active electrons?</text>
+  <text x="550" y="670" text-anchor="middle" font-size="11" fill="#444">the exact-classical-diagonalization wall — CCSD(T) reaches</text>
+  <text x="550" y="685" text-anchor="middle" font-size="11" fill="#444">chemical accuracy on its own below this, regardless of entanglement</text>
+  <line x1="845" y1="660" x2="1015" y2="660" stroke="#a31414" stroke-width="1.6" marker-end="url(#arrowRed)"/>
+  <text x="880" y="652" font-size="11.5" fill="#a31414" font-weight="700">no</text>
+  <rect x="1020" y="625" width="410" height="66" rx="6" fill="#fdecec" stroke="#a31414" stroke-width="1.3"/>
+  <text x="1225" y="650" text-anchor="middle" font-size="12" font-weight="700" fill="#a31414">EXITS — Class C</text>
+  <text x="1225" y="668" text-anchor="middle" font-size="10.5" fill="#333">classically sufficient on its own; filtered out of the quantum queue</text>
+  <text x="565" y="719" font-size="11.5" fill="#0a7a0a" font-weight="700">yes</text>
+  <line x1="550" y1="702" x2="550" y2="742" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <line x1="600" y1="259" x2="742" y2="259" stroke="#a31414" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="612" y="252" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#a31414">no</text>
-  <rect x="742" y="217" width="270" height="86" rx="10" fill="#fdf0f0" stroke="#a31414" stroke-width="1.4"/>
-  <text x="877" y="239" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#a31414">EXITS — unresolved / IDR</text>
-  <text x="877" y="257" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">residue sits outside the crystallized</text>
-  <text x="877" y="272" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">domain, often a flexible linker</text>
-  <text x="877" y="291" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#666666">e.g. KEAP1 R320Q, STK11 F354L, U2AF1 S34F</text>
+  <!-- box 6: druggable -->
+  <rect x="255" y="742" width="590" height="82" rx="10" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="550" y="770" text-anchor="middle" font-weight="700" font-size="14.5">Already druggable?</text>
+  <text x="550" y="790" text-anchor="middle" font-size="11" fill="#444">an approved or late-phase small-molecule already restores</text>
+  <text x="550" y="805" text-anchor="middle" font-size="11" fill="#444">or targets this mutant — independent of computational hardness</text>
+  <line x1="845" y1="783" x2="1015" y2="783" stroke="#a31414" stroke-width="1.6" marker-end="url(#arrowRed)"/>
+  <text x="875" y="775" font-size="11.5" fill="#a31414" font-weight="700">yes</text>
+  <rect x="1020" y="745" width="410" height="76" rx="6" fill="#fdecec" stroke="#a31414" stroke-width="1.3"/>
+  <text x="1225" y="765" text-anchor="middle" font-size="12" font-weight="700" fill="#a31414">EXITS — already solved</text>
+  <text x="1225" y="783" text-anchor="middle" font-size="10.5" fill="#333">not evidence of quantum necessity here</text>
+  <text x="1225" y="800" text-anchor="middle" font-size="10" fill="#777">e.g. TP53 Y220C — Rezatapopt, Phase II</text>
+  <text x="565" y="840" font-size="11.5" fill="#0a7a0a" font-weight="700">no</text>
+  <line x1="550" y1="824" x2="550" y2="864" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <!-- ============ PROCESS: measure electrons ============ -->
-  <rect x="160" y="334" width="440" height="62" rx="10" fill="none" stroke="#111111" stroke-width="1.2" stroke-dasharray="5 3"/>
-  <text x="380" y="359" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111111">Build the real active space (AVAS on the resolved site)</text>
-  <text x="380" y="378" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">turns "~44e, estimated" into a measured active-electron count</text>
-  <line x1="380" y1="396" x2="380" y2="424" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
+  <!-- box 7 (dashed): measure Smax -->
+  <rect x="255" y="864" width="590" height="80" rx="10" fill="#fff" stroke="#111" stroke-width="1.6" stroke-dasharray="6,4"/>
+  <text x="550" y="892" text-anchor="middle" font-weight="700" font-size="14.5">Measure S_max (real DMRG CAS-ladder run)</text>
+  <text x="550" y="912" text-anchor="middle" font-size="11" fill="#444">turns a "size prior" into a measured entanglement class</text>
+  <text x="550" y="930" text-anchor="middle" font-size="11" fill="#a36a00" font-weight="700">on THIS setup's active space — not yet a chemist-approved one</text>
+  <line x1="550" y1="944" x2="420" y2="985" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="550" y1="944" x2="680" y2="985" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <!-- ============ GATE 3: classical wall ============ -->
-  <rect x="160" y="424" width="440" height="72" rx="10" fill="none" stroke="#111111" stroke-width="1.6"/>
-  <text x="380" y="452" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">More than ~18 active electrons?</text>
-  <text x="380" y="470" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">the exact-classical-diagonalization wall — CCSD(T) reaches</text>
-  <text x="380" y="486" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">chemical accuracy on its own below this, regardless of entanglement</text>
+  <!-- box 8a: saturates -->
+  <rect x="150" y="985" width="400" height="90" rx="8" fill="#eaf7ea" stroke="#0a7a0a" stroke-width="1.6"/>
+  <text x="350" y="1010" text-anchor="middle" font-weight="700" font-size="13.5" fill="#0a5c0a">S_max saturates (area law)</text>
+  <text x="350" y="1030" text-anchor="middle" font-size="11" fill="#1a3d1a">→ Class B — quantum-advantaged,</text>
+  <text x="350" y="1045" text-anchor="middle" font-size="11" fill="#1a3d1a">DMRG itself suffices</text>
+  <text x="350" y="1063" text-anchor="middle" font-size="10" fill="#4a6a4a">threshold itself is a calibrated policy, not a law of nature</text>
 
-  <line x1="380" y1="496" x2="380" y2="530" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="392" y="516" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#0a7a0a">yes</text>
+  <!-- box 8b: climbing -->
+  <rect x="560" y="985" width="400" height="90" rx="8" fill="#eaf7ea" stroke="#0a7a0a" stroke-width="1.6"/>
+  <text x="760" y="1010" text-anchor="middle" font-weight="700" font-size="13.5" fill="#0a5c0a">S_max keeps climbing (volume law)</text>
+  <text x="760" y="1030" text-anchor="middle" font-size="11" fill="#1a3d1a">→ Class A — quantum-necessary,</text>
+  <text x="760" y="1045" text-anchor="middle" font-size="11" fill="#1a3d1a">even DMRG fails</text>
+  <text x="760" y="1063" text-anchor="middle" font-size="10" fill="#4a6a4a">re-calibrate against THIS system, not a borrowed reference</text>
 
-  <line x1="600" y1="460" x2="742" y2="460" stroke="#a31414" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="612" y="453" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#a31414">no</text>
-  <rect x="742" y="424" width="270" height="72" rx="10" fill="#fdf0f0" stroke="#a31414" stroke-width="1.4"/>
-  <text x="877" y="447" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#a31414">EXITS — Class C</text>
-  <text x="877" y="465" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">classically sufficient on its own;</text>
-  <text x="877" y="481" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">filtered out of the quantum queue</text>
+  <line x1="350" y1="1075" x2="550" y2="1110" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="760" y1="1075" x2="550" y2="1110" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <!-- ============ GATE 4: already druggable ============ -->
-  <rect x="160" y="530" width="440" height="72" rx="10" fill="none" stroke="#111111" stroke-width="1.6"/>
-  <text x="380" y="558" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">Already druggable?</text>
-  <text x="380" y="576" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">an approved or late-phase small-molecule already restores</text>
-  <text x="380" y="592" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">or targets this mutant — independent of computational hardness</text>
+  <!-- box 9: fits hardware -->
+  <rect x="255" y="1110" width="590" height="72" rx="10" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="550" y="1136" text-anchor="middle" font-weight="700" font-size="14.5">Does the qubit footprint fit today's hardware?</text>
+  <text x="550" y="1155" text-anchor="middle" font-size="11" fill="#444">full-site qubit count vs. current device capacity</text>
+  <text x="550" y="1170" text-anchor="middle" font-size="10.5" fill="#777">e.g. IBM Heron r3, ~156q</text>
+  <line x1="420" y1="1182" x2="330" y2="1218" stroke="#0a7a0a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="330" y="1204" text-anchor="middle" font-size="11.5" fill="#0a7a0a" font-weight="700">yes</text>
+  <line x1="680" y1="1182" x2="770" y2="1218" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="770" y="1204" text-anchor="middle" font-size="11.5" font-weight="700">no</text>
 
-  <line x1="380" y1="602" x2="380" y2="636" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="392" y="622" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#0a7a0a">no</text>
+  <rect x="150" y="1222" width="400" height="60" rx="8" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="350" y="1248" text-anchor="middle" font-weight="700" font-size="13">hardware_era: current</text>
+  <text x="350" y="1266" text-anchor="middle" font-size="10.5" fill="#555">e.g. TP53 C275F, 24–56q (measured range)</text>
 
-  <line x1="600" y1="566" x2="742" y2="566" stroke="#a31414" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="605" y="559" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#a31414">yes</text>
-  <rect x="742" y="530" width="270" height="72" rx="10" fill="#fdf0f0" stroke="#a31414" stroke-width="1.4"/>
-  <text x="877" y="553" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#a31414">EXITS — already solved</text>
-  <text x="877" y="571" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">demonstrating quantum necessity here</text>
-  <text x="877" y="587" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#666666">e.g. TP53 Y220C — Rezatapopt, Phase II</text>
+  <rect x="560" y="1222" width="400" height="60" rx="8" fill="#fff" stroke="#111" stroke-width="1.6"/>
+  <text x="760" y="1248" text-anchor="middle" font-weight="700" font-size="13">hardware_era: fault_tolerant</text>
+  <text x="760" y="1266" text-anchor="middle" font-size="10.5" fill="#555">e.g. KEAP1 G333C, ~310q — ~2030+</text>
 
-  <!-- ============ PROCESS: measure S_max ============ -->
-  <rect x="160" y="636" width="440" height="62" rx="10" fill="none" stroke="#111111" stroke-width="1.2" stroke-dasharray="5 3"/>
-  <text x="380" y="661" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111111">Measure S_max (real DMRG CAS-ladder run)</text>
-  <text x="380" y="680" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">turns a "size prior" into a measured entanglement class</text>
+  <line x1="350" y1="1282" x2="550" y2="1318" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="760" y1="1282" x2="550" y2="1318" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
 
-  <line x1="300" y1="698" x2="240" y2="740" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <line x1="460" y1="698" x2="520" y2="740" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
+  <rect x="230" y="1318" width="640" height="96" rx="10" fill="#eaf7ea" stroke="#0a5c0a" stroke-width="1.8"/>
+  <text x="550" y="1345" text-anchor="middle" font-weight="700" font-size="15.5" fill="#0a5c0a">SOLANGE-ELIGIBLE CANDIDATE</text>
+  <text x="550" y="1365" text-anchor="middle" font-size="11" fill="#1a3d1a">tagged: class (A/B/C, measured or provisional) · hardware era ·</text>
+  <text x="550" y="1380" text-anchor="middle" font-size="11" fill="#1a3d1a">AVAS-tested range (not a single value) · annual patient burden</text>
+  <text x="550" y="1400" text-anchor="middle" font-size="10" fill="#4a6a4a">nine mutations pass gates 1–4 as of August 12, 2026 (Table 1b); only C275F carries a completed S_max measurement, added August 14, 2026</text>
 
-  <!-- ============ SPLIT: Class B vs Class A ============ -->
-  <rect x="90" y="740" width="300" height="72" rx="10" fill="#f0f8f0" stroke="#0a7a0a" stroke-width="1.4"/>
-  <text x="240" y="765" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#0a7a0a">S_max saturates (area law)</text>
-  <text x="240" y="782" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">→ Class B — quantum-advantaged,</text>
-  <text x="240" y="798" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">DMRG itself suffices</text>
+  <line x1="550" y1="1414" x2="550" y2="1450" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="230" y="1450" width="640" height="60" rx="8" fill="#fff" stroke="#111" stroke-width="1.6" stroke-dasharray="6,4"/>
+  <text x="550" y="1476" text-anchor="middle" font-weight="700" font-size="13">Prioritized candidate list</text>
+  <text x="550" y="1494" text-anchor="middle" font-size="10.5" fill="#555">sorted by annual patient burden — urgency, not just eligibility</text>
 
-  <rect x="420" y="740" width="300" height="72" rx="10" fill="#f0f8f0" stroke="#0a7a0a" stroke-width="1.4"/>
-  <text x="570" y="765" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#0a7a0a">S_max keeps climbing (volume law)</text>
-  <text x="570" y="782" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">→ Class A — quantum-necessary,</text>
-  <text x="570" y="798" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">even DMRG fails</text>
-
-  <line x1="240" y1="812" x2="360" y2="850" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <line x1="570" y1="812" x2="420" y2="850" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-
-  <!-- ============ GATE 5: hardware reach ============ -->
-  <rect x="160" y="850" width="440" height="72" rx="10" fill="none" stroke="#111111" stroke-width="1.6"/>
-  <text x="380" y="878" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#111111">Does the qubit footprint fit today's hardware?</text>
-  <text x="380" y="896" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">full-site qubit count vs. current device capacity</text>
-  <text x="380" y="912" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#666666">e.g. IBM Heron r3, ~156q</text>
-
-  <line x1="300" y1="922" x2="240" y2="964" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <line x1="460" y1="922" x2="520" y2="964" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <text x="205" y="948" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#0a7a0a">yes</text>
-  <text x="530" y="948" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">no</text>
-
-  <rect x="90" y="964" width="300" height="58" rx="10" fill="none" stroke="#111111" stroke-width="1.4"/>
-  <text x="240" y="988" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111111">hardware_era: current</text>
-  <text x="240" y="1005" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">e.g. TP53 C275F, 88q</text>
-
-  <rect x="420" y="964" width="300" height="58" rx="10" fill="none" stroke="#111111" stroke-width="1.4"/>
-  <text x="570" y="988" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111111">hardware_era: fault_tolerant</text>
-  <text x="570" y="1005" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">e.g. KEAP1 G333C, 208q — ~2030+</text>
-
-  <line x1="240" y1="1022" x2="360" y2="1060" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-  <line x1="570" y1="1022" x2="420" y2="1060" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-
-  <!-- ============ END: eligible ============ -->
-  <rect x="140" y="1060" width="480" height="96" rx="12" fill="#f0f8f0" stroke="#0a7a0a" stroke-width="1.8"/>
-  <text x="380" y="1088" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13.5" font-weight="700" fill="#0a7a0a">SOLANGE-ELIGIBLE CANDIDATE</text>
-  <text x="380" y="1108" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#444444">tagged: class (A/B) · hardware era · measured active-e / qubits</text>
-  <text x="380" y="1125" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#444444">· annual patient burden</text>
-  <text x="380" y="1144" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#666666">nine mutations clear every gate as of 2026-08-12 (Table 1b)</text>
-
-  <line x1="380" y1="1156" x2="380" y2="1190" stroke="#111111" stroke-width="1.4" marker-end="url(#sef-arrow)"/>
-
-  <rect x="130" y="1190" width="500" height="66" rx="10" fill="none" stroke="#111111" stroke-width="1.6" stroke-dasharray="5 3"/>
-  <text x="380" y="1216" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111111">Prioritized candidate list</text>
-  <text x="380" y="1236" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#444444">sorted by annual patient burden — urgency, not just eligibility</text>
+  <text x="550" y="1550" text-anchor="middle" font-size="10.5" fill="#888" font-style="italic">Updated August 14, 2026: adds the residue-identity gate and reframes AVAS/S_max as measurements on THIS session's setup, not a chemist-approved one.</text>
 </svg>
