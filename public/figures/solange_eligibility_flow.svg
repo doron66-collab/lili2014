@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 1980" role="img" aria-label="Flowchart: a candidate mutation passes through seven gates — mutation type, PDB structural position coverage, deposited-residue identity match (new), active-electron count past the classical wall, existing druggability, measured S_max entanglement class, and current hardware reach — before becoming a prioritized SOLANGE-eligible candidate; each gate has a labeled exit branch for mutations that fail it, citing a real example found during the structural coverage audit.">
-  <rect x="0" y="0" width="1460" height="1980" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="110 0 1360 1620" role="img" aria-label="Flowchart: a candidate mutation passes through seven gates — mutation type, PDB structural position coverage, deposited-residue identity match (new), active-electron count past the classical wall, existing druggability, measured S_max entanglement class, and current hardware reach — before becoming a prioritized SOLANGE-eligible candidate; each gate has a labeled exit branch for mutations that fail it, citing a real example found during the structural coverage audit.">
+  <rect x="0" y="0" width="1470" height="1620" fill="#ffffff"/>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#111"/>
@@ -153,5 +153,6 @@
   <text x="550" y="1476" text-anchor="middle" font-weight="700" font-size="13">Prioritized candidate list</text>
   <text x="550" y="1494" text-anchor="middle" font-size="10.5" fill="#555">sorted by annual patient burden — urgency, not just eligibility</text>
 
-  <text x="550" y="1550" text-anchor="middle" font-size="10.5" fill="#888" font-style="italic">Updated August 14, 2026: adds the residue-identity gate and reframes AVAS/S_max as measurements on THIS session's setup, not a chemist-approved one.</text>
+  <text x="550" y="1550" text-anchor="middle" font-size="16" fill="#666" font-style="italic">Updated August 14, 2026: adds the residue-identity gate and reframes AVAS/S_max</text>
+  <text x="550" y="1574" text-anchor="middle" font-size="16" fill="#666" font-style="italic">as measurements on THIS session's setup, not a chemist-approved one.</text>
 </svg>
