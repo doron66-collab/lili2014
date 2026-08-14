@@ -2663,7 +2663,7 @@
 
       <p>Six jobs have been executed on real IBM quantum hardware between 15 and 24 July 2026, on two processors — <code>ibm_marrakesh</code> (a Heron r2 device) and <code>ibm_kingston</code>. Each was sampled at 4,096 shots (one early run did not capture the shot count in its record), and each returned a complete P1–P9 provenance record populated from <em>live device telemetry</em> — calibration epoch (P3), per-gate and readout error, and T₁/T₂ (P4) — sealed at source and re-verified by LEON on ingestion. <strong>These are deliberately scoped as pipeline-validation runs, not scientific results.</strong> Every run is a fixed-state expectation-value measurement — ⟨H⟩ evaluated on the Hartree-Fock reference state, <em>not</em> a ground-state search — at the minimal CAS(2e,2o) active space (4 qubits; 2 qubits for the H₂ control). What they establish is an <em>information-systems</em> result: that the full governed loop (mutation-aware Hamiltonian → real QPU execution → live-telemetry provenance capture → cryptographic seal → LEON notarization) runs end-to-end on real hardware across two devices and multiple targets, exactly as the architecture specifies.</p>
 
-      <p><strong>Table 7.2 — Executed quantum-hardware runs (fixed-state ⟨H⟩, CAS(2e,2o)).</strong> Energies in Hartree. The reference is the exact ⟨H⟩ on the <em>same</em> Hartree-Fock state, computed classically; <em>|Δ|</em> is therefore the hardware deviation in reproducing a known expectation value — device noise, not an HF-vs-ground-state gap. The final row is the statevector control (see below).</p>
+      <p><strong>Table 7.2 — Executed quantum-hardware runs (fixed-state ⟨H⟩, CAS(2e,2o) except where noted).</strong> Energies in Hartree. The reference is the exact ⟨H⟩ on the <em>same</em> Hartree-Fock state, computed classically; <em>|Δ|</em> is therefore the hardware deviation in reproducing a known expectation value — device noise, not an HF-vs-ground-state gap. The final row is the statevector control (see below).</p>
 
       <div class="table-wrap">
         <table>
@@ -2686,6 +2686,7 @@
             <tr><td>19 Jul</td><td>TP53 C275F native</td><td><code>ibm_kingston</code></td><td>4</td><td>−432.89714609</td><td>−432.89297587</td><td>4.2×10⁻³</td><td>5.9×10⁻³</td></tr>
             <tr><td>24 Jul</td><td>TP53 C275F mutant</td><td><code>ibm_kingston</code></td><td>4</td><td>−266.46986991</td><td>−266.47278261</td><td>2.9×10⁻³</td><td>6.2×10⁻²</td></tr>
             <tr><td>24 Jul</td><td>KEAP1 LOF mutant</td><td><code>ibm_kingston</code></td><td>4</td><td>−432.89730045</td><td>−432.89297883</td><td>4.3×10⁻³</td><td>5.3×10⁻²</td></tr>
+            <tr><td>7 Aug</td><td>TP53 C275F mutant <span style="font-size:0.85em;color:var(--muted)">(CAS(4,4))</span></td><td><code>ibm_marrakesh</code></td><td>8</td><td>−269.63735030</td><td>−269.64299209</td><td>5.6×10⁻³</td><td>not recorded</td></tr>
             <tr style="opacity:0.75;font-style:italic"><td>19 Jul</td><td>TP53 C275F native — <strong>statevector control</strong></td><td>local simulator</td><td>4</td><td>−432.89297587</td><td>−432.89297587</td><td><strong>0 (exact)</strong></td><td>n/a</td></tr>
           </tbody>
         </table>
