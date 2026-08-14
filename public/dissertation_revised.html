@@ -1334,7 +1334,7 @@
             <tr>
               <td><strong>BQP</strong></td>
               <td><em>Bounded-error Quantum Polynomial time</em></td>
-              <td>The complexity class of decision problems efficiently solvable on a quantum computer. The dissertation's first original contribution (§06.i) is a BQP-relevance classification framework arguing that the fermionic Hamiltonian eigenvalue problem at C275F's 44-electron active-space boundary admits a known BQP-class quantum algorithm while best-known classical methods fail at chemical accuracy. This is an operational BQP-relevance claim — conditioned on the current classical state of the art and on sufficient initial-state overlap — not a formal classical–quantum separation (ground-state finding is QMA-hard in general; see §1.2).</td>
+              <td>The complexity class of decision problems efficiently solvable on a quantum computer. The dissertation's first original contribution (§06.i) is a BQP-relevance classification framework arguing that the fermionic Hamiltonian eigenvalue problem at C275F's active-space boundary (18–48 measured electrons, criterion-dependent) admits a known BQP-class quantum algorithm while best-known classical methods fail at chemical accuracy. This is an operational BQP-relevance claim — conditioned on the current classical state of the art and on sufficient initial-state overlap — not a formal classical–quantum separation (ground-state finding is QMA-hard in general; see §1.2).</td>
             </tr>
             <tr>
               <td><strong>C275F</strong></td>
@@ -1679,8 +1679,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td><strong>TP53 C275F</strong></td><td>2OCJ</td><td>44e / 88q</td><td>current</td><td>yes — anchor</td><td>VERIFIED (structural)</td></tr>
-          <tr><td>2</td><td><strong>TP53 R175H</strong></td><td>2OCJ (WT)</td><td>44e / 88q</td><td>current</td><td>yes</td><td>VERIFIED</td></tr>
+          <tr><td>1</td><td><strong>TP53 C275F</strong></td><td>2OCJ</td><td>18–48e / 24–56q</td><td>current</td><td>yes — anchor</td><td>VERIFIED (structural)</td></tr>
+          <tr><td>2</td><td><strong>TP53 R175H</strong></td><td>2OCJ (WT)</td><td>12–96e / 16–108q</td><td>current</td><td>yes</td><td>VERIFIED</td></tr>
           <tr><td>3</td><td><strong>TP53 G245S</strong></td><td>2J1Y</td><td>40e / 80q</td><td>current</td><td>yes</td><td>VERIFIED</td></tr>
           <tr><td>4</td><td><strong>TP53 R249S</strong></td><td>2BIO</td><td>40e / 80q</td><td>current</td><td>yes</td><td>VERIFIED</td></tr>
           <tr><td>5</td><td><strong>TP53 R282W</strong></td><td>2J21</td><td>42e / 84q</td><td>current</td><td>yes</td><td>VERIFIED</td></tr>
@@ -2647,7 +2647,7 @@
         </table>
       </div>
 
-      <p>Two properties of the ladder are visible directly in these two rows. <em>First, the classical rung reaches widths the current quantum rung does not:</em> 16 and 20 qubits here, against the fixed CAS(2e,2o) / 4-qubit scale of every executed QPU run (§7.4) — the classical rung is where larger active spaces are actually solved today. <em>Second, the cost of that reach grows steeply:</em> adding four qubits (16 → 20) lowered the ground-state energy by ≈28 mHa — more electron correlation captured by the larger active space — but at 2.6× the wall-clock (100.5 s → 260.5 s). That super-linear growth, extrapolated past the ~18-electron exact-classical wall (Table 8.1), is precisely what makes the eventual quantum rung necessary rather than merely available. As with §7.4, these are minimal proxy runs validating the pipeline and the ladder logic, <strong>not</strong> full-scale chemical-accuracy results for the 44-electron binding site (§08).</p>
+      <p>Two properties of the ladder are visible directly in these two rows. <em>First, the classical rung reaches widths the current quantum rung does not:</em> 16 and 20 qubits here, against the fixed CAS(2e,2o) / 4-qubit scale of every executed QPU run (§7.4) — the classical rung is where larger active spaces are actually solved today. <em>Second, the cost of that reach grows steeply:</em> adding four qubits (16 → 20) lowered the ground-state energy by ≈28 mHa — more electron correlation captured by the larger active space — but at 2.6× the wall-clock (100.5 s → 260.5 s). That super-linear growth, extrapolated past the ~18-electron exact-classical wall (Table 8.1), is precisely what makes the eventual quantum rung necessary rather than merely available. As with §7.4, these are minimal proxy runs validating the pipeline and the ladder logic, <strong>not</strong> full-scale chemical-accuracy results for C275F's measured 18–48e active-space range (§08).</p>
 
       <h3 id="sec-7-prototype">7.3 · Prototype Interface &amp; Visualization</h3>
 
@@ -3412,7 +3412,7 @@
             <tr>
               <td><strong>BQP</strong></td>
               <td><em>Bounded-error Quantum Polynomial time</em></td>
-              <td>The complexity class of decision problems efficiently solvable on a quantum computer with bounded error probability. The dissertation's first original contribution (§06.i) is a BQP-relevance classification framework arguing that the fermionic Hamiltonian eigenvalue problem at C275F's 44-electron active-space boundary admits a known BQP-class quantum algorithm while best-known classical methods fail at chemical accuracy. This is an operational BQP-relevance claim — conditioned on the current classical state of the art and on sufficient initial-state overlap — not a formal classical–quantum separation, which remains open (ground-state finding is QMA-hard in general; see §1.2).</td>
+              <td>The complexity class of decision problems efficiently solvable on a quantum computer with bounded error probability. The dissertation's first original contribution (§06.i) is a BQP-relevance classification framework arguing that the fermionic Hamiltonian eigenvalue problem at C275F's active-space boundary (18–48 measured electrons, criterion-dependent) admits a known BQP-class quantum algorithm while best-known classical methods fail at chemical accuracy. This is an operational BQP-relevance claim — conditioned on the current classical state of the art and on sufficient initial-state overlap — not a formal classical–quantum separation, which remains open (ground-state finding is QMA-hard in general; see §1.2).</td>
             </tr>
             <tr>
               <td><strong>C₁₃Cl₂</strong></td>
@@ -3432,7 +3432,7 @@
             <tr>
               <td><strong>CASSCF</strong></td>
               <td><em>Complete Active Space Self-Consistent Field</em></td>
-              <td>A multireference quantum chemistry method that treats a chosen subset of orbitals (the active space) with full configuration-interaction accuracy. Cited as one of the classical baselines: CASSCF becomes intractable beyond approximately 18 active electrons, which is exactly why this dissertation's verified point mutations (Table 1b) — TP53 C275F at 44e, KEAP1 G333C at 155e, STK11 D194N at 152e, among others — sit well beyond the classical ceiling. CDKN2A's demonstrated patient finding is a homozygous deletion rather than a point mutation and has no active-space entry of this kind (§01).</td>
+              <td>A multireference quantum chemistry method that treats a chosen subset of orbitals (the active space) with full configuration-interaction accuracy. Cited as one of the classical baselines: CASSCF becomes intractable beyond approximately 18 active electrons, which is exactly why this dissertation's verified point mutations (Table 1b) — TP53 C275F at 18–48e (measured range), KEAP1 G333C at 155e, STK11 D194N at 152e, among others — sit well beyond the classical ceiling. CDKN2A's demonstrated patient finding is a homozygous deletion rather than a point mutation and has no active-space entry of this kind (§01).</td>
             </tr>
             <tr>
               <td><strong>CCSD(T)</strong></td>
@@ -3597,7 +3597,7 @@
             <tr>
               <td><strong>L2 / L3 (loops)</strong></td>
               <td><em>L2 and L3 loops of the p53 DNA-binding domain</em></td>
-              <td>Structural loops in the p53 DBD that stabilize Zn²⁺ tetrahedral coordination via Cys176, His179, Cys238, Cys242. The loop-sheet-helix motif containing C275 is structurally adjacent. Relevant to active-space selection: the local 24-electron Phase 3A space and the full 44-electron Phase 3B space differ in how much of L2/L3 they include.</td>
+              <td>Structural loops in the p53 DBD that stabilize Zn²⁺ tetrahedral coordination via Cys176, His179, Cys238, Cys242. The loop-sheet-helix motif containing C275 is structurally adjacent. Relevant to active-space selection: the 18–48-electron measured active-space range (§1.2.1) does not include this Zn²⁺ shell at all — structural inspection found it sits 12–16 Å from C275, a separate active-space question.</td>
             </tr>
             <tr>
               <td><strong>Laguna</strong></td>
