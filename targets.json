@@ -460,9 +460,9 @@
       "pdb": "2OCJ",
       "full_electrons": 96,
       "full_qubits": 108,
-      "bqp_class": "B",
+      "bqp_class": "A",
       "hardware_era": "current",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — real AVAS (not an estimate) on 2OCJ's WT coordinates returns 12-96 active electrons depending on criterion; this record uses the largest tested criterion (S 3p + N 2p + O 2p, 96e/54o -> 108 qubits under JW). No DMRG/S_max run has completed for this target yet, so Class B here records only that the tested range sits past the ~18e exact-classical wall, not a measured entanglement verdict.",
+      "bqp_class_source": "PROVISIONAL — real DMRG bond-dimension ladder (block2, CAS(96,54), AVAS S 3p+N 2p+O 2p on PDB 2OCJ WT, USC CARC Laguna) finds the energy has NOT converged between M=250 and M=500 (ΔE ≈ 1.81 Ha ≈ 1809 mHa, far above the 1.6 mHa chemical-accuracy threshold), reproduced across two independent HPC allocations. dissertation §01 Table 1b: \"This dissertation's own classifier (§06.i) treats non-convergence between bond dimensions as sufficient grounds for Class A regardless of the entanglement value reached.\" Marked PROVISIONAL because the run was still proceeding toward M=1000 (and, if needed, M=2000) at time of writing; not yet a completed, converged measurement like C275F.",
       "structure_caveat": "VERIFIED (via WT domain, not a mutant-specific structure) — residue 175 falls within the p53 DNA-binding domain resolved by 2OCJ (residues 96–289). No R175H-specific crystal structure has been solved despite attempts (even arsenic-trioxide-stabilized crystallization did not succeed) — R175H is the most globally destabilizing common TP53 hotspot, which is the likely reason. Structural coverage of the residue's location is nonetheless established via the WT/apo structure, the same standard applied to C275F. Checked 2026-08-12.",
       "annual_patients_estimate": "~105,000",
       "annual_patients_source": "dissertation § 01 Table 2. Most frequent TP53 hotspot by NSCLC frequency (~5%); global destabilization mechanism, gain-of-function activity reported in the literature."
