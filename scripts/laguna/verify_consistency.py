@@ -199,11 +199,22 @@ def main():
             print(f"    ok        {key:14} both {cfg['full_electrons']}e  (via {src})")
 
     # ── 4. Jordan-Wigner arithmetic: qubits must be 2x electrons ──────────────
-    print("\n[4] Jordan-Wigner arithmetic — qubits == 2 x electrons")
+    # This 2x rule is a CAS(N,N) simplification (one spatial orbital per electron),
+    # which is what every *size-prior* gene/mutation in this table actually is. It is
+    # NOT a law of the JW mapping itself: qubits = 2 x orbitals, and a real AVAS active
+    # space (electrons measured directly from PDB coordinates) can have orbitals !=
+    # electrons. TP53_C275F and TP53_R175H are exempted for exactly this reason — their
+    # full_electrons/full_qubits record a real CAS(48,28)/CAS(96,54) measurement, not a
+    # CAS(N,N) size guess, so 2x electrons is the wrong expected value for them specifically.
+    JW_DOUBLING_EXEMPT = {"TP53_C275F", "TP53_R175H", "TP53"}
+    print("\n[4] Jordan-Wigner arithmetic — qubits == 2 x electrons (size-prior entries only)")
     for label, src in (("GENE_MAP", [(g, v["active_electrons"], v["full_qubits"]) for g, v in gm.items()]),
                        ("simulate.py", [(k, v["full_electrons"], v["full_qubits"]) for k, v in mc.items()])):
         for name, e, q in src:
             if e is None or q is None:
+                continue
+            if name in JW_DOUBLING_EXEMPT:
+                print(f"    skip      {label} {name:14} real AVAS active space (orbitals != electrons) — exempt")
                 continue
             checked += 1
             if q != 2 * e:

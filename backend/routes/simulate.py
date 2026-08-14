@@ -226,8 +226,8 @@ MUTATION_CONFIGS = {
         "active_orbitals": 2,
         "local_electrons": 24,   # loop-sheet-helix 5 Å shell — PDB 2OCJ
         "local_qubits": 48,
-        "full_electrons": 44,    # Zn²⁺ shell + DNA-guanine interface — PDB 2OCJ
-        "full_qubits": 88,       # ONLY target within 94-qubit demonstrated ceiling (Merz et al. 2026)
+        "full_electrons": 48,    # largest real AVAS-tested space (S 3p+N 2p+O 2p) — PDB 2OCJ, CAS(48,28)
+        "full_qubits": 56,       # 28 orbitals x 2 under JW — real measurement, not a size guess
         # B, not A — aligned to the dissertation, which states it once and explicitly:
         # "Under this template C275F is Class B: it sits in the empirically
         # quantum-advantaged regime". It reaches that deliberately — "the claim is the

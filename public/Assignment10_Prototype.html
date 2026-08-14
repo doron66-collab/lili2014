@@ -3580,7 +3580,7 @@ function loadDemoNGS() { loadNGSReport(MI25_0349); }
 // granularity — the class is a property of the domain, not of a residue.
 const MUTATION_CLASS = {
   TP53_C275F: {
-    bqp_class: 'B', active_electrons: 44, full_qubits: 88,
+    bqp_class: 'B', active_electrons: 48, full_qubits: 56,
     source: 'dissertation: "Under this template C275F is Class B: it sits in the empirically '
           + 'quantum-advantaged regime defined by the current state of both classical and quantum '
           + 'methods circa 2026." Stated deliberately as "the weaker but defensible one" — the '
@@ -3771,10 +3771,10 @@ const GENE_MAP = {
   // the backend only: both carried TP53 = A while the dissertation says C275F is B.
   // No gene-level bqp_class: TP53's mutations genuinely differ (C275F = B at 44e,
   // Y220C = C at 38e), so any single value here would be wrong for one of them.
-  // See MUTATION_CLASS. active_electrons stays at C275F's 44e as the display default
+  // See MUTATION_CLASS. active_electrons stays at C275F's 48e as the display default
   // for unlisted TP53 variants, which is why such variants resolve to "not classified"
   // rather than borrowing a number that describes a different mutation.
-  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:44,  full_qubits:88 },
+  TP53:    { badge_type:'Structural',        color:'#E8A020', active_electrons:48,  full_qubits:56 },
   KEAP1:   { badge_type:'PPI',              color:'#b47fd4', active_electrons:155, full_qubits:310, bqp_class:'B' },
   STK11:   { badge_type:'SL',              color:'#60a5fa', active_electrons:152, full_qubits:304, bqp_class:'A' },
   KRAS:    { badge_type:'Structural',        color:'#34d399', active_electrons:40,  full_qubits:80  },
