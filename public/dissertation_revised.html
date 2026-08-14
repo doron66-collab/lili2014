@@ -1847,13 +1847,13 @@
       <p>Two complexity-theoretic subtleties are stated directly, since they are easy to overstate. First, finding the ground state of a general local Hamiltonian is <strong>QMA-hard</strong> — the quantum analogue of NP-hardness — so no polynomial-time quantum algorithm is guaranteed in the worst case. The containment of a specific instance in <strong>BQP</strong> is conditional on preparing an initial state with sufficient overlap on the true ground state (the <em>overlap problem</em>), and constructing such a state is itself hard in general. This dissertation therefore makes no claim of guaranteed exponential quantum advantage. Second, and directly on point, Lee et al. (2023) — <em>Evaluating the evidence for exponential quantum advantage in ground-state quantum chemistry</em> — argue that for many ground-state chemistry problems the initial-overlap requirement and the strength of classical heuristics together erode the case for exponential speedup, concluding that evidence for exponential quantum advantage across chemical space has yet to be found. That critique is accepted here as correct in the general case; rather than undermining this work it <em>delimits</em> it. The claim advanced is not exponential advantage in principle but a <em>practical</em> quantum algorithm in the specific operational regime of the active spaces selected — where Hartree–Fock/CASSCF reference states supply adequate initial overlap and the best classical methods do not reach chemical accuracy at tractable cost — with the dissertation's contribution being the governance and orchestration architecture around that algorithm, not a proof of quantum supremacy for chemistry.</p>
 
       <h3 id="sec-1-2-1">1.2.1 · Active Space Definition — Two-Level Framework</h3>
-      <p><em>This subsection defines a system requirement for the orchestration architecture, not a chemistry claim.</em> For the workflow to handle C275F end-to-end, it must commit to a precise active-space boundary; that boundary determines qubit count, telemetry volume, and audit-trail granularity downstream. The chemistry is anchoring detail; the IT contribution is the workflow's ability to execute reproducibly at either boundary. Two levels are defined, each corresponding to a distinct architectural validation phase.</p>
+      <p><em>This subsection defines a system requirement for the orchestration architecture, not a chemistry claim.</em> For the workflow to handle C275F end-to-end, it must commit to a precise active-space boundary; that boundary determines qubit count, telemetry volume, and audit-trail granularity downstream. The chemistry is anchoring detail; the IT contribution is the workflow's ability to execute reproducibly across the measured range of that boundary, not at one fixed value. Two reference points from real AVAS calculations on C275F's actual coordinates anchor that range, corresponding to two chemically-motivated orbital-selection criteria tested to date — not the only criteria a computational chemist might ultimately choose.</p>
 
-      <h4>Local Binding Site · ~24 Active Electrons</h4>
-      <p>Encompasses the immediate chemical environment of the mutation: the F275 aromatic π-system (6 electrons), adjacent residues C277 and A276 (~10 electrons), and relevant bonding orbitals between them (~8 electrons). This level is sufficient for quantum-accurate drug candidate identification — characterizing the altered binding pocket geometry, evaluating candidate molecule interactions, and comparing wild-type versus mutant electronic structure. Requiring approximately 48 qubits under Jordan-Wigner encoding, this active space is directly feasible on IBM Heron r3 (156 qubits) and is enabled by the SqDRIFT benchmark (IBM Research, 2026; arXiv:2603.08696: 32 electrons demonstrated on 100 qubits).</p>
+      <h4>Narrowest Tested Site · 18 Active Electrons (Sulfur-Only Criterion)</h4>
+      <p>AVAS selection targeting only sulfur 3p orbitals — the cysteine/thiolate sulfurs within a 5&#8491; shell of C275 — returns a real, converged 18-electron / 12-orbital active space (24 qubits under Jordan-Wigner encoding), independently reproduced across separate runs on the same coordinates. This is the narrowest chemically-motivated criterion tested; it is not a claim that sulfur alone is the correct or complete description of the site.</p>
 
-      <h4>Full Binding Site · ~44 Active Electrons</h4>
-      <p>Extends the local site to incorporate the complete biologically active environment: the Zn²⁺ coordination shell and its four ligands (C176, H179, C238, C242), plus the DNA-guanine interface and phosphate backbone (~12–20 additional electrons). This level is required for full functional validation — confirming whether a drug candidate restores p53 DNA-binding activity. Jordan-Wigner encoding maps ~44 electrons to ~88 qubits, placing this within IBM Heron r3 capacity but at the frontier of demonstrated capability.</p>
+      <h4>Broadest Tested Site · 48 Active Electrons (Sulfur + Nitrogen + Oxygen Criterion)</h4>
+      <p>Extending the criterion to sulfur, nitrogen, and oxygen valence orbitals together returns 48 active electrons / 28 orbitals (56 qubits). Real DMRG measurement at this scale is what supports this dissertation's Class B designation for C275F (&sect;06.i): measured entanglement (S<sub>max</sub> = 0.35) remains well below the classification threshold. Neither this figure nor the 18-electron one above is a ceiling &mdash; a chemist-defined criterion could return a larger or smaller active space than either endpoint tested here.</p>
 
       <div class="table-wrap">
         <table>
@@ -1861,8 +1861,8 @@
             <tr>
               <th>System</th>
               <th>Active Electrons</th>
-              <th>Qubits Required</th>
-              <th>Feasibility</th>
+              <th>Qubits (JW)</th>
+              <th>DMRG Result</th>
             </tr>
           </thead>
           <tbody>
@@ -1870,19 +1870,25 @@
               <td>C₁₃Cl₂ (IBM Research 2026 benchmark)</td>
               <td>32</td>
               <td>~100</td>
-              <td><span class="check">✓</span> Demonstrated</td>
+              <td><span class="check">✓</span> Demonstrated (external)</td>
             </tr>
             <tr>
-              <td>C275F — Local binding site</td>
-              <td>~24</td>
-              <td>~48</td>
-              <td><span class="check">✓</span> Feasible today</td>
+              <td>C275F — S 3p only</td>
+              <td>18</td>
+              <td>24</td>
+              <td>Class C (below exact-diagonalization wall; not DMRG-tested)</td>
             </tr>
             <tr>
-              <td>C275F — Full binding site</td>
-              <td>~44</td>
-              <td>~88</td>
-              <td><span class="arrow">▶</span> Near-term frontier</td>
+              <td>C275F — S 3p + N 2p</td>
+              <td>36</td>
+              <td>42</td>
+              <td>Class B — measured, S<sub>max</sub> = 0.25</td>
+            </tr>
+            <tr>
+              <td>C275F — S 3p + N 2p + O 2p</td>
+              <td>48</td>
+              <td>56</td>
+              <td>Class B — measured, S<sub>max</sub> = 0.35</td>
             </tr>
           </tbody>
         </table>
@@ -1952,7 +1958,7 @@
             • Patient case MI25-0349 · TP53 C275F (non-druggable NSCLC tumor suppressor mutation)
           </text>
           <text x="40" y="94" style="font: 400 12px 'Inter Tight', sans-serif; fill:#444;">
-            • Mutation-specific Hamiltonian assembly · ~24-electron local, ~44-electron full active space
+            • Mutation-specific Hamiltonian assembly · 18–48 active electrons measured (AVAS/DMRG, criterion-dependent)
           </text>
 
           <rect x="20" y="120" width="840" height="130" rx="6"
