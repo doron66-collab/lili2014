@@ -298,7 +298,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                              density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit",
                              max_cycle_macro=20, dmrg_scf=False, dmrg_scf_maxm=500,
                              dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4,
-                             orbital_deadline=None, stack_mem_gb=None):
+                             orbital_deadline=None, stack_mem_gb=None, casci=False):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -388,7 +388,23 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                      "— consider narrowing --avas, or pass --dmrg-scf) ***")
     print(f"  AVAS selected active space: CAS({nelec},{ncas}){size_note}", flush=True)
     from pyscf import mcscf
-    mc = mcscf.CASSCF(mf, ncas, nelec)
+    if casci:
+        # CASCI: freeze AVAS's orbitals as-is, do ONE diagonalization on them —
+        # no macro-iteration loop at all. Added specifically because DMRG-SCF
+        # (mcscf.CASSCF + Block2FCISolver) crashed block2 itself at CAS(48,28)
+        # on the SECOND solver call (the first warm-started one, per
+        # dmrgscf_block2.py's kernel() docstring) — a pattern this sidesteps
+        # entirely by construction, since CASCI's kernel() calls the fcisolver
+        # exactly once, cold, never warm-started. Trade-off: the orbitals are
+        # AVAS's raw output, not iteratively improved against the active-space
+        # energy — a real approximation, not a free win. Downstream (run_dmrg(),
+        # classify()) is unaffected: it consumes the same h1e/h2e/ecore shape
+        # regardless of which path produced them.
+        print(f"  --casci: skipping orbital optimization, one fixed diagonalization "
+              f"on AVAS's orbitals as given.", flush=True)
+        mc = mcscf.CASCI(mf, ncas, nelec)
+    else:
+        mc = mcscf.CASSCF(mf, ncas, nelec)
     if dmrg_scf:
         # Swap the orbital-optimization solver itself from FCI to DMRG (block2) —
         # see the dmrg_scf docstring above for why this, not just a bigger
@@ -428,7 +444,10 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         # never be met and the run just burns macro-iterations.
         mc.conv_tol      = 1e-6
         mc.conv_tol_grad = 1e-3
-    if spin == 0 and not dmrg_scf:
+    if spin == 0 and not dmrg_scf and not casci:
+        # fix_spin_ is a CASSCF orbital-optimization mixin method; CASCI has no
+        # such loop to fix spin against, so this is skipped there rather than
+        # risk an AttributeError on a class that may not define it.
         mc.fix_spin_(ss=0)  # only force the singlet when the input itself is closed-shell — FCI-solver option, not exposed by DMRGCI
     # Wall-clock guard on the orbital phase. Checked once per macro-iteration,
     # which is the only point where stopping leaves a coherent set of orbitals.
@@ -453,7 +472,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         truncated_mo = exc.mo   # likewise: mc.mo_coeff is stale (pre-optimization)
         conv_note = (f"STOPPED at the orbital time budget after macro-iteration {exc.imacro} "
                      f"— orbitals are usable but NOT converged")
-    print(f"  CASSCF {conv_note} · E={e_casscf:.8f}", flush=True)
+    print(f"  {'CASCI (fixed AVAS orbitals)' if casci else 'CASSCF'} {conv_note} · E={e_casscf:.8f}", flush=True)
     # Explicit mo_coeff=truncated_mo when cut short — see OrbitalTimeBudgetExceeded's
     # docstring; None (the normal-completion case) is identical to omitting the
     # argument, since get_h1eff/get_h2eff both default to self.mo_coeff when None.
@@ -476,7 +495,9 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
             "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec),
             "orbital_optimization_truncated": bool(truncated),
             "orbital_optimization_method": (
-                (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf else "CASSCF (FCI solver)")
+                ("CASCI, fixed AVAS orbitals (no optimization) + " +
+                 (f"DMRG solve (block2)" if dmrg_scf else "exact FCI solve") if casci else
+                 (f"DMRG-SCF (block2, maxM={dmrg_scf_maxm})" if dmrg_scf else "CASSCF (FCI solver)"))
                 + (" — orbital optimisation STOPPED at its time budget, not converged"
                    if truncated else ""))}
 
@@ -550,6 +571,17 @@ def main():
                          "(default 16000 — pyscf's own default of 4000 is sized for a "
                          "laptop, not a Laguna largemem node; raise this if you still see "
                          "a 'needs N MB, over max_memory limit' warning)")
+    ap.add_argument("--casci", action="store_true",
+                    help="--geometry mode only: freeze AVAS's orbitals as given and run ONE "
+                         "diagonalization on them (CASCI) instead of iteratively optimizing "
+                         "orbitals (CASSCF/DMRG-SCF). No macro-iteration loop at all, so the "
+                         "warm-start solver pattern that crashed block2 at CAS(48,28) (see "
+                         "integrals_from_geometry()'s casci branch) never triggers — the "
+                         "fcisolver is called exactly once, cold. Trade-off: orbitals are AVAS's "
+                         "raw output, not refined against the active-space energy. Combine with "
+                         "--dmrg-scf to use the DMRG solver for that one solve instead of exact "
+                         "FCI (still useful past ~16 orbitals, since CASCI's single solve is what "
+                         "avoids the crash, not the choice of solver).")
     ap.add_argument("--dmrg-scf", action="store_true",
                     help="use DMRG (block2) as CASSCF's own orbital-optimization solver, "
                          "instead of FCI — this is what actually lets --ncas grow past the "
@@ -644,7 +676,8 @@ def main():
                                        df_auxbasis=args.df_auxbasis, max_cycle_macro=args.max_cycle_macro,
                                        dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
                                        dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads,
-                                       orbital_deadline=orbital_deadline, stack_mem_gb=args.stack_mem_gb)
+                                       orbital_deadline=orbital_deadline, stack_mem_gb=args.stack_mem_gb,
+                                       casci=args.casci)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
         if cas.get("orbital_optimization_truncated"):
