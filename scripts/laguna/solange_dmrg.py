@@ -202,7 +202,25 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
                      stack_mem=int(stack_mem_gb * (1 << 30)))
     drv.initialize_system(n_sites=ncas, n_elec=nelecas, spin=0)
     mpo = drv.get_qc_mpo(h1e=h1e, g2e=h2e, ecore=ecore, iprint=0)
-    ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)
+    # The module docstring above has claimed since this pipeline's early days that
+    # reusing --scratch resumes a killed run instead of restarting the bond-dimension
+    # ladder from scratch — that claim was never actually implemented: this used to be
+    # an unconditional get_random_mps() call, so every re-submission silently redid the
+    # full ladder from a fresh random MPS regardless of what was already on disk. Caught
+    # 2026-08-14 by comparing wall-clock times across two R175H submissions that used the
+    # same --scratch and took the same time at M=250 and M=500 — proof the "resume" was
+    # never happening. Try loading a previously saved MPS by tag first; only fall back to
+    # a fresh random one if none exists (first submission into this scratch dir) or the
+    # load fails for any reason (block2 API/version mismatch, corrupted state, etc.) —
+    # a failed load must never crash the run, only cost it the resume it would have given.
+    try:
+        ket = drv.load_mps(tag="KET", nroots=1)
+        print(f"  [resume] loaded existing MPS from {scratch} — continuing, not restarting "
+              f"the bond-dimension ladder from scratch.", flush=True)
+    except Exception as e:
+        ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)
+        print(f"  [resume] no usable saved MPS in {scratch} ({type(e).__name__}) — "
+              f"starting from a fresh random MPS.", flush=True)
     energies = []
     stop_reason = "completed"            # completed | converged | time_budget
     t_start = time.time()
