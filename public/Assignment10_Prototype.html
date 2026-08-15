@@ -1758,6 +1758,13 @@
         // report with different (or newly-classified) mutations is never stuck
         // showing a hardcoded guess once actual DMRG evidence exists.
         if (typeof window.solangeReconcileDmrgClasses === 'function') window.solangeReconcileDmrgClasses(rows);
+        // Bug fixed 2026-08-15: this was the only place window.__dmrgRows gets
+        // populated on a plain page load, but nothing here ever told the Classical
+        // Tractability Plane chart to actually read it — solangeRefreshScalingChart
+        // was only invoked from the "job queue just drained" auto-refresh path, so a
+        // normal page load left the chart rendering its initial render([]) call
+        // (no points) forever, even once real, LEON-sealed DMRG rows existed.
+        if (typeof window.solangeRefreshScalingChart === 'function') window.solangeRefreshScalingChart();
         // rt(): same runtime formatter as the HPC/QPU table (Rung 2/4) — seconds under
         // a minute as "12.3s", otherwise "MmSSs" — so the three rungs read identically.
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
