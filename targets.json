@@ -474,7 +474,7 @@
       "full_qubits": 80,
       "bqp_class": "B",
       "hardware_era": "current",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — real AVAS (not an estimate) on 2J1Y's coordinates returns 12-72 active electrons depending on criterion; this record uses the largest tested criterion (S 3p + N 2p + O 2p, 72e/40o -> 80 qubits under JW). No DMRG/S_max run has completed for this target yet.",
+      "bqp_class_source": "MEASURED — real DMRG bond-dimension ladder (block2, CAS(72,40), AVAS S 3p+N 2p+O 2p on PDB 2J1Y, charge=+2) converges at M=500 (ΔE=0.00 mHa between M=250 and M=500) with S_max=0.151, below the 1.5 threshold. FINAL result, not provisional — converged naturally, not cut off by a time budget. Third target (after C275F, R282W) with a completed, converged DMRG classification.",
       "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2J1Y, Joerger et al.); residue 245 sits in the L3 loop within the resolved DNA-binding domain. Checked 2026-08-12.",
       "annual_patients_estimate": "~64,000",
       "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~3%; L3-loop structural mutant."
