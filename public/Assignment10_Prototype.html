@@ -727,11 +727,6 @@
     // ---------------------------------------------------------------------
     var S_HARD      = 1.5;    // backend/routes/gateway.py + scripts/laguna/solange_dmrg.py
     var EXACT_WALL  = 18;     // active electrons up to which exact classical (FCI) is fine
-    var CEIL_CONST  = 6.5;    // affordability ceiling S ~ CEIL_CONST - ln(orbitals).
-                              // The SHAPE is derived (cost ~ M^3 * poly(k), M ~ e^S).
-                              // The HEIGHT is NOT calibrated — no (S_max, M_required)
-                              // pair has been measured yet to fix the prefactor. Drawn
-                              // as an explicitly uncalibrated band, never read off the axis.
     var N_MIN = 0, N_MAX = 120, S_MIN = 0, S_AX = 5;
     var W = 900, H = 430, PAD_L = 64, PAD_R = 30, PAD_T = 28, PAD_B = 48;
     var plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
@@ -748,46 +743,24 @@
     function yPix(S){ return PAD_T + (S_AX - S) / (S_AX - S_MIN) * plotH; }
     function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function ceilingPath(){
-      var pts = [], N, s, y;
-      for (N = 3; N <= N_MAX; N += 1.5){
-        s = CEIL_CONST - Math.log(N);
-        y = yPix(s);
-        if (y < PAD_T) continue;                 // clipped off the top of the plot
-        pts.push(xPix(N).toFixed(1) + ',' + y.toFixed(1));
-      }
-      return pts;
-    }
-
     function render(measured){
       var svg = [], i;
       svg.push('<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;overflow:visible">');
-      svg.push('<defs><pattern id="sc-hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
-             + '<line x1="0" y1="0" x2="0" y2="7" stroke="rgba(239,68,68,.28)" stroke-width="2.5"/></pattern>'
-             + '<pattern id="sc-hatchw" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
-             + '<line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,163,184,.22)" stroke-width="2"/></pattern>'
-             // Whole Class A region (both sub-zones) is single-method evidence — S_max
-             // measured via DMRG/MPS specifically, not a cross-method classical
-             // exclusion (see gateway.py recommend(), confidence capped at "medium" on
-             // this branch for exactly this reason). Class C's solid fill is left alone
-             // deliberately: below the exact wall, EVERY classical method works, so
-             // nothing there is method-specific and it earns the solid, certain fill.
-             // Class A gets a fill of its own rather than reusing sc-hatch, so it reads
-             // as "uncertain evidence" and not as "impossible", which is what sc-hatch
-             // (the affordability ceiling) already means.
-             + '<pattern id="sc-hatchA" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+      svg.push('<defs><pattern id="sc-hatchA" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
              + '<line x1="0" y1="0" x2="0" y2="8" stroke="rgba(239,68,68,.16)" stroke-width="3"/></pattern></defs>');
 
-      var ceil = ceilingPath();
       var wallX = xPix(EXACT_WALL), hardY = yPix(S_HARD);
 
-      // zone: beyond any budget (above the sloping ceiling)
-      svg.push('<path d="M' + ceil.join(' L') + ' L' + xPix(N_MAX).toFixed(1) + ',' + PAD_T
-             + ' L' + ceil[0].split(',')[0] + ',' + PAD_T + ' Z" fill="url(#sc-hatch)"/>');
-      // zone: the budget band (between our gate and the ceiling)
-      svg.push('<path d="M' + wallX.toFixed(1) + ',' + hardY.toFixed(1) + ' L' + xPix(N_MAX).toFixed(1) + ',' + hardY.toFixed(1)
-             + ' L' + ceil.slice().reverse().filter(function(p){ return parseFloat(p.split(',')[0]) >= wallX; }).join(' L')
-             + ' Z" fill="url(#sc-hatchA)"/>');
+      // zone: Class A — above the exact wall and above S_HARD. Single fill, no
+      // sub-division: an earlier version of this chart split Class A into a
+      // "budget band" and "beyond any budget" using a derived-but-uncalibrated
+      // affordability-ceiling curve. Removed 2026-08-15 — the curve's SHAPE was
+      // real (derived from cost scaling) but its HEIGHT was never calibrated, so
+      // it required three paragraphs of caveat to avoid misreading a value off
+      // it, for a distinction the classifier itself (§06.i) doesn't act on:
+      // S_max above S_HARD is Class A, full stop, regardless of budget.
+      svg.push('<rect x="' + wallX.toFixed(1) + '" y="' + PAD_T + '" width="' + (xPix(N_MAX)-wallX).toFixed(1)
+             + '" height="' + (hardY-PAD_T).toFixed(1) + '" fill="url(#sc-hatchA)"/>');
       // zone: our pipeline delivers
       svg.push('<rect x="' + wallX.toFixed(1) + '" y="' + hardY.toFixed(1) + '" width="' + (xPix(N_MAX)-wallX).toFixed(1)
              + '" height="' + (yPix(S_MIN)-hardY).toFixed(1) + '" fill="rgba(34,197,94,.07)"/>');
@@ -817,17 +790,9 @@
       svg.push('<text x="' + (wallX+70).toFixed(1) + '" y="' + (hardY-5).toFixed(1) + '" fill="var(--amber)" font-size="9" font-weight="700">S_HARD = ' + S_HARD + ' &mdash; the Class B / Class A boundary. Our gate, at our bond dimension: policy, not physics.'
              + '<title>HORIZONTAL. DMRG bond dimension grows as e^S and cost as M^3, with no electron count in the expression. This threshold is calibrated on N2 and tied to this pipeline\'s practical bond dimension — it marks where THIS pipeline stops, not where DMRG stops.</title></text>');
 
-      // affordability ceiling — shape derived, height uncalibrated
-      svg.push('<polyline points="' + ceil.join(' ') + '" fill="none" stroke="rgba(239,68,68,.85)" stroke-width="2" stroke-dasharray="7,4"/>');
-      svg.push('<text x="' + xPix(66).toFixed(1) + '" y="' + (yPix(CEIL_CONST-Math.log(66))-8).toFixed(1) + '" fill="rgba(239,68,68,.9)" font-size="9" font-weight="700">affordability ceiling &asymp; const &minus; ln(orbitals) &mdash; SLOPES DOWN'
-             + '<title>Cost runs as M^3 times a polynomial in orbital count, and M grows as e^S. Solving for the largest affordable S at fixed budget puts the orbital count inside a logarithm, so the ceiling falls as the system grows. SHAPE is derived; HEIGHT is not calibrated — fixing it needs one measured (S_max, bond dimension required) pair.</title></text>');
-      svg.push('<text x="' + xPix(66).toFixed(1) + '" y="' + (yPix(CEIL_CONST-Math.log(66))+3).toFixed(1) + '" fill="rgba(239,68,68,.6)" font-size="8">shape derived &middot; height NOT calibrated &mdash; do not read a value off the axis</text>');
-
       // Zone captions carry the class letters, so the plane reads as the same rule
       // the registry applies rather than as a separate picture. The S_HARD line IS
-      // the B/A boundary; the affordability ceiling subdivides A rather than
-      // bounding it, since a target above the threshold is Class A whether or not
-      // a larger budget could still have cracked it.
+      // the B/A boundary — full stop, not subdivided further.
       svg.push('<text x="' + (PAD_L+(wallX-PAD_L)/2).toFixed(1) + '" y="' + (PAD_T+14) + '" fill="rgba(34,197,94,.95)" font-size="10" font-weight="700" text-anchor="middle">CLASS C</text>');
       svg.push('<text x="' + (PAD_L+(wallX-PAD_L)/2).toFixed(1) + '" y="' + (PAD_T+25) + '" fill="rgba(34,197,94,.6)" font-size="8" text-anchor="middle">filtered out</text>');
 
@@ -835,9 +800,7 @@
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-7).toFixed(1) + '" fill="rgba(34,197,94,.6)" font-size="8" text-anchor="end">tensor-network methods still converge here</text>');
 
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-26).toFixed(1) + '" fill="rgba(239,68,68,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS A &mdash; quantum-necessary</text>');
-      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-15).toFixed(1) + '" fill="rgba(245,158,11,.85)" font-size="8" text-anchor="end">single-method (DMRG) evidence &middot; confidence: medium &middot; a larger budget could still crack it</text>');
-      svg.push('<text x="' + xPix(28).toFixed(1) + '" y="' + (PAD_T+16) + '" fill="rgba(239,68,68,.9)" font-size="9" font-weight="700">CLASS A &mdash; and beyond any budget</text>');
-      svg.push('<text x="' + xPix(28).toFixed(1) + '" y="' + (PAD_T+27) + '" fill="rgba(239,68,68,.7)" font-size="8">single-method (DMRG) evidence, not a cross-method exclusion</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-15).toFixed(1) + '" fill="rgba(245,158,11,.85)" font-size="8" text-anchor="end">single-method (DMRG) evidence &middot; confidence: medium</text>');
 
       // calibration pair — the platform's own constants
       svg.push('<line x1="' + xPix(6).toFixed(1) + '" y1="' + yPix(0.42).toFixed(1) + '" x2="' + xPix(6).toFixed(1) + '" y2="' + yPix(2.86).toFixed(1) + '" stroke="rgba(6,182,212,.35)"/>');
@@ -878,7 +841,6 @@
       if (leg) leg.innerHTML =
           '<span style="color:rgba(239,68,68,.9)">&#9472; exact wall (vertical &middot; size)</span>'
         + '<span style="color:var(--amber)">&#9472; S_HARD (horizontal &middot; entanglement)</span>'
-        + '<span style="color:rgba(239,68,68,.9)">&#9472; affordability ceiling (uncalibrated)</span>'
         + '<span style="color:var(--teal)">&#9679; platform calibration (N₂)</span>'
         + '<span style="color:var(--green)">&#9679; measured (LEON)</span>';
 
@@ -888,11 +850,8 @@
         + 'Exact diagonalisation is combinatorial in the size of the active space and indifferent to entanglement &mdash; its wall is vertical, at ' + EXACT_WALL + 'e. '
         + 'DMRG needs a bond dimension growing as e<sup>S</sup> at a cost of M<sup>3</sup>, with no electron count in the expression &mdash; its threshold is horizontal. '
         + 'The earlier version of this chart drew the DMRG wall vertically at 33e; FeMoco, solved classically at CAS(113,76), is the published counterexample.<br><br>'
-        + '<strong>The three zones.</strong> At or below the exact wall a target is Class C, whatever its entanglement, because exact diagonalisation already suffices. '
-        + 'Above the wall and below S_HARD, this pipeline delivers. Between S_HARD and the ceiling lies the budget band: classically solvable, but only above the effort committed here &mdash; '
-        + 'whether such a target gets solved is a budget decision, not a physics one.<br><br>'
-        + '<strong>What is not calibrated.</strong> The ceiling&rsquo;s shape is derived; its height is not. Fixing it requires one measured pair &mdash; a system where both S_max and the bond dimension '
-        + 'actually needed for chemical accuracy were recorded together, which pins the missing prefactor. Until then the ceiling is a labelled structure, not a measurement, and no value should be read off the axis for it.';
+        + '<strong>The two zones above the exact wall.</strong> At or below the exact wall a target is Class C, whatever its entanglement, because exact diagonalisation already suffices. '
+        + 'Above the wall, S_HARD alone decides: below it, this pipeline delivers (Class B); above it, Class A — full stop, not a budget question.';
     }
 
     function loadMeasured(){
