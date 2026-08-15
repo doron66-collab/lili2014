@@ -486,7 +486,7 @@
       "full_qubits": 72,
       "bqp_class": "B",
       "hardware_era": "current",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — real AVAS (not an estimate) on 2BIO's coordinates returns 24-66 active electrons depending on criterion; this record uses the largest tested criterion (N 2p + O 2p, 66e/36o -> 72 qubits under JW). No DMRG/S_max run has completed for this target yet.",
+      "bqp_class_source": "MEASURED — real DMRG bond-dimension ladder (block2, CAS(66,36), AVAS N 2p+O 2p on PDB 2BIO, charge=+1) converges at M=500 (ΔE=0.001 mHa between M=250 and M=500) with S_max=0.578, below the 1.5 threshold. FINAL result, not provisional — converged naturally, not cut off by a time budget. Fourth target (after C275F, R282W, G245S) with a completed, converged DMRG classification — all four Class B so far, though S_max here is notably higher than the other three (0.15-0.35), still well clear of the threshold.",
       "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2BIO, Joerger et al. 2005); residue 249 sits in the L3 loop within the resolved DNA-binding domain. Checked 2026-08-12.",
       "annual_patients_estimate": "~42,000",
       "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~2%; also associated with hepatocellular carcinoma (aflatoxin-signature hotspot)."
