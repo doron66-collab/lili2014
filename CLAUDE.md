@@ -37,9 +37,24 @@
   (S_max=0.35), both real, converged, FINAL results. The "44e/88q" figure used throughout
   the dissertation and codebase until 2026-08-14/15 was an architectural estimate that
   traced back to no verifiable derivation — replaced everywhere with the real measured
-  range. Five real DMRG classifications exist now (all Class B): C275F, R282W, G245S,
-  R249S, SETD2 R1625C. R175H is a provisional Class A (real, reproduced non-convergence
-  at M=250→500 across three independent runs), pending a completed bond-dimension ladder.
+  range. Eight real DMRG classifications exist now, ALL Class B: C275F, R282W, G245S,
+  R249S, SETD2 R1625C, KEAP1 G333C, STK11 D194N, R175H. No Class A candidate currently
+  exists among measured targets (see R175H finding below — its earlier provisional Class A
+  reading did not survive a warm-started re-run).
+- R175H methodological finding (2026-08-15): three independent cold-start DMRG runs showed
+  large non-convergence (ΔE≈1.4–1.8 Ha at M=250→500) — correctly read, at the time, as
+  provisional Class A per the classifier's own non-convergence rule. A later warm-started
+  re-run (loading MPS state accumulated across those earlier HPC-ticket-interrupted attempts,
+  via the --scratch resume fix in solange_dmrg.py) reached a materially better energy already
+  at its nominal M=250 step, and converged cleanly (ΔE=0.006 mHa, then 0.011 mHa under the
+  identical M=250,500,1000 schedule the cold-start runs used, ruling out a too-close-M-values
+  artifact) — both give S_max≈0.78. Conclusion: the earlier large ΔE was a cold-start
+  optimization artifact (10 sweeps from a random state, insufficient to reach the true
+  minimum at low M for a 54-orbital active space), not genuine high entanglement. Final:
+  Class B, S_max=0.78. Worth remembering for any future large-active-space DMRG run: a
+  cold-start bond-dimension convergence test can give a false non-convergence signal; warm-
+  starting (or more sweeps per M) is needed to tell real entanglement growth apart from
+  optimization failure at low M.
 - Classical limit: CCSD(T) breaks down past ~18e
 - Phase 3A: Live classical proxy — VQE ground-state energies, 4-qubit JW Hamiltonian, PySCF CAS(2e,2o)/STO-3G
 - Phase 3B: Full quantum hardware — IBM Heron r3, sqDRIFT sample-based quantum diagonalization, 94+ qubits
@@ -52,24 +67,23 @@
 
 ## Heron r3 access — strategy (in negotiation, 2026-07; leave until access lands)
 - STATUS: Doron negotiating with the university to fund r3 runs. Not yet available.
-- The anchor target (TP53 C275F) is now DMRG-measured Class B (S_max=0.25 at 36e, 0.35 at
-  48e, both real and converged) — classically tractable at its measured range, so it is
-  quantum-advantaged, not quantum-necessary. It does NOT carry the quantum-necessity case
-  for r3 access on its own anymore. That case now rests on TP53 R175H: real, reproduced
-  DMRG non-convergence at M=250→500 (three independent runs) up to 108 qubits — provisional
-  Class A, the actual candidate for "why real hardware is needed," not C275F.
-  108q still fits Heron r3 (~156q). NOT via naive VQE (NISQ noise kills a deep circuit this
-  size), but via **SqDRIFT / sample-based quantum diagonalization** — QPU samples dominant
-  configs, classical diagonalizes the sampled subspace (noise-robust). IBM already demoed
-  32e/100q (C13Cl2, arXiv:2603.08696); R175H's range is comparable in scale → plausibly in
-  reach, NOT guaranteed, and hard to validate (no exact classical ground truth at this scale
-  — compare vs DMRG at higher bond dimension once affordable).
+- As of 2026-08-15, all eight real DMRG classifications (C275F, R282W, G245S, R249S,
+  SETD2 R1625C, KEAP1 G333C, STK11 D194N, R175H) are Class B — classically tractable at
+  their measured ranges. None currently carries a quantum-necessity case; every target
+  tested so far is quantum-advantaged, not quantum-necessary. This does NOT block r3 access
+  — see the three-tier value framing below, where operational scale-up (tier 1) and real
+  provenance-at-scale (tier 2) both stand on their own regardless of any target's class —
+  but it does mean there is presently no confirmed candidate for tier 3 (a quantum-necessity
+  demonstration). A future chemist-defined active space, or a not-yet-tested gene (KEAP1's
+  gene-level generic case, ARID1A pending a valid structure), could still surface one; none
+  has yet.
 - FRAMING for the dissertation: r3 is a STRENGTHENING of Phase 3B, NOT a prerequisite. The
   contribution is the ARCHITECTURE (already substantiated). Three value tiers, in order:
   (1) operational scale-up on real hardware [safest — proves the governed pipeline holds at
   larger circuit width; directly answers RQ II]; (2) real P3/P4 provenance/telemetry at scale
-  [strengthens the Part-11 claim §06.iii]; (3) the R175H quantum-necessity attempt via SqDRIFT
-  [upside/risky — DO NOT bet the thesis on tier 3]. Also: separate publication + BLAIS grant
+  [strengthens the Part-11 claim §06.iii]; (3) a quantum-necessity demonstration via SqDRIFT,
+  once a Class A candidate exists [upside/risky, no confirmed candidate as of 2026-08-15 —
+  DO NOT bet the thesis on tier 3]. Also: separate publication + BLAIS grant
   strength.
 
 ## LEON
