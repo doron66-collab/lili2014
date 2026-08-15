@@ -517,11 +517,11 @@
     "SETD2_R1625C": {
       "name": "SETD2 p.Arg1625Cys",
       "pdb": "5JJY",
-      "full_electrons": 30,
-      "full_qubits": 60,
+      "full_electrons": 54,
+      "full_qubits": 58,
       "bqp_class": "B",
       "hardware_era": "current",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — genes.SETD2 lists 30 active electrons (60 qubits) as a generic gene-level estimate; no residue-specific estimate or DMRG/S_max run exists for this mutation yet.",
+      "bqp_class_source": "MEASURED — real DMRG bond-dimension ladder (block2, CAS(54,29), AVAS S 3p+N 2p+O 2p on PDB 5JJY, charge=+1) converges at M=500 (ΔE=0.00 mHa between M=250 and M=500) with S_max=0.246, below the 1.5 threshold. FINAL result, not provisional — converged naturally, not cut off by a time budget. Fifth target overall (after C275F, R282W, G245S, R249S) with a completed, converged DMRG classification, and the first non-TP53 target measured — also Class B.",
       "structure_caveat": "VERIFIED — R1625 is the single most recurrent missense residue in SETD2 across COSMIC/cBioPortal, sitting inside the catalytic SET domain (residues 1550-1667). 5JJY (SETD2 catalytic domain bound to H3.3 K36M peptide, Yang et al. 2016) resolves residues 1434-1711 (AWS 1494-1549, SET 1550-1667, post-SET 1674-1690) — R1625 sits centrally within the SET domain, not near an edge. Additional structures of the same domain exist (5V21, 5V22, 6VDB). Found 2026-08-12 while auditing the eleven dissertation Table-2 genes beyond TP53/KEAP1/STK11 for real NSCLC point-mutation hotspots; SETD2 is the most frequently mutated epigenetic modifier in lung adenocarcinoma (~9%).",
       "druggability_note": "No approved or late-phase therapy. EZM0414 (oral SETD2 inhibitor) has FDA Fast Track but is Phase 1/1b, for relapsed/refractory DLBCL — not approved, not NSCLC. A WEE1-inhibitor (adavosertib) trial in SETD2-altered solid tumors showed no objective responses.",
       "annual_patients_source": "Not in dissertation § 01 Table 2 as a mutation-level figure — Table 2 gives SETD2 LOF collectively at ~5% NSCLC frequency / ~106,000 patients/yr, but that figure is not specific to the R1625C point mutation; do not attribute the gene-level number to this variant without checking what fraction of SETD2 LOF is R1625C specifically."
