@@ -470,11 +470,11 @@
     "TP53_G245S": {
       "name": "TP53 p.Gly245Ser",
       "pdb": "2J1Y",
-      "full_electrons": 40,
+      "full_electrons": 72,
       "full_qubits": 80,
       "bqp_class": "B",
       "hardware_era": "current",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — dissertation Table 1 estimates ~40 active electrons (~80 qubits). No DMRG/S_max run exists for this target.",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — real AVAS (not an estimate) on 2J1Y's coordinates returns 12-72 active electrons depending on criterion; this record uses the largest tested criterion (S 3p + N 2p + O 2p, 72e/40o -> 80 qubits under JW). No DMRG/S_max run has completed for this target yet.",
       "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2J1Y, Joerger et al.); residue 245 sits in the L3 loop within the resolved DNA-binding domain. Checked 2026-08-12.",
       "annual_patients_estimate": "~64,000",
       "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~3%; L3-loop structural mutant."
@@ -482,11 +482,11 @@
     "TP53_R249S": {
       "name": "TP53 p.Arg249Ser",
       "pdb": "2BIO",
-      "full_electrons": 40,
-      "full_qubits": 80,
+      "full_electrons": 66,
+      "full_qubits": 72,
       "bqp_class": "B",
       "hardware_era": "current",
-      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — dissertation Table 1 estimates ~40 active electrons (~80 qubits). No DMRG/S_max run exists for this target.",
+      "bqp_class_source": "SIZE PRIOR, NOT A MEASUREMENT — real AVAS (not an estimate) on 2BIO's coordinates returns 24-66 active electrons depending on criterion; this record uses the largest tested criterion (N 2p + O 2p, 66e/36o -> 72 qubits under JW). No DMRG/S_max run has completed for this target yet.",
       "structure_caveat": "VERIFIED — mutant-specific crystal structure exists (2BIO, Joerger et al. 2005); residue 249 sits in the L3 loop within the resolved DNA-binding domain. Checked 2026-08-12.",
       "annual_patients_estimate": "~42,000",
       "annual_patients_source": "dissertation § 01 Table 2. NSCLC frequency ~2%; also associated with hepatocellular carcinoma (aflatoxin-signature hotspot)."
