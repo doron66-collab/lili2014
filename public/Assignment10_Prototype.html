@@ -694,6 +694,11 @@
        actually governed by it. Walls are drawn on the variable that governs
        each: size for exact diagonalisation, entanglement for DMRG. Measured
        points come from window.__dmrgRows (S_max per run, LEON-sealed). -->
+  <style>
+    #scaling-chart .dmrg-point-label { opacity: 0; transition: opacity .12s ease; }
+    #scaling-chart .dmrg-point:hover .dmrg-point-label { opacity: 1; }
+    #scaling-chart .dmrg-point circle { cursor: pointer; }
+  </style>
   <div class="card" style="margin-bottom:16px;margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px">
       <div class="card-title" style="margin-bottom:0"><span class="info-wrap"><span class="info-i">i</span><div class="footnote info-panel" id="scaling-footnote"></div></span> Classical Tractability Plane — Size vs. Measured Entanglement</div>
@@ -842,20 +847,29 @@
       });
       svg.push('<text x="' + (xPix(6)+9).toFixed(1) + '" y="' + (yPix(2.86)-4).toFixed(1) + '" fill="var(--teal)" font-size="8.5" font-weight="600">N₂ stretched 2.86 / equilibrium 0.42 &mdash; same 6 orbitals</text>');
 
-      // anchor target — known x, unmeasured y
-      var c275 = xPix(44);
-      svg.push('<rect x="' + (c275-4).toFixed(1) + '" y="' + PAD_T + '" width="8" height="' + plotH + '" fill="url(#sc-hatchw)"/>');
-      svg.push('<line x1="' + c275.toFixed(1) + '" y1="' + PAD_T + '" x2="' + c275.toFixed(1) + '" y2="' + (H-PAD_B) + '" stroke="rgba(241,245,249,.5)" stroke-width="1.3" stroke-dasharray="2,4">'
-             + '<title>TP53 C275F — 44 active electrons. Its S_max has never been measured at the >=90% site coverage the Gateway requires as evidence, so no y position is known. The bar spans every value it could still take, and it crosses all three zones. That is precisely what Class B records.</title></line>');
-      svg.push('<text x="' + (c275+7).toFixed(1) + '" y="' + (yPix(0.55)).toFixed(1) + '" fill="var(--white)" font-size="9" font-weight="700">TP53 C275F &middot; 44e &mdash; S_max unmeasured</text>');
+      // Formerly a hardcoded "TP53 C275F · 44e — S_max unmeasured" placeholder marker
+      // sitting at a fixed, single-value x=44. Removed 2026-08-15: 44e was never a real
+      // measurement (it traced back to an unverified estimate — see dissertation §01),
+      // and C275F now has real, LEON-sealed DMRG measurements (below) that render through
+      // the normal "measured" mechanism instead of a special-cased unmeasured stand-in.
 
       // measured DMRG runs, LEON-verified
       (measured || []).forEach(function(m){
         if (m.n == null || m.s == null) return;
         var mx = xPix(Math.max(N_MIN, Math.min(N_MAX, m.n))), my = yPix(Math.max(S_MIN, Math.min(S_AX, m.s)));
-        svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="4" fill="var(--green)" stroke="rgba(6,15,34,.8)" stroke-width="1">'
-               + '<title>' + esc(m.key || 'run') + ' — CAS active space ' + m.n + 'e, measured S_max = ' + Number(m.s).toFixed(2)
+        var label = esc((m.key || 'run').replace(/_/g, ' '));
+        // Grouped so CSS (.dmrg-point-label, see <style> below) can reveal the name
+        // label only while the pointer is over this specific point's circle — the
+        // <title> gives every browser a native tooltip too, this is the always-visible
+        // variant for pointer devices, which is what was actually asked for.
+        svg.push('<g class="dmrg-point">');
+        svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="5" fill="var(--green)" stroke="rgba(6,15,34,.8)" stroke-width="1">'
+               + '<title>' + label + ' — CAS active space ' + m.n + 'e, measured S_max = ' + Number(m.s).toFixed(2)
                + (m.cls ? ' — classified ' + esc(m.cls) : '') + '. Measured on this platform and sealed by LEON.</title></circle>');
+        svg.push('<text class="dmrg-point-label" x="' + (mx+8).toFixed(1) + '" y="' + (my-7).toFixed(1)
+               + '" fill="var(--white)" font-size="9" font-weight="700" paint-order="stroke" stroke="rgba(6,15,34,.85)" stroke-width="3" pointer-events="none">'
+               + label + '</text>');
+        svg.push('</g>');
       });
 
       document.getElementById('scaling-chart').innerHTML = svg.join('');
