@@ -278,11 +278,11 @@ MUTATION_CONFIGS = {
         "active_orbitals": 2,
         "local_electrons": 104,  # G333 5 Å shell — PDB 1U6D coordinate-verified (15 residues)
         "local_qubits": 208,
-        "full_electrons": 155,   # full Nrf2-binding interface — PDB 2FLU coordinate-verified
-        "full_qubits": 310,
+        "full_electrons": 72,    # largest real AVAS-tested space (N 2p+O 2p; no S in this shell) — CAS(72,37)
+        "full_qubits": 74,       # 37 orbitals x 2 under JW — real measurement, DMRG Class B (S_max=0.22)
         "bqp_class": "B",
-        "hardware_era": "fault_tolerant",
-        "phase3b_backend": "fault-tolerant QPU (~2030+)",
+        "hardware_era": "current",
+        "phase3b_backend": "IBM Heron r3",
     },
     "KEAP1_R320Q": {
         "name": "KEAP1 p.Arg320Gln",
@@ -338,11 +338,12 @@ MUTATION_CONFIGS = {
         "active_orbitals": 2,
         "local_electrons": 76,   # D194 5 Å shell — PDB 2WTK chain C coordinate-verified
         "local_qubits": 152,
-        "full_electrons": 152,   # full ATP pocket 8 Å shell — PDB 2WTK chain C coordinate-verified
-        "full_qubits": 304,
-        "bqp_class": "A",
-        "hardware_era": "fault_tolerant",
-        "phase3b_backend": "fault-tolerant QPU (~2030+)",
+        "full_electrons": 54,    # largest real AVAS-tested space (N 2p+O 2p; no S in this shell) — CAS(54,31)
+        "full_qubits": 62,       # 31 orbitals x 2 under JW — real measurement, DMRG Class B (S_max=0.82)
+        "bqp_class": "B",        # was A, inherited from GENE_MAP's gene-level STK11 default — wrong for
+                                 # a per-mutation entry (see project rule); real measurement is B
+        "hardware_era": "current",
+        "phase3b_backend": "IBM Heron r3",
     },
 }
 

@@ -3606,6 +3606,27 @@ const MUTATION_CLASS = {
     source: 'dissertation: Y220C is a cavity-creating mutant and "a poor demonstration target '
           + 'because the platform would be solving an already-solved problem" (Rezatapopt in '
           + 'Phase II). Class C — classical methods suffice, filtered out of the quantum pipeline.'
+  },
+  // KEAP1_G333C and STK11_D194N added 2026-08-15: both point mutations now carry a real,
+  // converged DMRG measurement of their own (§01 Table 1b) that differs from GENE_MAP's
+  // gene-level KEAP1/STK11 defaults (which remain correct for the generic/frameshift LOF
+  // cases those defaults were reasoned for — see the BQP-class-scope note below). Without
+  // a mutation-level entry here, these two point mutations silently inherited the gene-level
+  // class instead of their own measurement — STK11_D194N showed Class A (the gene-level
+  // default) when its own real DMRG run says Class B.
+  KEAP1_G333C: {
+    bqp_class: 'B', active_electrons: 72, full_qubits: 74,
+    source: 'Real DMRG bond-dimension ladder (block2, CAS(72,37), AVAS N 2p+O 2p on PDB 1U6D) '
+          + 'converges at M=500 (ΔE=0.00 mHa) with S_max=0.22, below the 1.5 threshold. FINAL '
+          + 'result. Supersedes the earlier 155e/310q size-prior estimate (dissertation §01).'
+  },
+  STK11_D194N: {
+    bqp_class: 'B', active_electrons: 54, full_qubits: 62,
+    source: 'Real DMRG bond-dimension ladder (block2, CAS(54,31), AVAS N 2p+O 2p on PDB 2WTK '
+          + 'chain C) converges at M=500 (ΔE=0.001 mHa) with S_max=0.82, below the 1.5 threshold '
+          + '— higher than other measured targets but still FINAL, not provisional. Supersedes '
+          + 'the earlier 152e/304q size-prior estimate and the unmeasured Class A prior it had '
+          + 'inherited from GENE_MAP\'s gene-level STK11 default (dissertation §01).'
   }
 };
 

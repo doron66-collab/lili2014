@@ -207,7 +207,11 @@ def main():
     # full_electrons/full_qubits record a real CAS(48,28)/CAS(96,54) measurement, not a
     # CAS(N,N) size guess, so 2x electrons is the wrong expected value for them specifically.
     JW_DOUBLING_EXEMPT = {"TP53_C275F", "TP53_R175H", "TP53_R282W", "TP53_G245S", "TP53_R249S",
-                          "SETD2_R1625C", "TP53"}
+                          "SETD2_R1625C", "KEAP1_G333C", "STK11_D194N", "TP53"}
+    # Note: KEAP1_G333C/STK11_D194N no longer need a [2]/[3] gene-vs-mutation exemption --
+    # they now have their own MUTATION_CLASS entries in Assignment10_Prototype.html (added
+    # 2026-08-15), so checks [2]/[3] compare mutation-level to mutation-level directly, the
+    # same mechanism that already worked correctly for TP53_C275F.
     print("\n[4] Jordan-Wigner arithmetic — qubits == 2 x electrons (size-prior entries only)")
     for label, src in (("GENE_MAP", [(g, v["active_electrons"], v["full_qubits"]) for g, v in gm.items()]),
                        ("simulate.py", [(k, v["full_electrons"], v["full_qubits"]) for k, v in mc.items()])):
