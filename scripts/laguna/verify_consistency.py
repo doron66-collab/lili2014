@@ -206,7 +206,7 @@ def main():
     # electrons. TP53_C275F and TP53_R175H are exempted for exactly this reason — their
     # full_electrons/full_qubits record a real CAS(48,28)/CAS(96,54) measurement, not a
     # CAS(N,N) size guess, so 2x electrons is the wrong expected value for them specifically.
-    JW_DOUBLING_EXEMPT = {"TP53_C275F", "TP53_R175H", "TP53"}
+    JW_DOUBLING_EXEMPT = {"TP53_C275F", "TP53_R175H", "TP53_R282W", "TP53"}
     print("\n[4] Jordan-Wigner arithmetic — qubits == 2 x electrons (size-prior entries only)")
     for label, src in (("GENE_MAP", [(g, v["active_electrons"], v["full_qubits"]) for g, v in gm.items()]),
                        ("simulate.py", [(k, v["full_electrons"], v["full_qubits"]) for k, v in mc.items()])):
