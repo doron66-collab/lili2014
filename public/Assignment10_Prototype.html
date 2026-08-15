@@ -787,7 +787,7 @@
 
       // wall 2 — horizontal: this platform's operational gate
       svg.push('<line x1="' + PAD_L + '" y1="' + hardY.toFixed(1) + '" x2="' + (W-PAD_R) + '" y2="' + hardY.toFixed(1) + '" stroke="rgba(245,158,11,.85)" stroke-width="1.8" stroke-dasharray="5,4"/>');
-      svg.push('<text x="' + (wallX+70).toFixed(1) + '" y="' + (hardY-5).toFixed(1) + '" fill="var(--amber)" font-size="9" font-weight="700">S_HARD = ' + S_HARD + ' &mdash; the Class B / Class A boundary. Our gate, at our bond dimension: policy, not physics.'
+      svg.push('<text x="' + (wallX+70).toFixed(1) + '" y="' + (hardY-5).toFixed(1) + '" fill="var(--white)" font-size="9" font-weight="700">S_HARD = ' + S_HARD + ' &mdash; the Class B / Class A boundary. Our gate, at our bond dimension: policy, not physics.'
              + '<title>HORIZONTAL. DMRG bond dimension grows as e^S and cost as M^3, with no electron count in the expression. This threshold is calibrated on N2 and tied to this pipeline\'s practical bond dimension — it marks where THIS pipeline stops, not where DMRG stops.</title></text>');
 
       // Zone captions carry the class letters, so the plane reads as the same rule
