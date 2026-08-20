@@ -1399,7 +1399,7 @@
             <tr>
               <td><strong>QPU</strong></td>
               <td><em>Quantum Processing Unit</em></td>
-              <td>The hardware unit performing quantum computation, analogous to a CPU or GPU. IBM Heron r3 is the QPU targeted in Phase 3B. NVQLink provides the GPU↔QPU interconnect that the orchestration platform builds upon.</td>
+              <td>The hardware unit performing quantum computation, analogous to a CPU or GPU. IBM Heron r3 is the QPU targeted in Phase 3B, reached through Qiskit Runtime. (NVQLink, Nvidia's GPU↔QPU interconnect, is <em>not</em> the path used here — IBM is absent from its announced partner roster; see §08.)</td>
             </tr>
             <tr>
               <td><strong>SqDRIFT</strong></td>
@@ -1990,16 +1990,16 @@
             LAYER 2 · HYBRID INTEGRATION SUBSTRATE (commodity)
           </text>
           <text x="40" y="328" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
-            • Hybrid orchestration — CUDA-Q + NVQLink (Nvidia stack)
+            • HPC orchestration — pull-based agent, USC CARC 'Laguna' · no stored credentials
           </text>
           <text x="40" y="352" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
-            • Quantum reliability — Nvidia Ising: VLM calibration · 3D CNN decoder (Apr 2026)
+            • Active-space selection — AVAS (PySCF), RDKit-built fragments from real PDB coords
           </text>
           <text x="40" y="376" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
-            • Input preparation — DFT (PySCF) · DMRG baseline + non-active-space treatment
+            • Classical-tractability classifier — block2 DMRG, ΔE &lt; 1.6 mHa convergence
           </text>
           <text x="40" y="400" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
-            • Output interpretation — DeepChem GNN clinical relevance scoring
+            • Quantum execution — PennyLane VQE (3A) · IBM Heron r3 (3B)
           </text>
 
           <rect x="20" y="444" width="840" height="130" rx="6"
@@ -2032,7 +2032,7 @@
           </text>
         </svg>
         <figcaption style="font: 400 12px 'Inter Tight', sans-serif; color:#1a2028; text-align:center; margin-top:12px; font-style:italic; line-height:1.5;">
-          Three-layer QC·AI·HPC architecture. The contribution layer (top of solid stack) sits above a commodity hybrid-integration substrate and a quantum-kernel scientific anchor. The commodity substrate is forward-compatible with both IBM-native and Nvidia-substrate execution paths (§1.4.1, §06.ii).
+          Three-layer QC·AI·HPC architecture. The contribution layer (top of solid stack) sits above a commodity hybrid-integration substrate and a quantum-kernel scientific anchor. Layer 2 as drawn lists the components Phase 3 actually exercises; the substrate is additionally designed to be forward-compatible with the Nvidia execution path (CUDA-Q), which Phase 3 does not exercise (§1.4.1, §06.ii, §08).
           <br/>
           <span style="color:#666;">* Adjacent workflow context — NGS input (§1.2.1) and DSR Phase 4 evaluation (§05) inform and assess the QC stack but are not part of the layered architecture itself.</span>
         </figcaption>
@@ -3551,7 +3551,7 @@
             <tr>
               <td><strong>GPU</strong></td>
               <td><em>Graphics Processing Unit</em></td>
-              <td>A massively parallel processor originally designed for graphics, now central to scientific computing. NVQLink provides the GPU↔QPU interconnect at the heart of Layer 2; classical pre/post-processing (DFT, DMRG, GNN inference) runs on GPU clusters.</td>
+              <td>A massively parallel processor originally designed for graphics, now central to scientific computing. In this work, GPUs serve the <em>classical</em> side of Layer 2: statevector VQE simulation (PennyLane <code>lightning.gpu</code> on an NVIDIA L40S at USC CARC) and classical pre/post-processing. Tightly-coupled GPU↔QPU interconnect (NVQLink) is forward-compatible design, not an exercised path (§08).</td>
             </tr>
             <tr>
               <td><strong>Hartree-Fock</strong></td>
@@ -3661,12 +3661,12 @@
             <tr>
               <td><strong>Nvidia</strong></td>
               <td><em>Nvidia Corporation</em></td>
-              <td>GPU manufacturer providing key Layer 2 components: CUDA-Q programming model, NVQLink GPU↔QPU interconnect, and Ising AI stack (VLM calibration + 3D CNN QEC decoder). Nvidia's emergence as cross-vendor infrastructure is what made the dissertation's earlier "cross-vendor abstraction" claim a commodity, prompting the narrowing to Part-11 governance as the defensible white space.</td>
+              <td>GPU manufacturer. Two distinct roles must be separated. <strong>Exercised:</strong> NVIDIA L40S GPUs at USC CARC run classical statevector VQE simulation (PennyLane <code>lightning.gpu</code>). <strong>Forward-compatible only:</strong> the CUDA-Q programming model, the NVQLink GPU↔QPU interconnect, and the Ising AI stack (VLM calibration + 3D CNN QEC decoder) are commodity substrate the architecture is designed to interoperate with, but Phase 3 exercises only the IBM-native side (§08). Nvidia's emergence as cross-vendor infrastructure is what made the dissertation's earlier "cross-vendor abstraction" claim a commodity, prompting the narrowing to Part-11 governance as the defensible white space.</td>
             </tr>
             <tr>
               <td><strong>NVQLink</strong></td>
               <td><em>Nvidia's GPU↔QPU interconnect</em></td>
-              <td>A hardware-software fabric enabling tight integration between GPU clusters and quantum processors. Layer 2 component (commodity); together with CUDA-Q, it represents the vendor-spanning quantum-classical infrastructure the dissertation builds on top of rather than reinventing.</td>
+              <td>A hardware-software fabric enabling tight integration between GPU clusters and quantum processors — sub-4 µs round-trip latency, up to 400 Gb/s over RDMA-over-Ethernet, with a real-time callback through the CUDA-Q runtime. Its demonstrated advantage is <em>real-time</em> loops, principally error-syndrome decoding (Quantinuum Helios with an NVIDIA GH200: qLDPC decoding at 67 µs median, 5.4× error-rate improvement). <strong>Not a path exercised by this work</strong>, on two independent grounds: SqDRIFT is a batch sample-then-diagonalise workflow with no microsecond-latency loop to accelerate, and IBM is absent from the announced NVQLink hardware-partner roster (§08). It would become relevant only if P9's ML decoder (§06.iii) were developed into a real-time decoding loop on a participating backend. The portable layer this work's bifurcation-awareness would actually run through is <strong>CUDA-Q</strong> (software, vendor-neutral, able to target IBM backends), not NVQLink.</td>
             </tr>
             <tr>
               <td><strong>OSF</strong></td>
@@ -3751,7 +3751,7 @@
             <tr>
               <td><strong>QPU</strong></td>
               <td><em>Quantum Processing Unit</em></td>
-              <td>The hardware unit performing quantum computation, analogous to a CPU or GPU. IBM Heron r3 is the QPU targeted in Phase 3B. NVQLink provides the GPU↔QPU interconnect.</td>
+              <td>The hardware unit performing quantum computation, analogous to a CPU or GPU. IBM Heron r3 is the QPU targeted in Phase 3B, reached through Qiskit Runtime — not through NVQLink, which IBM does not participate in (§08).</td>
             </tr>
             <tr>
               <td><strong>QV</strong></td>
