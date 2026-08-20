@@ -2314,7 +2314,7 @@
         </table>
       </div>
 
-      <h4>Layer 2 · Comparative Evaluation (Benchmarking vs. Existing Alternatives)</h4>
+      <h4>Layer 2 · Comparative Positioning &amp; Benchmarking vs. Existing Alternatives</h4>
       <p>Reference task — a VQE simulation of a small molecule (H₂ or LiH) — executed through this platform and through three baseline pathways: <strong>Qiskit Runtime alone</strong>, <strong>Orquestra (Zapata)</strong>, and <strong>fully manual workflow</strong>. Comparison metrics: number of manual steps, setup time, and whether the output satisfies 21 CFR Part 11 audit requirements.</p>
       <div class="table-wrap">
         <table>
@@ -2328,10 +2328,12 @@
             <tr><td>21 CFR Part 11 audit trail</td><td>✓ (P1–P9)</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td></tr>
             <tr><td>Stakeholder visualization layer</td><td>✓</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td></tr>
             <tr><td>Statistical-equivalence validation</td><td>✓</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td></tr>
-            <tr><td>Bifurcation-aware (across IBM-native &amp; Nvidia substrate)</td><td>✓</td><td>✗</td><td>✗</td><td>✗ (one side of the bifurcation)</td><td>✗</td></tr>
+            <tr><td>Bifurcation-aware (across IBM-native &amp; Nvidia substrate)</td><td>◑ (design-level: Qiskit path in production; CUDA-Q portability by design, not yet exercised)*</td><td>✗</td><td>✗</td><td>✗ (one side of the bifurcation)</td><td>✗</td></tr>
           </tbody>
         </table>
       </div>
+      <p style="font-size:0.9rem; color:var(--ink-soft); font-style:italic; margin:0 0 0.75rem 0;">The capability matrix above is a <strong>positioning claim, not a finding</strong>. Entries reflect the author's reading of each platform's published documentation as of August 2026; they are not the output of an executed comparison, and no vendor or independent reviewer has verified them. What Layer 2 actually <em>measures</em> is the reference-task comparison described above — manual steps, setup time, and Part 11 satisfaction — executed on this platform and the three baseline pathways. Where a measured result contradicts a cell in this matrix, the measured result governs.</p>
+      <p style="font-size:0.9rem; color:var(--ink-soft); font-style:italic; margin:0 0 1rem 0;">* <strong>On the Nvidia side of the bifurcation, the portable layer is CUDA-Q (software), not NVQLink (hardware)</strong> — a distinction worth stating precisely, because the two are frequently conflated. CUDA-Q is a vendor-neutral hybrid programming model that can target IBM backends, and is therefore the layer through which this platform's bifurcation-awareness would be exercised. NVQLink is an interconnect delivering sub-4 µs QPU↔GPU round-trip latency (up to 400 Gb/s over RDMA-over-Ethernet), and its demonstrated advantage is <em>real-time</em> loops — most notably error-syndrome decoding (Quantinuum Helios with an NVIDIA GH200: qLDPC decoding at 67 µs median, 5.4× error-rate improvement). It is not currently a path for this work, for two independent reasons: sqDRIFT is a batch sample-then-diagonalise workflow with no microsecond-latency loop to accelerate, and IBM is not among the announced NVQLink hardware partners. NVQLink would become relevant only if the P9 ML decoder (§06.iii) were developed into a real-time decoding loop on a participating backend.</p>
 
       <h4>Layer 3 · Expert Panel Evaluation (Stakeholder Validity)</h4>
       <p>Panel of <strong>n = 4–6</strong> experts, composition deliberately calibrated for methodological coverage:</p>
