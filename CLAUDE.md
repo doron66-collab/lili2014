@@ -107,6 +107,31 @@
   spent hours fixing elsewhere. Needs a real session_id/is_current distinction at the data
   layer, not a UI-only fix — scope properly before implementing, not mid-session.
 
+## Phase 4 evaluation — Layer 3B instrument (DRAFT exists, not in use)
+- `docs/evaluation/LAYER3B_INSTRUMENT_DRAFT.md` (written 2026-08-20). An output-level
+  rubric for **DP5** — the one design principle no Phase 4 instrument tests. Layer 1 covers
+  DP1/DP3 (audit, reproducibility, Part 11); Layer 3 maps Hevner G1–G7, which are questions
+  about the *research*, not about an *output*; Layer 4's two walkthroughs are both
+  positive-path, with no refusal case anywhere.
+- **Frame it correctly, and do not let a summary distort this:** DP5 is already
+  **implemented and enforced in running code** — `STRUCTURALLY_UNRESOLVED` in
+  `public/Assignment10_Prototype.html` (~line 4440) blocks five targets from dispatch, each
+  with a written, checkable reason, on the stated grounds that "a checkbox the user can
+  still click reads as tacit endorsement regardless of what a tooltip elsewhere says."
+  What is missing is only an *evaluation instrument* putting that in front of an outside
+  expert. "Not yet rated by anyone external" ≠ "not built" — an inbound handoff conflated
+  the two, and the correction came from reading the code rather than `targets.json` alone.
+- Draft only: **not pre-registered, not committed to.** Freeze on OSF immediately before
+  running the panel (Phase 4 is Jan–Apr 2027), never earlier — and re-verify every case
+  against the codebase first, per the checklist in §6 of the draft. A case that has drifted
+  out of sync with the system invalidates the instrument.
+- Open design question recorded there, deliberately **not** resolved: `targets.json` gives
+  `bqp_class: "B"` to ARID2_LOF, SMARCA4_R1192C and ARID1A_R1020S while their own
+  `bqp_class_source` calls them size priors and their `structure_caveat` says the structures
+  are unresolved or invalid. User-facing behaviour is correct (ARID2_LOF is blocked; the
+  other two never surface), and U2AF1_S34F already models the right answer by returning
+  null — but whether those three should follow it is Doron's call, not a silent fix.
+
 ## Standing Tasks
 - **Dissertation sync (ALWAYS):** every change to the SOLANGE system must be reflected in the dissertation (§06.ii LEON, §06.iii audit-in-running-code, §06.iv DP1–DP5). Treat this as a permanent, non-optional step of any feature/UI change. **Single file only:** `public/dissertation_revised.html` is the one real file (it's what Netlify actually serves); root `dissertation_revised.html` is a symlink to it, kept only for convenience — never recreate it as a second real file (two copies drifted apart once already, from a parallel session editing only one side; the symlink makes that impossible now).
 - **UI ladder order:** Orchestration tab blocks are ordered small→large→quantum (laptop/in-browser VQE at top → HPC classical → DMRG → QPU at bottom); keep new blocks in that ladder.
