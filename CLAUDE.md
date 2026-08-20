@@ -108,7 +108,7 @@
   layer, not a UI-only fix — scope properly before implementing, not mid-session.
 
 ## Standing Tasks
-- **Dissertation sync (ALWAYS):** every change to the SOLANGE system must be reflected in the dissertation (§06.ii LEON, §06.iii audit-in-running-code, §06.iv DP1–DP4). Treat this as a permanent, non-optional step of any feature/UI change. **Single file only:** `public/dissertation_revised.html` is the one real file (it's what Netlify actually serves); root `dissertation_revised.html` is a symlink to it, kept only for convenience — never recreate it as a second real file (two copies drifted apart once already, from a parallel session editing only one side; the symlink makes that impossible now).
+- **Dissertation sync (ALWAYS):** every change to the SOLANGE system must be reflected in the dissertation (§06.ii LEON, §06.iii audit-in-running-code, §06.iv DP1–DP5). Treat this as a permanent, non-optional step of any feature/UI change. **Single file only:** `public/dissertation_revised.html` is the one real file (it's what Netlify actually serves); root `dissertation_revised.html` is a symlink to it, kept only for convenience — never recreate it as a second real file (two copies drifted apart once already, from a parallel session editing only one side; the symlink makes that impossible now).
 - **UI ladder order:** Orchestration tab blocks are ordered small→large→quantum (laptop/in-browser VQE at top → HPC classical → DMRG → QPU at bottom); keep new blocks in that ladder.
 - **Consistency check (ALWAYS, after any change to target facts):** run
   `python scripts/laguna/verify_consistency.py`. Two seconds, no environment needed —
