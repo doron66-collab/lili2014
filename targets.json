@@ -19,7 +19,7 @@
     "_threshold": "S_HARD = 1.5, calibrated between N2 at equilibrium (0.42) and stretched (2.86). A policy of this pipeline, not a constant of nature. NOT replaced by a derived value: deriving one needs the M-vs-S relation, and calibration showed that relation is milder than the e^S bound it was assumed to follow (see _bound_is_not_a_rate). Both the prefactor and the exponent depend on the chemistry and on the size of the active space, so a value fitted on N2 at CAS(10,16) does not transfer to a 44-electron site.",
     "_bound_is_not_a_rate": "Measured, not assumed: an N2 stretch series at CAS(10,16)/cc-pVDZ, recording S_max and the bond dimension actually required for chemical accuracy at each geometry, returns a slope of 0.31 (R^2 = 0.82, five points, results/calibration/N2_CAS10-16_ccpvdz_2026-08-05.json). Across that series S_max rose by 1.45 while the requirement rose only 1.6x, where a slope of 1 demands 4.3x. The exponential relation is therefore an UPPER BOUND — it follows from assuming a flat entanglement spectrum, and real spectra decay, so fewer states are needed than the entropy alone implies. The direction holds and the dependence is still exponential; the rate is not e^S."
   },
-  "_class_granularity": "A gene carries bqp_class only where the dissertation records it as having 'no single-residue anchor' (KEAP1, CDKN2A, STK11) — there the class is a property of the domain. Genes whose mutations genuinely differ (TP53) carry none, and their classes live under mutations.",
+  "_class_granularity": "A gene carries bqp_class only where the dissertation records it as having 'no single-residue anchor' (KEAP1, STK11) — there the class is a property of the domain. Genes whose mutations genuinely differ (TP53) carry none, and their classes live under mutations. CDKN2A is neither case: its demonstrated NGS finding is a homozygous deletion, not a generic LOF spread across a domain, so there is no residue and no domain to anchor an active space to at all — it carries bqp_class:null, matching the treatment already given to U2AF1_S34F/S34Y.",
   "genes": {
     "TP53": {
       "active_electrons": 48,
@@ -216,17 +216,13 @@
       "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
     },
     "CDKN2A": {
-      "active_electrons": 18,
-      "full_qubits": 36,
+      "active_electrons": null,
+      "full_qubits": null,
       "badge_type": "Cell Cycle LOF",
       "color": "#5b82ed",
-      "bqp_class": "B",
-      "active_electrons_range": [
-        14,
-        18
-      ],
-      "active_electrons_source": "dissertation §06.i — hydrophobic core disruption, 14-18e",
-      "bqp_class_source": "UNMEASURED PRIOR — the dissertation states no class for this gene, and no S_max run meeting the Gateway's 90% site-coverage gate exists for it. Class B is this pipeline's default where the site exceeds the 18-electron exact-classical wall and no entanglement measurement has been made: it records that the target is past the reach of exact diagonalisation and nothing further. It is a hypothesis on the record, not a result."
+      "bqp_class": null,
+      "bqp_class_source": "NOT CLASSIFIED — deliberately left unclassified rather than given a size proxy. See structure_caveat for why this is excluded.",
+      "structure_caveat": "STRUCTURALLY INAPPLICABLE — CDKN2A's demonstrated NGS finding (patient case MI25-0349) is a homozygous deletion (copy number ~0.4), not a point mutation. A deletion has no single mutant residue for an active space to be built around, the same failure mode as a frameshift (cf. KEAP1_LOF). Does not pass the platform's structural-eligibility criteria (dissertation §01, Table 1b); already correctly blocked from dispatch in the live UI via STRUCTURALLY_UNRESOLVED['CDKN2A_LOF']. Earlier versions of this record carried a fabricated active-electron figure (14-18e, later drifting to 18e/20e/28e across different files) sourced to a dissertation passage that does not exist — removed 2026-08-23 in favor of this correct, structural explanation."
     },
     "MET": {
       "active_electrons": 46,
