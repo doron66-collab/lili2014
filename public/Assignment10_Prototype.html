@@ -3632,7 +3632,7 @@ const BQP_CLASS_SCOPE = {
   },
   CDKN2A: {
     variants: [], acceptsLof: true, borderline: true,
-    source: 'dissertation: "an active space in the 14-18 electron range, straddling the classical tractability threshold". Site-level (no single-residue anchor), but the range sits at or below the 18e exact-classical wall, so the class cannot be settled from size — see the note on GENE_MAP.CDKN2A.'
+    source: 'dissertation: CDKN2A\'s demonstrated NGS finding is a homozygous deletion, not a point mutation, and does not pass the platform\'s structural-eligibility criteria (§01, Table 1b) — see the note on GENE_MAP.CDKN2A. No active-space figure applies; the earlier 14-18e claim traced to a dissertation passage that does not exist.'
   }
   // ATRX, ARID2, POLE, NF1, AXIN2, PTEN carry a bqp_class in GENE_MAP but the
   // dissertation does not reason about them at all (zero mentions for ATRX, POLE,
@@ -3823,18 +3823,16 @@ const GENE_MAP = {
   // 10.1038/s41467-019-12203-8), same PPI profile as KEAP1 above. Literature
   // estimate, not DMRG-run.
   AXIN2:   { badge_type:'WNT Scaffold',      color:'#1e9b4d', active_electrons:24,  full_qubits:48,  bqp_class:'B' },
-  // active_electrons was 20 here, which contradicts the dissertation's own figure:
-  // "an active space in the 14-18 electron range, straddling the classical
-  // tractability threshold". 20 sits outside that range entirely. Corrected to the
-  // documented upper bound (18) rather than a midpoint, because 18 is the value the
-  // text actually names and inventing 16 would repeat the original error in a new
-  // direction. Note the consequence: the whole documented range lies at or below the
-  // 18e exact-classical wall, so size alone would put CDKN2A in Class C, not the
-  // curated B — which is precisely why BQP_CLASS_SCOPE marks it borderline and
-  // withholds a class until a DMRG run settles it. The disagreement is real and is
-  // surfaced rather than papered over.
-  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#5b82ed', active_electrons:18,  full_qubits:36,  bqp_class:'B',
-             active_electrons_range:[14,18], active_electrons_source:'dissertation §06.i — hydrophobic core disruption, 14-18e' },
+  // CDKN2A previously carried an active-electron figure (14-18e, drifting to 18e
+  // here, 20e/28e in other files) sourced to a dissertation passage that does not
+  // exist. Root cause, found 2026-08-23: CDKN2A's demonstrated NGS finding (patient
+  // case MI25-0349) is a homozygous deletion (copy number ~0.4), not a point
+  // mutation — there is no residue for an active space to be built around at all,
+  // the same failure mode as a frameshift (cf. KEAP1_LOF). No electron count is
+  // correct here because none applies. Matches targets.json (single source of
+  // truth) and the live UI's own STRUCTURALLY_UNRESOLVED['CDKN2A_LOF'] block.
+  CDKN2A:  { badge_type:'Cell Cycle LOF',    color:'#5b82ed', active_electrons:null, full_qubits:null, bqp_class:null,
+             structure_caveat:'STRUCTURALLY INAPPLICABLE — homozygous deletion, not a point mutation; no residue to anchor an active space to.' },
   // ── Pan-cancer receptor tyrosine kinases / fusions — beyond NSCLC-only scope.
   // Already recognized by the VCF parser's known-gene list below but previously
   // had no GENE_MAP entry, so a variant on any of these was silently dropped
