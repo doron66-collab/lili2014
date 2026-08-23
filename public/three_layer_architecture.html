@@ -177,7 +177,7 @@
     <div class="ctx-label">NGS Patient Input *  ·  workflow source</div>
     <ul>
       <li>Patient case MI25-0349 · TP53 C275F (non-druggable NSCLC tumor suppressor mutation)</li>
-      <li>Mutation-specific Hamiltonian assembly · ~24-electron local, ~44-electron full active space</li>
+      <li>Mutation-specific Hamiltonian assembly · 18–48 active electrons measured (AVAS/DMRG, criterion-dependent)</li>
     </ul>
   </div>
 
@@ -199,14 +199,14 @@
   <div class="layer l2">
     <div class="layer-label">Layer 2 · Hybrid Integration Substrate (commodity)</div>
     <ul>
-      <li>Hybrid orchestration — CUDA-Q + NVQLink (Nvidia stack)</li>
-      <li>Quantum reliability — Nvidia Ising: VLM calibration · 3D CNN decoder (Apr 2026)</li>
-      <li>Input preparation — DFT (PySCF) · DMRG baseline + non-active-space treatment</li>
-      <li>Output interpretation — DeepChem GNN clinical relevance scoring</li>
+      <li>HPC orchestration — pull-based agent, USC CARC 'Laguna' · no stored credentials</li>
+      <li>Active-space selection — AVAS (PySCF), RDKit-built fragments from real PDB coords</li>
+      <li>Classical-tractability classifier — block2 DMRG, S_max ≤1.5 &amp; ΔE&lt;1.6 mHa convergence</li>
+      <li>Quantum execution — PennyLane VQE (3A) · IBM Heron r3 (3B)</li>
     </ul>
   </div>
 
-  <div class="conn"><span>↕ NVQLink</span></div>
+  <div class="conn"><span>↕ Qiskit Runtime</span></div>
 
   <!-- Layer 1 — Quantum Kernel -->
   <div class="layer l1">
@@ -233,7 +233,7 @@
 
 <footer>
   <em>Layer 3 is the IS contribution</em> — hardware-agnostic orchestration over Layers 1 &amp; 2<br>
-  Layer 2 is forward-compatible with both IBM-native and Nvidia-substrate execution paths (§1.4.1, §06.ii)<br>
+  Layer 2 as drawn lists the components Phase 3 actually exercises; the substrate is additionally designed to be forward-compatible with the Nvidia execution path (CUDA-Q), which Phase 3 does not exercise (§1.4.1, §06.ii, §08)<br>
   SOLANGE™
 </footer>
 
