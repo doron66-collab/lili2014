@@ -203,6 +203,21 @@ def _make_expansion_config(gene: str, gm: dict) -> dict:
     }
 
 
+# Structurally excluded expansion-gene LOF targets — the frontend already refuses
+# to dispatch these (Assignment10_Prototype.html's STRUCTURALLY_UNRESOLVED), but that
+# is a client-side gate only. Without a matching server-side refusal, a direct API call
+# bypassing the UI reaches _make_expansion_config(), which computes bqp_class from
+# full_electrons via a >=30e heuristic — for CDKN2A_LOF that meant fabricating a
+# "Class B" verdict from a full_electrons figure (20e) that was itself fabricated: the
+# gene's demonstrated NGS finding is a homozygous deletion, not a point mutation, so no
+# active space exists to size in the first place. Found 2026-08-23 while correcting the
+# same fabricated figure in targets.json.
+_EXPANSION_GENE_STRUCTURALLY_UNRESOLVED = {
+    "CDKN2A": "homozygous deletion, not a point mutation — no residue to anchor an "
+              "active space to (matches STRUCTURALLY_UNRESOLVED['CDKN2A_LOF'] in the UI)",
+}
+
+
 def _resolve_config(mutation_id: str) -> dict | None:
     """Return a MUTATION_CONFIGS entry, or build one for an expansion {GENE}_LOF target."""
     cfg = MUTATION_CONFIGS.get(mutation_id)
@@ -210,6 +225,8 @@ def _resolve_config(mutation_id: str) -> dict | None:
         return cfg
     if mutation_id.endswith("_LOF"):
         gene = mutation_id[:-4]
+        if gene in _EXPANSION_GENE_STRUCTURALLY_UNRESOLVED:
+            return None
         gm   = _EXPANSION_GENE_CONFIGS.get(gene)
         if gm:
             return _make_expansion_config(gene, gm)
