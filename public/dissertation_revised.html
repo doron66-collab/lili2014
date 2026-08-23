@@ -1305,7 +1305,7 @@
 
         <a href="#appendix-a" class="toc-entry toc-major">
           <span class="toc-num">App. A</span>
-          <span class="toc-title">Complete Glossary (77 entries)</span>
+          <span class="toc-title">Complete Glossary (95 entries)</span>
         </a>
       </div>
     </section>
@@ -1317,7 +1317,7 @@
 
       <p><em>A reader's guide to the eighteen terms that recur most often across this proposal.</em></p>
 
-      <p>This dissertation sits at the intersection of information systems, quantum computing, computational chemistry, and FDA regulatory science. Each of these fields contributes vocabulary that is unfamiliar to readers from the others. The eighteen terms below are the minimum set required to follow the argument from the Problem Statement through the Methodology section without consulting external references. A complete glossary of seventy-seven terms appears as <a href="#appendix-a">Appendix A</a>.</p>
+      <p>This dissertation sits at the intersection of information systems, quantum computing, computational chemistry, and FDA regulatory science. Each of these fields contributes vocabulary that is unfamiliar to readers from the others. The eighteen terms below are the minimum set required to follow the argument from the Problem Statement through the Methodology section without consulting external references. A complete glossary of ninety-five terms appears as <a href="#appendix-a">Appendix A</a>.</p>
 
       <p><em>Terms are listed alphabetically. Where a term has both a formal definition and a specific role in this dissertation, the role is given priority — readers seeking deeper coverage are referred to <a href="#appendix-a">Appendix A</a>.</em></p>
 
@@ -1354,7 +1354,7 @@
             <tr>
               <td><strong>FDA</strong></td>
               <td><em>U.S. Food and Drug Administration</em></td>
-              <td>The federal agency regulating pharmaceuticals and clinical research in the United States. The dissertation's Layer 5 contribution operates within FDA's 21 CFR Part 11 framework — designing audit-trail architecture for probabilistic quantum simulation outputs.</td>
+              <td>The federal agency regulating pharmaceuticals and clinical research in the United States. The dissertation's Layer 3 contribution operates within FDA's 21 CFR Part 11 framework — designing audit-trail architecture for probabilistic quantum simulation outputs.</td>
             </tr>
             <tr>
               <td><strong>HPC</strong></td>
@@ -1384,7 +1384,7 @@
             <tr>
               <td><strong>Part 11</strong></td>
               <td><em>21 CFR Part 11 (FDA Electronic Records &amp; Signatures)</em></td>
-              <td>The federal regulation governing electronic records and signatures in FDA-regulated contexts. The dissertation's Layer 5 / §06.iii contribution: the first systematic framework applying Part 11 to probabilistic quantum-computed binding data. Part 11 (records) is in scope; Part 312 (IND submission) is explicitly out of scope.</td>
+              <td>The federal regulation governing electronic records and signatures in FDA-regulated contexts. The dissertation's Layer 3 / §06.iii contribution: the first systematic framework applying Part 11 to probabilistic quantum-computed binding data. Part 11 (records) is in scope; Part 312 (IND submission) is explicitly out of scope.</td>
             </tr>
             <tr>
               <td><strong>QC</strong></td>
@@ -1425,7 +1425,7 @@
         </table>
       </div>
 
-      <p><em>See also: <a href="#appendix-a">Appendix A — Complete Glossary</a> (seventy-seven entries) for full coverage of acronyms, methods, and technical terms appearing throughout the dissertation, prototype, and supporting artifacts.</em></p>
+      <p><em>See also: <a href="#appendix-a">Appendix A — Complete Glossary</a> (ninety-five entries) for full coverage of acronyms, methods, and technical terms appearing throughout the dissertation, prototype, and supporting artifacts.</em></p>
     </section>
 
     <div class="ornament">
@@ -1660,7 +1660,7 @@
 
       <figure class="diss-figure">
         <img src="figures/solange_eligibility_flow.svg" alt="Flowchart of six sequential gates a candidate mutation must clear to become SOLANGE-eligible: mutation type, PDB residue coverage, the classical-tractability wall, existing druggability, measured entanglement class, and current hardware reach." style="max-width:640px;">
-        <figcaption><strong>Figure 1.2 — How a mutation earns entry into Table 1b.</strong> Six sequential gates, applied in this order to every candidate: (1) is it a point/missense mutation, not a truncating event with no single anchor residue; (2) does a cited PDB structure actually resolve that residue, checked against the structure's own deposited range rather than trusted by citation alone; (3) a measurement step — the real active space is built (AVAS) rather than assumed from a round-number estimate; (4) is the active-electron count past the ~18e exact-classical wall; (5) is the mutant already druggable by conventional means, independent of computational hardness; (6) a second measurement step — S_max is measured via a real DMRG bond-dimension ladder, not carried as an unmeasured size prior, before the resulting Class A/B verdict is trusted; and a final check of whether the qubit footprint fits current-generation hardware or is a statement about the 2030s. Each exit branch is annotated with a real case that took it, found during this dissertation's own structural coverage audit — not a hypothetical failure mode.</figcaption>
+        <figcaption><strong>Figure 1.2 — How a mutation earns entry into Table 1b.</strong> Six sequential gates, applied in this order to every candidate: (1) is it a point/missense mutation, not a truncating event with no single anchor residue; (2) does a cited PDB structure actually resolve that residue, checked against the structure's own deposited range rather than trusted by citation alone; (3) a measurement step — the real active space is built (AVAS) rather than assumed from a round-number estimate; (4) is the active-electron count past the ~18e exact-classical wall; (5) is the mutant already druggable by conventional means, independent of computational hardness; (6) a second measurement step — S_max and DMRG convergence at practical bond dimension are both measured via a real bond-dimension ladder, not carried as an unmeasured size prior, before the resulting Class A/B verdict is trusted (Class A follows from either S_max exceeding the threshold or the energy failing to converge, not from S_max alone); and a final check of whether the qubit footprint fits current-generation hardware or is a statement about the 2030s. Each exit branch is annotated with a real case that took it, found during this dissertation's own structural coverage audit — not a hypothetical failure mode.</figcaption>
       </figure>
 
       <h4>Table 1b — SOLANGE-Eligible Point Mutations, Extended Audit</h4>
@@ -1996,7 +1996,7 @@
             • Active-space selection — AVAS (PySCF), RDKit-built fragments from real PDB coords
           </text>
           <text x="40" y="376" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
-            • Classical-tractability classifier — block2 DMRG, ΔE &lt; 1.6 mHa convergence
+            • Classical-tractability classifier — block2 DMRG, S_max ≤1.5 &amp; ΔE &lt; 1.6 mHa convergence
           </text>
           <text x="40" y="400" style="font: 400 13px 'Inter Tight', sans-serif; fill:#1a2028;">
             • Quantum execution — PennyLane VQE (3A) · IBM Heron r3 (3B)
@@ -2408,7 +2408,7 @@
             <h3 id="sec-6-i">BQP-Relevant Classification Framework for Non-druggable Tumor Suppressor Targets</h3>
             <p>The first published analysis (as of June 2026) establishing TP53 C275F as a BQP-relevant problem in the context of oncology drug discovery — under the standard complexity-theoretic framing of quantum chemistry (Abrams &amp; Lloyd, 1999; Aspuru-Guzik et al., 2005). The framework defines the active-space boundary (18–48 active electrons measured for the anchor target, depending on orbital criterion) beyond which the best known classical methods do not achieve the required chemical accuracy within tractable resources, and at which a known BQP-class quantum algorithm provides polynomial-time tractability. The framework is dual-conditional: classical intractability <em>in practice</em> plus BQP-class quantum tractability <em>in principle</em>. It does <em>not</em> claim BQP-hardness or a formal classical-vs-quantum separation, both of which remain open in general; it claims a defensible operational regime under which quantum-derived molecular evidence is the appropriate target of an orchestration architecture. The framework is explicitly conditional on the current state of classical methods (DMRG, neural quantum states, tensor networks) and revisable as those methods advance — providing a reusable classification template applicable to other non-druggable mutation targets. Operationally, the template sorts targets into three classes — the same classification the SOLANGE system applies in its live <em>Non-Druggable Target Registry</em>, where every mutation ingested from an NGS report is mapped and prioritized on arrival. The rule reads <em>two</em> measured quantities: the number of active electrons at the target’s site, and the maximum bipartite entanglement entropy S<sub>max</sub> measured over that site. At or below 18 active electrons the target is <strong>Class C</strong> whatever its entanglement, and entanglement is not consulted at all — exact diagonalisation builds the full configuration space and its cost depends only on how many configurations there are, so below that wall no degree of entanglement makes a target hard. Above 18 active electrons the entanglement decides: S<sub>max</sub> at or below the threshold is <strong>Class B (quantum-advantaged)</strong>, where classical tensor-network methods still converge and quantum simulation offers an advantage rather than a necessity, and S<sub>max</sub> above it is <strong>Class A (quantum-necessary)</strong>, where the bond dimension required outruns what any classical method delivers. The classification is thus a routing and prioritization policy — Class A and B enter the quantum queue; Class C is filtered out.</p>
 
-            <p><strong>A class follows only from measurement.</strong> Electron count is known for every target from its structure; S<sub>max</sub> requires a run covering at least 90% of the active site, the Gateway’s scope gate (&sect;06.ii). Where that run does not exist, no class is asserted: the entry carries the expected class as a <em>prior</em>, together with a note naming the measurement that would settle it. A prior is a hypothesis on the record, not a result. Electron count may motivate a prior; it cannot discharge one. Four STK11 entries are so marked, their Class A resting on the size of the site rather than on any entanglement measurement, and C275F’s Class B is likewise a prior until its site is measured at full coverage.</p>
+            <p><strong>A class follows only from measurement.</strong> Electron count is known for every target from its structure; S<sub>max</sub> requires a run covering at least 90% of the active site, the Gateway’s scope gate (&sect;06.ii). Where that run does not exist, no class is asserted: the entry carries the expected class as a <em>prior</em>, together with a note naming the measurement that would settle it. A prior is a hypothesis on the record, not a result. Electron count may motivate a prior; it cannot discharge one. Three STK11 entries are so marked (the gene-level entry, LKB1, and F354L), their Class A resting on the size of the site rather than on any entanglement measurement — D194N was one such prior until its own DMRG run settled it as measured Class B (S<sub>max</sub> = 0.82) — and C275F’s Class B is likewise a prior until its site is measured at full coverage.</p>
 
             <p><em><strong>Note — why two quantities rather than one.</strong> The cost of the tensor-network methods that define the classical frontier factorises into two independent terms: an exponential in the entanglement, e<sup>3·S</sup>, which contains no system size at all, multiplied by a polynomial in the orbital count, which contains no entanglement at all. Neither term settles tractability alone. A small but strongly entangled system stays cheap because the polynomial term is small — stretched N&#8322; carries S<sub>max</sub> = 2.86, far above the threshold, and solves in seconds. A large but weakly entangled one can be costly and still classically solvable, as DMRG at CAS(113,76) demonstrated for FeMoco. Only when both terms are large does the classical path close, which is why the classification reads both axes. The 18-electron boundary is the point past which exact diagonalisation becomes combinatorially impractical; the entanglement threshold is calibrated against N&#8322; at equilibrium (S<sub>max</sub> = 0.42) and stretched (S<sub>max</sub> = 2.86), and is a policy of this pipeline rather than a constant of nature — it marks where <em>this</em> pipeline’s committed bond dimension runs out, not where the method itself stops.</em> Under this template C275F is Class B: it sits in the empirically quantum-advantaged regime defined by the current state of both classical and quantum methods circa 2026. <em>This is a theoretical IT contribution; it does not require hardware execution to be valid.</em></p>
 
@@ -3471,7 +3471,7 @@
             <tr>
               <td><strong>CSA</strong></td>
               <td><em>Computer Software Assurance</em></td>
-              <td>FDA guidance (finalized September 2025) requiring risk-based validation of software used in regulated contexts. The dissertation's Layer 5 framework maps each pipeline component (Qiskit compiler, SqDRIFT sampler, AI scoring module, uncertainty quantifier) to CSA-compliant validation documentation.</td>
+              <td>FDA guidance (finalized September 2025) requiring risk-based validation of software used in regulated contexts. The dissertation's Layer 3 framework maps each pipeline component (Qiskit compiler, SqDRIFT sampler, AI scoring module, uncertainty quantifier) to CSA-compliant validation documentation.</td>
             </tr>
             <tr>
               <td><strong>CUDA-Q</strong></td>
@@ -3531,12 +3531,12 @@
             <tr>
               <td><strong>FDA</strong></td>
               <td><em>U.S. Food and Drug Administration</em></td>
-              <td>The federal agency regulating pharmaceuticals, medical devices, and clinical research in the United States. This dissertation's Layer 5 contribution operates within FDA's 21 CFR Part 11 framework (electronic records and signatures) - designing audit-trail architecture for probabilistic quantum simulation outputs.</td>
+              <td>The federal agency regulating pharmaceuticals, medical devices, and clinical research in the United States. This dissertation's Layer 3 contribution operates within FDA's 21 CFR Part 11 framework (electronic records and signatures) - designing audit-trail architecture for probabilistic quantum simulation outputs.</td>
             </tr>
             <tr>
               <td><strong>FEP+</strong></td>
               <td><em>Free Energy Perturbation Plus (Schrödinger's commercial implementation)</em></td>
-              <td>A leading classical method for computing protein-ligand binding affinities. Cited in Layer 3 (benchmarking) as the industrial classical baseline against which quantum methods must be compared in terms of wall-clock time, accuracy, and active-space coverage.</td>
+              <td>A leading classical method for computing protein-ligand binding affinities. Cited in the DSR evaluation's Layer 2 (comparative benchmarking, §05) as the industrial classical baseline against which quantum methods must be compared in terms of wall-clock time, accuracy, and active-space coverage.</td>
             </tr>
             <tr>
               <td><strong>GARD</strong></td>
@@ -3681,7 +3681,7 @@
             <tr>
               <td><strong>Part 11</strong></td>
               <td><em>21 CFR Part 11 (FDA Electronic Records & Signatures rule)</em></td>
-              <td>The federal regulation governing electronic records and signatures in FDA-regulated contexts. The dissertation's Layer 5 / §06.iii contribution: the first systematic framework applying Part 11 to probabilistic quantum-computed binding data. Part 11 (records) is in scope; Part 312 (IND submission) is explicitly out of scope.</td>
+              <td>The federal regulation governing electronic records and signatures in FDA-regulated contexts. The dissertation's Layer 3 / §06.iii contribution: the first systematic framework applying Part 11 to probabilistic quantum-computed binding data. Part 11 (records) is in scope; Part 312 (IND submission) is explicitly out of scope.</td>
             </tr>
             <tr>
               <td><strong>Part 312</strong></td>
