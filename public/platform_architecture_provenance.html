@@ -237,12 +237,12 @@
     align-items: start;
   }
   .seal-card {
-    border: 1.5px solid var(--p8-bd);
-    background: var(--p8-bg);
+    border: 1.5px solid rgba(255,255,255,.35);
+    background: rgba(255,255,255,.045);
     border-radius: 10px;
     padding: 16px 18px;
   }
-  .seal-id  { font-size: 13px; font-weight: 700; color: var(--p8-clr); margin-bottom: 4px; }
+  .seal-id  { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
   .seal-sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
   .hash-chain { font-size: 10.5px; color: var(--muted); margin-bottom: 10px; }
   .hash-chain span { color: #7ab4f5; }
@@ -250,9 +250,9 @@
   .seal-pill {
     font-size: 10px; font-weight: 600;
     padding: 3px 10px; border-radius: 20px;
-    border: 1px solid var(--p8-bd);
-    color: var(--p8-clr);
-    background: rgba(26,122,74,.08);
+    border: 1px solid rgba(255,255,255,.30);
+    color: var(--text);
+    background: rgba(255,255,255,.06);
   }
 
   footer {
@@ -641,7 +641,7 @@
 <!-- ── P8 seal summary ── -->
 <div class="seal-wrap">
   <div class="seal-card">
-    <div class="seal-id"><span style="color:var(--text)">LEON™</span> — P8 Cryptographic Seal (SHA-256)</div>
+    <div class="seal-id">LEON™ — P8 Cryptographic Seal (SHA-256)</div>
     <div class="seal-sub">Lineage-Evidence Orchestration &amp; Notarization · tamper-evident record binding all provenance elements · FDA 21 CFR §11.10(e) audit trail-aligned</div>
     <div class="hash-chain">
       hash chain: <span>P1</span> → <span>P2</span> → <span>P3</span> → <span>P4</span> →
