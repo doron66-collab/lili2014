@@ -80,7 +80,7 @@ branch `claude/code-access-clarification-ab1W8`, deploys from `main`).
 | # | Artifact | Location | Type | Notes |
 |---|---|---|---|---|
 | I1 | **Committee review** | uploaded (not committed) | Word | Prof. Shabtai committee-review doc; drove the 8 dissertation fixes. |
-| I2 | **BLAIS 2026 proposal** | — | — | 100-word summary locked; 1,500-word section in progress. Deadline Aug 15, 2026. |
+| I2 | **BLAIS 2026 proposal** | `docs/blais_2026/` | PDF ×3 | **Submitted** Aug 2026 (PI: Prof. Itamar Shabtai). Proposal, 100-word abstract, budget — the as-submitted copies. |
 | I3 | **Deployed site** | `https://solange-platform.bio` | Live URL | Netlify. Guest: guest@solange.bio / Solange2026. |
 
 ---
