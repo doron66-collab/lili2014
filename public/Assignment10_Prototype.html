@@ -3684,7 +3684,6 @@ window.solangeMutationType = function(mutation) {
 // the basis label, and a human-readable note.
 window.solangeClassScope = function(gene, mutation, gm) {
   const mutType = window.solangeMutationType(mutation);
-  const sizeCls = gm.active_electrons >= 30 ? 'A' : 'B';
   // Both notations, computed once: the NGS report and UI use p.Cys275Phe, the tables
   // use C275F, and every match below has to see through that difference.
   const raw   = String(mutation || '').toUpperCase();
@@ -3715,9 +3714,15 @@ window.solangeClassScope = function(gene, mutation, gm) {
                  + 'classification of its own, and a size proxy would not be one.' };
   }
 
+  // No curated classification for this gene, and no DMRG measurement exists either.
+  // Previously fell back to a raw >=30e size proxy here, indistinguishable on screen
+  // from a real class — the same heuristic retired server-side in
+  // backend/routes/simulate.py's _make_expansion_config (2026-08-30). An unmeasured
+  // gene must come back unclassified, never a size guess wearing a class label.
   if (!gm.bqp_class) {
-    return { cls: sizeCls, basis: 'heuristic', mutType,
-             note: 'No curated classification for this gene; class shown is the raw '
+    return { cls: null, basis: 'heuristic', mutType,
+             note: 'No curated classification for this gene, and no DMRG measurement '
+                 + 'exists — left unclassified rather than guessed from the raw '
                  + '≥ 30e size proxy, which has no chemistry behind it.' };
   }
 
@@ -4564,13 +4569,14 @@ function loadNGSReport(ngs) {
     // Honest about WHICH estimate this is until a real DMRG run for this exact
     // mutation notarizes a class (solangeReconcileDmrgClasses swaps this label +
     // badge to "✓ DMRG-confirmed"): 'literature' = reasoned from known active-
-    // site chemistry (still not computed); 'heuristic' = raw >=30e size guess,
-    // no chemistry behind it — should be trusted the least of the three.
+    // site chemistry (still not computed); 'heuristic' = no curated class and no
+    // measurement — retired 2026-08-30 as a raw >=30e size guess, now left null.
     const sourceLabel =
         av.bqpBasis === 'literature'   ? 'literature estimate · scope checked'
       : av.bqpBasis === 'undocumented' ? '<span style="color:var(--gold)">curated class · scope undocumented</span>'
       : av.bqpBasis === 'out_of_scope' ? '<span style="color:var(--gold)">gene class does not cover this mutation</span>'
       : av.bqpBasis === 'borderline'   ? '<span style="color:var(--gold)">straddles the classical wall — needs DMRG</span>'
+      : av.bqpBasis === 'heuristic'    ? 'no measurement — not classified'
       : 'size heuristic · uncurated';
     const bqpSourceNote = `<span id="bqp-source-${av.simId}" style="display:block;font-size:8px;color:var(--gray);margin-top:2px">${sourceLabel}</span>`
       // Filled in by solangeRenderCorrelation once the stored reference set has
