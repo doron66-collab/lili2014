@@ -179,7 +179,13 @@ def _make_expansion_config(gene: str, gm: dict) -> dict:
     """
     fe  = gm["full_electrons"]
     fq  = gm["full_qubits"]
-    bqp = "A" if fe >= 30 else "B"
+    # No DMRG measurement exists for these expansion-gene LOF targets — a size
+    # heuristic (fe >= 30) previously stood in for a real classification here,
+    # producing a bqp_class indistinguishable downstream from a measured one
+    # (including in the LEON P8 seal). Per project policy (an unlisted variant
+    # must come back not classified, never a size proxy — see U2AF1_S34F),
+    # this is left unclassified until a real DMRG run exists.
+    bqp = None
     era = "current" if fq <= 94 else "fault_tolerant"
     return {
         "name": f"{gene} Loss-of-Function",
