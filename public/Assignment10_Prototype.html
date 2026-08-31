@@ -1092,6 +1092,8 @@
       <span style="display:flex;gap:6px">
         <button onclick="window.solangeLoadShci && window.solangeLoadShci()" title="Reload from SOLANGE"
           style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+        <button onclick="exportShciCsv()" title="Download all SHCI classifications as CSV (opens in Excel/Sheets)"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         <button id="del-shci-btn" onclick="deleteSelectedShci(this)" disabled title="Check one or more SHCI rows, then click to delete only those."
           style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected SHCI (0)</button>
       </span>
@@ -5585,6 +5587,25 @@ function exportQpuCsv() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'solange_qpu_runs.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Export ALL SHCI classifications as CSV (flat, opens in Excel/Sheets). Mirrors
+// exportDmrgCsv — same provenance-header pattern, own column set.
+function exportShciCsv() {
+  const rows = window.__shciRows || [];
+  if (!rows.length) { alert('No SHCI classifications to export.'); return; }
+  const cols = ['key','nelec','ncas','e_shci','bqp_class','class_rationale','dmrg_classification_id','e_dmrg_ref','delta_mha','agreement','method','shci_hash','created_at'];
+  const head = ['target','active_electrons','active_orbitals','e_shci_ha','class','rationale','dmrg_record_id','e_dmrg_ref_ha','delta_mha','agreement','method','leon_seal','created_at'];
+  const esc = v => { v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const body = rows.map(r => cols.map(c => esc(r[c])).join(','));
+  const csv = solangeCsvProvenanceHeader('Rung 3 — SHCI classifications (independent + optional DMRG cross-validation)')
+            + head.join(',') + '\n' + body.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'solange_shci_classifications.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
