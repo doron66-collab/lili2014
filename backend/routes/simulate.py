@@ -1349,6 +1349,204 @@ async def delete_selected_dmrg(payload: dict = Body(...),
         raise HTTPException(status_code=500, detail=f"delete failed: {e}")
 
 
+# ── SHCI cross-validation ingestion ────────────────────────────────────────────
+# DMRG's own Class A verdict is DMRG-specific evidence, not a cross-method
+# exclusion (solange_dmrg.py's own comment above classify()) — a single method's
+# non-convergence proves that method struggles, not that classical computation as
+# a whole fails. This table closes that gap with a second, independent solver
+# (SHCI, via the Dice implementation: a determinant-sparsity method, not DMRG's
+# bond-dimension-across-a-1D-chain one — see solange_shci.py). Sealed and
+# notarized the same way as a DMRG classification (LEON's generic seal path).
+#
+# DP1 ("verify, don't trust") applies here specifically to the agreement verdict
+# itself: delta_mha/agreement are computed SERVER-SIDE from the referenced DMRG
+# record's own stored energy, never taken from the submitting script's claim —
+# a compromised or buggy client could otherwise assert "agrees" over a real
+# disagreement with no way for a reader to catch it.
+#
+# One-time migration (Supabase SQL editor), before the first --submit:
+#   create table if not exists public.shci_crossvalidations (
+#     id uuid primary key,
+#     created_at timestamptz not null default now(),
+#     key text, dmrg_classification_id uuid,
+#     ncas int, nelec int, e_shci numeric,
+#     sweep_eps text, method text, elapsed_s numeric,
+#     provenance_source text, hardware text,
+#     e_dmrg_ref numeric, delta_mha numeric, agreement boolean,
+#     shci_seal_payload text, shci_hash text
+#   );
+_SHCI_DB_COLUMNS = frozenset({
+    "id", "created_at", "key", "dmrg_classification_id", "ncas", "nelec",
+    "e_shci", "sweep_eps", "method", "elapsed_s", "provenance_source",
+    "hardware", "e_dmrg_ref", "delta_mha", "agreement",
+    "shci_seal_payload", "shci_hash",
+})
+_SHCI_CHEM_ACC_MHA = 1.6  # same bar solange_dmrg.py's classify() uses
+
+
+@router.post("/hpc/shci/submit")
+async def submit_shci_crossvalidation(payload: dict = Body(...)):
+    """Ingest an SHCI cross-validation run from solange_shci.py --submit.
+
+    Requires dmrg_classification_id, naming the DMRG record this run validates —
+    a cross-validation with nothing to cross-validate against is not one. LEON
+    re-verifies the seal the script computed at source before the record is
+    trusted; a mismatch is REJECTED (422), never stored. The agreement verdict
+    is computed here, against the DMRG record's own stored energy, not accepted
+    from the submitting script (see module note above).
+    """
+    if not payload.get("shci_hash"):
+        raise HTTPException(400, "missing shci_hash — record was not sealed at source")
+    dmrg_id = payload.get("dmrg_classification_id")
+    if not dmrg_id:
+        raise HTTPException(400, "missing dmrg_classification_id — nothing to cross-validate against")
+
+    record = dict(payload)
+    record.setdefault("id", str(uuid.uuid4()))
+    record["provenance_source"] = record.get("provenance_source", "HPC/external (SHCI)")
+
+    verdict = leon.notarize_generic(record, hash_field="shci_hash", exclude={"shci_seal_payload"})
+    sb = get_supabase()
+    actor = record.get("provenance_source")
+    if not verdict["ok"]:
+        leon.write_audit(sb, "reject", record["id"], verdict, actor=actor,
+                         note="SHCI record seal mismatch — rejected at ingestion")
+        raise HTTPException(
+            422, f"LEON: SHCI seal verification FAILED — recomputed "
+                 f"{verdict['recomputed_hash'][:16]}… != submitted "
+                 f"{str(verdict['submitted_hash'])[:16]}…; record rejected")
+
+    if not sb:
+        return {"status": "PASSED", "verified": True, "notary": "LEON",
+                "seal_ok": verdict["seal_ok"], "run_id": record["id"],
+                "db_status": "not_configured"}
+
+    dmrg_row = (sb.table("dmrg_classifications").select("nelecas, ncas, dmrg_energies, key")
+                  .eq("id", str(dmrg_id)).execute())
+    if not dmrg_row.data:
+        leon.write_audit(sb, "reject", record["id"], verdict, actor=actor,
+                         note=f"SHCI submit referenced unknown dmrg_classification_id={dmrg_id}")
+        raise HTTPException(404, f"dmrg_classification_id {dmrg_id} not found — cannot cross-validate "
+                                  f"against a record that does not exist")
+    dmrg_rec = dmrg_row.data[0]
+    dmrg_energies = dmrg_rec.get("dmrg_energies") or []
+    if not dmrg_energies:
+        raise HTTPException(409, f"DMRG record {dmrg_id} has no dmrg_energies to compare against")
+    e_dmrg_ref = dmrg_energies[-1][1]
+    record["e_dmrg_ref"] = e_dmrg_ref
+    record["delta_mha"] = round(abs(record.get("e_shci", 0.0) - e_dmrg_ref) * 1000.0, 4)
+    record["agreement"] = record["delta_mha"] <= _SHCI_CHEM_ACC_MHA
+    # Scope check mirrors the DMRG-record's own scope discipline (§06.i): a
+    # cross-validation is only meaningful over the SAME active space, not a
+    # fragment or a superset of it.
+    if dmrg_rec.get("ncas") != record.get("ncas") or dmrg_rec.get("nelecas") != record.get("nelec"):
+        raise HTTPException(409, f"active-space mismatch — DMRG record {dmrg_id} is "
+                                  f"CAS({dmrg_rec.get('nelecas')},{dmrg_rec.get('ncas')}), "
+                                  f"this SHCI run is CAS({record.get('nelec')},{record.get('ncas')}); "
+                                  f"a cross-validation must use the identical active space")
+    record["key"] = record.get("key") or dmrg_rec.get("key")
+
+    safe = {k: v for k, v in record.items() if k in _SHCI_DB_COLUMNS}
+    db_status = "not_configured"
+    try:
+        sb.table("shci_crossvalidations").insert(safe).execute()
+        db_status = "stored"
+    except Exception as e:
+        db_status = "error"
+        logging.error("SHCI cross-validation insert failed: %s", e)
+
+    logging.info("LEON notarized SHCI cross-validation %s (%s) — delta=%.4f mHa agreement=%s db=%s",
+                 record["id"], record.get("key"), record["delta_mha"], record["agreement"], db_status)
+    leon.write_audit(sb, "notarize", record["id"],
+                     {**verdict, "integrity": "PASS", "method": "generic-ingestion"},
+                     actor=actor,
+                     note=f"SHCI vs DMRG {dmrg_id}: delta={record['delta_mha']} mHa "
+                          f"agreement={record['agreement']} (db={db_status})")
+
+    return {
+        "status": "PASSED", "verified": True, "notary": "LEON",
+        "seal_ok": verdict["seal_ok"], "run_id": record["id"], "db_status": db_status,
+        "delta_mha": record["delta_mha"], "agreement": record["agreement"],
+    }
+
+
+@router.get("/hpc/shci/list")
+async def list_shci_crossvalidations(limit: int = 50):
+    """List LEON-notarized SHCI cross-validations for the dashboard."""
+    sb = get_supabase()
+    if not sb:
+        return {"crossvalidations": [], "db": "not_configured"}
+    try:
+        res = (sb.table("shci_crossvalidations")
+                 .select("id, created_at, key, dmrg_classification_id, ncas, nelec, "
+                         "e_shci, e_dmrg_ref, delta_mha, agreement, sweep_eps, method, "
+                         "elapsed_s, provenance_source, hardware, shci_hash")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"crossvalidations": res.data or []}
+    except Exception as e:
+        msg = str(e)
+        if "does not exist" in msg.lower():
+            msg += (" — hint: the shci_crossvalidations table has not been created yet; "
+                    "see the migration comment above submit_shci_crossvalidation()")
+        return {"crossvalidations": [], "error": msg}
+
+
+@router.get("/hpc/shci/{cv_id}/verify")
+async def verify_shci_seal(cv_id: str):
+    """Re-verify an SHCI cross-validation's seal on demand — same pattern as
+    /hpc/dmrg/{id}/verify. Re-checks the cryptographic seal only; it does not
+    re-derive delta_mha/agreement, which were computed once at ingestion against
+    the DMRG record as it stood then (§DP1 note above submit_shci_crossvalidation)."""
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(status_code=503, detail="database not configured")
+    res = (sb.table("shci_crossvalidations").select("*").eq("id", cv_id).execute())
+    if not res.data:
+        raise HTTPException(status_code=404, detail=f"SHCI cross-validation {cv_id} not found")
+    record = res.data[0]
+    stored = record.get("shci_hash", "")
+    payload = record.get("shci_seal_payload")
+    if payload:
+        recomputed = hashlib.sha256(payload.encode()).hexdigest()
+        integrity = "PASS" if recomputed == stored else "FAIL"
+    else:
+        recomputed = leon.build_generic_seal(
+            record, exclude={"id", "created_at", "shci_hash", "shci_seal_payload"})
+        integrity = "PASS" if recomputed == stored else "LEGACY-UNVERIFIABLE"
+    verdict = {"integrity": integrity, "notary": leon.NAME,
+               "stored_hash": stored, "recomputed_hash": recomputed, "algorithm": "SHA-256"}
+    leon.write_audit(sb, "reverify", cv_id, verdict, actor=record.get("provenance_source"))
+    return {"run_id": cv_id, **verdict}
+
+
+@router.post("/hpc/shci/delete")
+async def delete_selected_shci(payload: dict = Body(...),
+                               authorization: str | None = Header(None)):
+    """Delete specific SHCI cross-validations by id. Requires auth — mirrors
+    /hpc/dmrg/delete exactly; SHCI is classical and costs no quantum time."""
+    _uid_from_auth(authorization)
+    ids = (payload or {}).get("ids") or []
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(status_code=400, detail="body must include a non-empty 'ids' list")
+    sb = get_supabase()
+    if not sb:
+        return {"deleted": 0, "db": "not_configured"}
+    try:
+        str_ids = [str(i) for i in ids]
+        rows = (sb.table("shci_crossvalidations").select("id")
+                  .in_("id", str_ids).execute())
+        found = [r["id"] for r in (rows.data or [])]
+        if not found:
+            return {"deleted": 0, "status": "deleted", "requested": len(ids),
+                    "note": "no matching SHCI rows for the given ids"}
+        res = sb.table("shci_crossvalidations").delete().in_("id", found).execute()
+        n = len(res.data) if getattr(res, "data", None) else len(found)
+        return {"deleted": n, "status": "deleted", "requested": len(ids)}
+    except Exception as e:
+        logging.error("SHCI delete failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"delete failed: {e}")
+
+
 # NOTE: must stay ABOVE the "/{mutation_id}" catch-all below — FastAPI matches
 # routes in declaration order, so a literal path declared after it would be
 # swallowed as a mutation id (and would trigger a full VQE run, which this is

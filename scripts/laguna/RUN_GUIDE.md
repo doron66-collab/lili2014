@@ -110,6 +110,40 @@ setup needed. On success: `db=stored` → row in **Rung 3**, notarized by LEON.
   bash scripts/laguna/run_dmrg.sh --key <KEY> --geometry site.xyz --avas "Zn 3d,S 3p" --submit
   ```
 
+### 2c. SHCI cross-validation — a second, independent classical method (Rung 3)
+
+One-time: create the table (Supabase SQL editor) before the first submit —
+
+```sql
+create table if not exists public.shci_crossvalidations (
+  id uuid primary key,
+  created_at timestamptz not null default now(),
+  key text, dmrg_classification_id uuid,
+  ncas int, nelec int, e_shci numeric,
+  sweep_eps text, method text, elapsed_s numeric,
+  provenance_source text, hardware text,
+  e_dmrg_ref numeric, delta_mha numeric, agreement boolean,
+  shci_seal_payload text, shci_hash text
+);
+```
+
+Needs a Dice build (see the SHCI/Dice build notes — Boost/Eigen/HDF5 modules,
+`make -j4 Dice EIGEN=... HDF5=... BOOST=...`) and the DMRG classification's own
+`id` from its `/hpc/dmrg/submit` response — a cross-validation with nothing to
+validate against is refused by the backend (400):
+
+```bash
+python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
+  --charge <SAME> --spin <SAME> --basis <SAME> --avas "<SAME AVAS as the DMRG run>" \
+  --key <KEY> --dmrg-classification-id <uuid-from-dmrg-submit> \
+  --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
+```
+
+The backend computes `delta_mha`/`agreement` itself from the referenced DMRG
+record's own stored energy at ingestion — never from this script's own claim
+(DP1, verify-don't-trust) — and refuses (409) if the active space doesn't match
+the DMRG record's exactly, or if that record doesn't exist (404).
+
 ---
 
 ## 3. Quantum runs — Rung 4 (real IBM hardware)
@@ -220,6 +254,11 @@ bash scripts/laguna/make_row.sh                     # or run directly
 
 # DMRG (Rung 3)
 bash scripts/laguna/run_dmrg.sh --key <KEY> --side native --ncas 8 --nelecas 8 --bond-dims 250,500,1000,2000 --submit
+
+# SHCI cross-validation (Rung 3, second method) — needs the DMRG run's own id
+python3 scripts/laguna/solange_shci.py --geometry site.xyz --charge <SAME> --spin <SAME> \
+  --basis <SAME> --avas "<SAME as the DMRG run>" --key <KEY> \
+  --dmrg-classification-id <uuid-from-dmrg-submit> --dice-scripts ~/lili2014/Dice/scripts --submit
 
 # QPU (Rung 4) — --backend is any of: ibm_fez | ibm_marrakesh | ibm_kingston
 python scripts/laguna/solange_qpu.py --check-credentials

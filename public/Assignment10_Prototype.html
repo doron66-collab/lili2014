@@ -1082,6 +1082,18 @@
     </div>
     <div id="dmrg-queue-status" style="display:none;margin:6px 0 4px;font-size:11px;line-height:1.6"></div>
     <div id="dmrg-classifications" class="table-scroll" style="margin-top:6px"></div>
+
+    <!-- SHCI cross-validation — a second, independent classical method checked against
+         DMRG's own stored energy at the SAME active space (Dice, solange_shci.py). Not
+         its own rung: this is a check ON Rung 3, not a step beyond it. -->
+    <div style="margin-top:18px;padding-top:14px;border-top:1px dashed rgba(167,139,250,0.3)">
+    <div class="card-title" style="font-size:12px;display:flex;align-items:center;justify-content:space-between">
+      <span>SHCI Cross-Validation · Second-Method Check<span class="info-i" data-tip="DMRG's own Class A verdict is DMRG-specific evidence, not a cross-method exclusion — one method's non-convergence proves that method struggles, not that classical computation as a whole fails. SHCI (Selected CI, via Dice) runs the identical active-space Hamiltonian on a solver with a different failure mechanism (determinant sparsity, not DMRG's bond-dimension-across-a-chain). Agreement/disagreement is computed server-side against the DMRG record's own stored energy, never taken on the submitting script's word.">i</span></span>
+      <button onclick="window.solangeLoadShci && window.solangeLoadShci()" title="Reload from SOLANGE"
+        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+    </div>
+    <div id="shci-crossvalidations" class="table-scroll" style="margin-top:6px"></div>
+    </div>
     </div>
 
     <!-- ── RUNG 4 · Quantum hardware — the bottom of the ladder. Reached only when the
@@ -1802,6 +1814,55 @@
     };
     window.solangeLoadDmrg();
 
+    // ── SHCI cross-validation — read-only, LEON-notarized on submission ──
+    // Same paint-only-on-change pattern as dmrgPaint, for the same reason (avoid
+    // flicker while polling).
+    var shciBox = document.getElementById('shci-crossvalidations');
+    var shciPaint = function(html){
+      if (!shciBox) return;
+      if (shciBox.__lastHtml === html) return;
+      shciBox.__lastHtml = html; shciBox.innerHTML = html;
+    };
+    window.solangeLoadShci = function(silent){
+      if (!shciBox) return;
+      if (!silent) shciPaint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
+      fetch(API+'/api/simulate/hpc/shci/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.crossvalidations) || [];
+        if (!rows.length) {
+          shciPaint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+            'No SHCI cross-validations submitted yet. Runs from <code>solange_shci.py --submit</code> '+
+            'appear here automatically, each tagged against the DMRG record it validates.</div>');
+          return;
+        }
+        var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
+        var hh = '<table style="width:100%;min-width:920px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:100px">Target</th><th style="'+TH+';width:90px">CAS</th>'+
+          '<th style="'+TH+';width:130px">E(SHCI) Ha</th><th style="'+TH+';width:130px">E(DMRG ref) Ha</th>'+
+          '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:100px">Agreement</th>'+
+          '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th></tr>';
+        rows.forEach(function(x){
+          var cas = (x.nelec!=null && x.ncas!=null) ? ('CAS('+x.nelec+','+x.ncas+')') : '—';
+          var agree = x.agreement === true;
+          var agreeLabel = x.agreement == null ? '—' : (agree
+            ? '<span style="color:var(--green);font-weight:700">✓ agree</span>'
+            : '<span style="color:#f87171;font-weight:700">✗ DISAGREE</span>');
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
+                '<td style="'+C+'">'+cas+'</td>'+
+                '<td style="'+C+';font-family:monospace">'+(x.e_shci!=null?Number(x.e_shci).toFixed(8):'—')+'</td>'+
+                '<td style="'+C+';font-family:monospace;color:var(--gray)">'+(x.e_dmrg_ref!=null?Number(x.e_dmrg_ref).toFixed(8):'—')+'</td>'+
+                '<td style="'+C+'">'+(x.delta_mha!=null?Number(x.delta_mha).toFixed(3):'—')+'</td>'+
+                '<td style="'+C+'">'+agreeLabel+'</td>'+
+                '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
+                '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.shci_hash||'')+'">✓ '+(x.shci_hash?String(x.shci_hash).slice(0,16):'—')+'…</span></td></tr>';
+        });
+        shciPaint(hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Δ (mHa) and agreement are computed server-side against the referenced DMRG record\'s own stored energy at ingestion — never taken from the submitting script\'s own claim (DP1, verify-don\'t-trust). Agreement means Δ ≤ 1.6 mHa, the same chemical-accuracy bar the DMRG classifier itself uses.</div>');
+      }).catch(function(){
+        shciPaint('<div style="color:var(--gray);font-size:11px">SHCI cross-validations unavailable (backend unreachable).</div>');
+      });
+    };
+    window.solangeLoadShci();
+
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
     // page reload; Reset only returns the on-screen panel to a clean state.
@@ -1813,6 +1874,8 @@
         'Cleared on reset. Archived QPU runs remain stored & verified in SOLANGE — reload the page to view them.</div>';
       if(dmrgBox) dmrgBox.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
         'Cleared on reset. Archived DMRG classifications remain stored & verified in SOLANGE — reload the page to view them.</div>';
+      if(shciBox) shciBox.innerHTML='<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+        'Cleared on reset. Archived SHCI cross-validations remain stored & verified in SOLANGE — reload the page to view them.</div>';
     };
   })();
   </script>
