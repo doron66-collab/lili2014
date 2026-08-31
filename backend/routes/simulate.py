@@ -930,6 +930,22 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         row["sweep_eps"] = payload.get("sweep_eps", "1e-2,1e-3,5e-4,1e-4")
         if payload.get("dmrg_classification_id"):
             row["dmrg_classification_id"] = payload.get("dmrg_classification_id")
+    # PDB-to-classification pipeline dispatch (job_type='screen_classify') — the
+    # "New Target from PDB" form. Chains protonate -> carve/probe (shrinking radius
+    # until the active space fits) -> DMRG -> optional SHCI, all on the agent, so
+    # the end user never opens a terminal (solange_screen_and_classify.py). Only
+    # attached for this job type, same backward-compatible pattern as above.
+    if payload.get("job_type") == "screen_classify":
+        row["pdb_id"] = payload.get("pdb_id")
+        row["chain"] = payload.get("chain")
+        row["resi"] = int(payload.get("resi", 0))
+        row["expect_resname"] = payload.get("expect_resname")
+        row["radii"] = payload.get("radii", "5.0,4.0,3.5,3.0")
+        row["max_orbitals"] = int(payload.get("max_orbitals", 45))
+        row["avas"] = payload.get("avas")  # optional — omit to use build_qm_cluster.py's own per-radius suggestion
+        row["spin"] = int(payload.get("spin", 0))
+        row["run_shci"] = bool(payload.get("run_shci", False))
+        row["sweep_eps"] = payload.get("sweep_eps", "1e-2,1e-3,5e-4,1e-4")
     # job_type routes the job to the right agent: 'hpc' (default, classical Laguna)
     # or 'qpu' (real IBM hardware, pulled by the QPU agent). Only attach it for the
     # non-default type so classical dispatch keeps working even before the job_type
@@ -959,7 +975,8 @@ async def list_dispatch(limit: int = 20):
                  .select("id, created_at, status, key, side, compound, basis, "
                          "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note, job_type, "
                          "dmrg_scf, dmrg_scf_maxm, geometry, avas, charge, spin, sweep_eps, "
-                         "dmrg_classification_id")
+                         "dmrg_classification_id, pdb_id, chain, resi, expect_resname, radii, "
+                         "max_orbitals, run_shci")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"jobs": res.data or []}
     except Exception as e:

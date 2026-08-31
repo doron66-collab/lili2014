@@ -717,6 +717,7 @@ def _run_with_progress(cmd, api, hdr, did, job_type):
     _post_status(api, hdr, did, "running",
                  note=("DMRG classifying…" if job_type == "dmrg"
                        else "SHCI classifying…" if job_type == "shci"
+                       else "protonating/carving/classifying…" if job_type == "screen_classify"
                        else "starting RHF/CASSCF…"))
     out_lines, last_step = [], 0
     try:
@@ -771,11 +772,13 @@ def run_agent(api, poll_s, token, out_dir):
     while True:
         _post_heartbeat(api, hdr)   # liveness ping so SOLANGE shows the agent online
         try:
-            # This classical compute-node agent claims THREE job types it can run:
-            # hpc (CASSCF/VQE), dmrg (the A/B/C classifier via run_dmrg.sh), and
-            # shci (the independent second classifier / DMRG cross-validation).
+            # This classical compute-node agent claims FOUR job types it can run:
+            # hpc (CASSCF/VQE), dmrg (the A/B/C classifier via run_dmrg.sh),
+            # shci (the independent second classifier / DMRG cross-validation),
+            # and screen_classify (PDB -> cluster -> DMRG -> optional SHCI, chained).
             req = urllib.request.Request(
-                api.rstrip("/") + "/api/simulate/hpc/dispatch/next?job_type=hpc,dmrg,shci", headers=hdr)
+                api.rstrip("/") + "/api/simulate/hpc/dispatch/next?job_type=hpc,dmrg,shci,screen_classify",
+                headers=hdr)
             with urllib.request.urlopen(req, timeout=30) as r:
                 job = json.loads(r.read().decode()).get("job")
         except Exception as e:
@@ -788,7 +791,7 @@ def run_agent(api, poll_s, token, out_dir):
         job_type = str(job.get("job_type") or "hpc").lower()
         print(f"[{_ts()}] [agent] job {did[:8]} · {job_type.upper()} · "
               f"{job['key']}/{job.get('side','native')} CAS({job['nelecas']},{job['ncas']})"
-              + ("" if job_type in ("dmrg", "shci") else f" vqe={job.get('run_vqe')}"))
+              + ("" if job_type in ("dmrg", "shci", "screen_classify") else f" vqe={job.get('run_vqe')}"))
         try:
             if job_type == "dmrg":
                 # DMRG classification — run run_dmrg.sh (handles block2/MKL) on this
@@ -867,6 +870,38 @@ def run_agent(api, poll_s, token, out_dir):
                 # available, the same way an interactive terminal has it.
                 module_cmd = "module load boost/1.85.0 2>/dev/null; exec " + \
                              " ".join(shlex.quote(c) for c in shci_cmd)
+                cmd = ["bash", "-lc", module_cmd]
+            elif job_type == "screen_classify":
+                # The full "New Target from PDB" pipeline -- protonate, carve/probe
+                # (shrinking radius until the active space fits), DMRG, optional
+                # SHCI -- chained in solange_screen_and_classify.py so the end user
+                # never opens a terminal. That script itself invokes run_dmrg.sh
+                # (its own with_block2.sh wrapping) internally; only the SHCI leg
+                # needs Boost on THIS process's environment, which is why the whole
+                # thing is wrapped in the same module-load login shell as the plain
+                # shci branch above, whether or not run_shci was actually requested
+                # (cheap and harmless to load unconditionally here).
+                if not job.get("pdb_id") or not job.get("chain") or not job.get("expect_resname"):
+                    raise RuntimeError(
+                        "screen_classify job missing pdb_id/chain/expect_resname")
+                screen_cmd = [sys.executable, "-u", str(_HERE.parent / "solange_screen_and_classify.py"),
+                             "--pdb-id", job["pdb_id"], "--chain", job["chain"],
+                             "--resi", str(job.get("resi") or 0),
+                             "--expect-resname", job["expect_resname"],
+                             "--radii", job.get("radii") or "5.0,4.0,3.5,3.0",
+                             "--max-orbitals", str(job.get("max_orbitals") or 45),
+                             "--spin", str(job.get("spin") or 0),
+                             "--basis", job.get("basis", "sto-3g"),
+                             "--key", job["key"], "--bond-dims", "250,500,1000",
+                             "--out-prefix", job["key"], "--submit", api]
+                if job.get("avas"):
+                    screen_cmd += ["--avas", job["avas"]]
+                if job.get("run_shci"):
+                    dice_scripts = str(_HERE.parent.parent.parent / "Dice" / "scripts")
+                    screen_cmd += ["--run-shci", "--dice-scripts", dice_scripts,
+                                   "--sweep-eps", job.get("sweep_eps") or "1e-2,1e-3,5e-4,1e-4"]
+                module_cmd = "module load boost/1.85.0 2>/dev/null; exec " + \
+                             " ".join(shlex.quote(c) for c in screen_cmd)
                 cmd = ["bash", "-lc", module_cmd]
             else:
                 compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))

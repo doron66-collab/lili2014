@@ -1069,6 +1069,36 @@
       <span style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#a78bfa;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.4);border-radius:999px;padding:2px 9px">Ladder · Rung 3 — DMRG</span>
       <span style="font-size:11px;color:var(--gray)">last classical resort — the A/B/C classifier that decides whether quantum is even needed</span>
     </div>
+
+    <!-- New Target from PDB — the end-to-end pipeline (protonate -> carve/probe ->
+         DMRG -> optional SHCI), so a target that has never had ANY prior run can be
+         classified from the browser with no terminal step (job_type='screen_classify',
+         solange_screen_and_classify.py on the agent). This does NOT choose the AVAS
+         chemical criterion, the protonation pH, or a metal site's spin/oxidation state
+         — those remain a computational chemist's call (Gate 2), same limits already
+         stated in screen_target.py and gate2_requirements.py. -->
+    <div style="padding:12px;margin-bottom:14px;border:1px solid rgba(167,139,250,0.25);border-radius:8px;background:rgba(167,139,250,0.04)">
+      <div class="card-title" style="font-size:12px">New Target from PDB<span class="info-i" data-tip="Chains protonate.py -> build_qm_cluster.py+avas_probe.py (shrinking radius until the active space fits --max-orbitals) -> solange_dmrg.py -> optionally solange_shci.py, all on the classical Laguna agent. Does not choose the AVAS chemical criterion, protonation pH, or a metal site's spin/oxidation state for you — those stay a computational chemist's call (Gate 2).">i</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+        <input id="ntp-pdbid" placeholder="PDB ID (e.g. 8TDR)" style="width:110px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="ntp-chain" placeholder="Chain (e.g. A)" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="ntp-resi" type="number" placeholder="Residue #" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="ntp-resname" placeholder="Expect (e.g. ARG)" style="width:110px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="ntp-key" placeholder="Target key (e.g. SDHB_C101Y)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+        <input id="ntp-avas" placeholder="AVAS criterion (optional — omit for per-radius auto-suggestion)" style="width:340px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="ntp-radii" value="5.0,4.0,3.5,3.0" title="Radii tried in order, largest first, until the active space fits --max-orbitals" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="ntp-maxorb" type="number" value="45" title="Reject a radius if the AVAS active space exceeds this many orbitals" style="width:70px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <select id="ntp-spin" title="2S for the active space — a metal site's spin state is a chemist's call, not a default" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+          <option value="0" selected>spin 0</option><option value="1">spin 1</option><option value="2">spin 2</option><option value="4">spin 4</option>
+        </select>
+        <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="ntp-shci"> also run SHCI cross-validation</label>
+        <button onclick="dispatchScreenClassify(this)" title="Rung 3 — queue the full pipeline on the classical Laguna agent" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Screen &amp; Classify</button>
+        <span id="ntp-msg" style="color:var(--gray)"></span>
+      </div>
+    </div>
+
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)<span class="info-i" data-tip="Whether classical DMRG reaches chemical accuracy, per target — the evidence behind each A/B/C class. Sealed at source and notarized by LEON on submission (independent of Laguna connectivity afterward).">i</span></span>
       <span style="display:flex;gap:6px">
@@ -5372,6 +5402,56 @@ async function dispatchSelectedToDmrg() {
          (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
          ' — the HPC/classical agent runs them; results appear in Rung 3.');
   if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+}
+
+// "New Target from PDB" — queues the full protonate -> carve/probe -> DMRG ->
+// optional SHCI pipeline (job_type='screen_classify', solange_screen_and_classify.py
+// on the agent). No terminal step for the person clicking this button; the AVAS
+// criterion, protonation pH, and any metal site's spin/oxidation state remain a
+// computational chemist's call, same limits already stated on the form itself.
+async function dispatchScreenClassify(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const pdbId = val('ntp-pdbid').trim(), chain = val('ntp-chain').trim(),
+        resi = val('ntp-resi').trim(), resname = val('ntp-resname').trim(),
+        key = val('ntp-key').trim();
+  const msg = document.getElementById('ntp-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!pdbId || !chain || !resi || !resname || !key) {
+    setMsg('<span style="color:#f87171">PDB ID, chain, residue #, expected residue, and target key are all required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'queuing…'; }
+  setMsg('queuing…');
+  try {
+    const body = {
+      key, job_type: 'screen_classify',
+      pdb_id: pdbId, chain, resi: parseInt(resi, 10), expect_resname: resname,
+      radii: val('ntp-radii').trim() || '5.0,4.0,3.5,3.0',
+      max_orbitals: parseInt(val('ntp-maxorb') || '45', 10),
+      spin: parseInt(val('ntp-spin') || '0', 10),
+      run_shci: document.getElementById('ntp-shci')?.checked || false,
+    };
+    const avas = val('ntp-avas').trim();
+    if (avas) body.avas = avas;
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body)
+    });
+    const out = await res.json();
+    if (!out.queued) { setMsg('<span style="color:#f87171">Queue failed: ' + (out.error || 'unknown error') + '</span>'); return; }
+    setMsg('<span style="color:#a78bfa">✓ queued — the classical agent will protonate, carve, and classify. '
+         + 'This can take several minutes (largest radius tried first); results appear in Rung 3 when done.</span>');
+    if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Queue failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 // Queue an SHCI cross-validation against ONE specific DMRG record — the "▶ Queue
