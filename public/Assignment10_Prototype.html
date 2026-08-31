@@ -5429,6 +5429,11 @@ async function dispatchScreenClassify(btn) {
   try {
     const body = {
       key, job_type: 'screen_classify',
+      // basis explicit: dispatch_hpc's row default is '6-31g' (built for the
+      // VQE/HPC path) — without this override, a screen_classify job silently
+      // ran the wrong basis, found the hard way against a real Laguna job
+      // (larger active space, likely no radius fitting max_orbitals at all).
+      basis: 'sto-3g',
       pdb_id: pdbId, chain, resi: parseInt(resi, 10), expect_resname: resname,
       radii: val('ntp-radii').trim() || '5.0,4.0,3.5,3.0',
       max_orbitals: parseInt(val('ntp-maxorb') || '45', 10),
