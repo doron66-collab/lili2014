@@ -1089,8 +1089,12 @@
     <div style="margin-top:18px;padding-top:14px;border-top:1px dashed rgba(167,139,250,0.3)">
     <div class="card-title" style="font-size:12px;display:flex;align-items:center;justify-content:space-between">
       <span>SHCI Cross-Validation · Second-Method Check<span class="info-i" data-tip="DMRG's own Class A verdict is DMRG-specific evidence, not a cross-method exclusion — one method's non-convergence proves that method struggles, not that classical computation as a whole fails. SHCI (Selected CI, via Dice) runs the identical active-space Hamiltonian on a solver with a different failure mechanism (determinant sparsity, not DMRG's bond-dimension-across-a-chain). Agreement/disagreement is computed server-side against the DMRG record's own stored energy, never taken on the submitting script's word.">i</span></span>
-      <button onclick="window.solangeLoadShci && window.solangeLoadShci()" title="Reload from SOLANGE"
-        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+      <span style="display:flex;gap:6px">
+        <button onclick="window.solangeLoadShci && window.solangeLoadShci()" title="Reload from SOLANGE"
+          style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+        <button id="del-shci-btn" onclick="deleteSelectedShci(this)" disabled title="Check one or more SHCI rows, then click to delete only those."
+          style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;opacity:0.5">🗑 Delete selected SHCI (0)</button>
+      </span>
     </div>
     <div id="shci-crossvalidations" class="table-scroll" style="margin-top:6px"></div>
     </div>
@@ -1863,13 +1867,13 @@
         }
         var classColor2 = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
-        var hh = '<table style="width:100%;min-width:1170px;border-collapse:collapse;table-layout:fixed"><tr>'+
+        var hh = '<table style="width:100%;min-width:1350px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:100px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:90px">CAS</th>'+
           '<th style="'+TH+';width:90px">Class</th>'+
           '<th style="'+TH+';width:130px">E(SHCI) Ha</th><th style="'+TH+';width:130px">E(DMRG ref) Ha</th>'+
           '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:100px">Agreement</th>'+
-          '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th></tr>';
-        rows.forEach(function(x){
+          '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:150px"></th></tr>';
+        rows.forEach(function(x, i){
           var cas = (x.nelec!=null && x.ncas!=null) ? ('CAS('+x.nelec+','+x.ncas+')') : '—';
           var agree = x.agreement === true;
           var agreeLabel = x.agreement == null
@@ -1886,10 +1890,14 @@
                 '<td style="'+C+'">'+(x.delta_mha!=null?Number(x.delta_mha).toFixed(3):'—')+'</td>'+
                 '<td style="'+C+'">'+agreeLabel+'</td>'+
                 '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
-                '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.shci_hash||'')+'">✓ '+(x.shci_hash?String(x.shci_hash).slice(0,16):'—')+'…</span></td></tr>';
+                '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.shci_hash||'')+'">✓ '+(x.shci_hash?String(x.shci_hash).slice(0,16):'—')+'…</span></td>'+
+                '<td style="'+C+'">'+(x.id?('<button onclick="verifyShciRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
+                (x.id?('<button onclick="downloadShciJson('+i+',this)" title="Download the full classification record (all fields incl. the epsilon-convergence trace) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+
+                (x.id?('<input type="checkbox" class="shci-del-chk" data-id="'+x.id+'" onchange="updateShciDelBtn()" title="Select this SHCI classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
         shciPaint(hh+'</table>'+
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class is SHCI\'s own independent verdict (convergence-only signal — see solange_shci.py\'s module docstring for what it does not yet check). Δ (mHa) and agreement, when present, are computed server-side against the referenced DMRG record\'s own stored energy at ingestion — never taken from the submitting script\'s own claim (DP1, verify-don\'t-trust). "standalone" means no DMRG record was named at all, not that agreement was checked and passed.</div>');
+        if (typeof window.updateShciDelBtn === 'function') window.updateShciDelBtn();
       }).catch(function(){
         shciPaint('<div style="color:var(--gray);font-size:11px">SHCI cross-validations unavailable (backend unreachable).</div>');
       });
@@ -5767,6 +5775,88 @@ async function deleteSelectedDmrg(btn) {
   } finally {
     if (btn) { btn.textContent = orig; }
     updateDmrgDelBtn();
+  }
+}
+
+async function verifyShciRun(cvId, btn) {
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`${API}/api/simulate/hpc/shci/${cvId}/verify`);
+    const out = await res.json();
+    const pass = out.integrity === 'PASS';
+    if (btn) {
+      btn.textContent = pass ? '✓ verified' : '✗ FAIL';
+      btn.style.color = pass ? 'var(--green)' : '#f87171';
+      btn.style.borderColor = pass ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)';
+      btn.disabled = false;
+    }
+    const by = out.notary === 'LEON' ? 'LEON (Lineage-Evidence Orchestration & Notarization)' : 'SOLANGE';
+    alert(pass
+      ? `Integrity: PASS ✓\n${by} recomputed the SHCI seal and it matches the stored one.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`
+      : `Integrity: FAIL ✗\nRecomputed seal does not match — the record may have been altered.\n\nstored:     ${String(out.stored_hash).slice(0,24)}…\nrecomputed: ${String(out.recomputed_hash).slice(0,24)}…`);
+  } catch (e) {
+    if (btn) { btn.textContent = orig; btn.disabled = false; }
+    alert('Verify failed: ' + e.message);
+  }
+}
+
+// Download ONE SHCI classification as full JSON — every field, including the
+// epsilon-convergence trace and the full LEON seal. Mirrors downloadDmrgJson.
+function downloadShciJson(i, btn) {
+  const rows = window.__shciRows || [];
+  const x = rows[i];
+  if (!x) return;
+  const payload = {
+    _dataset: 'reference',
+    _disclaimer: 'Reference dataset — not a clinical or chemical finding. Computed on a '
+               + 'CAS(2e,2o)/STO-3G reference compound, not this target\'s own active site. '
+               + 'Production runs against customer structures produce customer results.',
+    _sealed_by: 'LEON — seal is over the record fields below, not over this qualification block.',
+    ...x
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `shci_${(x.key||'record').replace(/[^\w.-]+/g,'_')}_${x.ncas||''}${x.nelec?('-'+x.nelec):''}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function updateShciDelBtn() {
+  const n = document.querySelectorAll('.shci-del-chk:checked').length;
+  const btn = document.getElementById('del-shci-btn');
+  if (!btn) return;
+  btn.disabled = (n === 0);
+  btn.style.opacity = n === 0 ? '0.5' : '1';
+  btn.textContent = `🗑 Delete selected SHCI (${n})`;
+}
+
+async function deleteSelectedShci(btn) {
+  const ids = Array.from(document.querySelectorAll('.shci-del-chk:checked')).map(c => c.dataset.id);
+  if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} selected SHCI classification(s) from SOLANGE?\n\nThis removes only the checked rows. They can be re-submitted from Laguna (solange_shci.py --submit).`)) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'deleting…'; }
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (!session?.access_token) { alert('Please log in first.'); return; }
+    const res = await fetch(`${API}/api/simulate/hpc/shci/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ ids })
+    });
+    const out = await res.json();
+    if (!res.ok) { alert('Delete failed: ' + (out.detail || res.status)); return; }
+    if (typeof window.solangeLoadShci === 'function') window.solangeLoadShci();
+    alert(`Deleted ${out.deleted ?? 0} SHCI classification(s).`);
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = orig; }
+    updateShciDelBtn();
   }
 }
 
