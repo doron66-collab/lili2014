@@ -1750,11 +1750,11 @@
         // has nowhere to put the extra width this many columns need and starves
         // whichever column wraps easiest (Rationale), squeezing it into a tall,
         // narrow, badly-broken-up column instead of scrolling the row sideways.
-        var hh = '<table style="width:100%;min-width:1180px;border-collapse:collapse;table-layout:fixed"><tr>'+
+        var hh = '<table style="width:100%;min-width:1380px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:90px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:80px">CAS</th>'+
           '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:110px">Class</th>'+
           '<th style="'+TH+';width:290px">Rationale</th><th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
-          '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:150px"></th></tr>';
+          '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:350px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
           var provisional = x.time_budget_hit ? '<br><span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
@@ -1783,6 +1783,9 @@
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
                 '<td style="'+C+'">'+(x.id?('<button onclick="verifyDmrgRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
                 (x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+
+                (x.id && x.geometry
+                  ? ('<button onclick="dispatchDmrgRowToShci('+i+',this)" title="Queue SHCI (Dice) against this SAME active space, on the classical Laguna agent — reuses this record\'s own geometry/AVAS/charge/spin, nothing re-typed" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">▶ Queue SHCI</button>')
+                  : (x.id ? '<span style="color:var(--gray);font-size:9px;margin-left:4px" title="No stored geometry/AVAS on this record (e.g. a --compound demo run) — SHCI cross-validation needs a real --geometry DMRG run to copy inputs from">SHCI n/a</span>' : ''))+
                 (x.id?('<input type="checkbox" class="dmrg-del-chk" data-id="'+x.id+'" onchange="updateDmrgDelBtn()" title="Select this DMRG classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
         dmrgPaint(hh+'</table>'+
@@ -5369,6 +5372,47 @@ async function dispatchSelectedToDmrg() {
          (fail ? ` · <span style="color:#f87171">${fail} failed</span>` : '') +
          ' — the HPC/classical agent runs them; results appear in Rung 3.');
   if (ok && typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+}
+
+// Queue an SHCI cross-validation against ONE specific DMRG record — the "▶ Queue
+// SHCI" button on that record's own row in the Rung-3 table. Copies geometry/
+// AVAS/charge/spin/basis/ncas/nelecas straight from the DMRG row (window.__dmrgRows),
+// never re-typed by the user — the same classical agent that already runs HPC/DMRG
+// jobs pulls this one too (job_type='shci').
+async function dispatchDmrgRowToShci(i, btn) {
+  const rows = window.__dmrgRows || [];
+  const x = rows[i];
+  if (!x || !x.id) return;
+  if (!x.geometry || !x.avas) {
+    alert('This DMRG record has no stored geometry/AVAS (likely a --compound demo '
+        + 'run) — SHCI cross-validation needs a real --geometry run to copy inputs from.');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'queuing…'; }
+  try {
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        key: x.key, job_type: 'shci',
+        geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
+        basis: x.basis, ncas: x.ncas, nelecas: x.nelecas,
+        dmrg_classification_id: x.id,
+      })
+    });
+    const out = await res.json();
+    if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
+    if (btn) { btn.textContent = '✓ queued'; btn.style.color = 'var(--green)'; }
+    if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+  } catch (e) {
+    alert('Queue failed: ' + e.message);
+  } finally {
+    if (btn && btn.textContent === 'queuing…') { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 // ── Copy-command helper for the non-queued rungs (DMRG · QPU) ────────────────

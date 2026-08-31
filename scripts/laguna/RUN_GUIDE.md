@@ -164,6 +164,44 @@ python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
   --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
 ```
 
+### 2d. Queue SHCI from the browser — "▶ Queue SHCI" button (Rung 3)
+
+A DMRG record with stored geometry/AVAS (any real `--geometry` run submitted
+after this was added) shows a **▶ Queue SHCI** button on its own row in the
+Rung 3 table. Clicking it copies that record's own geometry/AVAS/charge/spin —
+nothing re-typed — and queues an SHCI job for the SAME classical agent that
+already runs HPC/DMRG jobs (`solange_hpc.py --agent`, started once via
+`agent_keepalive.sh start`). No terminal interaction needed per job once that
+agent is running.
+
+One-time migrations (Supabase SQL editor) — additive, safe to re-run:
+
+```sql
+-- dmrg_classifications: store the reproducibility inputs a later SHCI
+-- cross-validation needs to copy (only populated for a real --geometry run,
+-- not --compound demo mode).
+alter table public.dmrg_classifications add column if not exists geometry text;
+alter table public.dmrg_classifications add column if not exists avas text;
+alter table public.dmrg_classifications add column if not exists charge int;
+alter table public.dmrg_classifications add column if not exists spin int;
+
+-- hpc_dispatch: carries an SHCI job's parameters from the "Queue SHCI" button
+-- to the agent that picks it up.
+alter table public.hpc_dispatch add column if not exists geometry text;
+alter table public.hpc_dispatch add column if not exists avas text;
+alter table public.hpc_dispatch add column if not exists charge int;
+alter table public.hpc_dispatch add column if not exists spin int;
+alter table public.hpc_dispatch add column if not exists sweep_eps text;
+alter table public.hpc_dispatch add column if not exists dmrg_classification_id uuid;
+```
+
+The agent needs `boost/1.85.0` loadable via `module load` for Dice's shared
+library — the dispatch path wraps the SHCI subprocess call in `bash -lc` so
+the `module` shell function is available even if the agent itself was started
+without it (`RUN_GUIDE.md`'s own earlier troubleshooting note for this exact
+`libboost_mpi.so.1.85.0` error applies here too, just handled automatically
+instead of by hand).
+
 ---
 
 ## 3. Quantum runs — Rung 4 (real IBM hardware)

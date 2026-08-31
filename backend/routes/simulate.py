@@ -916,6 +916,20 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
     if payload.get("dmrg_scf"):
         row["dmrg_scf"] = True
         row["dmrg_scf_maxm"] = int(payload.get("dmrg_scf_maxm", 250))
+    # SHCI dispatch (job_type='shci', see below) — a cross-validation run needs the
+    # SAME geometry/AVAS/charge/spin the referenced DMRG record used, copied from
+    # that record's own stored inputs (see the DMRG submission's geometry/avas/
+    # charge/spin fields), not re-typed. Only attached when present — same reasoning
+    # as dmrg_scf above: these columns may not exist yet on every deployment, and
+    # every non-SHCI dispatch must keep working before that migration runs.
+    if payload.get("job_type") == "shci":
+        row["geometry"] = payload.get("geometry")
+        row["avas"] = payload.get("avas")
+        row["charge"] = int(payload.get("charge", 0))
+        row["spin"] = int(payload.get("spin", 0))
+        row["sweep_eps"] = payload.get("sweep_eps", "1e-2,1e-3,5e-4,1e-4")
+        if payload.get("dmrg_classification_id"):
+            row["dmrg_classification_id"] = payload.get("dmrg_classification_id")
     # job_type routes the job to the right agent: 'hpc' (default, classical Laguna)
     # or 'qpu' (real IBM hardware, pulled by the QPU agent). Only attach it for the
     # non-default type so classical dispatch keeps working even before the job_type
@@ -944,7 +958,8 @@ async def list_dispatch(limit: int = 20):
         res = (sb.table("hpc_dispatch")
                  .select("id, created_at, status, key, side, compound, basis, "
                          "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note, job_type, "
-                         "dmrg_scf, dmrg_scf_maxm")
+                         "dmrg_scf, dmrg_scf_maxm, geometry, avas, charge, spin, sweep_eps, "
+                         "dmrg_classification_id")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"jobs": res.data or []}
     except Exception as e:
@@ -1185,6 +1200,12 @@ _DMRG_DB_COLUMNS = frozenset({
     "e_casscf", "dmrg_energies", "s_max", "bqp_class", "class_rationale",
     "time_budget_hit", "bond_dims_requested", "method", "elapsed_s",
     "dmrg_seal_payload", "dmrg_hash", "provenance_source", "hardware",
+    # geometry/avas/charge/spin: only present for a real --geometry run (not
+    # --compound demo mode) — the reproducibility inputs an SHCI
+    # cross-validation dispatch needs to copy, not re-type (see
+    # solange_dmrg.py's own out[] construction and the "Queue SHCI
+    # Cross-Validation" button in the frontend).
+    "geometry", "avas", "charge", "spin",
 })
 # NOTE: "elapsed_s" and "hardware" each require their matching Supabase column
 # to exist first — see the one-time migration in scripts/laguna/RUN_GUIDE.md §2
@@ -1270,7 +1291,8 @@ async def list_dmrg_classifications(limit: int = 50):
                  .select("id, created_at, key, compound, basis, ncas, nelecas, "
                          "e_casscf, s_max, bqp_class, class_rationale, "
                          "time_budget_hit, bond_dims_requested, dmrg_energies, "
-                         "elapsed_s, method, provenance_source, dmrg_hash, hardware")
+                         "elapsed_s, method, provenance_source, dmrg_hash, hardware, "
+                         "geometry, avas, charge, spin")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"classifications": res.data or []}
     except Exception as e:
@@ -1281,9 +1303,12 @@ async def list_dmrg_classifications(limit: int = 50):
         # Postgres's own "column does not exist", which settles the question
         # directly instead of the dashboard silently showing stale rows forever.
         msg = str(e)
-        if "hardware" in msg or "does not exist" in msg.lower():
+        if "does not exist" in msg.lower():
             msg += (" — hint: run 'alter table public.dmrg_classifications add "
-                    "column if not exists hardware text;' in the Supabase SQL editor")
+                    "column if not exists hardware text, add column if not exists "
+                    "geometry text, add column if not exists avas text, add column "
+                    "if not exists charge int, add column if not exists spin int;' "
+                    "in the Supabase SQL editor")
             return {"classifications": [], "error": msg}
         return {"classifications": [], "error": str(e)}
 

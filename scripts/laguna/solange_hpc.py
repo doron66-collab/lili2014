@@ -37,6 +37,7 @@ import hashlib
 import json
 import math
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -714,7 +715,9 @@ def _run_with_progress(cmd, api, hdr, did, job_type):
     hb = threading.Thread(target=_beat, daemon=True)
     hb.start()
     _post_status(api, hdr, did, "running",
-                 note=("DMRG classifying…" if job_type == "dmrg" else "starting RHF/CASSCF…"))
+                 note=("DMRG classifying…" if job_type == "dmrg"
+                       else "SHCI classifying…" if job_type == "shci"
+                       else "starting RHF/CASSCF…"))
     out_lines, last_step = [], 0
     try:
         # PYTHONUNBUFFERED=1 forces the child (this script's own VQE run, or
@@ -768,10 +771,11 @@ def run_agent(api, poll_s, token, out_dir):
     while True:
         _post_heartbeat(api, hdr)   # liveness ping so SOLANGE shows the agent online
         try:
-            # This classical compute-node agent claims BOTH job types it can run:
-            # hpc (CASSCF/VQE) and dmrg (the A/B/C classifier via run_dmrg.sh).
+            # This classical compute-node agent claims THREE job types it can run:
+            # hpc (CASSCF/VQE), dmrg (the A/B/C classifier via run_dmrg.sh), and
+            # shci (the independent second classifier / DMRG cross-validation).
             req = urllib.request.Request(
-                api.rstrip("/") + "/api/simulate/hpc/dispatch/next?job_type=hpc,dmrg", headers=hdr)
+                api.rstrip("/") + "/api/simulate/hpc/dispatch/next?job_type=hpc,dmrg,shci", headers=hdr)
             with urllib.request.urlopen(req, timeout=30) as r:
                 job = json.loads(r.read().decode()).get("job")
         except Exception as e:
@@ -784,7 +788,7 @@ def run_agent(api, poll_s, token, out_dir):
         job_type = str(job.get("job_type") or "hpc").lower()
         print(f"[{_ts()}] [agent] job {did[:8]} · {job_type.upper()} · "
               f"{job['key']}/{job.get('side','native')} CAS({job['nelecas']},{job['ncas']})"
-              + ("" if job_type == "dmrg" else f" vqe={job.get('run_vqe')}"))
+              + ("" if job_type in ("dmrg", "shci") else f" vqe={job.get('run_vqe')}"))
         try:
             if job_type == "dmrg":
                 # DMRG classification — run run_dmrg.sh (handles block2/MKL) on this
@@ -831,6 +835,39 @@ def run_agent(api, poll_s, token, out_dir):
                             str(job.get("dmrg_scf_maxm") or 250),
                             "--dmrg-scf-scratch", f"./tmp_dmrgscf_orb_{did}",
                             "--orbital-max-minutes", str(job.get("orbital_max_minutes") or 30)]
+            elif job_type == "shci":
+                # SHCI classification/cross-validation — reuses the geometry/AVAS/
+                # charge/spin stored on the referenced DMRG record when this was
+                # dispatched as a cross-validation (frontend's "Queue SHCI
+                # Cross-Validation" button copies them from that record, never
+                # re-typed). See solange_shci.py itself for what it classifies
+                # independently vs. what it additionally checks against DMRG.
+                if not job.get("geometry") or not job.get("avas"):
+                    raise RuntimeError(
+                        "SHCI job missing geometry/avas — this dispatch path only "
+                        "supports jobs copied from a real --geometry DMRG record, "
+                        "not a --compound one")
+                dice_scripts = str(_HERE.parent.parent.parent / "Dice" / "scripts")
+                shci_cmd = [sys.executable, "-u", str(_HERE.parent / "solange_shci.py"),
+                           "--geometry", job["geometry"], "--charge", str(job.get("charge") or 0),
+                           "--spin", str(job.get("spin") or 0), "--basis", job.get("basis", "sto-3g"),
+                           "--avas", job["avas"], "--key", job["key"],
+                           "--dice-scripts", dice_scripts,
+                           "--sweep-eps", job.get("sweep_eps") or "1e-2,1e-3,5e-4,1e-4",
+                           "--out", out_dir, "--submit", api]
+                if job.get("dmrg_classification_id"):
+                    shci_cmd += ["--dmrg-classification-id", job["dmrg_classification_id"]]
+                # Dice's binary links against Boost loaded via `module load
+                # boost/1.85.0` at build time (RUN_GUIDE.md) -- the agent process
+                # itself is not guaranteed to have that module loaded (agent
+                # startup only activates conda), which is exactly the
+                # "libboost_mpi.so.1.85.0: cannot open shared object file" failure
+                # this was diagnosed against manually before this dispatch path
+                # existed. -lc (login shell) makes the `module` shell function
+                # available, the same way an interactive terminal has it.
+                module_cmd = "module load boost/1.85.0 2>/dev/null; exec " + \
+                             " ".join(shlex.quote(c) for c in shci_cmd)
+                cmd = ["bash", "-lc", module_cmd]
             else:
                 compound = job.get("compound") or _resolve_compound(job["key"], job.get("side", "native"))
                 cmd = [sys.executable, "-u", str(_HERE),

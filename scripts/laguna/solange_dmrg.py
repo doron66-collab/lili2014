@@ -781,6 +781,17 @@ def main():
         "provenance_source": "HPC/Laguna (DMRG classifier)",
         "hardware": detect_hardware(args.threads),
     }
+    # Recorded ONLY for a real --geometry run (not --compound demo mode): these
+    # are exactly the reproducibility inputs an SHCI cross-validation needs to
+    # rebuild the IDENTICAL active-space Hamiltonian later (solange_shci.py) --
+    # without them, "Queue SHCI Cross-Validation" against this record would have
+    # nothing to copy the geometry/AVAS/charge/spin from and would need them
+    # re-typed by hand, exactly the friction this field exists to remove.
+    if args.geometry:
+        out["geometry"] = args.geometry
+        out["avas"] = args.avas
+        out["charge"] = args.charge
+        out["spin"] = args.spin
     # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
     # trusted). dmrg_seal_payload is stored verbatim so re-verification later is
     # exact-string, not float-reconstruction (the same robustness fix the P8 seal
