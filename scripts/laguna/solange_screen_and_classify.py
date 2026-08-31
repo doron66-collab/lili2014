@@ -37,9 +37,11 @@ import argparse
 import re
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+_RUN_TAG = uuid.uuid4().hex[:8]  # unique per invocation — see --scratch note below
 
 
 def run(cmd, label):
@@ -206,10 +208,22 @@ def main():
     # Via run_dmrg.sh, NOT solange_dmrg.py directly -- it wraps with with_block2.sh
     # (the LD_PRELOAD fix for block2/MKL), which this job needs regardless of what
     # environment the agent process itself happened to start in.
+    # --scratch keyed by a per-invocation random tag: solange_dmrg.py's own
+    # default ("./tmp_dmrg") is one FIXED shared directory across every run in
+    # this working directory. Its own "[resume] loaded existing MPS" logic then
+    # tries to continue from whatever a PRIOR, possibly incompatible run
+    # (different active space, a manual run, another agent job, or even a
+    # second run of this SAME target key) left there -- which segfaults
+    # block2's C++ backend rather than failing cleanly. Found the hard way on
+    # this pipeline's first real run. Same collision, same fix already applied
+    # to --dmrg-scf's own scratch dir elsewhere (solange_hpc.py) -- just never
+    # applied here too. A random tag, not just --out-prefix, also protects a
+    # re-run of the identical key against its own previous attempt's leftovers.
     dmrg_cmd = ["bash", str(HERE / "run_dmrg.sh"),
                 "--geometry", accepted["xyz"], "--charge", str(accepted["charge"]),
                 "--spin", str(args.spin), "--basis", args.basis, "--avas", accepted["avas"],
-                "--key", args.key, "--bond-dims", args.bond_dims, "--submit", args.submit]
+                "--key", args.key, "--bond-dims", args.bond_dims, "--submit", args.submit,
+                "--scratch", f"./tmp_dmrg_{args.out_prefix}_{_RUN_TAG}"]
     if args.casci:
         dmrg_cmd.append("--casci")
     dmrg_out = run(dmrg_cmd, "run_dmrg.sh")
