@@ -1770,7 +1770,7 @@
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
-                '<td style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+scopeNote+'</td>'+
+                '<td id="dmrg-class-cell-'+(x.id||'')+'" style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+scopeNote+'<span class="shci-warn-slot" data-dmrg-id="'+(x.id||'')+'"></span></td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.5">'+(x.class_rationale||'—')+'</td>'+
                 '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);overflow:hidden;text-overflow:ellipsis" title="'+(x.hardware?String(x.hardware).replace(/"/g,'&quot;'):'')+'">'+(x.hardware?String(x.hardware).split(' · ')[0]:'—')+'</td>'+
@@ -1828,6 +1828,32 @@
       if (!silent) shciPaint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
       fetch(API+'/api/simulate/hpc/shci/list').then(function(r){return r.json();}).then(function(d){
         var rows = (d && d.crossvalidations) || [];
+        window.__shciRows = rows;
+        // Disagreement map, keyed by the DMRG record's own id — consumed by
+        // solangeReconcileDmrgClasses (Results-tab badges) and by the warn-slot
+        // patch below (Rung-3 table). Rebuilt on every load so a re-run that
+        // FIXES a prior disagreement also clears the warning, not just adds one.
+        var disMap = {};
+        rows.forEach(function(x){ if (x.agreement === false && x.dmrg_classification_id) disMap[x.dmrg_classification_id] = x; });
+        window.__shciDisagreementsByDmrgId = disMap;
+        // Patch the Rung-3 DMRG table directly — it does not go through
+        // solangeReconcileDmrgClasses, so its own warn-slot markers (added when
+        // that table was built) need a separate pass here.
+        document.querySelectorAll('.shci-warn-slot').forEach(function(el){
+          var dis = disMap[el.getAttribute('data-dmrg-id')];
+          el.innerHTML = dis
+            ? '<span style="display:block;font-size:9px;color:#f87171;font-weight:700;margin-top:2px" '
+              + 'title="SHCI (second, independent solver) disagrees by ' + dis.delta_mha + ' mHa — above the '
+              + '1.6 mHa chemical-accuracy bar. Do not treat this classification as settled until reconciled.">'
+              + '⚠ SHCI disagrees (Δ=' + dis.delta_mha + ' mHa)</span>'
+            : '';
+        });
+        // Refresh the Results-tab badges too, now that disagreement data (if any)
+        // exists — covers the case where SHCI finishes loading AFTER the initial
+        // DMRG reconciliation already ran once without it.
+        if (window.__dmrgRows && typeof window.solangeReconcileDmrgClasses === 'function') {
+          window.solangeReconcileDmrgClasses(window.__dmrgRows);
+        }
         if (!rows.length) {
           shciPaint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
             'No SHCI cross-validations submitted yet. Runs from <code>solange_shci.py --submit</code> '+
@@ -4926,7 +4952,14 @@ window.solangeReconcileDmrgClasses = function(dmrgRows) {
       return;
     }
 
-    if (av.bqpSource === 'dmrg' && av.bqpCls === x.bqp_class) return; // already reconciled
+    // "Already reconciled" used to mean "nothing to do" — no longer true once
+    // SHCI disagreement can appear (or clear) on a LATER call with the same
+    // class, so the skip is now conditional on the disagreement flag ALSO being
+    // unchanged, not just the class. Without this, a disagreement discovered
+    // after the first reconcile pass would silently never reach the badge.
+    const hasDis = !!(window.__shciDisagreementsByDmrgId || {})[x.id];
+    if (av.bqpSource === 'dmrg' && av.bqpCls === x.bqp_class && av.__shciDisFlag === hasDis) return;
+    av.__shciDisFlag = hasDis;
     av.bqpCls = x.bqp_class;
     av.bqpSource = 'dmrg';
     // Real classification is three-way (A/B/C — C means DMRG found an exact
@@ -4952,10 +4985,23 @@ window.solangeReconcileDmrgClasses = function(dmrgRows) {
     const confirmNote = x.bqp_class === 'C'
       ? `<span style="display:block;font-size:8px;color:var(--gray);margin-top:2px" title="Notarized by LEON${sMaxNote}">✓ DMRG-confirmed · classically tractable</span>`
       : `<span style="display:block;font-size:8px;color:var(--green);margin-top:2px" title="Notarized by LEON${sMaxNote}">✓ DMRG-confirmed</span>`;
+    // SHCI disagreement — checked HERE, on the classification badge itself, not
+    // only in the separate cross-validation table (Rung 3) — a disagreement a
+    // reader never scrolls to see is a disagreement that changes nothing. See
+    // window.__shciDisagreementsByDmrgId, populated by solangeLoadShci.
+    const shciDis = (window.__shciDisagreementsByDmrgId || {})[x.id];
+    const shciWarn = shciDis
+      ? `<span style="display:block;font-size:8px;color:#f87171;font-weight:700;margin-top:2px" `
+        + `title="SHCI (second, independent solver) disagrees with this DMRG record by ${shciDis.delta_mha} mHa — `
+        + `above the 1.6 mHa chemical-accuracy bar. At least one of the two solvers has not converged at this `
+        + `active space. Do not treat this classification as settled until reconciled.">`
+        + `⚠ SHCI disagrees (Δ=${shciDis.delta_mha} mHa)</span>`
+      : '';
     const bqpCell = document.getElementById(`bqp-class-${x.key}`);
-    if (bqpCell) bqpCell.innerHTML = badge + confirmNote;
+    if (bqpCell) bqpCell.innerHTML = badge + confirmNote + shciWarn;
     const mutCell = document.getElementById(`mut-class-${x.key}`);
-    if (mutCell) mutCell.innerHTML = `<span class="bqp-badge-${x.bqp_class.toLowerCase()}" title="DMRG-confirmed${sMaxNote}">${x.bqp_class}</span>`;
+    if (mutCell) mutCell.innerHTML = `<span class="bqp-badge-${x.bqp_class.toLowerCase()}" title="DMRG-confirmed${sMaxNote}">${x.bqp_class}</span>`
+      + (shciDis ? `<span style="color:#f87171;font-size:9px;margin-left:3px" title="SHCI disagrees by ${shciDis.delta_mha} mHa">⚠</span>` : '');
     const bqpRow = document.getElementById(`bqp-row-${x.key}`);
     if (bqpRow) bqpRow.style.background = rowBg;
     const mutRow = document.getElementById(`mut-row-${x.key}`);
