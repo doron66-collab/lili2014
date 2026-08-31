@@ -177,8 +177,11 @@ def main():
         "id": str(uuid.uuid4()),
         "key": args.key,
         "dmrg_classification_id": args.dmrg_classification_id,
-        "ncas": ncas, "nelec": nelec,
-        "e_shci": e_shci,
+        # int()/float(): avas.avas() and the SHCI kernel hand back numpy scalar
+        # types (int64/float64), which json.dumps cannot serialize on its own —
+        # caught only after a full run, the hard way, on real hardware.
+        "ncas": int(ncas), "nelec": int(nelec),
+        "e_shci": float(e_shci),
         "sweep_eps": ",".join(str(e) for e in eps_schedule),
         "method": "SHCI (Dice, semistochastic heat-bath CI) cross-validation",
         "elapsed_s": elapsed_s,
