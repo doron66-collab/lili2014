@@ -1863,8 +1863,8 @@
         }
         var classColor2 = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
-        var hh = '<table style="width:100%;min-width:1080px;border-collapse:collapse;table-layout:fixed"><tr>'+
-          '<th style="'+TH+';width:100px">Target</th><th style="'+TH+';width:90px">CAS</th>'+
+        var hh = '<table style="width:100%;min-width:1170px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:100px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:90px">CAS</th>'+
           '<th style="'+TH+';width:90px">Class</th>'+
           '<th style="'+TH+';width:130px">E(SHCI) Ha</th><th style="'+TH+';width:130px">E(DMRG ref) Ha</th>'+
           '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:100px">Agreement</th>'+
@@ -1878,6 +1878,7 @@
               ? '<span style="color:var(--green);font-weight:700">✓ agree</span>'
               : '<span style="color:#f87171;font-weight:700">✗ DISAGREE</span>');
           hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
+                '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+';color:'+classColor2(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace">'+(x.e_shci!=null?Number(x.e_shci).toFixed(8):'—')+'</td>'+
