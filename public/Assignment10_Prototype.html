@@ -1856,24 +1856,30 @@
         }
         if (!rows.length) {
           shciPaint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
-            'No SHCI cross-validations submitted yet. Runs from <code>solange_shci.py --submit</code> '+
-            'appear here automatically, each tagged against the DMRG record it validates.</div>');
+            'No SHCI classifications submitted yet. Runs from <code>solange_shci.py --submit</code> '+
+            'appear here automatically — standalone, or additionally cross-validated against a DMRG '+
+            'record when <code>--dmrg-classification-id</code> is given.</div>');
           return;
         }
+        var classColor2 = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
-        var hh = '<table style="width:100%;min-width:920px;border-collapse:collapse;table-layout:fixed"><tr>'+
+        var hh = '<table style="width:100%;min-width:1080px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:100px">Target</th><th style="'+TH+';width:90px">CAS</th>'+
+          '<th style="'+TH+';width:90px">Class</th>'+
           '<th style="'+TH+';width:130px">E(SHCI) Ha</th><th style="'+TH+';width:130px">E(DMRG ref) Ha</th>'+
           '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:100px">Agreement</th>'+
           '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th></tr>';
         rows.forEach(function(x){
           var cas = (x.nelec!=null && x.ncas!=null) ? ('CAS('+x.nelec+','+x.ncas+')') : '—';
           var agree = x.agreement === true;
-          var agreeLabel = x.agreement == null ? '—' : (agree
-            ? '<span style="color:var(--green);font-weight:700">✓ agree</span>'
-            : '<span style="color:#f87171;font-weight:700">✗ DISAGREE</span>');
+          var agreeLabel = x.agreement == null
+            ? '<span style="color:var(--gray)" title="Standalone classification — no DMRG record was named to compare against">standalone</span>'
+            : (agree
+              ? '<span style="color:var(--green);font-weight:700">✓ agree</span>'
+              : '<span style="color:#f87171;font-weight:700">✗ DISAGREE</span>');
           hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
+                '<td style="'+C+';color:'+classColor2(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace">'+(x.e_shci!=null?Number(x.e_shci).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace;color:var(--gray)">'+(x.e_dmrg_ref!=null?Number(x.e_dmrg_ref).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+'">'+(x.delta_mha!=null?Number(x.delta_mha).toFixed(3):'—')+'</td>'+
@@ -1882,7 +1888,7 @@
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.shci_hash||'')+'">✓ '+(x.shci_hash?String(x.shci_hash).slice(0,16):'—')+'…</span></td></tr>';
         });
         shciPaint(hh+'</table>'+
-          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Δ (mHa) and agreement are computed server-side against the referenced DMRG record\'s own stored energy at ingestion — never taken from the submitting script\'s own claim (DP1, verify-don\'t-trust). Agreement means Δ ≤ 1.6 mHa, the same chemical-accuracy bar the DMRG classifier itself uses.</div>');
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class is SHCI\'s own independent verdict (convergence-only signal — see solange_shci.py\'s module docstring for what it does not yet check). Δ (mHa) and agreement, when present, are computed server-side against the referenced DMRG record\'s own stored energy at ingestion — never taken from the submitting script\'s own claim (DP1, verify-don\'t-trust). "standalone" means no DMRG record was named at all, not that agreement was checked and passed.</div>');
       }).catch(function(){
         shciPaint('<div style="color:var(--gray);font-size:11px">SHCI cross-validations unavailable (backend unreachable).</div>');
       });

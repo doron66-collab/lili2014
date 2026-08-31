@@ -110,9 +110,16 @@ setup needed. On success: `db=stored` → row in **Rung 3**, notarized by LEON.
   bash scripts/laguna/run_dmrg.sh --key <KEY> --geometry site.xyz --avas "Zn 3d,S 3p" --submit
   ```
 
-### 2c. SHCI cross-validation — a second, independent classical method (Rung 3)
+### 2c. SHCI — a second, independent classical classifier (Rung 3)
+
+SHCI reaches its own A/B/C verdict (convergence-only signal — see
+`solange_shci.py`'s module docstring for what it does and does not check yet).
+It does NOT require a DMRG record to run against — standalone classification
+and DMRG cross-validation are two independent uses of the same script.
 
 One-time: create the table (Supabase SQL editor) before the first submit —
+run both blocks even on a table that already exists from before this was
+added (the `alter table` lines are additive and safe to re-run):
 
 ```sql
 create table if not exists public.shci_crossvalidations (
@@ -125,12 +132,30 @@ create table if not exists public.shci_crossvalidations (
   e_dmrg_ref numeric, delta_mha numeric, agreement boolean,
   shci_seal_payload text, shci_hash text
 );
+alter table public.shci_crossvalidations add column if not exists bqp_class text;
+alter table public.shci_crossvalidations add column if not exists class_rationale text;
+alter table public.shci_crossvalidations add column if not exists shci_energies jsonb;
 ```
 
 Needs a Dice build (see the SHCI/Dice build notes — Boost/Eigen/HDF5 modules,
-`make -j4 Dice EIGEN=... HDF5=... BOOST=...`) and the DMRG classification's own
-`id` from its `/hpc/dmrg/submit` response — a cross-validation with nothing to
-validate against is refused by the backend (400):
+`make -j4 Dice EIGEN=... HDF5=... BOOST=...`).
+
+**Standalone classification** — no DMRG record needed or referenced:
+
+```bash
+python3 scripts/laguna/solange_shci.py --geometry cluster.xyz --charge <C> --spin <S> \
+  --basis sto-3g --avas "<AVAS criterion>" --key <KEY> \
+  --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-2,1e-3,5e-4,1e-4 --submit
+```
+
+**Cross-validated against an existing DMRG classification** — add
+`--dmrg-classification-id`, the DMRG record's own `id` from its
+`/hpc/dmrg/submit` response. The backend computes `delta_mha`/`agreement`
+itself from that record's own stored energy at ingestion — never from this
+script's own claim (DP1, verify-don't-trust) — and refuses (409) if the active
+space doesn't match the DMRG record's exactly, or if that record doesn't
+exist (404). Either way, SHCI's own `bqp_class` verdict is recorded and shown
+regardless of whether a DMRG record was named:
 
 ```bash
 python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
@@ -138,11 +163,6 @@ python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
   --key <KEY> --dmrg-classification-id <uuid-from-dmrg-submit> \
   --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
 ```
-
-The backend computes `delta_mha`/`agreement` itself from the referenced DMRG
-record's own stored energy at ingestion — never from this script's own claim
-(DP1, verify-don't-trust) — and refuses (409) if the active space doesn't match
-the DMRG record's exactly, or if that record doesn't exist (404).
 
 ---
 
@@ -255,7 +275,12 @@ bash scripts/laguna/make_row.sh                     # or run directly
 # DMRG (Rung 3)
 bash scripts/laguna/run_dmrg.sh --key <KEY> --side native --ncas 8 --nelecas 8 --bond-dims 250,500,1000,2000 --submit
 
-# SHCI cross-validation (Rung 3, second method) — needs the DMRG run's own id
+# SHCI (Rung 3, second independent classifier) — standalone, own A/B/C verdict
+python3 scripts/laguna/solange_shci.py --geometry site.xyz --charge <C> --spin <S> \
+  --basis sto-3g --avas "<AVAS criterion>" --key <KEY> \
+  --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-2,1e-3,5e-4,1e-4 --submit
+
+# SHCI cross-validated against an existing DMRG record — add its own id
 python3 scripts/laguna/solange_shci.py --geometry site.xyz --charge <SAME> --spin <SAME> \
   --basis <SAME> --avas "<SAME as the DMRG run>" --key <KEY> \
   --dmrg-classification-id <uuid-from-dmrg-submit> --dice-scripts ~/lili2014/Dice/scripts --submit

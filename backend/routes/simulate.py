@@ -1349,22 +1349,31 @@ async def delete_selected_dmrg(payload: dict = Body(...),
         raise HTTPException(status_code=500, detail=f"delete failed: {e}")
 
 
-# ── SHCI cross-validation ingestion ────────────────────────────────────────────
-# DMRG's own Class A verdict is DMRG-specific evidence, not a cross-method
-# exclusion (solange_dmrg.py's own comment above classify()) — a single method's
-# non-convergence proves that method struggles, not that classical computation as
-# a whole fails. This table closes that gap with a second, independent solver
-# (SHCI, via the Dice implementation: a determinant-sparsity method, not DMRG's
-# bond-dimension-across-a-1D-chain one — see solange_shci.py). Sealed and
-# notarized the same way as a DMRG classification (LEON's generic seal path).
+# ── SHCI classification ingestion (standalone, optionally cross-validated) ─────
+# SHCI is a genuinely independent classical method — its failure mechanism is
+# determinant-sparsity growth, unrelated to DMRG's bond-dimension growth across
+# a one-dimensional chain (see solange_shci.py's own module docstring for the
+# classification rule and its stated one-signal limitation). It reaches its
+# OWN A/B/C verdict on whatever active space it is given, on the same footing
+# as the DMRG classifier — it is not subordinate to DMRG, and does not require
+# a DMRG record to run against. dmrg_classification_id is OPTIONAL: when given,
+# this endpoint ADDITIONALLY computes a cross-validation (delta_mha/agreement)
+# against that DMRG record's own stored energy — a genuine extra check, not the
+# reason SHCI's own classification is trusted.
 #
-# DP1 ("verify, don't trust") applies here specifically to the agreement verdict
-# itself: delta_mha/agreement are computed SERVER-SIDE from the referenced DMRG
-# record's own stored energy, never taken from the submitting script's claim —
+# DP1 ("verify, don't trust") applies to the cross-validation verdict
+# specifically: delta_mha/agreement, when computed, come from the referenced
+# DMRG record's own stored energy, never from the submitting script's claim —
 # a compromised or buggy client could otherwise assert "agrees" over a real
-# disagreement with no way for a reader to catch it.
+# disagreement with no way for a reader to catch it. SHCI's own bqp_class,
+# by contrast, IS taken from the submitting script, exactly as the DMRG
+# classifier's own bqp_class already is (§06.i) — the classification itself is
+# sealed evidence from the run that produced it, not something the backend can
+# independently re-derive without re-running SHCI.
 #
-# One-time migration (Supabase SQL editor), before the first --submit:
+# One-time migration (Supabase SQL editor), before the first --submit. Additive
+# to the schema already live from this table's first (comparison-only) version
+# — existing rows are unaffected; the new columns are simply null on them:
 #   create table if not exists public.shci_crossvalidations (
 #     id uuid primary key,
 #     created_at timestamptz not null default now(),
@@ -1375,10 +1384,14 @@ async def delete_selected_dmrg(payload: dict = Body(...),
 #     e_dmrg_ref numeric, delta_mha numeric, agreement boolean,
 #     shci_seal_payload text, shci_hash text
 #   );
+#   alter table public.shci_crossvalidations add column if not exists bqp_class text;
+#   alter table public.shci_crossvalidations add column if not exists class_rationale text;
+#   alter table public.shci_crossvalidations add column if not exists shci_energies jsonb;
 _SHCI_DB_COLUMNS = frozenset({
     "id", "created_at", "key", "dmrg_classification_id", "ncas", "nelec",
     "e_shci", "sweep_eps", "method", "elapsed_s", "provenance_source",
     "hardware", "e_dmrg_ref", "delta_mha", "agreement",
+    "bqp_class", "class_rationale", "shci_energies",
     "shci_seal_payload", "shci_hash",
 })
 _SHCI_CHEM_ACC_MHA = 1.6  # same bar solange_dmrg.py's classify() uses
@@ -1386,20 +1399,19 @@ _SHCI_CHEM_ACC_MHA = 1.6  # same bar solange_dmrg.py's classify() uses
 
 @router.post("/hpc/shci/submit")
 async def submit_shci_crossvalidation(payload: dict = Body(...)):
-    """Ingest an SHCI cross-validation run from solange_shci.py --submit.
-
-    Requires dmrg_classification_id, naming the DMRG record this run validates —
-    a cross-validation with nothing to cross-validate against is not one. LEON
-    re-verifies the seal the script computed at source before the record is
-    trusted; a mismatch is REJECTED (422), never stored. The agreement verdict
-    is computed here, against the DMRG record's own stored energy, not accepted
+    """Ingest an SHCI classification from solange_shci.py --submit — standalone,
+    or additionally cross-validated against a DMRG record if
+    dmrg_classification_id is given. LEON re-verifies the seal the script
+    computed at source before the record is trusted; a mismatch is REJECTED
+    (422), never stored. When a DMRG record is named, the agreement verdict is
+    computed HERE, against that record's own stored energy, never accepted
     from the submitting script (see module note above).
     """
     if not payload.get("shci_hash"):
         raise HTTPException(400, "missing shci_hash — record was not sealed at source")
-    dmrg_id = payload.get("dmrg_classification_id")
-    if not dmrg_id:
-        raise HTTPException(400, "missing dmrg_classification_id — nothing to cross-validate against")
+    if not payload.get("bqp_class"):
+        raise HTTPException(400, "missing bqp_class — SHCI classifies independently now; "
+                                  "see solange_shci.py's classify_shci()")
 
     record = dict(payload)
     record.setdefault("id", str(uuid.uuid4()))
@@ -1421,30 +1433,34 @@ async def submit_shci_crossvalidation(payload: dict = Body(...)):
                 "seal_ok": verdict["seal_ok"], "run_id": record["id"],
                 "db_status": "not_configured"}
 
-    dmrg_row = (sb.table("dmrg_classifications").select("nelecas, ncas, dmrg_energies, key")
-                  .eq("id", str(dmrg_id)).execute())
-    if not dmrg_row.data:
-        leon.write_audit(sb, "reject", record["id"], verdict, actor=actor,
-                         note=f"SHCI submit referenced unknown dmrg_classification_id={dmrg_id}")
-        raise HTTPException(404, f"dmrg_classification_id {dmrg_id} not found — cannot cross-validate "
-                                  f"against a record that does not exist")
-    dmrg_rec = dmrg_row.data[0]
-    dmrg_energies = dmrg_rec.get("dmrg_energies") or []
-    if not dmrg_energies:
-        raise HTTPException(409, f"DMRG record {dmrg_id} has no dmrg_energies to compare against")
-    e_dmrg_ref = dmrg_energies[-1][1]
-    record["e_dmrg_ref"] = e_dmrg_ref
-    record["delta_mha"] = round(abs(record.get("e_shci", 0.0) - e_dmrg_ref) * 1000.0, 4)
-    record["agreement"] = record["delta_mha"] <= _SHCI_CHEM_ACC_MHA
-    # Scope check mirrors the DMRG-record's own scope discipline (§06.i): a
-    # cross-validation is only meaningful over the SAME active space, not a
-    # fragment or a superset of it.
-    if dmrg_rec.get("ncas") != record.get("ncas") or dmrg_rec.get("nelecas") != record.get("nelec"):
-        raise HTTPException(409, f"active-space mismatch — DMRG record {dmrg_id} is "
-                                  f"CAS({dmrg_rec.get('nelecas')},{dmrg_rec.get('ncas')}), "
-                                  f"this SHCI run is CAS({record.get('nelec')},{record.get('ncas')}); "
-                                  f"a cross-validation must use the identical active space")
-    record["key"] = record.get("key") or dmrg_rec.get("key")
+    dmrg_id = payload.get("dmrg_classification_id")
+    if dmrg_id:
+        dmrg_row = (sb.table("dmrg_classifications").select("nelecas, ncas, dmrg_energies, key")
+                      .eq("id", str(dmrg_id)).execute())
+        if not dmrg_row.data:
+            leon.write_audit(sb, "reject", record["id"], verdict, actor=actor,
+                             note=f"SHCI submit referenced unknown dmrg_classification_id={dmrg_id}")
+            raise HTTPException(404, f"dmrg_classification_id {dmrg_id} not found — cannot "
+                                      f"cross-validate against a record that does not exist")
+        dmrg_rec = dmrg_row.data[0]
+        dmrg_energies = dmrg_rec.get("dmrg_energies") or []
+        if not dmrg_energies:
+            raise HTTPException(409, f"DMRG record {dmrg_id} has no dmrg_energies to compare against")
+        e_dmrg_ref = dmrg_energies[-1][1]
+        record["e_dmrg_ref"] = e_dmrg_ref
+        record["delta_mha"] = round(abs(record.get("e_shci", 0.0) - e_dmrg_ref) * 1000.0, 4)
+        record["agreement"] = record["delta_mha"] <= _SHCI_CHEM_ACC_MHA
+        # Scope check mirrors the DMRG-record's own scope discipline (§06.i): a
+        # cross-validation is only meaningful over the SAME active space, not a
+        # fragment or a superset of it.
+        if dmrg_rec.get("ncas") != record.get("ncas") or dmrg_rec.get("nelecas") != record.get("nelec"):
+            raise HTTPException(409, f"active-space mismatch — DMRG record {dmrg_id} is "
+                                      f"CAS({dmrg_rec.get('nelecas')},{dmrg_rec.get('ncas')}), "
+                                      f"this SHCI run is CAS({record.get('nelec')},{record.get('ncas')}); "
+                                      f"a cross-validation must use the identical active space")
+        record["key"] = record.get("key") or dmrg_rec.get("key")
+    # else: standalone classification — no DMRG record to compare against, and
+    # none required. e_dmrg_ref/delta_mha/agreement stay unset (null in the DB).
 
     safe = {k: v for k, v in record.items() if k in _SHCI_DB_COLUMNS}
     db_status = "not_configured"
@@ -1455,18 +1471,19 @@ async def submit_shci_crossvalidation(payload: dict = Body(...)):
         db_status = "error"
         logging.error("SHCI cross-validation insert failed: %s", e)
 
-    logging.info("LEON notarized SHCI cross-validation %s (%s) — delta=%.4f mHa agreement=%s db=%s",
-                 record["id"], record.get("key"), record["delta_mha"], record["agreement"], db_status)
+    cross_note = (f"delta={record['delta_mha']} mHa agreement={record['agreement']} vs DMRG {dmrg_id}"
+                  if dmrg_id else "standalone — no DMRG record referenced")
+    logging.info("LEON notarized SHCI classification %s (%s) — class=%s %s db=%s",
+                 record["id"], record.get("key"), record.get("bqp_class"), cross_note, db_status)
     leon.write_audit(sb, "notarize", record["id"],
                      {**verdict, "integrity": "PASS", "method": "generic-ingestion"},
-                     actor=actor,
-                     note=f"SHCI vs DMRG {dmrg_id}: delta={record['delta_mha']} mHa "
-                          f"agreement={record['agreement']} (db={db_status})")
+                     actor=actor, note=f"SHCI class={record.get('bqp_class')} — {cross_note} (db={db_status})")
 
     return {
         "status": "PASSED", "verified": True, "notary": "LEON",
         "seal_ok": verdict["seal_ok"], "run_id": record["id"], "db_status": db_status,
-        "delta_mha": record["delta_mha"], "agreement": record["agreement"],
+        "bqp_class": record.get("bqp_class"),
+        "delta_mha": record.get("delta_mha"), "agreement": record.get("agreement"),
     }
 
 
@@ -1479,7 +1496,8 @@ async def list_shci_crossvalidations(limit: int = 50):
     try:
         res = (sb.table("shci_crossvalidations")
                  .select("id, created_at, key, dmrg_classification_id, ncas, nelec, "
-                         "e_shci, e_dmrg_ref, delta_mha, agreement, sweep_eps, method, "
+                         "e_shci, bqp_class, class_rationale, shci_energies, "
+                         "e_dmrg_ref, delta_mha, agreement, sweep_eps, method, "
                          "elapsed_s, provenance_source, hardware, shci_hash")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"crossvalidations": res.data or []}
