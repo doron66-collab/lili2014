@@ -54,6 +54,30 @@ def run(cmd, label):
     return r.stdout
 
 
+def run_streaming(cmd, label):
+    """Like run(), but for the long steps (DMRG, SHCI) — subprocess.run's
+    capture_output=True BUFFERS everything until the child exits, so a 7+
+    minute DMRG step showed nothing at all in the agent's own live log until
+    it finished, indistinguishable from a hang (found the hard way on this
+    pipeline's very first real-time-watched run). This streams stdout line by
+    line as it arrives, exactly like solange_hpc.py's own _run_with_progress
+    does for the agent's top-level subprocess -- the same visibility this
+    project has relied on all along to catch failures early, just missing one
+    level down inside this orchestrator's own nested subprocess calls."""
+    print(f"  $ {' '.join(cmd)}", flush=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, bufsize=1)
+    lines = []
+    for line in iter(proc.stdout.readline, ""):
+        print(line, end="", flush=True)
+        lines.append(line)
+    proc.wait()
+    out = "".join(lines)
+    if proc.returncode != 0:
+        sys.exit(f"[{label}] failed with exit code {proc.returncode}")
+    return out
+
+
 def verify_residue(pdb_path, chain, resi, expect_resname):
     """Read ATOM records with fixed-width PDB columns, not whitespace split --
     whitespace splitting misidentified columns once already in this project's
@@ -226,8 +250,7 @@ def main():
                 "--scratch", f"./tmp_dmrg_{args.out_prefix}_{_RUN_TAG}"]
     if args.casci:
         dmrg_cmd.append("--casci")
-    dmrg_out = run(dmrg_cmd, "run_dmrg.sh")
-    print(dmrg_out)
+    dmrg_out = run_streaming(dmrg_cmd, "run_dmrg.sh")  # streamed live already, not re-printed
     dmrg_run_id = run_id_from(dmrg_out)
     if not dmrg_run_id:
         sys.exit("DMRG step ran but no run_id was found in its output -- it may not "
@@ -243,8 +266,7 @@ def main():
                     "--key", args.key, "--dmrg-classification-id", dmrg_run_id,
                     "--dice-scripts", args.dice_scripts, "--sweep-eps", args.sweep_eps,
                     "--submit", args.submit]
-        shci_out = run(shci_cmd, "solange_shci.py")
-        print(shci_out)
+        shci_out = run_streaming(shci_cmd, "solange_shci.py")  # streamed live already, not re-printed
         shci_run_id = run_id_from(shci_out)
         print(f"SHCI stored: run_id={shci_run_id}" if shci_run_id
               else "SHCI ran but no run_id was found in its output.")
