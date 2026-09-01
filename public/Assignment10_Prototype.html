@@ -1731,10 +1731,10 @@
         // has nowhere to put the extra width this many columns need and starves
         // whichever column wraps easiest (Rationale), squeezing it into a tall,
         // narrow, badly-broken-up column instead of scrolling the row sideways.
-        var hh = '<table style="width:100%;min-width:1430px;border-collapse:collapse;table-layout:fixed"><tr>'+
+        var hh = '<table style="width:100%;min-width:1150px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:140px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:80px">CAS</th>'+
-          '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:110px">Class</th>'+
-          '<th style="'+TH+';width:290px">Rationale</th><th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
+          '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:110px" title="Hover a Class value for the full rationale sentence">Class</th>'+
+          '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
           '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:350px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
@@ -1751,14 +1751,17 @@
               + 'e against a ~' + _avRow.activeElectrons + 'e site. It classifies that fragment, not the target — '
               + 'the target keeps its own classification until a run of commensurate scope is available.">(scope-limited)</span>'
             : '';
-          // Rationale: full text, no width cap (was clipped at 280px). LEON hash:
-          // shown longer and monospace so it can be selected/copied, full value in title.
+          // LEON hash: shown longer and monospace so it can be selected/copied,
+          // full value in title. Rationale is no longer its own (very repetitive
+          // — the same templated sentence shape on every row, differing only in
+          // the two numbers S_max already shows in its own column) visible
+          // column; full text now lives in the Class cell's title, same pattern
+          // the SHCI table already used.
           hh += '<tr><td style="'+C+';font-weight:600;overflow:hidden;text-overflow:ellipsis" title="'+(x.key||'')+'">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
-                '<td id="dmrg-class-cell-'+(x.id||'')+'" style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700">'+(x.bqp_class||'—')+provisional+scopeNote+'<span class="shci-warn-slot" data-dmrg-id="'+(x.id||'')+'"></span></td>'+
-                '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.5">'+(x.class_rationale||'—')+'</td>'+
+                '<td id="dmrg-class-cell-'+(x.id||'')+'" style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+provisional+scopeNote+'<span class="shci-warn-slot" data-dmrg-id="'+(x.id||'')+'"></span></td>'+
                 '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);overflow:hidden;text-overflow:ellipsis" title="'+(x.hardware?String(x.hardware).replace(/"/g,'&quot;'):'')+'">'+(x.hardware?String(x.hardware).split(' · ')[0]:'—')+'</td>'+
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
