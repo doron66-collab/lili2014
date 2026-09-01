@@ -1500,9 +1500,13 @@
       var rQpu=runningQpuJobs.length;
       // DMRG (Rung 3) live progress → the DMRG block's own strip, so it sits under the
       // DMRG header rather than under RUNG 2 · HPC. Same shared agent, right location.
+      // screen_classify ("The Classifier") belongs here too, not under Rung 2 —
+      // it IS Rung 3 (cluster build + DMRG + SHCI), it just isn't literally
+      // job_type 'dmrg'. Was falling through to the Rung 2 line by default
+      // before this was named explicitly.
       (function(){
         var dEl=document.getElementById('dmrg-queue-status'); if(!dEl) return;
-        var dRun=jobs.filter(function(j){return j.status==='running'&&j.job_type==='dmrg'&&j.note;});
+        var dRun=jobs.filter(function(j){return j.status==='running'&&(j.job_type==='dmrg'||j.job_type==='screen_classify')&&j.note;});
         if(!dRun.length){ dEl.style.display='none'; dEl.innerHTML=''; return; }
         dEl.innerHTML=dRun.map(function(j){
           var dn=String(j.note).replace(/</g,'&lt;');
@@ -1533,11 +1537,12 @@
           // exact launch command to paste in their own authenticated Laguna session.
           if(!online) line+=' <button onclick="solangeWakeAgent()" title="SOLANGE cannot start the agent remotely (no inbound path into Laguna — by design). This gives you the one command to paste in your Laguna terminal." style="background:rgba(232,160,32,0.14);color:var(--gold);border:1px solid rgba(232,160,32,0.5);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:6px">▶ Wake agent</button>';
           // Live stage note for a running HPC (Rung 2) job — RHF → CASSCF → VQE step.
-          // DMRG (Rung 3) jobs are handled by the SAME agent but their progress is shown
-          // in the DMRG block's own strip (see _renderDmrgQueue), not here, so each rung's
-          // live status sits under its own header. The target key is prefixed so two
-          // concurrent/ghost rows are distinguishable at a glance.
-          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.job_type!=='dmrg'&&j.note;}).forEach(function(j){
+          // DMRG and screen_classify ("The Classifier") jobs are handled by the SAME
+          // agent but their progress is shown in the DMRG block's own strip (see
+          // above), not here, so each rung's live status sits under its own header.
+          // The target key is prefixed so two concurrent/ghost rows are
+          // distinguishable at a glance.
+          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.job_type!=='dmrg'&&j.job_type!=='screen_classify'&&j.note;}).forEach(function(j){
             var cnote=String(j.note).replace(/</g,'&lt;');
             var ck=(j.key?String(j.key).replace(/</g,'&lt;')+': ':'');
             line+='<div style="margin-top:2px;color:var(--teal);font-size:10px" title="'+cnote.replace(/"/g,'&quot;')+'">⚙ '+ck+cnote+'</div>';
