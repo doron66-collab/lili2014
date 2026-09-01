@@ -942,6 +942,7 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
       <button onclick="saveGate1Check(this)" title="Record this verdict in the gate1_checks cache — promoted into targets.json end of day" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">💾 Save Gate 1 Check</button>
+      <button onclick="sendGate1ToClassifier(this)" title="Copy PDB/chain/residue/target into 'The Classifier' below (Rung 3) and scroll to it — does not dispatch anything by itself" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">→ Send to Classifier</button>
       <span id="g1-msg" style="color:var(--gray)"></span>
     </div>
     <div style="font-size:10px;color:var(--gray);margin-top:10px">Pending promotion (run <code style="font-size:9.5px">scripts/laguna/promote_gate1_checks.py</code> end of day):</div>
@@ -1069,7 +1070,7 @@
          state — those remain a computational chemist's call (Gate 2, tracked
          above, not yet gating anything). The DMRG and SHCI tables below this
          block are its result records, not separate features. -->
-    <div style="padding:12px;margin-bottom:14px;border:1px solid rgba(167,139,250,0.3);border-radius:8px;background:rgba(167,139,250,0.05)">
+    <div id="the-classifier-card" style="padding:12px;margin-bottom:14px;border:1px solid rgba(167,139,250,0.3);border-radius:8px;background:rgba(167,139,250,0.05)">
       <div class="card-title" style="font-size:13px">The Classifier — PDB to a Two-Method Decision<span class="info-i" data-tip="Part 1: reuses a cluster already built for this exact PDB/chain/residue (cache lookup), or builds one from scratch (protonate -> carve -> shrink radius until AVAS fits --max-orbitals) and saves it for next time. Part 2: classifies with BOTH DMRG and SHCI — mandatory, not optional — and reports whether their energies agree. Does not choose the AVAS chemical criterion, protonation pH, or a metal site's spin/oxidation state for you — those stay a computational chemist's call (Gate 2, above).">i</span></div>
       <div style="font-size:10px;color:var(--gray);margin:4px 0 8px">Part 1 — cluster (cached if this exact site was built before, otherwise built from scratch) · Part 2 — classify with both DMRG and SHCI, and report agreement</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
@@ -5462,6 +5463,42 @@ async function autoCheckGate1(btn) {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = orig; }
   }
+}
+
+function sendGate1ToClassifier(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const pdb    = val('g1-new-pdb').trim();
+  const chain  = val('g1-new-chain').trim();
+  const resi   = val('g1-new-resi').trim();
+  const expect = val('g1-new-expect').trim();
+  const target = val('g1-new-target').trim();
+  const resolvedStr = val('g1-new-resolved');
+  const msg = document.getElementById('g1-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!pdb || !resi) {
+    setMsg('<span style="color:#f87171">Need at least a PDB ID and residue # to send to the Classifier — run Auto-check PDB first.</span>');
+    return;
+  }
+  const pdbInput    = document.getElementById('ntp-pdbid');
+  const chainInput  = document.getElementById('ntp-chain');
+  const resiInput   = document.getElementById('ntp-resi');
+  const resnameInput= document.getElementById('ntp-resname');
+  const keyInput    = document.getElementById('ntp-key');
+  if (pdbInput)     pdbInput.value = pdb;
+  if (chainInput)   chainInput.value = chain;
+  if (resiInput)    resiInput.value = resi;
+  if (resnameInput) resnameInput.value = expect;
+  if (keyInput)      keyInput.value = target;
+  const card = document.getElementById('the-classifier-card');
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.style.transition = 'box-shadow 0.3s';
+    card.style.boxShadow = '0 0 0 2px #a78bfa';
+    setTimeout(() => { card.style.boxShadow = ''; }, 2000);
+  }
+  setMsg(resolvedStr === 'false'
+    ? '<span style="color:var(--gold)">⚠ this target is marked UNRESOLVED — sent anyway, but the Classifier will likely fail the same way. Review before clicking ▶ Classify.</span>'
+    : '<span style="color:var(--green)">✓ sent to The Classifier below — review the fields, then click ▶ Classify</span>');
 }
 
 async function saveGate1Check(btn) {
