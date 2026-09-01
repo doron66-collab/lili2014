@@ -935,12 +935,12 @@
        Phase 3A VQE demo — animates while it runs. Former MD/DFT/AI-GNN 'Layer 2'
        cards were removed: those pipelines were never implemented or run.) -->
   <div class="card">
-    <div class="card-title">Quantum Kernel · Live VQE Job (Phase 3A · laptop / in-browser)</div>
+    <div class="card-title">Quantum Kernel · Live VQE Job (Pipeline Self-Test · laptop / in-browser)</div>
     <div class="job-card">
       <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
       <div class="job-info">
-        <div class="job-name" id="job-vqe-name">Phase 3A · VQE — Awaiting simulation run</div>
-        <div class="job-sub" id="job-vqe-sub">Quantum Kernel · 4-qubit JW Hamiltonian (27 Pauli terms) · PySCF CAS(2e,2o) / STO-3G · sqDRIFT targets Phase 3B</div>
+        <div class="job-name" id="job-vqe-name">N2 self-test — Awaiting run</div>
+        <div class="job-sub" id="job-vqe-sub">Quantum Kernel · 8-qubit JW Hamiltonian (329 Pauli terms) · PySCF CASSCF(4e,4o) / STO-3G</div>
         <div style="margin-top:6px">
           <div class="progress-wrap"><div class="progress-fill" id="job-vqe-bar" style="width:0%;background:var(--teal)"></div></div>
         </div>
@@ -949,15 +949,20 @@
     </div>
   </div>
 
-  <!-- RUNG 1 · Laptop — Live VQE Runner (run button + P1–P9 sealed result) -->
+  <!-- RUNG 1 · Laptop — Live VQE Runner (run button + P1–P9 sealed result).
+       Fixed to N2 on purpose — this is a PIPELINE SELF-TEST, not a per-mutation
+       result (that pattern, and why it was removed, is the same reason the
+       "Per-Mutation Routing" dispatch buttons were removed from the Compute
+       Dispatcher above: a proxy-compound result labeled with a gene name reads
+       as a per-gene finding when it is not one). N2 CAS(4e,4o)/STO-3G, 8-qubit
+       JW Hamiltonian — see jw_hamiltonians.json["N2"]["native"]["residue_note"]
+       for why CAS(2,2) was tried first and rejected (non-reproducible due to
+       N2's degenerate frontier orbitals). -->
   <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
-    <div class="card-title" style="color:var(--teal)">Live VQE Engine — Phase 3A Proxy · <span style="color:var(--gold)">sqDRIFT targets Phase 3B (IBM Heron r3)</span></div>
+    <div class="card-title" style="color:var(--teal)">Live VQE Engine — Pipeline Self-Test (N₂)<span class="info-i" data-tip="Runs a fixed N2 CAS(4e,4o)/STO-3G calculation (8-qubit JW Hamiltonian) end to end through the real Rung-1 wiring: dispatch to PennyLane on Render, live convergence stream, P8 cryptographic seal, storage to Supabase. This proves the browser VQE pipeline works. It is NOT a per-gene or per-mutation result — no dropdown, no target selection — on purpose.">i</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="sim-target" onchange="resetJobCards(); updateSimButton();" style="background:var(--navy2);color:var(--white);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px">
-        <option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>
-      </select>
-      <button id="sim-btn" onclick="runLiveVQE()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
-        ▶ Run Live Simulation
+      <button id="sim-btn" onclick="runN2SelfTest()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
+        ▶ Run N2 self-test
       </button>
       <span id="sim-status" style="font-size:11px;color:var(--gray)"></span>
     </div>
@@ -972,7 +977,7 @@
         <div><div style="color:var(--gray);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">P8 Cryptographic Seal (SHA-256) <span style="font-size:9px;opacity:0.6">(click to copy)</span></div><div id="r-seal" style="color:var(--gold);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>alert('P8 seal copied!'))"></div></div>
       </div>
       <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:10.5px;color:var(--gray)">
-        Phase 3A: PennyLane default.qubit · AllSinglesDoubles UCCSD ansatz · 80 Adam optimisation steps · 4-qubit JW Hamiltonian · P1–P9 record sealed & stored to Supabase
+        Pipeline self-test: PennyLane default.qubit · AllSinglesDoubles UCCSD ansatz · 80 Adam optimisation steps · N2 CAS(4e,4o)/STO-3G, 8-qubit JW Hamiltonian · P1–P9 record sealed & stored to Supabase
       </div>
     </div>
     <div id="sim-error" style="display:none;color:var(--red);font-size:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.3)"></div>
@@ -3226,7 +3231,7 @@ function updateResultsCharts(data) {
   const chartFn = document.getElementById('energy-chart-footnote');
   if (chartFn) chartFn.innerHTML =
     `DFT error vs CCSD(T): <span class="red">2.8 kcal/mol</span> — outside chemical accuracy threshold · ` +
-    `<span class="teal">* Live VQE: ${r.energy_ha} Hₐ (${electrons}e/2orb Phase 3A minimal active space)</span>`;
+    `<span class="teal">* Live VQE: ${r.energy_ha} Hₐ (${electrons}e/${rec.p2_active_orbitals || '2'}orb Phase 3A minimal active space)</span>`;
 
   // 2. Convergence chart — real PennyLane data
   const convData = r.convergence || [];
@@ -3456,81 +3461,11 @@ function updateAllTabs(data) {
   updateDashboardAfterRun(data.full_record.mutation_id, data);
 }
 
-// ── Sim button state — Phase 3A vs Phase 3B ───────────────────────────────
-function updateSimButton() {
-  const simId = document.getElementById('sim-target')?.value;
-  const btn   = document.getElementById('sim-btn');
-  if (!btn) return;
-  const phase3aRunnable = simId && window.__phase3aIds && window.__phase3aIds.has(simId);
-  const phase3bOnly     = simId && !phase3aRunnable;
-  btn.disabled = !simId;
-  if (!simId) {
-    btn.textContent = '▶ Run Live Simulation';
-    btn.style.background = 'var(--gray)';
-    btn.style.cursor = 'not-allowed';
-  } else if (phase3aRunnable) {
-    btn.textContent = '▶ Run Phase 3A VQE';
-    btn.style.background = 'var(--teal)';
-    btn.style.cursor = 'pointer';
-    btn.disabled = false;
-  } else {
-    btn.innerHTML = '⟶ View Phase 3B Target Specs';
-    btn.style.background = '#92400e';
-    btn.style.cursor = 'pointer';
-    btn.disabled = false;
-  }
-}
-
-// ── Show Phase 3B pending result in the results panel ─────────────────────
-function showPhase3BPendingResult(mutationId, inputLabel) {
-  const gene = mutationId.replace(/_LOF$/, '');
-  const gm   = GENE_MAP[gene] || {};
-  show('s3');
-  const s3Mut = document.getElementById('s3-mutation');
-  if (s3Mut) { s3Mut.textContent = `${gene} — Phase 3B target`; s3Mut.style.color = 'var(--gold)'; }
-  ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = '—'; el.style.color = 'var(--gray)'; }
-  });
-  const s3Ri = document.getElementById('s3-runid');
-  if (s3Ri) s3Ri.textContent = 'No Phase 3A run — Phase 3B pending';
-  const s3El = document.getElementById('s3-energy-lbl');
-  if (s3El) s3El.textContent = `Phase 3B target · ${gm.full_electrons || '?'}e / ${gm.full_qubits || '?'} qubits`;
-  const s3Ft = document.getElementById('s3-footer');
-  if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${gm.full_electrons || '?'}e / ${gm.full_qubits || '?'} qubits on IBM Heron r3</span> · No Phase 3A Hamiltonian available`;
-  const s3Desc = document.getElementById('s3-casscf-desc');
-  if (s3Desc) s3Desc.textContent = `No per-mutation Phase 3A Hamiltonian for ${mutationId} — awaiting IBM Heron r3`;
-  const s3Proxy = document.getElementById('s3-proxy-notice');
-  const s3ProxyText = document.getElementById('s3-proxy-text');
-  if (s3Proxy) {
-    s3Proxy.style.display = '';
-    s3Proxy.style.background = 'rgba(251,191,36,0.08)';
-    s3Proxy.style.borderColor = 'rgba(251,191,36,0.4)';
-    s3Proxy.querySelector('span').textContent = '⟶ Phase 3B Target — IBM Heron r3';
-  }
-  if (s3ProxyText) {
-    const orig = inputLabel ? `${inputLabel} → ` : '';
-    s3ProxyText.innerHTML = `${orig}<strong>${mutationId}</strong> has no per-mutation Phase 3A Hamiltonian. ` +
-      `Computing this target requires Phase 3B on IBM Heron r3 (${gm.full_qubits || '?'} qubits). ` +
-      `Phase 3A is limited to 10 named targets with validated CAS(2,2) Hamiltonians: ` +
-      `TP53 C275F · TP53 Y220C · KEAP1 LOF · KEAP1 G333C · KEAP1 R320Q · STK11 LKB1 · STK11 F354L · STK11 D194N · CDKN2A LOF · ARID2 LOF.`;
-  }
-}
-
-// ── Run live VQE simulation ────────────────────────────────────────────────
-async function runLiveVQE() {
-  const simTargetEl = document.getElementById('sim-target');
-  const mutationId  = simTargetEl.value;
-  const selOpt = simTargetEl?.selectedOptions?.[0];
-  const inputLabel = selOpt?.textContent?.split('·')[0].trim() || mutationId;
-  window.__pendingMutLabel = inputLabel;
-
-  // Phase 3B-only targets — no per-mutation Hamiltonian, show spec card
-  if (window.__phase3aIds && !window.__phase3aIds.has(mutationId)) {
-    showPhase3BPendingResult(mutationId, inputLabel);
-    return;
-  }
-
+// ── Run the N2 pipeline self-test ──────────────────────────────────────────
+// Fixed target, no dropdown, on purpose — see the HTML comment above the
+// "Live VQE Engine — Pipeline Self-Test (N2)" card for why.
+async function runN2SelfTest() {
+  const mutationId = 'N2';
   const btn    = document.getElementById('sim-btn');
   const status = document.getElementById('sim-status');
   const errBox = document.getElementById('sim-error');
@@ -3648,7 +3583,7 @@ async function runLiveVQE() {
     status.textContent = '';
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '▶ Run Live Simulation';
+    btn.innerHTML = '▶ Run N2 self-test';
   }
 }
 
@@ -4856,28 +4791,6 @@ function loadNGSReport(ngs) {
   });
   const legend = document.getElementById('bqp-filter-legend');
   if (legend) legend.style.display = 'block';
-
-  // Rebuild VQE dropdown — one option per patient variant
-  const simTarget = document.getElementById('sim-target');
-  if (simTarget) {
-    simTarget.innerHTML = '';
-    if (!hasAnyTargets) {
-      simTarget.innerHTML = '<option value="" disabled selected style="color:var(--gray)">— No platform targets in this report —</option>';
-    } else {
-      simulatable.forEach(av => {
-        const opt = document.createElement('option');
-        opt.value = av.simId;
-        if (av.phase3a) {
-          opt.textContent = `${av.gene} ${av.mutation} [${av.bqpCls || 'unclassified'}] · ${av.gm.active_electrons}e`;
-        } else {
-          opt.textContent = `${av.gene} ${av.mutation} · Phase 3B only — IBM Heron r3 (${av.gm.full_qubits}q)`;
-          opt.style.color = '#f59e0b';
-        }
-        simTarget.appendChild(opt);
-      });
-      updateSimButton();
-    }
-  }
 
   // Auto-fetch structure sources for all variants. Pass simulatable (has
   // .simId resolved already) too, so the panel can also surface any
@@ -6217,8 +6130,7 @@ function resetPlatform() {
   // ── Orchestration — pipeline + job card ──────────────────────────────
   updateJobCard('', 'idle');
 
-  // ── Orchestration — VQE engine dropdown + result panel ───────────────
-  el('sim-target') && (el('sim-target').innerHTML = '<option value="" disabled selected style="color:var(--gray)">— Load NGS report to populate targets —</option>');
+  // ── Orchestration — VQE engine result panel (N2 self-test button is static) ──
   el('sim-result') && (el('sim-result').style.display = 'none');
   el('sim-status') && (el('sim-status').textContent = '');
   ['r-energy','r-ci','r-circuit','r-runid','r-seal'].forEach(id => { if (el(id)) el(id).textContent = ''; });

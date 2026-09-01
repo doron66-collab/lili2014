@@ -64,14 +64,13 @@ _JW_PATH = Path(__file__).parent.parent / "jw_hamiltonians.json"
 with open(_JW_PATH) as _f:
     _JW_DATA = json.load(_f)
 
-# ── CASSCF(2,2) active-space constants (2 electrons, 4 spin-orbitals) ─────────
-# qchem.hf_state(2,4)=[1,1,0,0], spin-preserving excitations for 2e/4q.
-_QUBITS     = 4
+# ── Default active-space size — every gene target's jw_hamiltonians.json entry
+# omits n_qubits/n_electrons, so these apply: CAS(2,2)/4-qubit. hf_state and
+# singles/doubles are derived per-run via qml.qchem (see run_vqe) rather than
+# hardcoded, so an entry that does specify n_qubits/n_electrons (e.g. the N2
+# pipeline self-test, CAS(4,4)/8-qubit) gets its own correctly-sized circuit.
+_QUBITS      = 4
 _N_ELECTRONS = 2
-_HF_STATE   = [1, 1, 0, 0]           # |1100⟩ — alpha/beta electrons in orbital 0
-_SINGLES    = [[0, 2], [1, 3]]        # spin-preserving singles only
-_DOUBLES    = [[0, 1, 2, 3]]          # (0,1)→(2,3) double excitation
-_N_PARAMS   = 3                       # 2 singles + 1 double
 
 
 def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
@@ -240,6 +239,21 @@ def _resolve_config(mutation_id: str) -> dict | None:
 
 
 MUTATION_CONFIGS = {
+    "N2": {
+        # PIPELINE SELF-TEST ONLY — not a gene, not a mutation, not a clinical or
+        # scientific target. Proves the Rung-1 browser VQE wiring (dispatch ->
+        # PennyLane -> Supabase -> P8 seal) runs end to end. See
+        # jw_hamiltonians.json["N2"]["native"]["residue_note"] for why this needs
+        # CAS(4,4)/8-qubit rather than the CAS(2,2)/4-qubit every real target uses.
+        "name": "N2 pipeline self-test",
+        "pdb": None,
+        "desc": "PIPELINE SELF-TEST — not a target. N2 CAS(4e,4o)/STO-3G, 8-qubit JW Hamiltonian.",
+        "jw_source": ("N2", "native"),
+        "active_electrons": 4,
+        "active_orbitals": 4,
+        "bqp_class": None,
+        "hardware_era": None,
+    },
     "TP53_C275F": {
         "name": "TP53 p.Cys275Phe",
         "pdb": "2OCJ",
@@ -428,11 +442,15 @@ except FileNotFoundError:
 
 def run_vqe(config: dict, progress_cb=None) -> dict:
     """
-    Live 4-qubit VQE on PennyLane default.qubit simulator.
+    Live VQE on PennyLane default.qubit simulator.
 
-    Ansatz : AllSinglesDoubles (UCCSD-type), HF initial state |1100⟩
-    Active space : CAS(2e,2o) — JW Hamiltonian from PySCF CASSCF(2,2)
-    Optimizer : Adam, 30 steps (converges to CASSCF-exact by proof for 2e/4q)
+    Ansatz : AllSinglesDoubles (UCCSD-type), HF initial state
+    Active space : from the jw_hamiltonians.json entry — CAS(2e,2o)/4-qubit for
+    every gene target (the default when an entry has no n_qubits/n_electrons),
+    CAS(4e,4o)/8-qubit for the N2 pipeline self-test (see its jw entry's
+    residue_note for why CAS(2,2) does not work for N2 specifically).
+    Optimizer : Adam, 80 steps (converges to CASSCF-exact for 2e/4q by proof;
+    good empirical convergence for 4e/8q too, see the N2 self-test's own runs).
 
     ╔══════════════════════════════════════════════════════════════════╗
     ║  IBM_CONNECT — Phase 3B hardware entry point                    ║
@@ -456,28 +474,38 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
     ecore        = jw_entry["ecore"]
     e_casscf     = jw_entry["e_casscf"]
     compound     = jw_entry["compound"]
-    e_hf_active  = jw_entry["e_active_rhf"]
+    e_hf_active  = jw_entry.get("e_active_rhf")
+
+    # Active-space size — per-entry, defaulting to the CAS(2e,2o)/4-qubit shape
+    # every gene target uses. qml.qchem.hf_state/excitations reproduce the old
+    # hardcoded _HF_STATE/_SINGLES/_DOUBLES exactly for (2, 4) — verified before
+    # this was generalized — so no existing target's circuit changes.
+    n_qubits    = jw_entry.get("n_qubits", _QUBITS)
+    n_electrons = jw_entry.get("n_electrons", _N_ELECTRONS)
+    hf_state    = qml.qchem.hf_state(n_electrons, n_qubits)
+    singles, doubles = qml.qchem.excitations(n_electrons, n_qubits)
+    n_params    = len(singles) + len(doubles)
 
     # Build Hamiltonian from pre-computed JW Pauli terms
     hamiltonian = _build_hamiltonian(jw_entry["terms"])
 
     # PennyLane device and VQE circuit
-    dev = qml.device("default.qubit", wires=_QUBITS)
+    dev = qml.device("default.qubit", wires=n_qubits)
 
     @qml.qnode(dev)
     def circuit(params):
         qml.AllSinglesDoubles(
             weights=params,
-            wires=range(_QUBITS),
-            hf_state=pnp.array(_HF_STATE),
-            singles=_SINGLES,
-            doubles=_DOUBLES,
+            wires=range(n_qubits),
+            hf_state=pnp.array(hf_state),
+            singles=singles,
+            doubles=doubles,
         )
         return qml.expval(hamiltonian)
 
     # Run Adam optimizer — 80 steps, stepsize=0.4
     # Converges CAS(2e,2o) to within 1e-05 Ha of CASSCF-exact (~3s on Render Starter)
-    params = pnp.zeros(_N_PARAMS, requires_grad=True)
+    params = pnp.zeros(n_params, requires_grad=True)
     opt    = qml.AdamOptimizer(stepsize=0.4)
 
     t_start        = time.time()
@@ -496,11 +524,18 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
     variance = sum((e - final_total) ** 2 for e in energies_total[-10:]) / 10
     ci_half  = 1.96 * (variance / 10) ** 0.5
 
-    gate_count = 13   # BasisState + 1 Double (DoubleExcitation) + 2 Singles
-    depth      = 7
+    if n_qubits == 4 and n_electrons == 2:
+        gate_count = 13   # BasisState + 1 Double (DoubleExcitation) + 2 Singles
+        depth      = 7
+    else:
+        # Not independently derived like the 4-qubit values above — a
+        # documented, honestly-approximate count for AllSinglesDoubles' own
+        # template structure: one BasisState plus one gate per excitation.
+        gate_count = 1 + len(singles) + len(doubles)
+        depth      = gate_count
 
     fp_payload   = json.dumps({
-        "gate_count": gate_count, "depth": depth, "qubits": _QUBITS,
+        "gate_count": gate_count, "depth": depth, "qubits": n_qubits,
         "compound": compound, "jw_key": jw_key, "side": side,
         "ansatz": "AllSinglesDoubles-UCCSD", "method": "PennyLane-live",
     }, sort_keys=True)
@@ -517,7 +552,9 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
         "energy_variance": variance,
         "gate_count":      gate_count,
         "depth":           depth,
-        "n_qubits":        _QUBITS,
+        "n_qubits":        n_qubits,
+        "n_electrons":     n_electrons,
+        "n_paulis":        len(jw_entry.get("terms", [])),
         "circuit_hash":    circuit_hash,
         "elapsed_s":       round(elapsed, 3),
         "convergence":     energies_total,
@@ -1769,13 +1806,13 @@ def _assemble_and_persist(mutation_id: str, config: dict, vqe: dict, authorizati
         "p1_gate_count":   vqe["gate_count"],
         "p1_depth":        vqe["depth"],
         "p1_qubit_count":  vqe["n_qubits"],
-        "p1_ansatz":       "AllSinglesDoubles UCCSD (2e/4q, HF initial state |1100⟩)",
+        "p1_ansatz":       f"AllSinglesDoubles UCCSD ({vqe['n_electrons']}e/{vqe['n_qubits']}q, PennyLane HF initial state)",
 
         # P2 — Compilation lineage
         "p2_compiler":         "PennyLane",
         "p2_compiler_version": qml.__version__,
-        "p2_encoding":         "Jordan-Wigner (PySCF CAS(2e,2o) → openfermion → 27 Pauli terms)",
-        "p2_basis_set":        "STO-3G (PySCF CASSCF(2,2))",
+        "p2_encoding":         f"Jordan-Wigner (PySCF CAS({vqe['n_electrons']}e,{config['active_orbitals']}o) → openfermion → {vqe['n_paulis']} Pauli terms)",
+        "p2_basis_set":        f"STO-3G (PySCF CASSCF({vqe['n_electrons']},{config['active_orbitals']}))",
         "p2_active_electrons": config["active_electrons"],
         "p2_active_orbitals":  config["active_orbitals"],
         "p2_model_compound":   vqe["compound"],
@@ -1869,6 +1906,8 @@ def _assemble_and_persist(mutation_id: str, config: dict, vqe: dict, authorizati
             "full_target":      (
                 f"{config['full_electrons']}e / {config['full_qubits']} qubits "
                 f"— {config['phase3b_backend']}"
+                if config.get("full_electrons")
+                else "not applicable — pipeline self-test, not a Phase 3B scaling target"
             ),
             "hardware_era":     config.get("hardware_era", "unknown"),
             "_e_rhf":           round(vqe["e_rhf"], 10),
