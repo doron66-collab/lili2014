@@ -60,10 +60,45 @@ import httpx
 from fastapi import APIRouter, Body, HTTPException, Header
 
 from routes.simulate import get_supabase, _uid_from_auth, _TARGETS
+from routes.pdb import MUTATION_PDB_MAP
 
 router = APIRouter()
 
 _RCSB_CIF_URL = "https://files.rcsb.org/download/{pdb_id}.cif"
+
+# ── Standard amino acid single<->three-letter codes ───────────────────────────
+_AA_3TO1 = {
+    "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q",
+    "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I", "LEU": "L", "LYS": "K",
+    "MET": "M", "PHE": "F", "PRO": "P", "SER": "S", "THR": "T", "TRP": "W",
+    "TYR": "Y", "VAL": "V",
+}
+_AA_1TO3 = {v: k for k, v in _AA_3TO1.items()}
+_AA_3_PATTERN = "|".join(_AA_3TO1)
+
+
+def _parse_variant_notation(mutation: str) -> tuple[str, int, str] | None:
+    """Extract (wt_1letter, resnum, mut_1letter) from a single-residue
+    substitution written in any of the common forms an NGS report actually
+    uses: 'R882H', 'p.R882H', 'Arg882His', 'p.Arg882His', 'p.(Arg882His)'.
+    Returns None for anything this cannot confidently parse as a simple
+    substitution -- frameshift ('p.Gln1118*'), deletion, free text ('Loss of
+    function') -- rather than guess. A wrong guess here would feed a wrong
+    residue number into a real RCSB lookup and silently mislabel Gate 1.
+    """
+    if not mutation:
+        return None
+    m = mutation.strip().removeprefix("p.").strip("()")
+    # Three-letter form: Arg882His
+    m3 = re.fullmatch(rf"({_AA_3_PATTERN})(\d+)({_AA_3_PATTERN})", m, re.IGNORECASE)
+    if m3:
+        wt3, resnum, mut3 = m3.group(1).upper(), int(m3.group(2)), m3.group(3).upper()
+        return _AA_3TO1[wt3], resnum, _AA_3TO1[mut3]
+    # Single-letter form: R882H
+    m1 = re.fullmatch(r"([A-Za-z])(\d+)([A-Za-z])", m)
+    if m1 and m1.group(1).upper() in _AA_1TO3 and m1.group(3).upper() in _AA_1TO3:
+        return m1.group(1).upper(), int(m1.group(2)), m1.group(3).upper()
+    return None
 
 _GATE1_CHECK_COLUMNS = frozenset({
     "target", "pdb_id", "chain", "resi", "resolved", "reason", "source",
@@ -225,21 +260,78 @@ def _parse_atom_site_chain_residues(cif_text: str) -> dict:
     return by_chain
 
 
+@router.post("/resolve_variant")
+async def resolve_variant(payload: dict = Body(...)):
+    """Turn what an NGS report actually gives you (gene + mutation notation,
+    e.g. {"gene": "DNMT3A", "mutation": "p.Arg882His"}) into the fields Gate 1
+    needs, WITHOUT requiring the end user to know a PDB ID, a chain letter, or
+    a three-letter amino acid code. Read-only, no RCSB call here (that's
+    /auto_check, next) -- this only parses the notation and looks up a PDB ID
+    already known to this project (targets.json / routes.pdb.MUTATION_PDB_MAP).
+
+    Deliberately does NOT guess a chain: chain resolution needs the actual
+    structure (see /auto_check's chain-omitted mode, which checks every chain
+    present and reports which one(s) actually have the residue)."""
+    gene = str((payload or {}).get("gene") or "").strip().upper()
+    mutation = str((payload or {}).get("mutation") or "").strip()
+    if not gene:
+        raise HTTPException(400, "missing gene")
+    parsed = _parse_variant_notation(mutation)
+    if not parsed:
+        return {"resolved": False,
+                "error": f"could not parse '{mutation}' as a single-residue substitution "
+                         f"(e.g. 'R882H' or 'p.Arg882His') -- frameshift, deletion, and "
+                         f"loss-of-function variants have no single residue to anchor Gate 1 "
+                         f"to at all, and need a human's structural judgment, not this parser."}
+    wt1, resnum, mut1 = parsed
+    target = f"{gene}_{wt1}{resnum}{mut1}"
+
+    # PDB ID: targets.json (this exact target, then a same-gene entry as a
+    # weaker fallback) before the older routes.pdb literal map.
+    pdb_id = None
+    mutations = _TARGETS.get("mutations") or {}
+    if target in mutations and mutations[target].get("pdb"):
+        pdb_id = mutations[target]["pdb"]
+    else:
+        for key, entry in mutations.items():
+            if key.startswith(gene + "_") and entry.get("pdb"):
+                pdb_id = entry["pdb"]
+                break
+    if not pdb_id:
+        pdb_id = MUTATION_PDB_MAP.get(target) or next(
+            (v for k, v in MUTATION_PDB_MAP.items() if k.startswith(gene + "_")), None)
+
+    if not pdb_id:
+        return {"resolved": False, "target": target, "resi": resnum,
+                "expect_resname": _AA_1TO3[wt1],
+                "error": f"no PDB structure known for gene {gene} anywhere in this project "
+                         f"(targets.json, routes.pdb) -- a chemist needs to supply one manually; "
+                         f"this cannot be auto-derived."}
+    return {
+        "resolved": True, "target": target, "pdb_id": pdb_id,
+        "resi": resnum, "expect_resname": _AA_1TO3[wt1],
+    }
+
+
 @router.post("/auto_check")
 async def auto_check(payload: dict = Body(...)):
     """Automated half of Gate 1: does RCSB's own deposited structure for
     pdb_id actually have ATOM records at chain/resi? Read-only against RCSB,
     writes nothing — the caller reviews this result and calls POST /check
     (authenticated) to actually record it, same as every other Gate 1/2
-    sign-off in this project."""
+    sign-off in this project.
+
+    chain is OPTIONAL: when omitted (the normal case coming from
+    /resolve_variant, which cannot know the chain without fetching the
+    structure), every chain present in the file is checked and any chain(s)
+    that actually have the residue are reported -- never assumed to be
+    chain A, which is only sometimes the biologically relevant one."""
     pdb_id = str((payload or {}).get("pdb_id") or "").strip().upper()
-    chain = str((payload or {}).get("chain") or "").strip()
+    chain = str((payload or {}).get("chain") or "").strip() or None
     resi = (payload or {}).get("resi")
     expect_resname = str((payload or {}).get("expect_resname") or "").strip().upper() or None
     if not re.fullmatch(r"[A-Z0-9]{4}", pdb_id):
         raise HTTPException(400, "pdb_id must be a 4-character RCSB ID")
-    if not chain:
-        raise HTTPException(400, "missing chain")
     try:
         resi = int(resi)
     except (TypeError, ValueError):
@@ -257,35 +349,45 @@ async def auto_check(payload: dict = Body(...)):
     except ValueError as e:
         return {"resolved": None, "error": str(e)}
 
-    if chain not in by_chain:
+    chains_to_check = [chain] if chain else sorted(by_chain)
+    missing_chain = chain and chain not in by_chain
+    if missing_chain:
         return {
             "resolved": False,
             "reason": f"chain '{chain}' not found in {pdb_id} — chains present: {sorted(by_chain)}",
             "pdb_id": pdb_id, "chain": chain, "resi": resi,
         }
-    residues = by_chain[chain]
-    observed_min, observed_max = min(residues), max(residues)
-    if resi not in residues:
+
+    matches, near_misses = [], []
+    for c in chains_to_check:
+        residues = by_chain.get(c, {})
+        if resi in residues:
+            found = residues[resi]
+            mismatch = expect_resname is not None and found != expect_resname
+            matches.append({"chain": c, "found_resname": found, "resname_mismatch": mismatch})
+        elif residues:
+            near_misses.append({"chain": c, "range": [min(residues), max(residues)]})
+
+    if not matches:
+        ranges = "; ".join(f"chain {m['chain']}: {m['range'][0]}-{m['range'][1]}" for m in near_misses) or "no chain has any ATOM records"
         return {
             "resolved": False,
-            "reason": (f"residue {resi} not found in {pdb_id} chain {chain} — this chain's "
-                       f"ATOM records cover residues {observed_min}-{observed_max}, but {resi} "
-                       f"falls in a gap or outside that range (missing density / disordered / "
-                       f"unresolved region, or simply out of range)"),
+            "reason": (f"residue {resi} not found in {pdb_id} in {'chain ' + chain if chain else 'any chain'} — "
+                       f"observed ranges: {ranges}. Falls in a gap or outside range (missing density / "
+                       f"disordered / unresolved region, or simply out of range)."),
             "pdb_id": pdb_id, "chain": chain, "resi": resi,
-            "observed_range": [observed_min, observed_max],
         }
-    found_resname = residues[resi]
-    mismatch = expect_resname is not None and found_resname != expect_resname
-    reason = (f"VERIFIED — residue {resi} has ATOM records in {pdb_id} chain {chain} "
-              f"(observed chain range {observed_min}-{observed_max})")
-    if mismatch:
+    clean = [m for m in matches if not m["resname_mismatch"]]
+    chosen = clean[0] if clean else matches[0]
+    reason = (f"VERIFIED — residue {resi} has ATOM records in {pdb_id} chain {chosen['chain']}"
+              + (f" (also present in chain(s) {', '.join(m['chain'] for m in matches if m is not chosen)})" if len(matches) > 1 else ""))
+    if chosen["resname_mismatch"]:
         reason += (f" — WARNING: expected residue name {expect_resname} but the structure has "
-                   f"{found_resname} at this position; check numbering convention/isoform before trusting this")
+                   f"{chosen['found_resname']} at this position; check numbering convention/isoform before trusting this")
     return {
-        "resolved": True, "reason": reason, "pdb_id": pdb_id, "chain": chain, "resi": resi,
-        "found_resname": found_resname, "observed_range": [observed_min, observed_max],
-        "resname_mismatch": mismatch,
+        "resolved": True, "reason": reason, "pdb_id": pdb_id, "chain": chosen["chain"], "resi": resi,
+        "found_resname": chosen["found_resname"], "resname_mismatch": chosen["resname_mismatch"],
+        "all_matching_chains": [m["chain"] for m in matches],
     }
 
 

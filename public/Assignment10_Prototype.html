@@ -906,11 +906,18 @@
       <button onclick="checkGate1(this)" title="Look up this target — targets.json first, then the gate1_checks cache" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid rgba(6,182,212,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔍 Check</button>
       <span id="g1-check-result" style="font-size:11px;color:var(--gray)"></span>
     </div>
-    <div style="font-size:10px;color:var(--gray);margin:10px 0 4px">Record a check for a target NOT already in targets.json (a genuinely unfamiliar mutation). Auto-check fetches the real RCSB structure and fills in resolved/reason for you — review before saving, it does not save on its own:</div>
+    <div style="font-size:10px;color:var(--gray);margin:10px 0 4px">Type exactly what an NGS report gives you — gene + mutation notation (e.g. "DNMT3A" / "p.Arg882His") — no PDB/chain/amino-acid-code knowledge needed:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:4px">
+      <input id="g1-variant-gene" placeholder="Gene (e.g. DNMT3A)" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-variant-mutation" placeholder="Mutation (e.g. p.Arg882His or R882H)" style="width:220px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <button onclick="resolveGate1Variant(this)" title="Parse this variant and fill in target/PDB/residue below — does not fetch RCSB or save anything yet" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid rgba(6,182,212,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">↳ Resolve from NGS variant</button>
+      <span id="g1-resolve-msg" style="font-size:11px;color:var(--gray)"></span>
+    </div>
+    <div style="font-size:10px;color:var(--gray);margin:10px 0 4px">Target/PDB/residue fields below — filled in by "Resolve" above, or fill in by hand for a chemist's own manual check. Chain is optional: leave blank to auto-check every chain in the structure and see which one has the residue.</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:4px">
       <input id="g1-new-target" placeholder="Target key" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
       <input id="g1-new-pdb" placeholder="PDB ID" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <input id="g1-new-chain" placeholder="Chain" style="width:70px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-new-chain" placeholder="Chain (optional)" style="width:100px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
       <input id="g1-new-resi" type="number" placeholder="Residue #" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
       <input id="g1-new-expect" placeholder="Expect (e.g. ARG, optional)" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
       <button onclick="autoCheckGate1(this)" title="Fetch the real structure from RCSB and check residue coverage — fills resolved/reason below, does not save" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔎 Auto-check PDB</button>
@@ -5287,6 +5294,51 @@ async function checkGate1(btn) {
   }
 }
 
+async function resolveGate1Variant(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const gene = val('g1-variant-gene').trim();
+  const mutation = val('g1-variant-mutation').trim();
+  const msg = document.getElementById('g1-resolve-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!gene || !mutation) {
+    setMsg('<span style="color:#f87171">Gene and mutation are both required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ resolving…'; }
+  setMsg('parsing…');
+  try {
+    const res = await fetch(`${API}/api/gate1/resolve_variant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gene, mutation })
+    });
+    const out = await res.json();
+    const targetInput  = document.getElementById('g1-new-target');
+    const pdbInput     = document.getElementById('g1-new-pdb');
+    const resiInput    = document.getElementById('g1-new-resi');
+    const expectInput  = document.getElementById('g1-new-expect');
+    const chainInput   = document.getElementById('g1-new-chain');
+    if (targetInput) targetInput.value = out.target || '';
+    if (resiInput)   resiInput.value   = out.resi != null ? out.resi : '';
+    if (expectInput) expectInput.value = out.expect_resname || '';
+    if (chainInput)  chainInput.value  = '';
+    if (!out.resolved) {
+      if (pdbInput) pdbInput.value = '';
+      setMsg('<span style="color:#f87171">' + (out.error || 'could not resolve this variant') + '</span>');
+      return;
+    }
+    if (pdbInput) pdbInput.value = out.pdb_id || '';
+    setMsg('<span style="color:var(--green)">✓ resolved to ' + out.target + ' · PDB ' + out.pdb_id + ' · residue ' + out.resi
+      + '</span> — now click "Auto-check PDB" below (chain left blank on purpose — it checks every chain)');
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Resolve failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
 async function autoCheckGate1(btn) {
   const val = id => (document.getElementById(id) || {}).value || '';
   const pdb_id = val('g1-new-pdb').trim();
@@ -5295,19 +5347,19 @@ async function autoCheckGate1(btn) {
   const expect_resname = val('g1-new-expect').trim();
   const msg = document.getElementById('g1-msg');
   const setMsg = h => { if (msg) msg.innerHTML = h; };
-  if (!pdb_id || !chain || !resi) {
-    setMsg('<span style="color:#f87171">PDB ID, chain, and residue # are all required for auto-check.</span>');
+  if (!pdb_id || !resi) {
+    setMsg('<span style="color:#f87171">PDB ID and residue # are required for auto-check (chain is optional).</span>');
     return;
   }
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const orig = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ checking…'; }
-  setMsg('fetching ' + pdb_id + ' from RCSB…');
+  setMsg('fetching ' + pdb_id + ' from RCSB' + (chain ? ' (chain ' + chain + ')' : ' (checking every chain)') + '…');
   try {
     const res = await fetch(`${API}/api/gate1/auto_check`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pdb_id, chain, resi: parseInt(resi, 10), expect_resname: expect_resname || null })
+      body: JSON.stringify({ pdb_id, chain: chain || null, resi: parseInt(resi, 10), expect_resname: expect_resname || null })
     });
     const out = await res.json();
     if (out.resolved === null) {
@@ -5316,10 +5368,12 @@ async function autoCheckGate1(btn) {
     }
     const resolvedSel = document.getElementById('g1-new-resolved');
     const reasonInput = document.getElementById('g1-new-reason');
+    const chainInput  = document.getElementById('g1-new-chain');
     if (resolvedSel) resolvedSel.value = out.resolved ? 'true' : 'false';
     if (reasonInput) reasonInput.value = out.reason || '';
+    if (chainInput && out.chain) chainInput.value = out.chain;
     setMsg(out.resolved
-      ? '<span style="color:var(--green)">✓ auto-check: resolved — review the reason below, then save</span>'
+      ? '<span style="color:var(--green)">✓ auto-check: resolved (chain ' + out.chain + ') — review the reason below, then save</span>'
       : '<span style="color:var(--gold)">✗ auto-check: unresolved — review the reason below, then save</span>');
   } catch (e) {
     setMsg('<span style="color:#f87171">Auto-check failed: ' + e.message + '</span>');
