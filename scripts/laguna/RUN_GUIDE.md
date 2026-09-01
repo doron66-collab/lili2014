@@ -300,6 +300,53 @@ create table if not exists public.gate2_records (
 No agent involvement — this is a plain save/read against the backend
 (`/api/gate2/record`, `/api/gate2/list`), same as any other form on the page.
 
+### 2g. Gate 1 — structural resolvability, with an end-of-day promotion step
+
+A card at the very top of the Orchestration tab (before Rung 1) lets you look
+up or record whether a mutation has a resolvable structure to anchor an
+active space to. `targets.json` is authoritative for every mutation it
+already covers (its `structure_caveat` field) — this card's own database,
+`gate1_checks`, is only a **working cache** for mutations `targets.json` has
+never seen (an NGS report can surface any gene). It is not a second
+permanent record.
+
+**End of day**, run `scripts/laguna/promote_gate1_checks.py` — it reads
+everything accumulated in `gate1_checks`, merges each verdict into
+`targets.json`, empties the cache, and tells you to review the diff before
+committing:
+
+```
+python3 scripts/laguna/promote_gate1_checks.py --email you@x.com --password ...
+```
+
+(or `SOLANGE_EMAIL`/`SOLANGE_PASSWORD`, same convention as `solange_hpc.py`'s
+`--agent` mode). Add `--dry-run` to see what would change without writing
+anything. This script never runs automatically — run it by hand, then
+`git diff targets.json`, then `python scripts/laguna/verify_consistency.py`,
+then commit and push as usual.
+
+One-time migration (Supabase SQL editor):
+
+```sql
+create table if not exists public.gate1_checks (
+  target text primary key,
+  pdb_id text,
+  chain text,
+  resi int,
+  resolved boolean,
+  reason text,
+  source text,
+  checked_by text,
+  updated_at timestamptz
+);
+```
+
+**What this does not do yet:** the actual PDB lookup (fetch a structure, check
+whether it covers a given residue) is not automated — `POST /api/gate1/check`
+only records a verdict a human already worked out by hand, the same way the
+five entries in the frontend's old `STRUCTURALLY_UNRESOLVED` list were
+originally decided. Automating that lookup is future work.
+
 ---
 
 ## 3. Quantum runs — Rung 4 (real IBM hardware)

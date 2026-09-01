@@ -886,6 +886,44 @@
     <p style="color:var(--white)">Quantum kernel · HPC dispatch · AI binding affinity pipeline</p>
   </div>
 
+  <!-- ── Gate 1 — structural resolvability. targets.json's structure_caveat is
+       authoritative for every mutation it already covers; this card's own
+       cache (gate1_checks) only covers mutations targets.json has never seen
+       — see backend/routes/gate1.py's own module docstring. Placed FIRST,
+       above the whole escalation ladder: this is the entry-point check, not a
+       step within it. An unresolved target never becomes a real run through
+       the ladder below — Rung 1's N2 self-test is the one exception, since it
+       is a fixed pipeline check, not a real target, and never goes through
+       Gate 1 at all. ── -->
+  <div class="card" style="margin-bottom:16px;border:1px solid rgba(34,197,94,0.3)">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Gate 1 — Structural Resolvability<span class="info-i" data-tip="Is there a residue to anchor an active space to at all? targets.json's structure_caveat is authoritative for every mutation it already covers. This card's own cache (gate1_checks) is only a working store for mutations targets.json has never seen -- an NGS report can surface any gene. It is promoted into targets.json end of day (scripts/laguna/promote_gate1_checks.py) and emptied, so it never becomes a second permanent record.">i</span></span>
+      <button onclick="window.solangeLoadGate1 && window.solangeLoadGate1()" title="Reload pending checks from SOLANGE"
+        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g1-target" placeholder="Target key (e.g. GENE_MUTATION)" style="width:190px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <button onclick="checkGate1(this)" title="Look up this target — targets.json first, then the gate1_checks cache" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid rgba(6,182,212,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔍 Check</button>
+      <span id="g1-check-result" style="font-size:11px;color:var(--gray)"></span>
+    </div>
+    <div style="font-size:10px;color:var(--gray);margin:10px 0 4px">Record a check for a target NOT already in targets.json (a genuinely unfamiliar mutation) — automated PDB lookup is not built yet, this records a verdict you already worked out:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:4px">
+      <input id="g1-new-target" placeholder="Target key" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-new-pdb" placeholder="PDB ID (optional)" style="width:110px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <select id="g1-new-resolved" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <option value="" selected disabled>— resolved? —</option>
+        <option value="true">resolved</option>
+        <option value="false">unresolved</option>
+      </select>
+      <input id="g1-new-reason" placeholder="Reason (required — why resolved/unresolved)" style="flex:1;min-width:280px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <button onclick="saveGate1Check(this)" title="Record this verdict in the gate1_checks cache — promoted into targets.json end of day" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">💾 Save Gate 1 Check</button>
+      <span id="g1-msg" style="color:var(--gray)"></span>
+    </div>
+    <div style="font-size:10px;color:var(--gray);margin-top:10px">Pending promotion (run <code style="font-size:9.5px">scripts/laguna/promote_gate1_checks.py</code> end of day):</div>
+    <div id="gate1-pending" class="table-scroll" style="margin-top:6px"></div>
+  </div>
 
   <!-- ══════════════════════════════════════════════════════════════════════
        ESCALATION LADDER — the blocks below climb from smallest to largest:
@@ -948,45 +986,6 @@
       </div>
     </div>
     <div id="sim-error" style="display:none;color:var(--red);font-size:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.3)"></div>
-  </div>
-
-  <!-- ── Gate 2 — mechanism category & chemist sign-off (reference/tracking only,
-       does NOT block anything below — see backend/routes/gate2.py's own module
-       docstring for why: it answers "which mechanism-specific energy does drug
-       design need", a different question from Gate 3's "is this classically
-       tractable", and the tool that would actually consume a Gate 2 sign-off
-       (a covalent ΔG‡ calculator, say) does not exist yet). ── -->
-  <div class="card" style="margin-bottom:16px;border:1px solid rgba(232,160,32,0.25)">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Gate 2 — Mechanism Category &amp; Chemist Sign-off<span class="info-i" data-tip="Which mechanism-specific energetic quantity drug design needs for a target, and who decided the category and its required sign-offs (metal presence, spin, oxidation state, protonation, TS-search setup). This is DIFFERENT from Gate 3 (the DMRG/SHCI classifier below) — Gate 3 answers whether a target's ground-state energy is classically tractable, which routine NGS-driven screening depends on and this does NOT gate. Gate 2 only matters once someone wants a mechanism-specific quantity (e.g. a covalent activation barrier) for actual drug design — that calculator does not exist yet, so this is tracking/documentation only, not an active block, today.">i</span></span>
-      <button onclick="window.solangeLoadGate2 && window.solangeLoadGate2()" title="Reload from SOLANGE"
-        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
-      <input id="g2-target" placeholder="Target key (e.g. SDHB_C101Y)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <select id="g2-category" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-        <option value="" selected disabled>— mechanism category —</option>
-        <option value="covalent_reactive_cysteine">covalent_reactive_cysteine</option>
-        <option value="metal_redox_center">metal_redox_center</option>
-        <option value="protein_interface_disruption">protein_interface_disruption</option>
-        <option value="structural_stabilizer_local_comparison">structural_stabilizer_local_comparison</option>
-        <option value="catalytic_loss_of_function">catalytic_loss_of_function</option>
-      </select>
-      <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-metal"> metal present</label>
-      <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-ts"> TS search configured</label>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
-      <input id="g2-spin" placeholder="Spin assigned by" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <input id="g2-ox" placeholder="Oxidation state assigned by" style="width:180px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <input id="g2-proto" placeholder="Protonation assigned by" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <input id="g2-scope" placeholder="Scope sign-off by" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
-      <input id="g2-source" placeholder="Source — who decided this category, and on what basis (required)" style="flex:1;min-width:340px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <button onclick="saveGate2Record(this)" title="Save this target's Gate 2 record — tracking only, does not block any dispatch" style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">💾 Save Gate 2 Record</button>
-      <span id="g2-msg" style="color:var(--gray)"></span>
-    </div>
-    <div id="gate2-records" class="table-scroll" style="margin-top:10px"></div>
   </div>
 
   <!-- No static "backend routing policy" table here on purpose (removed 2026-09-01):
@@ -1128,6 +1127,50 @@
     </div>
     <div id="dispatch-qpu" class="table-scroll" style="margin-top:6px"></div>
     </div>
+  </div>
+
+  <!-- ── Gate 2 — mechanism category & chemist sign-off (reference/tracking only,
+       does NOT block anything on the ladder above — see backend/routes/gate2.py's
+       own module docstring for why: it answers "which mechanism-specific energy
+       does drug design need", a different question from what the DMRG/SHCI
+       classifier (Rung 3, above) already decided (is this classically
+       tractable) — and the tool that would actually consume a Gate 2 sign-off
+       (a covalent ΔG‡ calculator, say) does not exist yet.
+       Placed LAST on purpose (moved 2026-09-01, was above Rung 2): Gate 2 only
+       becomes relevant once someone wants to take a target past classification
+       and toward actual drug design — it is not a prerequisite for anything the
+       ladder above does, so it does not belong before it. ── -->
+  <div class="card" style="margin-bottom:16px;border:1px solid rgba(232,160,32,0.25)">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Gate 2 — Mechanism Category &amp; Chemist Sign-off<span class="info-i" data-tip="Which mechanism-specific energetic quantity drug design needs for a target, and who decided the category and its required sign-offs (metal presence, spin, oxidation state, protonation, TS-search setup). Different from what the DMRG/SHCI classifier above already decided (is this classically tractable, which routine NGS-driven screening depends on and this does NOT gate). Gate 2 only matters once someone wants a mechanism-specific quantity (e.g. a covalent activation barrier) for actual drug design — that calculator does not exist yet, so this is tracking/documentation only, not an active block, today.">i</span></span>
+      <button onclick="window.solangeLoadGate2 && window.solangeLoadGate2()" title="Reload from SOLANGE"
+        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g2-target" placeholder="Target key (e.g. SDHB_C101Y)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <select id="g2-category" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <option value="" selected disabled>— mechanism category —</option>
+        <option value="covalent_reactive_cysteine">covalent_reactive_cysteine</option>
+        <option value="metal_redox_center">metal_redox_center</option>
+        <option value="protein_interface_disruption">protein_interface_disruption</option>
+        <option value="structural_stabilizer_local_comparison">structural_stabilizer_local_comparison</option>
+        <option value="catalytic_loss_of_function">catalytic_loss_of_function</option>
+      </select>
+      <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-metal"> metal present</label>
+      <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-ts"> TS search configured</label>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g2-spin" placeholder="Spin assigned by" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g2-ox" placeholder="Oxidation state assigned by" style="width:180px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g2-proto" placeholder="Protonation assigned by" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g2-scope" placeholder="Scope sign-off by" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g2-source" placeholder="Source — who decided this category, and on what basis (required)" style="flex:1;min-width:340px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <button onclick="saveGate2Record(this)" title="Save this target's Gate 2 record — tracking only, does not block any dispatch" style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">💾 Save Gate 2 Record</button>
+      <span id="g2-msg" style="color:var(--gray)"></span>
+    </div>
+    <div id="gate2-records" class="table-scroll" style="margin-top:10px"></div>
   </div>
   <script>
   (function(){
@@ -1799,6 +1842,44 @@
       });
     };
     window.solangeLoadGate2();
+
+    // ── Gate 1 — pending gate1_checks cache, read-only list. Targets.json's
+    // own entries never appear here — they never needed the cache.
+    var gate1Box = document.getElementById('gate1-pending');
+    var gate1Paint = function(html){
+      if (!gate1Box) return;
+      if (gate1Box.__lastHtml === html) return;
+      gate1Box.__lastHtml = html; gate1Box.innerHTML = html;
+    };
+    window.solangeLoadGate1 = function(silent){
+      if (!gate1Box) return;
+      if (!silent) gate1Paint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
+      fetch(API+'/api/gate1/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.records) || [];
+        if (!rows.length) {
+          gate1Paint('<div style="color:var(--gray);font-size:11px">Nothing pending — every checked mutation is either already in targets.json, or nothing new has been recorded yet.</div>');
+          return;
+        }
+        var hh = '<table style="width:100%;border-collapse:collapse"><tr>'+
+          '<th style="'+TH+'">Target</th><th style="'+TH+'">PDB</th><th style="'+TH+'">Verdict</th>'+
+          '<th style="'+TH+'">Reason</th><th style="'+TH+'">Checked by</th></tr>';
+        rows.forEach(function(x){
+          var v = x.resolved
+            ? '<span style="color:var(--green);font-weight:700">resolved</span>'
+            : '<span style="color:var(--gold);font-weight:700">unresolved</span>';
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.target||'—')+'</td>'+
+                '<td style="'+C+'">'+(x.pdb_id||'—')+'</td>'+
+                '<td style="'+C+'">'+v+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal">'+(x.reason||'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.checked_by?String(x.checked_by).slice(0,8):'—')+'</td></tr>';
+        });
+        gate1Paint(hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Working cache only — run scripts/laguna/promote_gate1_checks.py end of day to merge these into targets.json and clear this list.</div>');
+      }).catch(function(){
+        gate1Paint('<div style="color:var(--gray);font-size:11px">Gate 1 cache unavailable (backend unreachable).</div>');
+      });
+    };
+    window.solangeLoadGate1();
 
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
@@ -5157,6 +5238,65 @@ async function dispatchSelectedToDmrg() {
 // Tracking/documentation only (see backend/routes/gate2.py's module docstring):
 // this does not block any dispatch above, because the tool that would consume
 // a Gate 2 sign-off (a mechanism-specific energy calculator) does not exist yet.
+async function checkGate1(btn) {
+  const target = ((document.getElementById('g1-target') || {}).value || '').trim();
+  const resultEl = document.getElementById('g1-check-result');
+  const setResult = h => { if (resultEl) resultEl.innerHTML = h; };
+  if (!target) { setResult('<span style="color:#f87171">Enter a target key.</span>'); return; }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  setResult('checking…');
+  try {
+    const res = await fetch(`${API}/api/gate1/check/${encodeURIComponent(target)}`);
+    const out = await res.json();
+    if (!out.record) { setResult('<span style="color:var(--gray)">Never checked — not in targets.json, not in the cache.</span>'); return; }
+    const r = out.record;
+    const badge = r.resolved
+      ? '<span style="color:var(--green);font-weight:700">✓ resolved</span>'
+      : '<span style="color:var(--gold);font-weight:700">✗ unresolved</span>';
+    setResult(badge + ' <span style="color:var(--gray);font-size:10px">· source: ' + (r.source || '—') + '</span>');
+  } catch (e) {
+    setResult('<span style="color:#f87171">Check failed: ' + e.message + '</span>');
+  }
+}
+
+async function saveGate1Check(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const target = val('g1-new-target').trim();
+  const resolvedStr = val('g1-new-resolved');
+  const reason = val('g1-new-reason').trim();
+  const msg = document.getElementById('g1-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!target || !resolvedStr || !reason) {
+    setMsg('<span style="color:#f87171">Target, resolved?, and reason are all required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'saving…'; }
+  setMsg('saving…');
+  try {
+    const body = {
+      target, resolved: resolvedStr === 'true', reason,
+      pdb_id: val('g1-new-pdb').trim() || null,
+    };
+    const res = await fetch(`${API}/api/gate1/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body)
+    });
+    const out = await res.json();
+    if (!out.saved) { setMsg('<span style="color:#f87171">Save failed: ' + (out.error || 'unknown error') + '</span>'); return; }
+    setMsg('<span style="color:var(--green)">✓ saved to gate1_checks — pending end-of-day promotion into targets.json</span>');
+    if (typeof window.solangeLoadGate1 === 'function') window.solangeLoadGate1();
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Save failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
 async function saveGate2Record(btn) {
   const val = id => (document.getElementById(id) || {}).value || '';
   const target = val('g2-target').trim(), category = val('g2-category');

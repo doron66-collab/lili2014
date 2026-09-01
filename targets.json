@@ -33,7 +33,8 @@
       "badge_type": "PPI",
       "color": "#b47fd4",
       "bqp_class": "B",
-      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement."
+      "bqp_class_source": "dissertation §1: \"One of the three KEAP1 target mutations (LOF, G333C, R320Q), classified Class B (quantum-advantaged).\" Cited, but not measured: no S_max run meeting the Gateway's 90% site-coverage gate exists for KEAP1, so the class is a documented prior rather than a measurement.",
+      "structure_caveat": "UNRESOLVED for KEAP1_LOF specifically — this is the gene-level Class B above, but the KEAP1_LOF entry's own site is a frameshift at residue 196 (pre-Kelch domain): no single mutant residue to anchor an active space to. Its modeled Hamiltonian is borrowed from the unrelated point mutation G333C. Previously stated only in the frontend's STRUCTURALLY_UNRESOLVED list, not here — moved into the single source of truth as part of the Gate 1 build (2026-09-01)."
     },
     "STK11": {
       "active_electrons": 152,
