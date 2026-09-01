@@ -1069,7 +1069,7 @@
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing<span class="info-i" data-tip="Intended production routing policy — the rule the orchestrator applies to size each problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that, and real quantum hardware once the problem passes the classical reach. This is a dispatch decision rule, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders for what has actually run. Note: hardware-validation smoke tests deliberately run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this size-based production rule.">i</span></div>
     <div id="dispatch-tiers" class="table-scroll" style="margin:6px 0 16px"></div>
-    <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site</div>
+    <div class="card-title" style="font-size:13px">Per-Mutation Routing · full active site <span style="color:var(--gray);font-weight:400;font-size:11px">(reference only — not dispatchable; see "New Target from PDB" in Rung 3 for a real run)</span></div>
     <div id="dispatch-muts" class="table-scroll" style="margin:6px 0 16px"></div>
 
     <!-- ── RUNG 2 · HPC classical → RUNG 3 · DMRG → RUNG 4 · Quantum (bottom) ──
@@ -1401,7 +1401,6 @@
       if(!variants||!variants.length){placeholder();return;}
       window.__dispatchVariants = variants;   // for dispatchSelectedToHpc()
       var m='<table style="width:100%;border-collapse:collapse"><tr>'+
-        '<th style="'+TH+'"><input type="checkbox" id="hpc-chk-all" onclick="document.querySelectorAll(\'.hpc-chk\').forEach(function(c){c.checked=this.checked}.bind(this)); if(typeof window.solangeUpdateCasSuggestion===\'function\') window.solangeUpdateCasSuggestion();"></th>'+
         '<th style="'+TH+'">Class</th>'+
         '<th style="'+TH+'">Gene</th><th style="'+TH+'">Mutation</th>'+
         '<th style="'+TH+'" title="Active electrons in the full site — classical exact wall ≈ 18e">Active e⁻</th>'+
@@ -1414,9 +1413,7 @@
         // shown greyed-out and unselectable rather than silently dropped, so nothing
         // detected in a report vanishes without explanation. See v.unsupportedReason.
         if(v.supported===false){
-          m+='<tr style="opacity:0.5"><td style="'+C+'"><input type="checkbox" disabled title="Not routable — '+
-             (v.unsupportedReason||'unsupported')+'"></td>'+
-             '<td style="'+C+'">—</td>'+
+          m+='<tr style="opacity:0.5"><td style="'+C+'">—</td>'+
              '<td style="'+C+';font-weight:700;color:var(--gray)">'+v.gene+'</td>'+
              '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
              '<td style="'+C+';color:var(--gray)">—</td>'+
@@ -1429,8 +1426,7 @@
         var q=(v.gm&&v.gm.full_qubits)||null; var r=routeBackend(q||4);
         var ae=(v.gm&&v.gm.active_electrons)||null;
         var aeCol=ae==null?'—':(ae+'e'+(ae>18?' <span style="color:var(--gold);font-size:9px" title="beyond the ~18e exact-classical wall">↑wall</span>':''));
-        m+='<tr><td style="'+C+'"><input type="checkbox" class="hpc-chk" data-i="'+i+'" onchange="if(typeof window.solangeUpdateCasSuggestion===\'function\') window.solangeUpdateCasSuggestion();"></td>'+
-           '<td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
+        m+='<tr><td style="'+C+'"><span class="bqp-badge-'+String(v.bqpCls||'b').toLowerCase()+'">'+(v.bqpCls||'?')+'</span></td>'+
            '<td style="'+C+';font-weight:700;color:'+((v.gm&&v.gm.color)||'var(--white)')+'">'+v.gene+'</td>'+
            '<td style="'+C+';color:var(--gray)">'+(v.mutation||'')+'</td>'+
            '<td style="'+C+'">'+aeCol+'</td>'+
@@ -1439,21 +1435,25 @@
            '<td style="'+C+'" id="gwrec-'+(v.simId||i)+'">'+gatewayCell(v.simId)+'</td>'+
            '<td style="'+C+'">Phase '+r.p+'</td></tr>';
       });
-      var controls='<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:11px">'+
-        '<span style="color:var(--gray)">Dispatch selected as</span>'+
-        '<select id="hpc-cas" title="Pre-filled from the Gateway\'s qubits_required for whatever is checked above — still a plain dropdown, change it freely" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
-          '<option value="6">CAS(6,6) · 12q</option><option value="8" selected>CAS(8,8) · 16q</option>'+
-          '<option value="10">CAS(10,10) · 20q</option><option value="12">CAS(12,12) · 24q</option></select>'+
-        '<span id="hpc-cas-suggest" style="color:var(--gray);font-size:9.5px"></span>'+
-        '<select id="hpc-side" title="Which allele to run — native (wild-type) or mutant" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">'+
-          '<option value="native" selected>native</option><option value="mutant">mutant</option></select>'+
-        '<label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="hpc-vqe"> run VQE (≤20q)</label>'+
-        '<button onclick="dispatchSelectedToHpc()" title="Rung 2 — queue a classical HPC job; the Laguna agent runs it" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch selected to HPC</button>'+
-        '<button onclick="dispatchSelectedToDmrg()" title="Rung 3 — queue a DMRG classification; the same Laguna agent that runs HPC pulls it and runs run_dmrg.sh" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Queue DMRG</button>'+
-        '<button onclick="dispatchSelectedToQpu()" title="Rung 4 — queue a REAL quantum-hardware job. Your QPU agent (solange_qpu.py --agent) pulls it and spends real quantum time. Same pull model as HPC." style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Queue for QPU</button>'+
-        '<button onclick="clearHpcQueue()" title="Cancel pending queued/running jobs and clear stale-failed ones (e.g. reaped after an agent was lost)" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Clear queue</button>'+
-        '<span id="hpc-dispatch-msg" style="color:var(--gray)"></span></div>'+
-        '<div style="color:var(--gray);font-size:10px;margin-top:4px">HPC &amp; DMRG queue for the classical agent · QPU queues for the quantum agent. QPU spends REAL quantum time when its agent pulls the job.</div>';
+      // No per-mutation dispatch buttons here on purpose (removed 2026-09-01):
+      // every one of them resolved to a small GENERIC MODEL COMPOUND (acetic_acid,
+      // toluene, methanethiol, ...) via _resolve_compound(), never this target's
+      // own real site — regardless of which gene/mutation was checked, including
+      // the named "anchor" ones. That is a legitimate one-time pipeline exercise
+      // (proves HPC/DMRG dispatch, LEON notarization, and the audit trail work
+      // end to end) but produces nothing chemically meaningful about the row it
+      // sits on, and repeating it per mutation was exactly the noise this table
+      // existed to warn about, not resolve. This table is now READ-ONLY reference
+      // — what the Gateway would recommend, from real evidence where it exists.
+      // For an actual classification: "New Target from PDB" below (Rung 3) builds
+      // and classifies the real site.
+      var controls='<div style="margin-top:10px;padding:10px;border:1px dashed rgba(167,139,250,0.3);border-radius:6px;font-size:11px;color:var(--gray);line-height:1.6">'+
+        'This table is reference only — it shows what the Gateway would recommend, not a dispatchable action. '+
+        'Every one of these targets, if run through a size-only proxy compound (the old "Queue DMRG"/"Dispatch to HPC" buttons '+
+        'that used to sit here), would compute a small generic model compound (e.g. acetic_acid, toluene) — never this '+
+        'gene\'s own real site, regardless of which row is picked. For an actual classification of a real target, use '+
+        '<strong style="color:#a78bfa">"New Target from PDB"</strong> in Rung 3 below, which builds and classifies the real site.'+
+        '</div>';
       mutsBox.innerHTML=m+'</table>'+controls;
     };
     placeholder();   // nothing patient-specific before a report is loaded
