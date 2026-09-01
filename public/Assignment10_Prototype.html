@@ -2046,7 +2046,7 @@
     <table>
       <thead>
         <tr>
-          <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>Method</th><th>BQP Class</th><th><span title="Total ground-state energy of the run — ecore (frozen core) plus the active-space energy. Not an energy difference: nothing is subtracted here.">Ground-state E</span></th><th>Status</th>
+          <th>Target</th><th>Mutation</th><th>Active e⁻</th><th>Qubits (JW)</th><th>BQP Class</th><th>Status</th>
         </tr>
       </thead>
       <!-- NGS-driven rows — hidden until NGS loaded -->
@@ -2056,9 +2056,7 @@
         <td>C275F <span class="badge badge-gold">Structural</span></td>
         <td>~44</td>
         <td><strong>~88</strong></td>
-        <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
         <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
-        <td id="bqp-de-TP53_C275F"><span style="color:var(--gray)">—</span></td>
         <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-KEAP1_LOF">
@@ -2066,9 +2064,7 @@
         <td>C196Leufs* <span class="badge badge-violet">PPI</span></td>
         <td>~155</td>
         <td>~310</td>
-        <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
-        <td id="bqp-de-KEAP1_LOF" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_LOF"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-KEAP1_G333C">
@@ -2076,9 +2072,7 @@
         <td>G333C <span class="badge badge-violet">PPI</span></td>
         <td>~155</td>
         <td>~310</td>
-        <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
-        <td id="bqp-de-KEAP1_G333C" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_G333C"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-KEAP1_R320Q">
@@ -2086,9 +2080,7 @@
         <td>R320Q <span class="badge badge-violet">PPI</span></td>
         <td>~155</td>
         <td>~310</td>
-        <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
-        <td id="bqp-de-KEAP1_R320Q" style="color:var(--gray)">—</td>
         <td id="bqp-status-KEAP1_R320Q"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-STK11_LKB1">
@@ -2096,9 +2088,7 @@
         <td>LKB1 LOF <span class="badge badge-gray">SL</span></td>
         <td>~152</td>
         <td>~304</td>
-        <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
-        <td id="bqp-de-STK11_LKB1" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_LKB1"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-STK11_F354L">
@@ -2106,9 +2096,7 @@
         <td>F354L <span class="badge badge-gray">Kinase LOF</span></td>
         <td>~48 <span style="color:var(--gray);font-size:9px">(local · near-term⚡)</span></td>
         <td>~304</td>
-        <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
-        <td id="bqp-de-STK11_F354L" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_F354L"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-STK11_D194N">
@@ -2116,14 +2104,12 @@
         <td>D194N <span class="badge badge-gray">Kinase LOF</span></td>
         <td>~152</td>
         <td>~304</td>
-        <td><span class="badge badge-gold">sqDRIFT · Phase 3B</span></td>
         <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
-        <td id="bqp-de-STK11_D194N" style="color:var(--gray)">—</td>
         <td id="bqp-status-STK11_D194N"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       </tbody>
     </table>
-    <div class="footnote" style="margin-top:8px">★ C275F is the primary doctoral target — structural mutant at the classical FCI boundary. JW = Jordan-Wigner encoding. Load an NGS report to add patient-specific targets.</div>
+    <div class="footnote" style="margin-top:8px">★ marks a Class A (quantum-necessary) target. JW = Jordan-Wigner encoding. Load an NGS report to add patient-specific targets.</div>
   </div>
 
   <!-- Live Results from Supabase -->
@@ -4579,9 +4565,7 @@ function loadNGSReport(ngs) {
         <td><strong style="color:${av.gm.color}">${av.gene}</strong></td>
         <td>${av.mutation} <span class="badge" style="background:${av.gm.color}22;color:${av.gm.color};border:1px solid ${av.gm.color}55">${av.gm.badge_type}</span></td>
         <td>~${av.gm.active_electrons}</td><td>~${av.gm.full_qubits}</td>
-        <td><span class="badge badge-teal">VQE · Phase 3A</span></td>
         <td id="bqp-class-${av.simId}">${bqpBadge}${bqpSourceNote}</td>
-        <td id="bqp-de-${av.simId}" style="color:var(--gray)">—</td>
         <td id="bqp-status-${av.simId}"><span class="badge badge-gray">○ Pending</span></td>`;
       bqpTbody.appendChild(tr);
     }
@@ -6091,7 +6075,6 @@ function resetPlatform() {
     if (el(`prow-badge-3b-${id}`))   el(`prow-badge-3b-${id}`).innerHTML  = phase3bBadge(id);
     if (el(`prow-time-3b-${id}`))    el(`prow-time-3b-${id}`).textContent  = 'Not yet run';
     if (el(`bqp-status-${id}`))  el(`bqp-status-${id}`).innerHTML  = '<span class="badge badge-gray">○ Pending</span>';
-    if (el(`bqp-de-${id}`))      el(`bqp-de-${id}`).innerHTML      = '<span style="color:var(--gray)">—</span>';
     if (el(`pq-dot-${id}`))    { el(`pq-dot-${id}`).textContent    = '○'; el(`pq-dot-${id}`).style.color = 'var(--gray)'; }
   });
 
