@@ -8,7 +8,12 @@
   the sentence on his screen. This applies to every conversation, not just one session.
 
 ## Acronym
-**SOLANGE™** = Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics
+**SOLANGE™** = Scientific Oncology Legacy: Adjudication of Necessity through Governed Evidence
+(corrected 2026-09-01 — this file previously said "...Advancing Non-druggable Ground-state
+Energetics", which drifted from the dissertation's own canonical wording, used consistently
+in `public/dissertation_revised.html` at the dedication, §01 abstract, and the Appendix A
+glossary. The dissertation file is the single source of truth for this string; if the two
+ever disagree again, the dissertation wins.)
 
 ## Platform
 - Full name: SOLANGE™ 3D Quantum Simulation Platform
