@@ -5387,13 +5387,14 @@ async function resolveGate1Variant(btn) {
 
     if (out.already_known) {
       // Someone (or targets.json itself) already answered this exact
-      // target — no PDB fetch needed, no auto-check needed. Fill the final
-      // verdict directly so it's visible, but there is nothing left to
-      // "save": it's already permanent (targets.json) or already sitting
-      // in the pending cache.
-      if (resiInput)   resiInput.value = '';
-      if (expectInput) expectInput.value = '';
-      if (pdbInput)    pdbInput.value = '';
+      // target — no PDB fetch needed, no auto-check needed to CONFIRM it.
+      // But "nothing left to check" is not "nothing to hand onward": fill
+      // pdb/resi/expect too (when known) so "Send to Classifier" still has
+      // something real to dispatch — an already-resolved anchor target is
+      // exactly the case someone wants to run, not just look up.
+      if (resiInput)   resiInput.value   = out.resi != null ? out.resi : '';
+      if (expectInput) expectInput.value = out.expect_resname || '';
+      if (pdbInput)    pdbInput.value    = out.pdb_id || '';
       const resolvedSel = document.getElementById('g1-new-resolved');
       const reasonInput = document.getElementById('g1-new-reason');
       if (resolvedSel) resolvedSel.value = out.resolved ? 'true' : 'false';
@@ -5401,8 +5402,10 @@ async function resolveGate1Variant(btn) {
       const badge = out.resolved
         ? '<span style="color:var(--green)">✓ already known — resolved</span>'
         : '<span style="color:var(--gold)">already known — unresolved</span>';
+      const canSend = out.resolved && out.pdb_id;
       setMsg(badge + ' <span style="color:var(--gray);font-size:10px">(' + (out.source || '') + ')</span>'
-        + (out.note ? '<div style="margin-top:2px;color:var(--gray);font-size:10px">' + out.note + '</div>' : ''));
+        + (out.note ? '<div style="margin-top:2px;color:var(--gray);font-size:10px">' + out.note + '</div>' : '')
+        + (canSend ? '<div style="margin-top:2px;color:var(--teal);font-size:10px">PDB/residue filled in below — click "→ Send to Classifier" to dispatch it.</div>' : ''));
       return;
     }
     if (resiInput)   resiInput.value   = out.resi != null ? out.resi : '';

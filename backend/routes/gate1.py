@@ -334,9 +334,14 @@ async def resolve_variant(payload: dict = Body(...)):
 
     known = await _known_answer(target)
     if known:
+        # Include pdb_id/resi/expect_resname even though nothing further needs
+        # checking here -- "already answered" does not mean "nothing to hand
+        # onward": these are exactly what "Send to Classifier" needs to
+        # dispatch this target for real, and they are already fully known.
         return {"resolved": known["resolved"], "target": target,
                  "reason": known["reason"], "source": known.get("source"),
-                 "already_known": True}
+                 "pdb_id": known.get("pdb_id"), "resi": resnum,
+                 "expect_resname": _AA_1TO3[wt1], "already_known": True}
 
     # PDB ID: targets.json (this exact target, then a same-gene entry as a
     # weaker fallback) before the older routes.pdb literal map.
