@@ -1247,6 +1247,7 @@
         });
       });
     }
+    window.solangeRenderClassificationStatus = solangeRenderClassificationStatus;
     window.solangeRecordClassification = function(method, rows){
       (rows||[]).forEach(function(x){
         if (!x.key || !x.bqp_class) return;
@@ -4625,6 +4626,17 @@ function loadNGSReport(ngs) {
     const el = document.getElementById(elId);
     if (el) el.style.display = hasAnyTargets ? '' : 'none';
   });
+
+  // Re-apply any DMRG/SHCI classification already fetched BEFORE this report
+  // was loaded — solangeRecordClassification only writes to DOM elements
+  // that exist at the time it runs, and these bqp-status-*/mut-status-* rows
+  // did not exist until the appendChild calls just above. Without this, a
+  // target classified before the report loaded would sit on "Pending"
+  // forever despite window.__classificationByTarget already having the
+  // answer, until someone happened to click Refresh on the DMRG/SHCI panel.
+  if (typeof window.solangeRenderClassificationStatus === 'function') {
+    window.solangeRenderClassificationStatus();
+  }
 
   // Pipeline rows
   const pipelineEl = document.getElementById('ngs-pipeline-rows');
