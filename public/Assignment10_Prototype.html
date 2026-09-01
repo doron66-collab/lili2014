@@ -5366,6 +5366,7 @@ async function resolveGate1Variant(btn) {
     setMsg('<span style="color:#f87171">Gene and mutation are both required.</span>');
     return;
   }
+  window.__gate1SuggestedMaxOrbitals = null;
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const orig = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ resolving…'; }
@@ -5395,6 +5396,10 @@ async function resolveGate1Variant(btn) {
       if (resiInput)   resiInput.value   = out.resi != null ? out.resi : '';
       if (expectInput) expectInput.value = out.expect_resname || '';
       if (pdbInput)    pdbInput.value    = out.pdb_id || '';
+      // Stashed for sendGate1ToClassifier — a real, sourced suggestion
+      // (targets.json's own full_qubits/2), not a guess, but still just a
+      // suggestion: the Classifier's own max-orbitals field stays editable.
+      window.__gate1SuggestedMaxOrbitals = out.suggested_max_orbitals || null;
       const resolvedSel = document.getElementById('g1-new-resolved');
       const reasonInput = document.getElementById('g1-new-reason');
       if (resolvedSel) resolvedSel.value = out.resolved ? 'true' : 'false';
@@ -5487,11 +5492,18 @@ function sendGate1ToClassifier(btn) {
   const resiInput   = document.getElementById('ntp-resi');
   const resnameInput= document.getElementById('ntp-resname');
   const keyInput    = document.getElementById('ntp-key');
+  const maxorbInput = document.getElementById('ntp-maxorb');
   if (pdbInput)     pdbInput.value = pdb;
   if (chainInput)   chainInput.value = chain;
   if (resiInput)    resiInput.value = resi;
   if (resnameInput) resnameInput.value = expect;
   if (keyInput)      keyInput.value = target;
+  // Real, sourced suggestion (targets.json's own full_qubits/2) when this
+  // target is already known — still just a starting point, freely editable,
+  // never overwrites a value the user already typed into the Classifier itself.
+  if (maxorbInput && window.__gate1SuggestedMaxOrbitals) {
+    maxorbInput.value = window.__gate1SuggestedMaxOrbitals;
+  }
   const card = document.getElementById('the-classifier-card');
   if (card) {
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5499,9 +5511,12 @@ function sendGate1ToClassifier(btn) {
     card.style.boxShadow = '0 0 0 2px #a78bfa';
     setTimeout(() => { card.style.boxShadow = ''; }, 2000);
   }
-  setMsg(resolvedStr === 'false'
+  const orbNote = (maxorbInput && window.__gate1SuggestedMaxOrbitals)
+    ? ' <span style="color:var(--gray);font-size:10px">(max orbitals suggested from targets.json: ' + window.__gate1SuggestedMaxOrbitals + ' — edit freely)</span>'
+    : '';
+  setMsg((resolvedStr === 'false'
     ? '<span style="color:var(--gold)">⚠ this target is marked UNRESOLVED — sent anyway, but the Classifier will likely fail the same way. Review before clicking ▶ Classify.</span>'
-    : '<span style="color:var(--green)">✓ sent to The Classifier below — review the fields, then click ▶ Classify</span>');
+    : '<span style="color:var(--green)">✓ sent to The Classifier below — review the fields, then click ▶ Classify</span>') + orbNote);
 }
 
 async function saveGate1Check(btn) {

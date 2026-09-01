@@ -118,7 +118,7 @@ def _from_targets_json(target: str) -> dict | None:
         return {
             "target": target, "resolved": entry["structure_caveat"].startswith("VERIFIED"),
             "reason": entry["structure_caveat"], "source": "targets.json (mutations)",
-            "pdb_id": entry.get("pdb"),
+            "pdb_id": entry.get("pdb"), "full_qubits": entry.get("full_qubits"),
         }
     gene = target.split("_")[0]
     genes = _TARGETS.get("genes") or {}
@@ -127,7 +127,7 @@ def _from_targets_json(target: str) -> dict | None:
         return {
             "target": target, "resolved": gentry["structure_caveat"].startswith("VERIFIED"),
             "reason": gentry["structure_caveat"], "source": "targets.json (genes." + gene + ")",
-            "pdb_id": None,
+            "pdb_id": None, "full_qubits": gentry.get("full_qubits"),
         }
     return None
 
@@ -338,10 +338,21 @@ async def resolve_variant(payload: dict = Body(...)):
         # checking here -- "already answered" does not mean "nothing to hand
         # onward": these are exactly what "Send to Classifier" needs to
         # dispatch this target for real, and they are already fully known.
+        # suggested_max_orbitals: targets.json's own full_qubits for this
+        # target, halved -- this project's own JW convention throughout is
+        # full_qubits = 2 * orbitals (see e.g. TP53_C275F's own
+        # bqp_class_source: "CAS(48,28) -> 48e/28o -> 56 qubits"). A real,
+        # sourced number, not a guess -- and still just a SUGGESTION: the
+        # active-space size is a chemist's call (Gate 2), so the field stays
+        # freely editable, this only saves retyping a number that is already
+        # on record.
+        full_q = known.get("full_qubits")
         return {"resolved": known["resolved"], "target": target,
                  "reason": known["reason"], "source": known.get("source"),
                  "pdb_id": known.get("pdb_id"), "resi": resnum,
-                 "expect_resname": _AA_1TO3[wt1], "already_known": True}
+                 "expect_resname": _AA_1TO3[wt1],
+                 "suggested_max_orbitals": (full_q // 2) if full_q else None,
+                 "already_known": True}
 
     # PDB ID: targets.json (this exact target, then a same-gene entry as a
     # weaker fallback) before the older routes.pdb literal map.
