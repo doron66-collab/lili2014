@@ -35,18 +35,35 @@ every other write into targets.json this project makes.
 STATUS: like Gate 2, this does not itself block dispatch anywhere yet — no
 live endpoint currently calls check_target() before running a job. It exists
 so the verdict is recorded and reusable, not so a checkbox somewhere reads it.
-Automating the actual PDB lookup (fetch structure, check residue coverage)
-is future work — POST /check today only records a verdict a human already
-worked out, it does not compute one.
+
+AUTOMATED PDB LOOKUP (POST /auto_check): fetches the real deposited structure
+from RCSB and checks whether the given chain/residue actually has ATOM
+records at that position — the same objective fact a human was checking by
+hand for every existing structure_caveat entry (e.g. "1U6D resolves residues
+322-609; G333 sits shortly inside that boundary"). It answers the mechanical,
+checkable half of Gate 1 ("does this file cover this residue") — never the
+judgment half (is the flexible-linker/disordered-region call correct, is the
+chosen chain the biologically relevant one). The verdict this returns is NOT
+saved automatically: POST /check (the human-reviewed save) still requires a
+person to look at the result and click save, the same "verify, don't trust"
+posture as every other write into this project's records. This mirrors, on
+purpose, the residue-coverage check computational chemists already do by eye
+in a structure viewer — it does not replace judgment about WHICH chain/PDB is
+biologically the right one to check in the first place, only automates
+re-deriving whether a chosen one covers a chosen residue.
 """
 import logging
+import re
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, Body, HTTPException, Header
 
 from routes.simulate import get_supabase, _uid_from_auth, _TARGETS
 
 router = APIRouter()
+
+_RCSB_CIF_URL = "https://files.rcsb.org/download/{pdb_id}.cif"
 
 _GATE1_CHECK_COLUMNS = frozenset({
     "target", "pdb_id", "chain", "resi", "resolved", "reason", "source",
@@ -154,6 +171,122 @@ async def record_check(payload: dict = Body(...), authorization: str | None = He
         logging.error("Gate 1 check save failed: %s", e)
         return {"saved": False, "error": str(e),
                 "hint": "run the gate1_checks migration — see RUN_GUIDE.md"}
+
+
+def _parse_atom_site_chain_residues(cif_text: str) -> dict:
+    """Minimal mmCIF _atom_site loop parser — same approach and same caveats as
+    scripts/laguna/build_qm_cluster.py's parse_cif() (one _atom_site loop,
+    values on one line each — true for every RCSB-deposited structure), but
+    lighter: only chain/resseq/resname/record-type are needed here, not
+    coordinates. Kept as a separate, self-contained copy rather than an
+    import — this module runs on Render, build_qm_cluster.py runs on Laguna,
+    different deployments of the same repo.
+
+    Returns {chain: {resseq: resname}} for ATOM records only (HETATM residues
+    are not part of the polymer chain a mutation's residue numbering refers
+    to, and would give a false "resolved" for e.g. a nearby ion or water)."""
+    lines = cif_text.splitlines()
+    tag_start = None
+    for i, raw in enumerate(lines):
+        if raw.strip() == "loop_" and i + 1 < len(lines) and lines[i + 1].strip().startswith("_atom_site."):
+            tag_start = i + 1
+            break
+    if tag_start is None:
+        raise ValueError("no _atom_site loop found — not a valid RCSB mmCIF file")
+    tags, j = [], tag_start
+    while j < len(lines) and lines[j].strip().startswith("_atom_site."):
+        tags.append(lines[j].strip().split(".", 1)[1])
+        j += 1
+    idx = {t: n for n, t in enumerate(tags)}
+    required = ["group_PDB", "auth_comp_id", "auth_asym_id", "auth_seq_id"]
+    missing = [t for t in required if t not in idx]
+    if missing:
+        raise ValueError(f"_atom_site loop is missing expected columns: {missing}")
+
+    by_chain: dict[str, dict[int, str]] = {}
+    while j < len(lines):
+        line = lines[j].strip()
+        j += 1
+        if not line or line.startswith("#") or line.startswith("_") or line == "loop_":
+            break
+        parts = line.split()
+        if len(parts) != len(tags):
+            continue
+        if parts[idx["group_PDB"]] != "ATOM":
+            continue
+        chain = parts[idx["auth_asym_id"]]
+        try:
+            resseq = int(parts[idx["auth_seq_id"]])
+        except ValueError:
+            continue
+        by_chain.setdefault(chain, {})[resseq] = parts[idx["auth_comp_id"]]
+    if not by_chain:
+        raise ValueError("parsed the _atom_site loop but found zero ATOM rows")
+    return by_chain
+
+
+@router.post("/auto_check")
+async def auto_check(payload: dict = Body(...)):
+    """Automated half of Gate 1: does RCSB's own deposited structure for
+    pdb_id actually have ATOM records at chain/resi? Read-only against RCSB,
+    writes nothing — the caller reviews this result and calls POST /check
+    (authenticated) to actually record it, same as every other Gate 1/2
+    sign-off in this project."""
+    pdb_id = str((payload or {}).get("pdb_id") or "").strip().upper()
+    chain = str((payload or {}).get("chain") or "").strip()
+    resi = (payload or {}).get("resi")
+    expect_resname = str((payload or {}).get("expect_resname") or "").strip().upper() or None
+    if not re.fullmatch(r"[A-Z0-9]{4}", pdb_id):
+        raise HTTPException(400, "pdb_id must be a 4-character RCSB ID")
+    if not chain:
+        raise HTTPException(400, "missing chain")
+    try:
+        resi = int(resi)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "resi must be an integer residue number")
+
+    url = _RCSB_CIF_URL.format(pdb_id=pdb_id)
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(url)
+        if r.status_code != 200:
+            return {"resolved": None, "error": f"RCSB returned HTTP {r.status_code} for {pdb_id} — check the PDB ID"}
+        by_chain = _parse_atom_site_chain_residues(r.text)
+    except httpx.HTTPError as e:
+        return {"resolved": None, "error": f"could not reach RCSB: {e}"}
+    except ValueError as e:
+        return {"resolved": None, "error": str(e)}
+
+    if chain not in by_chain:
+        return {
+            "resolved": False,
+            "reason": f"chain '{chain}' not found in {pdb_id} — chains present: {sorted(by_chain)}",
+            "pdb_id": pdb_id, "chain": chain, "resi": resi,
+        }
+    residues = by_chain[chain]
+    observed_min, observed_max = min(residues), max(residues)
+    if resi not in residues:
+        return {
+            "resolved": False,
+            "reason": (f"residue {resi} not found in {pdb_id} chain {chain} — this chain's "
+                       f"ATOM records cover residues {observed_min}-{observed_max}, but {resi} "
+                       f"falls in a gap or outside that range (missing density / disordered / "
+                       f"unresolved region, or simply out of range)"),
+            "pdb_id": pdb_id, "chain": chain, "resi": resi,
+            "observed_range": [observed_min, observed_max],
+        }
+    found_resname = residues[resi]
+    mismatch = expect_resname is not None and found_resname != expect_resname
+    reason = (f"VERIFIED — residue {resi} has ATOM records in {pdb_id} chain {chain} "
+              f"(observed chain range {observed_min}-{observed_max})")
+    if mismatch:
+        reason += (f" — WARNING: expected residue name {expect_resname} but the structure has "
+                   f"{found_resname} at this position; check numbering convention/isoform before trusting this")
+    return {
+        "resolved": True, "reason": reason, "pdb_id": pdb_id, "chain": chain, "resi": resi,
+        "found_resname": found_resname, "observed_range": [observed_min, observed_max],
+        "resname_mismatch": mismatch,
+    }
 
 
 @router.delete("/check/{target}")
