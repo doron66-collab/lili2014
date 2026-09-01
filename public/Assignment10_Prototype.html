@@ -886,54 +886,6 @@
     <p style="color:var(--white)">Quantum kernel · HPC dispatch · AI binding affinity pipeline</p>
   </div>
 
-  <!-- Pipeline Steps -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">Simulation Pipeline — <span id="pipe-mutation" style="color:var(--teal)">Select a mutation and run to begin</span></div>
-    <div class="steps" style="margin-top:12px">
-      <div class="step">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending" id="pipe-dot-1">1</div>
-          <div class="step-label">Target Selection</div>
-        </div>
-        <div class="step-line" id="pipe-line-1"></div>
-      </div>
-      <div class="step">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending" id="pipe-dot-2">2</div>
-          <div class="step-label">Active Space</div>
-        </div>
-        <div class="step-line" id="pipe-line-2"></div>
-      </div>
-      <div class="step">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending" id="pipe-dot-3">3</div>
-          <div class="step-label">Qubit Encoding</div>
-        </div>
-        <div class="step-line" id="pipe-line-3"></div>
-      </div>
-      <div class="step">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending" id="pipe-dot-4">4</div>
-          <div class="step-label">Compute Dispatch</div>
-        </div>
-        <div class="step-line" id="pipe-line-4"></div>
-      </div>
-      <div class="step">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending" id="pipe-dot-5">5</div>
-          <div class="step-label">Result Aggregation</div>
-        </div>
-        <div class="step-line" id="pipe-line-5"></div>
-      </div>
-      <div class="step">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-          <div class="step-dot pending" id="pipe-dot-6">6</div>
-          <div class="step-label">Validation &amp; Seal</div>
-        </div>
-      </div>
-    </div>
-    <div id="pipe-status-line" style="font-size:11px;color:var(--gray);margin-top:6px;min-height:16px"></div>
-  </div>
 
   <!-- ══════════════════════════════════════════════════════════════════════
        ESCALATION LADDER — the blocks below climb from smallest to largest:
@@ -3605,11 +3557,8 @@ async function runLiveVQE() {
   if (_aiStR) { _aiStR.textContent = 'Waiting'; _aiStR.style.color = 'var(--gray)'; }
 
   // Crawl VQE bar 0→100% over 10s — always cancelled and snapped on API return
-  setPipelineState(mutationId, 1);
   updateJobCard(mutationId, 'running');
   _vqeBarRaf = animateBar(_vqeBar, 0, 100, 10000);
-  const t2 = setTimeout(() => setPipelineState(mutationId, 2), 4000);
-  const t3 = setTimeout(() => setPipelineState(mutationId, 3), 8000);
 
   try {
     const { data: { session } } = await supa.auth.getSession();
@@ -3670,11 +3619,9 @@ async function runLiveVQE() {
     // ── Single VQE run complete — same data drives both the live stream above
     // and every downstream tab, so the chart never redraws with a second,
     // independently-computed result ──────────────────────────────────────────
-    clearTimeout(t2); clearTimeout(t3);
     // Snap VQE bar to 100% first, then mark done — both appear in same frame
     if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
     if (_vqeBar) _vqeBar.style.width = '100%';
-    setPipelineState(mutationId, 4);
     updateJobCard(mutationId, 'done', data);
 
     // 1s after kernel completes, start AI bar (4s fill)
@@ -3694,9 +3641,7 @@ async function runLiveVQE() {
                 :                                 '· Supabase not configured';
     status.textContent = `Done in ${data.result.elapsed_s}s — all tabs updated ${dbMsg}`;
   } catch (e) {
-    clearTimeout(t2); clearTimeout(t3);
     if (_vqeBarRaf) { _vqeBarRaf.cancelled = true; _vqeBarRaf = null; }
-    setPipelineState(mutationId, 0);
     updateJobCard(mutationId, 'idle');
     errBox.textContent = `Backend error: ${e.message}. Is the Render service deployed? (cold start may take ~30s)`;
     errBox.style.display = 'block';
@@ -6270,8 +6215,6 @@ function resetPlatform() {
   el('pq-footer') && (el('pq-footer').textContent = 'Target: 2026-05-01 · Signed: pending · Doc: PQ-v0.3');
 
   // ── Orchestration — pipeline + job card ──────────────────────────────
-  setPipelineState('', 0);
-  el('pipe-mutation') && (el('pipe-mutation').textContent = 'Select a mutation and run to begin');
   updateJobCard('', 'idle');
 
   // ── Orchestration — VQE engine dropdown + result panel ───────────────
@@ -6373,39 +6316,9 @@ function updateDashboardAfterRun(mutationId, data) {
   updatePQAfterRun(mutationId);
 }
 
-// ── Pipeline stage animator ────────────────────────────────────────────────
+// ── Job card label helper ───────────────────────────────────────────────────
 function mutationLabel(mutId) {
   return `Phase 3A · ${getDisplayName(mutId)} · 2q VQE Proxy`;
-}
-
-// stageIndex: 0=idle, 1=dispatching, 2=aggregating, 3=validating, 4=complete
-function setPipelineState(mutationId, stageIndex) {
-  const mutEl = document.getElementById('pipe-mutation');
-  if (mutEl) mutEl.textContent = mutationId ? mutationLabel(mutationId) : 'Select a mutation and run to begin';
-
-  const configs = [
-    // [dot1..6 classes], status line text
-    [['pending','pending','pending','pending','pending','pending'], ''],
-    [['done','done','done','active','pending','pending'], '⏳ Stage 4 — dispatching to PennyLane simulator…'],
-    [['done','done','done','done','active','pending'],   '⏳ Stage 5 — aggregating VQE/sqDRIFT results…'],
-    [['done','done','done','done','done','active'],      '⏳ Stage 6 — computing P8 cryptographic seal…'],
-    [['done','done','done','done','done','done'],        '✓ All 6 stages complete · P8 seal stored to Supabase'],
-  ];
-  const [dots, statusText] = configs[stageIndex] || configs[0];
-
-  for (let i = 1; i <= 6; i++) {
-    const dot = document.getElementById(`pipe-dot-${i}`);
-    if (!dot) continue;
-    const state = dots[i - 1];
-    dot.className = `step-dot ${state}`;
-    dot.textContent = state === 'done' ? '✓' : i;
-  }
-  for (let i = 1; i <= 5; i++) {
-    const line = document.getElementById(`pipe-line-${i}`);
-    if (line) line.className = `step-line${dots[i - 1] === 'done' ? ' done' : ''}`;
-  }
-  const sl = document.getElementById('pipe-status-line');
-  if (sl) sl.textContent = statusText;
 }
 
 function updateJobCard(mutationId, state, data) {
