@@ -932,9 +932,11 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
             row["dmrg_classification_id"] = payload.get("dmrg_classification_id")
     # PDB-to-classification pipeline dispatch (job_type='screen_classify') — the
     # "New Target from PDB" form. Chains protonate -> carve/probe (shrinking radius
-    # until the active space fits) -> DMRG -> optional SHCI, all on the agent, so
-    # the end user never opens a terminal (solange_screen_and_classify.py). Only
-    # attached for this job type, same backward-compatible pattern as above.
+    # until the active space fits) -> DMRG -> SHCI (both mandatory — the
+    # classifier's decision is the two-method outcome, not one method's
+    # opinion), all on the agent, so the end user never opens a terminal
+    # (solange_screen_and_classify.py). Only attached for this job type, same
+    # backward-compatible pattern as above.
     if payload.get("job_type") == "screen_classify":
         row["pdb_id"] = payload.get("pdb_id")
         row["chain"] = payload.get("chain")
@@ -944,7 +946,10 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         row["max_orbitals"] = int(payload.get("max_orbitals", 45))
         row["avas"] = payload.get("avas")  # optional — omit to use build_qm_cluster.py's own per-radius suggestion
         row["spin"] = int(payload.get("spin", 0))
-        row["run_shci"] = bool(payload.get("run_shci", False))
+        # skip_shci: local-testing escape hatch only (no Dice build available) —
+        # the classifier's normal outcome always runs both methods, so this
+        # defaults to False (SHCI runs) rather than being opt-in.
+        row["skip_shci"] = bool(payload.get("skip_shci", False))
         row["sweep_eps"] = payload.get("sweep_eps", "1e-2,1e-3,5e-4,1e-4")
     # job_type routes the job to the right agent: 'hpc' (default, classical Laguna)
     # or 'qpu' (real IBM hardware, pulled by the QPU agent). Only attach it for the
@@ -976,7 +981,7 @@ async def list_dispatch(limit: int = 20):
                          "ncas, nelecas, run_vqe, claimed_at, finished_at, run_id, note, job_type, "
                          "dmrg_scf, dmrg_scf_maxm, geometry, avas, charge, spin, sweep_eps, "
                          "dmrg_classification_id, pdb_id, chain, resi, expect_resname, radii, "
-                         "max_orbitals, run_shci")
+                         "max_orbitals, skip_shci")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"jobs": res.data or []}
     except Exception as e:
@@ -1605,6 +1610,71 @@ async def delete_selected_shci(payload: dict = Body(...),
     except Exception as e:
         logging.error("SHCI delete failed: %s", e)
         raise HTTPException(status_code=500, detail=f"delete failed: {e}")
+
+
+# ── QM cluster cache — build once, reuse on every later encounter ──────────────
+# "New Target from PDB" (solange_screen_and_classify.py) used to protonate, carve,
+# and probe from scratch every time, even for a (pdb_id, chain, resi) already
+# built in a prior run — real but pointless repeated compute. This table lets the
+# pipeline check for an existing cluster FIRST, before ever calling protonate.py
+# or build_qm_cluster.py again, and save a newly-accepted one for next time.
+#
+# One-time migration (Supabase SQL editor):
+#   create table if not exists public.qm_clusters (
+#     id uuid primary key,
+#     created_at timestamptz not null default now(),
+#     pdb_id text, chain text, resi int, expect_resname text,
+#     key text, geometry text, avas text, charge int, spin int,
+#     ncas int, nelec int, radius numeric,
+#     unique(pdb_id, chain, resi)
+#   );
+_CLUSTER_COLUMNS = frozenset({
+    "id", "created_at", "pdb_id", "chain", "resi", "expect_resname",
+    "key", "geometry", "avas", "charge", "spin", "ncas", "nelec", "radius",
+})
+
+
+@router.get("/cluster/lookup")
+async def lookup_cluster(pdb_id: str, chain: str, resi: int):
+    """Return a previously-built cluster for this exact (pdb_id, chain, resi), if
+    one exists — no re-protonation, no re-carving, no re-probing needed. Public
+    read: this is reusable infrastructure data, not a provenance record itself
+    (the DMRG/SHCI classifications built FROM it are what get sealed)."""
+    sb = get_supabase()
+    if not sb:
+        return {"cluster": None, "db": "not_configured"}
+    try:
+        res = (sb.table("qm_clusters").select("*")
+                 .eq("pdb_id", pdb_id.upper()).eq("chain", chain).eq("resi", resi)
+                 .execute())
+        return {"cluster": res.data[0] if res.data else None}
+    except Exception as e:
+        return {"cluster": None, "error": str(e)}
+
+
+@router.post("/cluster/save")
+async def save_cluster(payload: dict = Body(...)):
+    """Save a newly-accepted cluster for reuse. Called by
+    solange_screen_and_classify.py right after a radius is accepted — before
+    DMRG even runs — so the cluster is reusable even if the DMRG/SHCI steps
+    later fail. Upserts on (pdb_id, chain, resi): a re-run with a different
+    accepted radius/AVAS legitimately replaces the cached one."""
+    record = dict(payload)
+    for f in ("pdb_id", "chain", "resi", "geometry"):
+        if not record.get(f) and record.get(f) != 0:
+            raise HTTPException(400, f"missing {f}")
+    record["pdb_id"] = str(record["pdb_id"]).upper()
+    record.setdefault("id", str(uuid.uuid4()))
+    sb = get_supabase()
+    if not sb:
+        return {"saved": False, "db": "not_configured"}
+    safe = {k: v for k, v in record.items() if k in _CLUSTER_COLUMNS}
+    try:
+        sb.table("qm_clusters").upsert(safe, on_conflict="pdb_id,chain,resi").execute()
+        return {"saved": True}
+    except Exception as e:
+        logging.error("cluster save failed: %s", e)
+        return {"saved": False, "error": str(e)}
 
 
 # NOTE: must stay ABOVE the "/{mutation_id}" catch-all below — FastAPI matches

@@ -872,18 +872,18 @@ def run_agent(api, poll_s, token, out_dir):
                              " ".join(shlex.quote(c) for c in shci_cmd)
                 cmd = ["bash", "-lc", module_cmd]
             elif job_type == "screen_classify":
-                # The full "New Target from PDB" pipeline -- protonate, carve/probe
-                # (shrinking radius until the active space fits), DMRG, optional
-                # SHCI -- chained in solange_screen_and_classify.py so the end user
+                # THE CLASSIFIER (per its own design): cluster acquisition (cache or
+                # build), then BOTH DMRG and SHCI, mandatory -- not "DMRG, optional
+                # SHCI" -- chained in solange_screen_and_classify.py so the end user
                 # never opens a terminal. That script itself invokes run_dmrg.sh
-                # (its own with_block2.sh wrapping) internally; only the SHCI leg
-                # needs Boost on THIS process's environment, which is why the whole
-                # thing is wrapped in the same module-load login shell as the plain
-                # shci branch above, whether or not run_shci was actually requested
-                # (cheap and harmless to load unconditionally here).
+                # (its own with_block2.sh wrapping) internally; the SHCI leg needs
+                # Boost on THIS process's environment, which is why the whole thing
+                # is wrapped in the same module-load login shell as the plain shci
+                # branch above.
                 if not job.get("pdb_id") or not job.get("chain") or not job.get("expect_resname"):
                     raise RuntimeError(
                         "screen_classify job missing pdb_id/chain/expect_resname")
+                dice_scripts = str(_HERE.parent.parent.parent / "Dice" / "scripts")
                 screen_cmd = [sys.executable, "-u", str(_HERE.parent / "solange_screen_and_classify.py"),
                              "--pdb-id", job["pdb_id"], "--chain", job["chain"],
                              "--resi", str(job.get("resi") or 0),
@@ -893,13 +893,13 @@ def run_agent(api, poll_s, token, out_dir):
                              "--spin", str(job.get("spin") or 0),
                              "--basis", job.get("basis", "sto-3g"),
                              "--key", job["key"], "--bond-dims", "250,500,1000",
+                             "--dice-scripts", dice_scripts,
+                             "--sweep-eps", job.get("sweep_eps") or "1e-2,1e-3,5e-4,1e-4",
                              "--out-prefix", job["key"], "--submit", api]
                 if job.get("avas"):
                     screen_cmd += ["--avas", job["avas"]]
-                if job.get("run_shci"):
-                    dice_scripts = str(_HERE.parent.parent.parent / "Dice" / "scripts")
-                    screen_cmd += ["--run-shci", "--dice-scripts", dice_scripts,
-                                   "--sweep-eps", job.get("sweep_eps") or "1e-2,1e-3,5e-4,1e-4"]
+                if job.get("skip_shci"):
+                    screen_cmd.append("--skip-shci")
                 module_cmd = "module load boost/1.85.0 2>/dev/null; exec " + \
                              " ".join(shlex.quote(c) for c in screen_cmd)
                 cmd = ["bash", "-lc", module_cmd]

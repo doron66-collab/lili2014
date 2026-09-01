@@ -202,18 +202,33 @@ without it (`RUN_GUIDE.md`'s own earlier troubleshooting note for this exact
 `libboost_mpi.so.1.85.0` error applies here too, just handled automatically
 instead of by hand).
 
-### 2e. "New Target from PDB" — the full pipeline, zero terminal (Rung 3)
+### 2e. "The Classifier" — PDB to a two-method decision, zero terminal (Rung 3)
 
-The form at the top of the Rung 3 card (PDB ID, chain, residue #, expected
-residue, target key, optional AVAS, radii, max orbitals, spin, and an "also
-run SHCI" checkbox) queues `job_type='screen_classify'`. The agent runs
-`solange_screen_and_classify.py`, which chains: `protonate.py` (fetch + add
-missing hydrogens) → carve at each radius with `build_qm_cluster.py` and probe
-with `avas_probe.py`, shrinking the radius until the active space fits
-`--max-orbitals` → `run_dmrg.sh --submit` → optionally `solange_shci.py
---submit`, cross-validated against the DMRG record this same job just
-created. Nobody needs to open a terminal for this — provided the classical
-agent is already running (§1a).
+The block at the top of the Rung 3 card (PDB ID, chain, residue #, expected
+residue, target key, optional AVAS, radii, max orbitals, spin) queues
+`job_type='screen_classify'`. The agent runs `solange_screen_and_classify.py`,
+which does two parts:
+
+**Part 1 — cluster acquisition.** Checks `GET /api/simulate/cluster/lookup`
+for this exact (pdb_id, chain, resi) first — if this site was ever built
+before, its cached geometry/AVAS/charge/spin/active-space are reused
+directly, no re-protonation, no re-carving, no re-probing. Otherwise:
+`protonate.py` (fetch + add missing hydrogens) → carve at each radius with
+`build_qm_cluster.py` and probe with `avas_probe.py`, shrinking the radius
+until the active space fits `--max-orbitals` → the accepted cluster is saved
+via `POST /api/simulate/cluster/save` so the next run of this same site
+skips straight to Part 2.
+
+**Part 2 — classify with both methods, mandatory.** `run_dmrg.sh --submit`,
+then `solange_shci.py --submit` cross-validated against the DMRG record Part
+2 just created. SHCI is NOT optional here — the classifier's decision is the
+two-method outcome, not one method's opinion (pass `--skip-shci` directly to
+the script only for local testing without a Dice build). The job's final
+output states the outcome explicitly: both classes, and whether their
+energies agree.
+
+Nobody needs to open a terminal for this — provided the classical agent is
+already running (§1a).
 
 **What it still does not decide for you** (same limits already stated in
 `screen_target.py` and `gate2_requirements.py`, now inherited rather than
@@ -221,10 +236,10 @@ re-litigated): the AVAS chemical criterion (a generic default is used unless
 you supply one — and that default has already been shown, in this project's
 own investigation, to pick up unintended atoms on a protein-heavy cluster),
 protonation pH (fixed at 7.0), and a metal-containing site's spin/oxidation
-state (spin is a plain dropdown here, not a chemist's sign-off — Gate 2 is
-not consulted by this pipeline at all).
+state (spin is a plain dropdown here, not a chemist's sign-off — Gate 2,
+tracked separately above, does not gate this pipeline yet).
 
-One-time migration (Supabase SQL editor), additive:
+One-time migrations (Supabase SQL editor), additive:
 
 ```sql
 alter table public.hpc_dispatch add column if not exists pdb_id text;
@@ -233,7 +248,16 @@ alter table public.hpc_dispatch add column if not exists resi int;
 alter table public.hpc_dispatch add column if not exists expect_resname text;
 alter table public.hpc_dispatch add column if not exists radii text;
 alter table public.hpc_dispatch add column if not exists max_orbitals int;
-alter table public.hpc_dispatch add column if not exists run_shci boolean;
+alter table public.hpc_dispatch add column if not exists skip_shci boolean;
+
+create table if not exists public.qm_clusters (
+  id uuid primary key,
+  created_at timestamptz not null default now(),
+  pdb_id text, chain text, resi int, expect_resname text,
+  key text, geometry text, avas text, charge int, spin int,
+  ncas int, nelec int, radius numeric,
+  unique(pdb_id, chain, resi)
+);
 ```
 
 (`avas`, `spin`, `sweep_eps` were already added in §2d's migration and are

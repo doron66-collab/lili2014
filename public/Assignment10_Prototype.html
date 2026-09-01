@@ -1109,15 +1109,18 @@
       <span style="font-size:11px;color:var(--gray)">last classical resort — the A/B/C classifier that decides whether quantum is even needed</span>
     </div>
 
-    <!-- New Target from PDB — the end-to-end pipeline (protonate -> carve/probe ->
-         DMRG -> optional SHCI), so a target that has never had ANY prior run can be
-         classified from the browser with no terminal step (job_type='screen_classify',
-         solange_screen_and_classify.py on the agent). This does NOT choose the AVAS
-         chemical criterion, the protonation pH, or a metal site's spin/oxidation state
-         — those remain a computational chemist's call (Gate 2), same limits already
-         stated in screen_target.py and gate2_requirements.py. -->
-    <div style="padding:12px;margin-bottom:14px;border:1px solid rgba(167,139,250,0.25);border-radius:8px;background:rgba(167,139,250,0.04)">
-      <div class="card-title" style="font-size:12px">New Target from PDB<span class="info-i" data-tip="Chains protonate.py -> build_qm_cluster.py+avas_probe.py (shrinking radius until the active space fits --max-orbitals) -> solange_dmrg.py -> optionally solange_shci.py, all on the classical Laguna agent. Does not choose the AVAS chemical criterion, protonation pH, or a metal site's spin/oxidation state for you — those stay a computational chemist's call (Gate 2).">i</span></div>
+    <!-- THE CLASSIFIER — Part 1 (cluster acquisition: reuse a cached cluster for
+         this exact PDB/chain/residue, or build one from scratch) then Part 2
+         (classify with BOTH DMRG and SHCI, mandatory, and report whether they
+         agree) — job_type='screen_classify', solange_screen_and_classify.py on
+         the agent, no terminal step for the end user. Does NOT choose the AVAS
+         chemical criterion, the protonation pH, or a metal site's spin/oxidation
+         state — those remain a computational chemist's call (Gate 2, tracked
+         above, not yet gating anything). The DMRG and SHCI tables below this
+         block are its result records, not separate features. -->
+    <div style="padding:12px;margin-bottom:14px;border:1px solid rgba(167,139,250,0.3);border-radius:8px;background:rgba(167,139,250,0.05)">
+      <div class="card-title" style="font-size:13px">The Classifier — PDB to a Two-Method Decision<span class="info-i" data-tip="Part 1: reuses a cluster already built for this exact PDB/chain/residue (cache lookup), or builds one from scratch (protonate -> carve -> shrink radius until AVAS fits --max-orbitals) and saves it for next time. Part 2: classifies with BOTH DMRG and SHCI — mandatory, not optional — and reports whether their energies agree. Does not choose the AVAS chemical criterion, protonation pH, or a metal site's spin/oxidation state for you — those stay a computational chemist's call (Gate 2, above).">i</span></div>
+      <div style="font-size:10px;color:var(--gray);margin:4px 0 8px">Part 1 — cluster (cached if this exact site was built before, otherwise built from scratch) · Part 2 — classify with both DMRG and SHCI, and report agreement</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
         <input id="ntp-pdbid" placeholder="PDB ID (e.g. 8TDR)" style="width:110px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
         <input id="ntp-chain" placeholder="Chain (e.g. A)" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
@@ -1132,12 +1135,12 @@
         <select id="ntp-spin" title="2S for the active space — a metal site's spin state is a chemist's call, not a default" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
           <option value="0" selected>spin 0</option><option value="1">spin 1</option><option value="2">spin 2</option><option value="4">spin 4</option>
         </select>
-        <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="ntp-shci"> also run SHCI cross-validation</label>
-        <button onclick="dispatchScreenClassify(this)" title="Rung 3 — queue the full pipeline on the classical Laguna agent" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Screen &amp; Classify</button>
+        <button onclick="dispatchScreenClassify(this)" title="Runs Part 1 then Part 2 on the classical Laguna agent — both DMRG and SHCI, always" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Classify</button>
         <span id="ntp-msg" style="color:var(--gray)"></span>
       </div>
     </div>
 
+    <div class="card-title" style="font-size:12px;color:var(--gray);margin-top:2px">Classifier results — Method 1: DMRG</div>
     <div class="card-title" style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
       <span>DMRG A/B/C Classifications · Laguna (solange_dmrg.py)<span class="info-i" data-tip="Whether classical DMRG reaches chemical accuracy, per target — the evidence behind each A/B/C class. Sealed at source and notarized by LEON on submission (independent of Laguna connectivity afterward).">i</span></span>
       <span style="display:flex;gap:6px">
@@ -5567,7 +5570,8 @@ async function dispatchScreenClassify(btn) {
       radii: val('ntp-radii').trim() || '5.0,4.0,3.5,3.0',
       max_orbitals: parseInt(val('ntp-maxorb') || '45', 10),
       spin: parseInt(val('ntp-spin') || '0', 10),
-      run_shci: document.getElementById('ntp-shci')?.checked || false,
+      // No skip_shci here — the classifier's normal outcome always runs BOTH
+      // methods (dispatch_hpc's own default is skip_shci=false already).
     };
     const avas = val('ntp-avas').trim();
     if (avas) body.avas = avas;
