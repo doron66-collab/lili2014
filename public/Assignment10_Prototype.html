@@ -1026,6 +1026,45 @@
     <div id="sim-error" style="display:none;color:var(--red);font-size:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.3)"></div>
   </div>
 
+  <!-- ── Gate 2 — mechanism category & chemist sign-off (reference/tracking only,
+       does NOT block anything below — see backend/routes/gate2.py's own module
+       docstring for why: it answers "which mechanism-specific energy does drug
+       design need", a different question from Gate 3's "is this classically
+       tractable", and the tool that would actually consume a Gate 2 sign-off
+       (a covalent ΔG‡ calculator, say) does not exist yet). ── -->
+  <div class="card" style="margin-bottom:16px;border:1px solid rgba(232,160,32,0.25)">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Gate 2 — Mechanism Category &amp; Chemist Sign-off<span class="info-i" data-tip="Which mechanism-specific energetic quantity drug design needs for a target, and who decided the category and its required sign-offs (metal presence, spin, oxidation state, protonation, TS-search setup). This is DIFFERENT from Gate 3 (the DMRG/SHCI classifier below) — Gate 3 answers whether a target's ground-state energy is classically tractable, which routine NGS-driven screening depends on and this does NOT gate. Gate 2 only matters once someone wants a mechanism-specific quantity (e.g. a covalent activation barrier) for actual drug design — that calculator does not exist yet, so this is tracking/documentation only, not an active block, today.">i</span></span>
+      <button onclick="window.solangeLoadGate2 && window.solangeLoadGate2()" title="Reload from SOLANGE"
+        style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">↻ Refresh</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g2-target" placeholder="Target key (e.g. SDHB_C101Y)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <select id="g2-category" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <option value="" selected disabled>— mechanism category —</option>
+        <option value="covalent_reactive_cysteine">covalent_reactive_cysteine</option>
+        <option value="metal_redox_center">metal_redox_center</option>
+        <option value="protein_interface_disruption">protein_interface_disruption</option>
+        <option value="structural_stabilizer_local_comparison">structural_stabilizer_local_comparison</option>
+        <option value="catalytic_loss_of_function">catalytic_loss_of_function</option>
+      </select>
+      <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-metal"> metal present</label>
+      <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-ts"> TS search configured</label>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g2-spin" placeholder="Spin assigned by" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g2-ox" placeholder="Oxidation state assigned by" style="width:180px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g2-proto" placeholder="Protonation assigned by" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g2-scope" placeholder="Scope sign-off by" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
+      <input id="g2-source" placeholder="Source — who decided this category, and on what basis (required)" style="flex:1;min-width:340px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <button onclick="saveGate2Record(this)" title="Save this target's Gate 2 record — tracking only, does not block any dispatch" style="background:rgba(232,160,32,0.15);color:var(--gold);border:1px solid rgba(232,160,32,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">💾 Save Gate 2 Record</button>
+      <span id="g2-msg" style="color:var(--gray)"></span>
+    </div>
+    <div id="gate2-records" class="table-scroll" style="margin-top:10px"></div>
+  </div>
+
   <!-- ── Compute Dispatcher — QC·AI·HPC backend routing (RUNG 2→4 live below) ── -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing<span class="info-i" data-tip="Intended production routing policy — the rule the orchestrator applies to size each problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that, and real quantum hardware once the problem passes the classical reach. This is a dispatch decision rule, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders for what has actually run. Note: hardware-validation smoke tests deliberately run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this size-based production rule.">i</span></div>
@@ -1938,6 +1977,47 @@
       });
     };
     window.solangeLoadShci();
+
+    // ── Gate 2 records — read-only list, tracking/documentation only ──
+    var gate2Box = document.getElementById('gate2-records');
+    var gate2Paint = function(html){
+      if (!gate2Box) return;
+      if (gate2Box.__lastHtml === html) return;
+      gate2Box.__lastHtml = html; gate2Box.innerHTML = html;
+    };
+    window.solangeLoadGate2 = function(silent){
+      if (!gate2Box) return;
+      if (!silent) gate2Paint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
+      fetch(API+'/api/gate2/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.records) || [];
+        if (!rows.length) {
+          gate2Paint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
+            'No Gate 2 records yet. This has no effect on any target above — '+
+            'it only matters once a mechanism-specific energy calculator (not built yet) checks it.</div>');
+          return;
+        }
+        var hh = '<table style="width:100%;min-width:820px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:130px">Target</th><th style="'+TH+';width:220px">Category</th>'+
+          '<th style="'+TH+';width:110px">Status</th><th style="'+TH+';width:300px">Missing</th>'+
+          '<th style="'+TH+';width:100px">By</th></tr>';
+        rows.forEach(function(x){
+          var missing = x.missing_requirements || [];
+          var status = x.gate3_allowed
+            ? '<span style="color:var(--green);font-weight:700">✓ complete</span>'
+            : '<span style="color:var(--gold);font-weight:700">'+missing.length+' missing</span>';
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.target||'—')+'</td>'+
+                '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.category||'—')+'</td>'+
+                '<td style="'+C+'">'+status+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.4">'+(missing.join('; ')||'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.updated_by?String(x.updated_by).slice(0,8):'—')+'</td></tr>';
+        });
+        gate2Paint(hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">"complete" means every field this category requires is on record — it does not mean the chemistry is correct, only that a human signed off on it explicitly (verify, don\'t trust applies to the computation, not to this).</div>');
+      }).catch(function(){
+        gate2Paint('<div style="color:var(--gray);font-size:11px">Gate 2 records unavailable (backend unreachable).</div>');
+      });
+    };
+    window.solangeLoadGate2();
 
     // Reset hook: resetPlatform() calls this to clear the dispatcher VIEW. Server-side
     // HPC records are NOT deleted (they are a verified archive) — they reappear on
@@ -5409,6 +5489,55 @@ async function dispatchSelectedToDmrg() {
 // on the agent). No terminal step for the person clicking this button; the AVAS
 // criterion, protonation pH, and any metal site's spin/oxidation state remain a
 // computational chemist's call, same limits already stated on the form itself.
+// Save a Gate 2 record — mechanism category + chemist sign-offs for one target.
+// Tracking/documentation only (see backend/routes/gate2.py's module docstring):
+// this does not block any dispatch above, because the tool that would consume
+// a Gate 2 sign-off (a mechanism-specific energy calculator) does not exist yet.
+async function saveGate2Record(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const target = val('g2-target').trim(), category = val('g2-category');
+  const msg = document.getElementById('g2-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!target || !category) {
+    setMsg('<span style="color:#f87171">Target key and category are both required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'saving…'; }
+  setMsg('saving…');
+  try {
+    const body = {
+      target, category,
+      metal_present: document.getElementById('g2-metal')?.checked || false,
+      ts_search_configured: document.getElementById('g2-ts')?.checked || false,
+      spin_assigned_by: val('g2-spin').trim() || null,
+      oxidation_state_assigned_by: val('g2-ox').trim() || null,
+      protonation_assigned_by: val('g2-proto').trim() || null,
+      scope_signoff_by: val('g2-scope').trim() || null,
+      source: val('g2-source').trim() || null,
+    };
+    const res = await fetch(`${API}/api/gate2/record`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body)
+    });
+    const out = await res.json();
+    if (!out.saved) { setMsg('<span style="color:#f87171">Save failed: ' + (out.error || 'unknown error') + '</span>'); return; }
+    const missing = (out.record && out.record.missing_requirements) || [];
+    setMsg(missing.length
+      ? '<span style="color:var(--gold)">✓ saved — ' + missing.length + ' requirement(s) still missing for this category</span>'
+      : '<span style="color:var(--green)">✓ saved — all requirements for this category are on record</span>');
+    if (typeof window.solangeLoadGate2 === 'function') window.solangeLoadGate2();
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Save failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
 async function dispatchScreenClassify(btn) {
   const val = id => (document.getElementById(id) || {}).value || '';
   const pdbId = val('ntp-pdbid').trim(), chain = val('ntp-chain').trim(),

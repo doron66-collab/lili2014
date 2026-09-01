@@ -243,6 +243,39 @@ A failure at any step (protonation, no radius fitting `max_orbitals`, DMRG,
 or SHCI) stops the whole job and reports why in its status note — it does not
 retry with different parameters or guess a fix.
 
+### 2f. Gate 2 — mechanism category & chemist sign-off (tracking only)
+
+A new card at the top of the Orchestration tab lets you record, per target,
+which mechanism category applies (covalent reactive cysteine, metal redox
+center, protein-interface disruption, structural-stabilizer local comparison,
+catalytic loss-of-function) and the sign-offs that category requires. **This
+does not block anything above it** — Gate 3 (DMRG/SHCI) answers a different
+question (is this classically tractable) that routine screening depends on
+and this does not gate. Gate 2 only becomes load-bearing once a mechanism-
+specific energy calculator (e.g. a covalent ΔG‡ pipeline) exists and checks
+it — that tool is not built yet, so today this is documentation, not a lock.
+
+One-time migration (Supabase SQL editor):
+
+```sql
+create table if not exists public.gate2_records (
+  target text primary key,
+  category text,
+  metal_present boolean,
+  spin_assigned_by text,
+  oxidation_state_assigned_by text,
+  protonation_assigned_by text,
+  scope_signoff_by text,
+  ts_search_configured boolean,
+  source text,
+  updated_by text,
+  updated_at timestamptz
+);
+```
+
+No agent involvement — this is a plain save/read against the backend
+(`/api/gate2/record`, `/api/gate2/list`), same as any other form on the page.
+
 ---
 
 ## 3. Quantum runs — Rung 4 (real IBM hardware)
