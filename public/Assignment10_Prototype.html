@@ -989,41 +989,6 @@
     <div id="gate2-records" class="table-scroll" style="margin-top:10px"></div>
   </div>
 
-  <!-- Evidence note. Deliberately quiet: an alarming banner reads as "something is
-       broken" rather than "something is explained", and people stop reading it —
-       which defeats the point. One neutral line states the essential fact; the
-       detail is one click away for anyone who wants it. Wording tracks
-       POC_DISCLAIMER in backend/routes/evidence.py. Sits here (above Rung 2+),
-       not above Rung 1 — Rung 1 is the N2 pipeline self-test now, which is not a
-       gene-residue proxy compound; the "toluene for Phe, methanethiol for Cys"
-       proxy-compound pattern this note describes is the Compute Dispatcher and
-       HPC/DMRG/QPU ladder below, not Rung 1. -->
-  <details style="margin:4px 0 12px;padding:7px 11px;border:1px solid var(--border);
-                  border-radius:7px;background:rgba(148,163,184,0.05)">
-    <summary style="font-size:10.5px;color:var(--gray);cursor:pointer;line-height:1.5">
-      <span style="font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
-                   color:var(--gray);border:1px solid var(--border);border-radius:999px;
-                   padding:1px 7px;margin-right:6px">reference data</span>
-      Values below run on reference compounds, not customer structures &mdash; what that means
-    </summary>
-    <div style="font-size:10.5px;color:var(--gray);line-height:1.7;margin-top:9px;
-                padding-top:8px;border-top:1px solid var(--border)">
-      Targets on this ladder run on <strong style="color:var(--white)">reference compounds at
-      CAS(2e,2o)/STO-3G</strong> &mdash; toluene in place of a Phe sidechain, methanethiol for Cys.
-      Each is a correct calculation of the compound it describes, and is used to exercise the
-      orchestration, provenance and verification path end to end at low cost. Active-space sizes
-      are literature values rather than site measurements. Results here are therefore not clinical
-      or chemical findings; production runs against customer structures are.
-      <div style="margin-top:7px">
-        <strong style="color:var(--teal)">Independently checked:</strong> the pipeline reproduces a
-        reference it did not produce &mdash; N&#8322; CAS(6,6)/cc-pVDZ, CASSCF to 0.00&nbsp;mHa and
-        12-qubit VQE to 0.471&nbsp;mHa (29% of chemical accuracy). That validates the instrument for
-        small-molecule bond breaking; it transfers nothing to protein active sites. See
-        <code style="font-size:9.5px">scripts/laguna/benchmarks.json</code>.
-      </div>
-    </div>
-  </details>
-
   <!-- ── Compute Dispatcher — QC·AI·HPC backend routing (RUNG 2→4 live below) ── -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Compute Dispatcher — QC·AI·HPC Backend Routing<span class="info-i" data-tip="Intended production routing policy — the rule the orchestrator applies to size each problem to a backend: CPU while tiny, GPU statevector while it fits VRAM, DMRG / tensor-network beyond that, and real quantum hardware once the problem passes the classical reach. This is a dispatch decision rule, not a log of executed runs — see the 3A-HPC and 3B-QPU ladders for what has actually run. Note: hardware-validation smoke tests deliberately run small cases (e.g. CAS(2,2), 4q) on real IBM Heron r2 to prove the pipeline — independent of this size-based production rule.">i</span></div>
