@@ -5321,9 +5321,30 @@ async function resolveGate1Variant(btn) {
     const expectInput  = document.getElementById('g1-new-expect');
     const chainInput   = document.getElementById('g1-new-chain');
     if (targetInput) targetInput.value = out.target || '';
+    if (chainInput)  chainInput.value  = '';
+
+    if (out.already_known) {
+      // Someone (or targets.json itself) already answered this exact
+      // target — no PDB fetch needed, no auto-check needed. Fill the final
+      // verdict directly so it's visible, but there is nothing left to
+      // "save": it's already permanent (targets.json) or already sitting
+      // in the pending cache.
+      if (resiInput)   resiInput.value = '';
+      if (expectInput) expectInput.value = '';
+      if (pdbInput)    pdbInput.value = '';
+      const resolvedSel = document.getElementById('g1-new-resolved');
+      const reasonInput = document.getElementById('g1-new-reason');
+      if (resolvedSel) resolvedSel.value = out.resolved ? 'true' : 'false';
+      if (reasonInput) reasonInput.value = out.reason || '';
+      const badge = out.resolved
+        ? '<span style="color:var(--green)">✓ already known — resolved</span>'
+        : '<span style="color:var(--gold)">already known — unresolved</span>';
+      setMsg(badge + ' <span style="color:var(--gray);font-size:10px">(' + (out.source || '') + ')</span>'
+        + (out.note ? '<div style="margin-top:2px;color:var(--gray);font-size:10px">' + out.note + '</div>' : ''));
+      return;
+    }
     if (resiInput)   resiInput.value   = out.resi != null ? out.resi : '';
     if (expectInput) expectInput.value = out.expect_resname || '';
-    if (chainInput)  chainInput.value  = '';
     if (!out.resolved) {
       if (pdbInput) pdbInput.value = '';
       setMsg('<span style="color:#f87171">' + (out.error || 'could not resolve this variant') + '</span>');

@@ -260,14 +260,44 @@ def _parse_atom_site_chain_residues(cif_text: str) -> dict:
     return by_chain
 
 
+async def _known_answer(target: str) -> dict | None:
+    """Check BOTH permanent stores before anything else runs — targets.json,
+    then the gate1_checks working cache (a colleague may have already
+    resolved this exact target earlier today). A new employee has no way to
+    know which mutations are already answered; this is what makes 'type the
+    variant, get an answer' true regardless of whether that answer already
+    exists or still needs deriving."""
+    known = _from_targets_json(target)
+    if known:
+        return known
+    sb = get_supabase()
+    if not sb:
+        return None
+    try:
+        res = sb.table("gate1_checks").select("*").eq("target", target).execute()
+        if res.data:
+            row = res.data[0]
+            row["source"] = row.get("source") or "gate1_checks (pending promotion)"
+            return row
+    except Exception:
+        pass
+    return None
+
+
 @router.post("/resolve_variant")
 async def resolve_variant(payload: dict = Body(...)):
     """Turn what an NGS report actually gives you (gene + mutation notation,
     e.g. {"gene": "DNMT3A", "mutation": "p.Arg882His"}) into the fields Gate 1
     needs, WITHOUT requiring the end user to know a PDB ID, a chain letter, or
-    a three-letter amino acid code. Read-only, no RCSB call here (that's
-    /auto_check, next) -- this only parses the notation and looks up a PDB ID
-    already known to this project (targets.json / routes.pdb.MUTATION_PDB_MAP).
+    a three-letter amino acid code -- or even whether this exact mutation was
+    already checked by someone else. Checks BOTH permanent stores (targets.json,
+    gate1_checks) FIRST, under every target-key form this project actually
+    uses (a parsed substitution key, and the gene's own {GENE}_LOF key for
+    anything this parser cannot reduce to one residue, e.g. a frameshift) --
+    only derives a NEW answer if nothing already covers it. Read-only beyond
+    that lookup: no RCSB call here (that's /auto_check, next) -- this only
+    parses the notation and looks up a PDB ID already known to this project
+    (targets.json / routes.pdb.MUTATION_PDB_MAP).
 
     Deliberately does NOT guess a chain: chain resolution needs the actual
     structure (see /auto_check's chain-omitted mode, which checks every chain
@@ -277,14 +307,35 @@ async def resolve_variant(payload: dict = Body(...)):
     if not gene:
         raise HTTPException(400, "missing gene")
     parsed = _parse_variant_notation(mutation)
+
     if not parsed:
+        # Can't reduce this to one residue (frameshift, deletion, free text) --
+        # but this project's own convention already has a home for exactly
+        # that case: {GENE}_LOF. Check it before giving up.
+        lof_target = f"{gene}_LOF"
+        known = await _known_answer(lof_target)
+        if known:
+            return {"resolved": known["resolved"], "target": lof_target,
+                     "reason": known["reason"], "source": known.get("source"),
+                     "already_known": True,
+                     "note": f"'{mutation}' could not be reduced to a single residue, but "
+                              f"{lof_target} is already answered — this project's convention "
+                              f"for exactly this case (frameshift/deletion/generic LOF)."}
         return {"resolved": False,
                 "error": f"could not parse '{mutation}' as a single-residue substitution "
-                         f"(e.g. 'R882H' or 'p.Arg882His') -- frameshift, deletion, and "
-                         f"loss-of-function variants have no single residue to anchor Gate 1 "
-                         f"to at all, and need a human's structural judgment, not this parser."}
+                         f"(e.g. 'R882H' or 'p.Arg882His'), and {lof_target} has no existing "
+                         f"answer either -- frameshift, deletion, and loss-of-function variants "
+                         f"have no single residue to anchor Gate 1 to at all, and need a "
+                         f"human's structural judgment, not this parser."}
+
     wt1, resnum, mut1 = parsed
     target = f"{gene}_{wt1}{resnum}{mut1}"
+
+    known = await _known_answer(target)
+    if known:
+        return {"resolved": known["resolved"], "target": target,
+                 "reason": known["reason"], "source": known.get("source"),
+                 "already_known": True}
 
     # PDB ID: targets.json (this exact target, then a same-gene entry as a
     # weaker fallback) before the older routes.pdb literal map.
