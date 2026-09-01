@@ -935,7 +935,7 @@
        Phase 3A VQE demo — animates while it runs. Former MD/DFT/AI-GNN 'Layer 2'
        cards were removed: those pipelines were never implemented or run.) -->
   <div class="card">
-    <div class="card-title">Quantum Kernel · Live VQE Job (Pipeline Self-Test · laptop / in-browser)</div>
+    <div class="card-title">Quantum Kernel · Live VQE Job (Rung 1 Sanity Check · laptop / in-browser)</div>
     <div class="job-card">
       <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
       <div class="job-info">
@@ -959,7 +959,7 @@
        for why CAS(2,2) was tried first and rejected (non-reproducible due to
        N2's degenerate frontier orbitals). -->
   <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
-    <div class="card-title" style="color:var(--teal)">Live VQE Engine — Pipeline Self-Test (N₂)<span class="info-i" data-tip="Runs a fixed N2 CAS(4e,4o)/STO-3G calculation (8-qubit JW Hamiltonian) end to end through the real Rung-1 wiring: dispatch to PennyLane on Render, live convergence stream, P8 cryptographic seal, storage to Supabase. This proves the browser VQE pipeline works. It is NOT a per-gene or per-mutation result — no dropdown, no target selection — on purpose.">i</span></div>
+    <div class="card-title" style="color:var(--teal)">Rung 1 Sanity Check (N₂)<span class="info-i" data-tip="Runs a fixed N2 CAS(4e,4o)/STO-3G calculation (8-qubit JW Hamiltonian) end to end through the real Rung-1 wiring: dispatch to PennyLane on Render, live convergence stream, P8 cryptographic seal, storage to Supabase. This proves the browser VQE pipeline works. It is NOT a per-gene or per-mutation result — no dropdown, no target selection — on purpose.">i</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <button id="sim-btn" onclick="runN2SelfTest()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
         ▶ Run N2 self-test
@@ -3463,7 +3463,7 @@ function updateAllTabs(data) {
 
 // ── Run the N2 pipeline self-test ──────────────────────────────────────────
 // Fixed target, no dropdown, on purpose — see the HTML comment above the
-// "Live VQE Engine — Pipeline Self-Test (N2)" card for why.
+// "Rung 1 Sanity Check (N2)" card for why.
 async function runN2SelfTest() {
   const mutationId = 'N2';
   const btn    = document.getElementById('sim-btn');
