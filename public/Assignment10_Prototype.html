@@ -1199,6 +1199,64 @@
     }
     window.solangeFmtTs=fmtTs;
 
+    // ── Results-tab Status badge — reflects DMRG and/or SHCI classification,
+    // combined. Each loader (solangeLoadDmrg, solangeLoadShci) calls
+    // solangeRecordClassification with its own rows; this renders the COMBINED
+    // state for every target so one classified by both methods reads as
+    // jointly confirmed, not just whichever loader happened to run last.
+    // Non-destructive in one sense (never invents a class), but DOES overwrite
+    // its own prior badge here as new evidence arrives — there is no other
+    // writer of this cell once the dead Phase-3A-VQE "3A Live" path is gone.
+    window.__classificationByTarget = window.__classificationByTarget || {};
+    function solangeRenderClassificationStatus(){
+      var col = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
+      Object.keys(window.__classificationByTarget).forEach(function(key){
+        var entry = window.__classificationByTarget[key];
+        var dmrg = entry.DMRG, shci = entry.SHCI;
+        var _av = (window.__activeVariants || {})[key];
+        var label;
+        if (dmrg && shci) {
+          var agree = shci.agreement === true || (shci.agreement == null && dmrg.bqp_class === shci.bqp_class);
+          var disagree = shci.agreement === false || (shci.agreement == null && dmrg.bqp_class !== shci.bqp_class);
+          if (agree) {
+            label = '<span style="font-size:10px;font-weight:700;color:var(--green);border:1px solid var(--green);border-radius:4px;padding:1px 6px" '+
+              'title="Both DMRG and SHCI independently classify this target as Class '+dmrg.bqp_class+'.">◆ DMRG + SHCI CONFIRMED '+dmrg.bqp_class+'</span>';
+          } else if (disagree) {
+            label = '<span style="font-size:10px;font-weight:700;color:#f87171;border:1px solid #f87171;border-radius:4px;padding:1px 6px" '+
+              'title="The two methods disagree on this target — not settled.">◆ DISAGREE — DMRG '+dmrg.bqp_class+' / SHCI '+shci.bqp_class+'</span>';
+          }
+        } else if (dmrg) {
+          var scoped = !!_av && typeof window.solangeDmrgCoversSite === 'function' && !window.solangeDmrgCoversSite(dmrg, _av.activeElectrons);
+          label = '<span style="font-size:10px;font-weight:700;color:'+(scoped ? 'var(--gray)' : col(dmrg.bqp_class))+
+            ';border:1px solid '+(scoped ? 'var(--gray)' : col(dmrg.bqp_class))+';border-radius:4px;padding:1px 6px" '+
+            'title="DMRG classification (Rung 3) · Class '+dmrg.bqp_class+
+            (dmrg.s_max!=null?(' · S_max='+Number(dmrg.s_max).toFixed(2)):'')+
+            (scoped ? ' · SCOPE-LIMITED: this run covered '+dmrg.nelecas+'e against a ~'+_av.activeElectrons
+                      +'e site, so it classifies that fragment, not the target' : '')+
+            '">◆ DMRG '+dmrg.bqp_class+(scoped ? ' (scoped)' : '')+'</span>';
+        } else if (shci) {
+          label = '<span style="font-size:10px;font-weight:700;color:'+col(shci.bqp_class)+';border:1px solid '+col(shci.bqp_class)+';border-radius:4px;padding:1px 6px" '+
+            'title="SHCI classification (Rung 3) · Class '+shci.bqp_class+' — standalone, no linked DMRG record">◆ SHCI '+shci.bqp_class+'</span>';
+        } else {
+          return;
+        }
+        if (!label) return;
+        ['mut-status-'+key, 'bqp-status-'+key].forEach(function(id){
+          var el = document.getElementById(id);
+          if (el) el.innerHTML = label;
+        });
+      });
+    }
+    window.solangeRecordClassification = function(method, rows){
+      (rows||[]).forEach(function(x){
+        if (!x.key || !x.bqp_class) return;
+        var entry = window.__classificationByTarget[x.key] || {};
+        entry[method] = x;
+        window.__classificationByTarget[x.key] = entry;
+      });
+      solangeRenderClassificationStatus();
+    };
+
     // ── CAS sizes, sized to the SELECTED TARGETS rather than fixed ─────────────
     // The dropdown used to offer a hardcoded 6/8/10/12. Those numbers came from
     // the VQE path (statevector memory walls out around 20 qubits), but the same
@@ -1691,31 +1749,10 @@
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = quantum-necessary (even DMRG fails) · B = DMRG suffices · C = exact classical suffices. '+
           'S_max is the physical evidence — the entanglement threshold, not a size assumption.</div>');
         if (typeof window.updateDmrgDelBtn === 'function') window.updateDmrgDelBtn();
-        // Reflect each completed DMRG classification onto its mutation's status
-        // badges, so a classified target no longer reads "Pending". DMRG is a
-        // separate axis from the Phase-3A VQE run those badges otherwise track, so
-        // this is NON-DESTRUCTIVE: it replaces only a badge still showing "Pending",
-        // never an existing Phase-3A "Done".
-        rows.forEach(function(x){
-          if (!x.key || !x.bqp_class) return;
-          var col = classColor(x.bqp_class);
-          // A run that did not cover the target's active site is marked "scoped" so the
-          // badge cannot be read as a full-site verdict (see solangeDmrgCoversSite).
-          var _av = (window.__activeVariants || {})[x.key];
-          var scoped = !!_av && typeof window.solangeDmrgCoversSite === 'function'
-                       && !window.solangeDmrgCoversSite(x, _av.activeElectrons);
-          var label = '<span style="font-size:10px;font-weight:700;color:'+(scoped ? 'var(--gray)' : col)+
-            ';border:1px solid '+(scoped ? 'var(--gray)' : col)+';border-radius:4px;padding:1px 6px" '+
-            'title="DMRG classification (Rung 3) · Class '+x.bqp_class+
-            (x.s_max!=null?(' · S_max='+Number(x.s_max).toFixed(2)):'')+
-            (scoped ? ' · SCOPE-LIMITED: this run covered '+x.nelecas+'e against a ~'+_av.activeElectrons
-                      +'e site, so it classifies that fragment, not the target' : '')+
-            '">◆ DMRG '+x.bqp_class+(scoped ? ' (scoped)' : '')+'</span>';
-          ['mut-status-'+x.key, 'bqp-status-'+x.key].forEach(function(id){
-            var el = document.getElementById(id);
-            if (el && /Pending/i.test(el.textContent)) el.innerHTML = label;
-          });
-        });
+        // Reflect DMRG's classifications onto the Results-tab status badges —
+        // combined with whatever SHCI has already reported for the same
+        // targets (window.solangeRecordClassification, defined above).
+        window.solangeRecordClassification('DMRG', rows);
       }).catch(function(){
         dmrgPaint('<div style="color:var(--gray);font-size:11px">DMRG classifications unavailable (backend unreachable).</div>');
       });
@@ -1737,6 +1774,12 @@
       fetch(API+'/api/simulate/hpc/shci/list').then(function(r){return r.json();}).then(function(d){
         var rows = (d && d.crossvalidations) || [];
         window.__shciRows = rows;
+        // Reflect SHCI's classifications onto the Results-tab status badges —
+        // combined with whatever DMRG has already reported for the same
+        // targets, so a target classified by only SHCI (no DMRG record at
+        // all) still leaves "Pending", and one classified by both reads as
+        // jointly confirmed (or flagged, if they disagree).
+        window.solangeRecordClassification('SHCI', rows);
         // Disagreement map, keyed by the DMRG record's own id — consumed by
         // solangeReconcileDmrgClasses (Results-tab badges) and by the warn-slot
         // patch below (Rung-3 table). Rebuilt on every load so a re-run that
@@ -6153,33 +6196,6 @@ function updateDashboardAfterRun(mutationId, data) {
                     : null; // fault_tolerant stays as ○ ~2030+
   if (badge3b    && updated3b) badge3b.innerHTML    = updated3b;
   if (regBadge3b && updated3b) regBadge3b.innerHTML = updated3b;
-
-  // BQP All-Target Summary table (Results tab)
-  const bqpStatus = document.getElementById(`bqp-status-${mutationId}`);
-  const bqpDe     = document.getElementById(`bqp-de-${mutationId}`);
-  if (bqpStatus) bqpStatus.innerHTML = `<span class="badge badge-green">✓ 3A Live</span>`;
-  if (bqpDe) {
-    // The absolute energy alone says little. The number that does carry meaning is
-    // its deviation from the classical CASSCF reference for the SAME active space —
-    // same molecule, same basis — i.e. did the quantum method land on the known
-    // answer. Read against chemical accuracy (1.6 mHa), which is the threshold the
-    // whole classical-tractability argument is phrased in.
-    const ref = data.full_record && data.full_record.p5_casscf_ref_ha;
-    let deltaLine = '';
-    if (ref != null && isFinite(+ref)) {
-      const dmha = (+energy - +ref) * 1000;
-      const mag  = Math.abs(dmha);
-      // Within chemical accuracy is the result we want; colour only says which side of it.
-      const col  = mag < 1.6 ? 'var(--green)' : 'var(--gold)';
-      // '&lt;' not '<' — a literal '<' here opens a bogus tag and innerHTML swallows
-      // the rest of the line, silently blanking the value in exactly the best case
-      // (VQE landing dead on the reference).
-      const shown = mag < 0.005 ? '&lt;0.01' : (dmha > 0 ? '+' : '−') + mag.toFixed(2);
-      deltaLine = `<div style="font-size:9px;color:${col};margin-top:2px" title="Deviation from the classical CASSCF reference for this same active space (${(+ref).toFixed(6)} Hₐ). Chemical accuracy is 1.6 mHa — inside that band the quantum result is indistinguishable from the exact classical answer.">Δ vs CASSCF ref: ${shown} mHa${mag < 1.6 ? ' · within chem. accuracy' : ''}</div>`;
-    }
-    bqpDe.innerHTML =
-      `<strong style="color:var(--teal)">${(+energy).toFixed(4)} Hₐ <span style="font-size:9px;color:var(--gray)">(3A POC)</span></strong>${deltaLine}`;
-  }
 
   // PQ checklist (Compliance tab)
   updatePQAfterRun(mutationId);
