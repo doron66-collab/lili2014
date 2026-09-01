@@ -900,12 +900,23 @@
     <span style="font-size:11px;color:var(--gray)">smallest rung: prove the whole pipeline in-browser before climbing to HPC and quantum</span>
   </div>
 
-  <!-- RUNG 1 · Laptop — Live VQE job card (the ONE real in-browser process — the
-       Phase 3A VQE demo — animates while it runs. Former MD/DFT/AI-GNN 'Layer 2'
-       cards were removed: those pipelines were never implemented or run.) -->
-  <div class="card">
-    <div class="card-title">Quantum Kernel · Live VQE Job (Rung 1 Sanity Check · laptop / in-browser)</div>
-    <div class="job-card">
+  <!-- RUNG 1 · Laptop — one card: job status widget + run button + P1–P9
+       sealed result. Was two separate cards (a "job card" status widget and
+       a "runner" card) — merged into one, since both are now about the same
+       single N2 pipeline self-test (the ONE real in-browser process — Former
+       MD/DFT/AI-GNN 'Layer 2' cards were removed: those pipelines were never
+       implemented or run). Fixed to N2 on purpose — this is a PIPELINE
+       SELF-TEST, not a per-mutation result (that pattern, and why it was
+       removed, is the same reason the "Per-Mutation Routing" dispatch
+       buttons were removed from the Compute Dispatcher above: a
+       proxy-compound result labeled with a gene name reads as a per-gene
+       finding when it is not one). N2 CAS(4e,4o)/STO-3G, 8-qubit JW
+       Hamiltonian — see jw_hamiltonians.json["N2"]["native"]["residue_note"]
+       for why CAS(2,2) was tried first and rejected (non-reproducible due to
+       N2's degenerate frontier orbitals). -->
+  <div class="card" style="border:1px solid rgba(0,168,214,0.35)">
+    <div class="card-title" style="color:var(--teal)">Rung 1 Sanity Check (N₂)<span class="info-i" data-tip="Runs a fixed N2 CAS(4e,4o)/STO-3G calculation (8-qubit JW Hamiltonian) end to end through the real Rung-1 wiring: dispatch to PennyLane on Render, live convergence stream, P8 cryptographic seal, storage to Supabase. This proves the browser VQE pipeline works. It is NOT a per-gene or per-mutation result — no dropdown, no target selection — on purpose.">i</span></div>
+    <div class="job-card" style="margin-bottom:12px">
       <div class="job-icon" style="background:rgba(0,168,214,0.15)">⚛</div>
       <div class="job-info">
         <div class="job-name" id="job-vqe-name">N2 self-test — Awaiting run</div>
@@ -916,19 +927,6 @@
       </div>
       <div class="job-status" id="job-vqe-status" style="color:var(--gray)">Idle</div>
     </div>
-  </div>
-
-  <!-- RUNG 1 · Laptop — Live VQE Runner (run button + P1–P9 sealed result).
-       Fixed to N2 on purpose — this is a PIPELINE SELF-TEST, not a per-mutation
-       result (that pattern, and why it was removed, is the same reason the
-       "Per-Mutation Routing" dispatch buttons were removed from the Compute
-       Dispatcher above: a proxy-compound result labeled with a gene name reads
-       as a per-gene finding when it is not one). N2 CAS(4e,4o)/STO-3G, 8-qubit
-       JW Hamiltonian — see jw_hamiltonians.json["N2"]["native"]["residue_note"]
-       for why CAS(2,2) was tried first and rejected (non-reproducible due to
-       N2's degenerate frontier orbitals). -->
-  <div class="card" style="margin-top:16px;border:1px solid rgba(0,168,214,0.35)">
-    <div class="card-title" style="color:var(--teal)">Rung 1 Sanity Check (N₂)<span class="info-i" data-tip="Runs a fixed N2 CAS(4e,4o)/STO-3G calculation (8-qubit JW Hamiltonian) end to end through the real Rung-1 wiring: dispatch to PennyLane on Render, live convergence stream, P8 cryptographic seal, storage to Supabase. This proves the browser VQE pipeline works. It is NOT a per-gene or per-mutation result — no dropdown, no target selection — on purpose.">i</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <button id="sim-btn" onclick="runN2SelfTest()" style="background:var(--teal);color:var(--white);border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
         ▶ Run N2 self-test
