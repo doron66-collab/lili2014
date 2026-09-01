@@ -5412,7 +5412,7 @@ async function saveGate1Check(btn) {
       body: JSON.stringify(body)
     });
     const out = await res.json();
-    if (!out.saved) { setMsg('<span style="color:#f87171">Save failed: ' + (out.error || 'unknown error') + '</span>'); return; }
+    if (!out.saved) { setMsg('<span style="color:#f87171">Save failed: ' + (out.error || out.detail || 'unknown error') + '</span>'); return; }
     setMsg('<span style="color:var(--green)">✓ saved to gate1_checks — pending end-of-day promotion into targets.json</span>');
     if (typeof window.solangeLoadGate1 === 'function') window.solangeLoadGate1();
   } catch (e) {
@@ -5454,7 +5454,7 @@ async function saveGate2Record(btn) {
       body: JSON.stringify(body)
     });
     const out = await res.json();
-    if (!out.saved) { setMsg('<span style="color:#f87171">Save failed: ' + (out.error || 'unknown error') + '</span>'); return; }
+    if (!out.saved) { setMsg('<span style="color:#f87171">Save failed: ' + (out.error || out.detail || 'unknown error') + '</span>'); return; }
     const missing = (out.record && out.record.missing_requirements) || [];
     setMsg(missing.length
       ? '<span style="color:var(--gold)">✓ saved — ' + missing.length + ' requirement(s) still missing for this category</span>'
