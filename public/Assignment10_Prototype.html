@@ -1761,7 +1761,9 @@
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
-                '<td id="dmrg-class-cell-'+(x.id||'')+'" style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+provisional+scopeNote+'<span class="shci-warn-slot" data-dmrg-id="'+(x.id||'')+'"></span></td>'+
+                '<td id="dmrg-class-cell-'+(x.id||'')+'" style="'+C+';color:'+classColor(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+
+                (x.class_rationale?(' <span onclick="navigator.clipboard.writeText(this.dataset.rationale).then(()=>{this.textContent=\'✓\';setTimeout(()=>this.textContent=\'⧉\',1200)})" data-rationale="'+String(x.class_rationale).replace(/"/g,'&quot;')+'" title="Copy the full rationale sentence" style="cursor:pointer;font-size:9px;color:var(--gray);vertical-align:middle">⧉</span>'):'')+
+                provisional+scopeNote+'<span class="shci-warn-slot" data-dmrg-id="'+(x.id||'')+'"></span></td>'+
                 '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);overflow:hidden;text-overflow:ellipsis" title="'+(x.hardware?String(x.hardware).replace(/"/g,'&quot;'):'')+'">'+(x.hardware?String(x.hardware).split(' · ')[0]:'—')+'</td>'+
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
