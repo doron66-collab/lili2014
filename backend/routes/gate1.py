@@ -138,6 +138,7 @@ async def check_target(target: str):
     permanent), then the gate1_checks cache (working, pending promotion).
     Absent from both = never checked at all — distinct from 'checked and
     resolved', and returned as such rather than defaulting to either."""
+    target = target.strip().upper()
     known = _from_targets_json(target)
     if known:
         return {"record": known}
@@ -180,7 +181,7 @@ async def record_check(payload: dict = Body(...), authorization: str | None = He
     promote_gate1_checks.py (or by hand, reviewed), never by this endpoint,
     so there is exactly one path that can change the permanent record."""
     uid = _uid_from_auth(authorization)
-    target = (payload or {}).get("target")
+    target = str((payload or {}).get("target") or "").strip().upper()
     if not target:
         raise HTTPException(400, "missing target")
     if _from_targets_json(target):
@@ -378,7 +379,7 @@ async def auto_check(payload: dict = Body(...)):
     that actually have the residue are reported -- never assumed to be
     chain A, which is only sometimes the biologically relevant one."""
     pdb_id = str((payload or {}).get("pdb_id") or "").strip().upper()
-    chain = str((payload or {}).get("chain") or "").strip() or None
+    chain = str((payload or {}).get("chain") or "").strip().upper() or None
     resi = (payload or {}).get("resi")
     expect_resname = str((payload or {}).get("expect_resname") or "").strip().upper() or None
     if not re.fullmatch(r"[A-Z0-9]{4}", pdb_id):
@@ -448,6 +449,7 @@ async def delete_check(target: str, authorization: str | None = Header(None)):
     scripts/laguna/promote_gate1_checks.py right after that row's verdict has
     been merged into targets.json, never before. Not a general-purpose delete:
     there is nothing else this cache is for once a row is promoted."""
+    target = target.strip().upper()
     _uid_from_auth(authorization)
     sb = get_supabase()
     if not sb:
