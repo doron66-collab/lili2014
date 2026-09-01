@@ -906,10 +906,16 @@
       <button onclick="checkGate1(this)" title="Look up this target — targets.json first, then the gate1_checks cache" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid rgba(6,182,212,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔍 Check</button>
       <span id="g1-check-result" style="font-size:11px;color:var(--gray)"></span>
     </div>
-    <div style="font-size:10px;color:var(--gray);margin:10px 0 4px">Record a check for a target NOT already in targets.json (a genuinely unfamiliar mutation) — automated PDB lookup is not built yet, this records a verdict you already worked out:</div>
+    <div style="font-size:10px;color:var(--gray);margin:10px 0 4px">Record a check for a target NOT already in targets.json (a genuinely unfamiliar mutation). Auto-check fetches the real RCSB structure and fills in resolved/reason for you — review before saving, it does not save on its own:</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:4px">
       <input id="g1-new-target" placeholder="Target key" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-      <input id="g1-new-pdb" placeholder="PDB ID (optional)" style="width:110px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-new-pdb" placeholder="PDB ID" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-new-chain" placeholder="Chain" style="width:70px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-new-resi" type="number" placeholder="Residue #" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <input id="g1-new-expect" placeholder="Expect (e.g. ARG, optional)" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+      <button onclick="autoCheckGate1(this)" title="Fetch the real structure from RCSB and check residue coverage — fills resolved/reason below, does not save" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔎 Auto-check PDB</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
       <select id="g1-new-resolved" style="background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
         <option value="" selected disabled>— resolved? —</option>
         <option value="true">resolved</option>
@@ -1978,23 +1984,6 @@
         ⬇ Download CASSCF Integrals
       </button>
     </div>
-  </div>
-
-  <!-- Energy Comparison Chart -->
-  <div class="card" style="margin-bottom:16px" id="energy-chart-card">
-    <div style="display:flex;align-items:baseline;margin-bottom:4px">
-      <div class="card-title" style="margin-bottom:0;color:var(--white)">Ground-State Energy by Mutation</div>
-      <div id="energy-chart-run-count" style="margin-left:auto;font-size:10px;color:var(--gray)">Run a simulation to populate</div>
-    </div>
-    <div style="font-size:10.5px;color:var(--gray);margin-bottom:16px">Each dot = one VQE run · hover for value · lower energy = stronger binding</div>
-    <div id="energy-chart-lanes"></div>
-    <div id="energy-chart-axis" style="display:flex;justify-content:space-between;padding-left:164px;margin-top:4px"></div>
-    <div style="display:flex;gap:20px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--gray)"><div style="width:8px;height:8px;border-radius:50%;background:var(--teal)"></div>TP53</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--gray)"><div style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></div>STK11</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--gray)"><div style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></div>KEAP1</div>
-    </div>
-    <div class="footnote" style="margin-top:10px">Energies in Hartree (Hₐ). More negative = lower ground state = tighter binding. Current session only — Reset clears chart.</div>
   </div>
 
   <!-- VQE Convergence Chart -->
@@ -5259,6 +5248,47 @@ async function checkGate1(btn) {
   }
 }
 
+async function autoCheckGate1(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const pdb_id = val('g1-new-pdb').trim();
+  const chain = val('g1-new-chain').trim();
+  const resi = val('g1-new-resi').trim();
+  const expect_resname = val('g1-new-expect').trim();
+  const msg = document.getElementById('g1-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!pdb_id || !chain || !resi) {
+    setMsg('<span style="color:#f87171">PDB ID, chain, and residue # are all required for auto-check.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ checking…'; }
+  setMsg('fetching ' + pdb_id + ' from RCSB…');
+  try {
+    const res = await fetch(`${API}/api/gate1/auto_check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdb_id, chain, resi: parseInt(resi, 10), expect_resname: expect_resname || null })
+    });
+    const out = await res.json();
+    if (out.resolved === null) {
+      setMsg('<span style="color:#f87171">Auto-check failed: ' + (out.error || 'unknown error') + '</span>');
+      return;
+    }
+    const resolvedSel = document.getElementById('g1-new-resolved');
+    const reasonInput = document.getElementById('g1-new-reason');
+    if (resolvedSel) resolvedSel.value = out.resolved ? 'true' : 'false';
+    if (reasonInput) reasonInput.value = out.reason || '';
+    setMsg(out.resolved
+      ? '<span style="color:var(--green)">✓ auto-check: resolved — review the reason below, then save</span>'
+      : '<span style="color:var(--gold)">✗ auto-check: unresolved — review the reason below, then save</span>');
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Auto-check failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
 async function saveGate1Check(btn) {
   const val = id => (document.getElementById(id) || {}).value || '';
   const target = val('g1-new-target').trim();
@@ -5280,6 +5310,8 @@ async function saveGate1Check(btn) {
     const body = {
       target, resolved: resolvedStr === 'true', reason,
       pdb_id: val('g1-new-pdb').trim() || null,
+      chain: val('g1-new-chain').trim() || null,
+      resi: val('g1-new-resi').trim() ? parseInt(val('g1-new-resi'), 10) : null,
     };
     const res = await fetch(`${API}/api/gate1/check`, {
       method: 'POST',
@@ -5960,7 +5992,6 @@ function resetPlatform() {
   // "no report loaded" state (and a later refresh does not resurrect it).
   try { localStorage.removeItem('solange_ngs_report'); } catch (e) {}
   window.__ngsHydrated = false;
-  renderEnergyChart();
   const rhBar = document.getElementById('run-history-bar');
   if (rhBar) rhBar.style.display = 'none';
 
@@ -6525,87 +6556,6 @@ function rowToRunData(row) {
   };
 }
 
-// ── Energy comparison chart ───────────────────────────────────────────────────
-function renderEnergyChart() {
-  const lanes  = document.getElementById('energy-chart-lanes');
-  const axis   = document.getElementById('energy-chart-axis');
-  const count  = document.getElementById('energy-chart-run-count');
-  if (!lanes) return;
-
-  if (!runHistory.length) {
-    lanes.innerHTML = '';
-    if (axis)  axis.innerHTML  = '';
-    if (count) count.textContent = 'Run a simulation to populate';
-    return;
-  }
-
-  const COLORS = { TP53: 'var(--teal)', STK11: 'var(--gold)', KEAP1: '#a78bfa' };
-
-  // Group by mutation label
-  const groups = {};
-  runHistory.forEach(d => {
-    const rec  = d.full_record;
-    const label = getDisplayName(rec.mutation_id) || rec.mutation_name || d.run_id.slice(0, 8);
-    const gene = label.split(' ')[0];
-    const key  = label;
-    if (!groups[key]) groups[key] = { gene, runs: [] };
-    groups[key].runs.push({ energy: d.result.energy_ha, ci_half: d.result.ci_half });
-  });
-
-  const allE = runHistory.map(d => d.result.energy_ha);
-  const minE = Math.min(...allE), maxE = Math.max(...allE);
-  const pad  = (maxE - minE) * 0.12 || 0.002;
-  const lo   = minE - pad, hi = maxE + pad;
-  const toX  = e => ((e - lo) / (hi - lo) * 100).toFixed(2);
-
-  lanes.innerHTML = Object.entries(groups).map(([mutation, { gene, runs: mRuns }]) => {
-    const color = COLORS[gene] || '#94a3b8';
-    // Beeswarm: place each dot at y=0, bump vertically until no collision
-    const DOT_R = 6, placed = [];
-    const offsets = mRuns.map(r => {
-      const x = parseFloat(toX(r.energy));
-      let y = 0, step = DOT_R * 2 + 1, attempts = 0;
-      while (attempts < 40) {
-        const collides = placed.some(p => {
-          const dx = (x - p.x) * 3; // x in % units, approximate px scaling
-          const dy = y - p.y;
-          return Math.sqrt(dx*dx + dy*dy) < DOT_R * 2.2;
-        });
-        if (!collides) break;
-        // alternate above/below, increasing distance
-        step = DOT_R * 2 + 1;
-        y = (attempts % 2 === 0 ? 1 : -1) * Math.ceil((attempts + 1) / 2) * step;
-        attempts++;
-      }
-      placed.push({ x, y });
-      return y;
-    });
-    const dots = mRuns.map((r, i) => {
-      const yOff = offsets[i];
-      return `<div style="position:absolute;top:calc(50% + ${yOff}px);left:${toX(r.energy)}%;width:10px;height:10px;border-radius:50%;
-        background:${color};box-shadow:0 0 8px ${color}99;transform:translate(-50%,-50%);cursor:pointer;z-index:10;transition:transform 0.15s"
-        title="${r.energy.toFixed(8)} Hₐ${r.ci_half ? ' · ± ' + r.ci_half.toExponential(2) + ' Hₐ' : ''}"
-        onmouseenter="this.style.transform='translate(-50%,-50%) scale(1.8)'"
-        onmouseleave="this.style.transform='translate(-50%,-50%) scale(1)'">
-      </div>`;
-    }).join('');
-    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;height:56px">
-      <div style="width:152px;font-size:11px;color:#94a3b8;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${mutation}">${mutation}</div>
-      <div style="flex:1;position:relative;height:56px">
-        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.06);transform:translateY(-50%)"></div>
-        ${dots}
-      </div>
-    </div>`;
-  }).join('');
-
-  if (axis) axis.innerHTML =
-    `<span style="font-size:9px;color:#8899bb;font-family:monospace">${lo.toFixed(4)} Hₐ</span>
-     <span style="font-size:9px;color:#8899bb;font-family:monospace">${((lo+hi)/2).toFixed(4)} Hₐ</span>
-     <span style="font-size:9px;color:#8899bb;font-family:monospace">${hi.toFixed(4)} Hₐ</span>`;
-
-  if (count) count.textContent = `${runHistory.length} run${runHistory.length !== 1 ? 's' : ''} this session`;
-}
-
 // ── Rebuild run-history chip bar from runHistory[] ───────────────────────────
 function rebuildHistoryChips() {
   const bar   = document.getElementById('run-history-bar');
@@ -6644,7 +6594,6 @@ function rebuildHistoryChips() {
 function addRunToHistory(data) {
   runHistory.push(data);
   rebuildHistoryChips();
-  renderEnergyChart();
 }
 
 // ── Load previous runs from Supabase on login ─────────────────────────────────
@@ -6668,7 +6617,6 @@ async function loadSessionHistory() {
       pqCompleted.add(row.mutation_id);
     });
     rebuildHistoryChips();
-    renderEnergyChart();
     // Restore most recent run into Results tab + charts
     lastRunData = runHistory[runHistory.length - 1];
     displayRunResults(lastRunData);
