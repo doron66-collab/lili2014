@@ -1860,7 +1860,8 @@
           hh += '<tr><td style="'+C+';font-weight:600;overflow:hidden;text-overflow:ellipsis" title="'+(x.key||'')+'">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
-                '<td style="'+C+';color:'+classColor2(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+'</td>'+
+                '<td style="'+C+';color:'+classColor2(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+
+                (x.class_rationale?(' <span onclick="navigator.clipboard.writeText(this.dataset.rationale).then(()=>{this.textContent=\'✓\';setTimeout(()=>this.textContent=\'⧉\',1200)})" data-rationale="'+String(x.class_rationale).replace(/"/g,'&quot;')+'" title="Copy the full rationale sentence" style="cursor:pointer;font-size:9px;color:var(--gray);vertical-align:middle">⧉</span>'):'')+'</td>'+
                 '<td style="'+C+';font-family:monospace">'+(x.e_shci!=null?Number(x.e_shci).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace;color:var(--gray)">'+(x.e_dmrg_ref!=null?Number(x.e_dmrg_ref).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+'">'+(x.delta_mha!=null?Number(x.delta_mha).toFixed(3):'—')+'</td>'+
