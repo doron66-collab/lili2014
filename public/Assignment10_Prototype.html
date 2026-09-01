@@ -1725,8 +1725,8 @@
         // has nowhere to put the extra width this many columns need and starves
         // whichever column wraps easiest (Rationale), squeezing it into a tall,
         // narrow, badly-broken-up column instead of scrolling the row sideways.
-        var hh = '<table style="width:100%;min-width:1380px;border-collapse:collapse;table-layout:fixed"><tr>'+
-          '<th style="'+TH+';width:90px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:80px">CAS</th>'+
+        var hh = '<table style="width:100%;min-width:1430px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:140px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:80px">CAS</th>'+
           '<th style="'+TH+';width:60px">S_max</th><th style="'+TH+';width:110px">Class</th>'+
           '<th style="'+TH+';width:290px">Rationale</th><th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:110px">Hardware</th>'+
           '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:350px"></th></tr>';
@@ -1747,7 +1747,7 @@
             : '';
           // Rationale: full text, no width cap (was clipped at 280px). LEON hash:
           // shown longer and monospace so it can be selected/copied, full value in title.
-          hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
+          hh += '<tr><td style="'+C+';font-weight:600;overflow:hidden;text-overflow:ellipsis" title="'+(x.key||'')+'">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+'">'+(x.s_max!=null?Number(x.s_max).toFixed(2):'—')+'</td>'+
@@ -1832,8 +1832,8 @@
         }
         var classColor2 = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
-        var hh = '<table style="width:100%;min-width:1350px;border-collapse:collapse;table-layout:fixed"><tr>'+
-          '<th style="'+TH+';width:100px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:90px">CAS</th>'+
+        var hh = '<table style="width:100%;min-width:1390px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:140px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:90px">CAS</th>'+
           '<th style="'+TH+';width:90px">Class</th>'+
           '<th style="'+TH+';width:130px">E(SHCI) Ha</th><th style="'+TH+';width:130px">E(DMRG ref) Ha</th>'+
           '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:100px">Agreement</th>'+
@@ -1846,7 +1846,7 @@
             : (agree
               ? '<span style="color:var(--green);font-weight:700">✓ agree</span>'
               : '<span style="color:#f87171;font-weight:700">✗ DISAGREE</span>');
-          hh += '<tr><td style="'+C+';font-weight:600">'+(x.key||'—')+'</td>'+
+          hh += '<tr><td style="'+C+';font-weight:600;overflow:hidden;text-overflow:ellipsis" title="'+(x.key||'')+'">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
                 '<td style="'+C+';color:'+classColor2(x.bqp_class)+';font-weight:700" title="'+(x.class_rationale?String(x.class_rationale).replace(/"/g,'&quot;'):'')+'">'+(x.bqp_class||'—')+'</td>'+
