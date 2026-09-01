@@ -5473,10 +5473,10 @@ async function autoCheckGate1(btn) {
   }
 }
 
-function sendGate1ToClassifier(btn) {
+async function sendGate1ToClassifier(btn) {
   const val = id => (document.getElementById(id) || {}).value || '';
   const pdb    = val('g1-new-pdb').trim();
-  const chain  = val('g1-new-chain').trim();
+  let   chain  = val('g1-new-chain').trim();
   const resi   = val('g1-new-resi').trim();
   const expect = val('g1-new-expect').trim();
   const target = val('g1-new-target').trim();
@@ -5487,6 +5487,39 @@ function sendGate1ToClassifier(btn) {
     setMsg('<span style="color:#f87171">Need at least a PDB ID and residue # to send to the Classifier — run Auto-check PDB first.</span>');
     return;
   }
+  const orig = btn ? btn.textContent : '';
+  // One click does the whole handoff: if chain isn't known yet (the usual
+  // case straight from "Resolve", since targets.json never stored a chain),
+  // resolve it here automatically instead of making the user find and click
+  // a separate "Auto-check PDB" button first — that extra step read as
+  // broken flow, not as an optional extra.
+  if (!chain) {
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ finding chain…'; }
+    setMsg('finding which chain of ' + pdb + ' has residue ' + resi + '…');
+    try {
+      const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+      const res = await fetch(`${API}/api/gate1/auto_check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdb_id: pdb, resi: parseInt(resi, 10), expect_resname: expect || null })
+      });
+      const out = await res.json();
+      if (out.resolved && out.chain) {
+        chain = out.chain;
+        const chainInput = document.getElementById('g1-new-chain');
+        if (chainInput) chainInput.value = chain;
+      } else {
+        setMsg('<span style="color:#f87171">Could not determine chain automatically: ' + (out.reason || out.error || 'unknown') + '. Fill in Chain by hand and try again.</span>');
+        return;
+      }
+    } catch (e) {
+      setMsg('<span style="color:#f87171">Could not determine chain automatically: ' + e.message + '. Fill in Chain by hand and try again.</span>');
+      return;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+  }
+
   const pdbInput    = document.getElementById('ntp-pdbid');
   const chainInput  = document.getElementById('ntp-chain');
   const resiInput   = document.getElementById('ntp-resi');
@@ -5516,7 +5549,7 @@ function sendGate1ToClassifier(btn) {
     : '';
   setMsg((resolvedStr === 'false'
     ? '<span style="color:var(--gold)">⚠ this target is marked UNRESOLVED — sent anyway, but the Classifier will likely fail the same way. Review before clicking ▶ Classify.</span>'
-    : '<span style="color:var(--green)">✓ sent to The Classifier below — review the fields, then click ▶ Classify</span>') + orbNote);
+    : '<span style="color:var(--green)">✓ sent to The Classifier below (chain ' + chain + ') — review the fields, then click ▶ Classify</span>') + orbNote);
 }
 
 async function saveGate1Check(btn) {
