@@ -26,7 +26,7 @@ Computational and quantum-simulation methods for non-druggable tumor-suppressor 
 
 ## DISSERTATION PROJECT — SOLANGE™ 3D Quantum Simulation Platform
 
-*Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics*
+*Scientific Oncology Legacy: Adjudication of Necessity through Governed Evidence*
 
 Designed and built a full-stack research platform (React/TypeScript frontend, FastAPI/Python backend, Supabase persistence) implementing a two-phase quantum simulation pipeline for oncology target validation:
 

@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOLANGE — Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics · CGU 2026</title>
+<title>SOLANGE — Scientific Oncology Legacy: Adjudication of Necessity through Governed Evidence · CGU 2026</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -375,7 +376,7 @@
     <div class="login-logo">
       <div class="login-logo-icon">⚛</div>
       <h1>SOLANGE™</h1>
-      <p>Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics · CGU 2026</p>
+      <p>Scientific Oncology Legacy: Adjudication of Necessity through Governed Evidence · CGU 2026</p>
     </div>
     <div style="text-align:center; margin: -10px 0 22px; padding: 12px 14px; background: rgba(0,200,180,0.07); border: 1px solid rgba(0,200,180,0.2); border-radius: 10px;">
       <div style="font-size:13px; font-weight:700; color:#00c8b4; letter-spacing:0.3px; margin-bottom:5px;">Authorized Access Only</div>
@@ -498,7 +499,7 @@
     <div class="brand-icon">⚛</div>
     <div>
       <div class="brand-name">SOLANGE™</div>
-      <div class="brand-sub">Scientific Oncology Legacy Advancing Non-druggable Ground-state Energetics · CGU 2026</div>
+      <div class="brand-sub">Scientific Oncology Legacy: Adjudication of Necessity through Governed Evidence · CGU 2026</div>
     </div>
   </div>
 
@@ -555,7 +556,8 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button onclick="loadDemoNGS()" style="background:rgba(0,200,180,0.12);color:var(--white);border:1px solid var(--teal);padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ Load Report (MI25-0349)</button>
-      <button onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
+      <button id="ngs-upload-btn" onclick="document.getElementById('ngs-upload-input').click()" style="background:var(--teal);color:var(--white);border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↑ Upload NGS Report</button>
+      <span id="ngs-upload-status" style="font-size:11px;color:var(--gray);display:none"></span>
       <input type="file" id="ngs-upload-input" accept=".json,.pdf,.vcf" style="display:none" onchange="handleNGSUpload(event)">
       <button onclick="resetPlatform()" style="background:#dc2626;color:#ffffff;border:none;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↺ Reset Platform</button>
     </div>
@@ -4196,7 +4198,9 @@ function geneSimId(gene, mutation) {
 }
 
 // ── PDF text extraction ────────────────────────────────────────────────────
-async function extractPDFText(file) {
+// onProgress(msg) is optional — lets the caller show OCR status, since a
+// scanned multi-page report can take real time to recognize.
+async function extractPDFText(file, onProgress) {
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -4207,6 +4211,35 @@ async function extractPDFText(file) {
     const page    = await pdf.getPage(i);
     const content = await page.getTextContent();
     text += content.items.map(s => s.str).join(' ') + '\n';
+  }
+  // No embedded text layer — most likely a scanned, photographed, or faxed
+  // report (the common case for real lab/pathology PDFs, not an edge case).
+  // Fall back to OCR (Tesseract.js) on a rendered image of each page instead
+  // of giving up straight to manual-only entry, found live 2026-09-02 when a
+  // real scanned report hit exactly this path with no OCR fallback at all.
+  if (text.replace(/\s+/g, '').length < 20) {
+    text = await ocrPdfPages(pdf, onProgress);
+  }
+  return text;
+}
+
+async function ocrPdfPages(pdf, onProgress) {
+  if (typeof Tesseract === 'undefined') {
+    throw new Error('OCR library (Tesseract.js) failed to load — check network/CDN access');
+  }
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    if (onProgress) onProgress(`Running OCR on page ${i}/${pdf.numPages}… this can take a while for a scanned report.`);
+    const page = await pdf.getPage(i);
+    // scale 2.0: OCR accuracy on small print (allele frequencies, HGVS
+    // notation) degrades badly below ~200 DPI-equivalent render resolution.
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const { data } = await Tesseract.recognize(canvas, 'eng');
+    text += data.text + '\n';
   }
   return text;
 }
@@ -4573,19 +4606,28 @@ function handleNGSUpload(e) {
   const name = file.name.toLowerCase();
 
   if (name.endsWith('.pdf')) {
-    extractPDFText(file).then(text => {
-      // A scanned / image-only PDF has no text layer: pdf.js returns (near-)empty
-      // text without throwing, so detect it here and tell the user precisely why
-      // nothing auto-populated, instead of the generic "non-standard layout" note.
+    const btn = document.getElementById('ngs-upload-btn');
+    const statusEl = document.getElementById('ngs-upload-status');
+    const setStatus = msg => { if (statusEl) { statusEl.textContent = msg; statusEl.style.display = msg ? 'inline' : 'none'; } };
+    if (btn) btn.disabled = true;
+    setStatus('Reading PDF…');
+    extractPDFText(file, setStatus).then(text => {
+      // extractPDFText already tries OCR (Tesseract.js) internally when the
+      // PDF has no embedded text layer — reaching here with still-empty text
+      // means OCR itself found nothing (e.g. a blank/corrupt page, or the OCR
+      // library failed to load), not just "scanned, unsupported".
       if (!text || text.replace(/\s+/g, '').length < 20) {
-        alert('This PDF has no readable text layer — it appears to be a scanned (image-only) '
-            + 'document, so its text cannot be extracted automatically. The review form will open; '
+        alert('No readable text could be extracted from this PDF, even after attempting OCR '
+            + '(optical character recognition) on the scanned pages — the review form will open; '
             + 'please enter the variants manually from the report (Gene, Mutation, Allele Frequency %).');
       }
       openNGSReview(parseNGSText(text || ''));
     }).catch(() => {
       alert('Could not read this PDF. The review form will open so you can enter the variants manually.');
       openNGSReview({});
+    }).finally(() => {
+      if (btn) btn.disabled = false;
+      setStatus('');
     });
     return;
   }
