@@ -817,7 +817,17 @@
       // the normal "measured" mechanism instead of a special-cased unmeasured stand-in.
 
       // measured DMRG runs, LEON-verified
-      (measured || []).forEach(function(m){
+      // Precompute every point's pixel position FIRST, so each label (drawn
+      // in the loop below) can be placed on whichever side actually has room
+      // — a fixed "always to the right" offset ran labels straight through
+      // neighbouring points whenever two measurements sat close together
+      // (found live 2026-09-02, e.g. TEST_DNMT3A_R882 next to another point).
+      var pts = (measured || []).map(function(m){
+        if (m.n == null || m.s == null) return null;
+        return { mx: xPix(Math.max(N_MIN, Math.min(N_MAX, m.n))),
+                 my: yPix(Math.max(S_MIN, Math.min(S_AX, m.s))) };
+      });
+      (measured || []).forEach(function(m, mi){
         if (m.n == null || m.s == null) return;
         var mx = xPix(Math.max(N_MIN, Math.min(N_MAX, m.n))), my = yPix(Math.max(S_MIN, Math.min(S_AX, m.s)));
         // CAS size included in the visible label itself, not just the
@@ -874,8 +884,30 @@
                      + (mx+3).toFixed(1) + ',' + (my+2.2).toFixed(1);
           svg.push('<polygon points="' + triPts + '" fill="' + triClr + '" stroke="rgba(6,15,34,.85)" stroke-width="0.6" pointer-events="none"/>');
         }
-        svg.push('<text class="dmrg-point-label" x="' + (mx+8).toFixed(1) + '" y="' + (my-7).toFixed(1)
-               + '" fill="var(--white)" font-size="9" font-weight="700" paint-order="stroke" stroke="rgba(6,15,34,.85)" stroke-width="3" pointer-events="none">'
+        // Try right, then left, then above, then below — first placement
+        // whose label box doesn't overlap another point's circle wins;
+        // falls back to "right" (the original default) if all four collide,
+        // since something has to be drawn.
+        var labelW = label.length * 5.3, labelH = 10;
+        var candidates = [
+          { x: mx+8, y: my-7, anchor: 'start' },
+          { x: mx-8, y: my-7, anchor: 'end' },
+          { x: mx, y: my-13, anchor: 'middle' },
+          { x: mx, y: my+18, anchor: 'middle' },
+        ];
+        var boxOverlapsAnyPoint = function(c){
+          var bx0 = c.anchor === 'start' ? c.x : c.anchor === 'end' ? c.x - labelW : c.x - labelW/2;
+          var bx1 = bx0 + labelW, by0 = c.y - labelH, by1 = c.y + 3;
+          for (var pi = 0; pi < pts.length; pi++){
+            if (pi === mi || !pts[pi]) continue;
+            var p = pts[pi];
+            if (p.mx > bx0 - 6 && p.mx < bx1 + 6 && p.my > by0 - 6 && p.my < by1 + 6) return true;
+          }
+          return false;
+        };
+        var chosen = candidates.find(function(c){ return !boxOverlapsAnyPoint(c); }) || candidates[0];
+        svg.push('<text class="dmrg-point-label" x="' + chosen.x.toFixed(1) + '" y="' + chosen.y.toFixed(1)
+               + '" text-anchor="' + chosen.anchor + '" fill="var(--white)" font-size="9" font-weight="700" paint-order="stroke" stroke="rgba(6,15,34,.85)" stroke-width="3" pointer-events="none">'
                + label + '</text>');
         svg.push('</g>');
       });
