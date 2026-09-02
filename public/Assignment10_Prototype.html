@@ -2095,12 +2095,12 @@
         }
         var classColor2 = function(c){ return c==='A' ? '#f87171' : c==='B' ? 'var(--gold)' : 'var(--green)'; };
         var rt = function(s){ return (s==null) ? '—' : (s<60 ? Number(s).toFixed(1)+'s' : Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'); };
-        var hh = '<table style="width:100%;min-width:1390px;border-collapse:collapse;table-layout:fixed"><tr>'+
+        var hh = '<table style="width:100%;min-width:1540px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:140px">Target</th><th style="'+TH+';width:90px">Time</th><th style="'+TH+';width:90px">CAS</th>'+
           '<th style="'+TH+';width:90px">Class</th>'+
           '<th style="'+TH+';width:130px">E(SHCI) Ha</th><th style="'+TH+';width:130px">E(DMRG ref) Ha</th>'+
-          '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:100px">Agreement</th>'+
-          '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:150px"></th></tr>';
+          '<th style="'+TH+';width:90px">Δ (mHa)</th><th style="'+TH+';width:170px">Agreement</th>'+
+          '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:230px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelec!=null && x.ncas!=null) ? ('CAS('+x.nelec+','+x.ncas+')') : '—';
           // agreement (energy match, Δ <= chemical accuracy) and class_agreement
@@ -2133,11 +2133,20 @@
                 '<td style="'+C+';font-family:monospace">'+(x.e_shci!=null?Number(x.e_shci).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace;color:var(--gray)">'+(x.e_dmrg_ref!=null?Number(x.e_dmrg_ref).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+'">'+(x.delta_mha!=null?Number(x.delta_mha).toFixed(3):'—')+'</td>'+
-                '<td style="'+C+'">'+agreeLabel+'</td>'+
+                '<td style="'+C+';overflow:hidden;text-overflow:ellipsis">'+agreeLabel+'</td>'+
                 '<td style="'+C+'">'+rt(x.elapsed_s)+'</td>'+
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.shci_hash||'')+'">✓ '+(x.shci_hash?String(x.shci_hash).slice(0,16):'—')+'…</span></td>'+
                 '<td style="'+C+'">'+(x.id?('<button onclick="verifyShciRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
                 (x.id?('<button onclick="downloadShciJson('+i+',this)" title="Download the full classification record (all fields incl. the epsilon-convergence trace) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+
+                // Same Rung-3 -> Rung 4 escalation as the DMRG table's own
+                // button — SHCI reaches its OWN independent Class A verdict
+                // (including standalone, no DMRG record at all: see this
+                // module's docstring, "can classify a target DMRG was never
+                // run against"), so restricting this to DMRG rows only would
+                // leave an SHCI-only Class A with no path to Rung 4 at all.
+                (x.id && x.geometry && x.bqp_class === 'A'
+                  ? ('<button onclick="dispatchShciRowToQpu('+i+',this)" title="Send this Class A active space to Rung 4 — reuses this record\'s own geometry/AVAS/charge/spin/basis, nothing re-typed. SPENDS REAL QUANTUM TIME the moment the QPU agent claims it (no automatic dry-run gate — asks for confirmation first)." style="background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.6);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">▶ Send to QPU</button>')
+                  : '')+
                 (x.id?('<input type="checkbox" class="shci-del-chk" data-id="'+x.id+'" onchange="updateShciDelBtn()" title="Select this SHCI classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
         shciPaint(hh+'</table>'+
@@ -6177,6 +6186,57 @@ async function dispatchDmrgRowToQpu(i, btn) {
         key: x.key, job_type: 'qpu',
         geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
         basis: x.basis, ncas: x.ncas, nelecas: x.nelecas,
+      })
+    });
+    const out = await res.json();
+    if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
+    if (btn) { btn.textContent = '✓ queued'; btn.style.color = 'var(--green)'; }
+    if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+  } catch (e) {
+    alert('Queue failed: ' + e.message);
+  } finally {
+    if (btn && btn.textContent === 'queuing…') { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// Same as dispatchDmrgRowToQpu, for an SHCI record instead of a DMRG one —
+// SHCI reaches its own independent Class A verdict, including standalone (no
+// DMRG record at all), so the Rung 3 -> Rung 4 escalation needs both entry
+// points or an SHCI-only Class A would have no path to Rung 4 (found live
+// 2026-09-02, right after building the DMRG-only version). Field name differs
+// from the DMRG row (x.nelec here, not x.nelecas) — mapped to nelecas in the
+// outgoing payload, since that is the hpc_dispatch column name regardless of
+// which table the record came from.
+async function dispatchShciRowToQpu(i, btn) {
+  const rows = window.__shciRows || [];
+  const x = rows[i];
+  if (!x || !x.id) return;
+  if (!x.geometry || !x.avas) {
+    alert('This SHCI record has no stored geometry/AVAS — Rung 4 needs a real '
+        + '--geometry run to copy inputs from.');
+    return;
+  }
+  if (!confirm(
+    `Send ${x.key} (CAS(${x.nelec},${x.ncas}), Class ${x.bqp_class}) to Rung 4?\n\n` +
+    'This SPENDS REAL QUANTUM TIME the moment the QPU agent (if running) claims it ' +
+    '— there is no automatic dry-run gate on the agent path. A large active space ' +
+    '(many qubits, no qubit-reduction technique applied) may also not be practically ' +
+    'transpilable on current hardware at all; the attempt itself is the real test, ' +
+    'not a guarantee of success.\n\nProceed?'
+  )) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'queuing…'; }
+  try {
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        key: x.key, job_type: 'qpu',
+        geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
+        basis: x.basis, ncas: x.ncas, nelecas: x.nelec,
       })
     });
     const out = await res.json();
