@@ -300,6 +300,38 @@ create table if not exists public.gate2_records (
 No agent involvement — this is a plain save/read against the backend
 (`/api/gate2/record`, `/api/gate2/list`), same as any other form on the page.
 
+### 2h. Gate 2 as a real pre-dispatch gate — Custom Model Compound
+
+`POST /api/gate2/dispatch_custom_compound` is the one Gate 2 endpoint that
+actually blocks a dispatch (not just tracks one): it upserts the target's
+category + sign-offs, computes `missing_requirements`, and refuses to queue
+an `hpc_dispatch` row (`job_type='dmrg'`, geometry mode) if anything is
+missing. For a target that is neither a real PDB site (Gate 1) nor already
+in the fixed compound library — e.g. a metal-cluster proxy compound.
+
+Its geometry/AVAS/charge/spin/basis are also saved to a PERMANENT store,
+separate from the disposable `hpc_dispatch` queue row — a "Clear Queue"
+click deletes queued/running/failed rows outright, and with them the only
+copy of a hand-pasted `.xyz` geometry, found live 2026-09-02 re-testing the
+same compound a second time. The "↻ reload" button on each Gate 2 table row
+reads from this table (`GET /api/gate2/custom_compound/{target}`), not from
+the queue.
+
+One-time migration (Supabase SQL editor):
+
+```sql
+create table if not exists public.custom_compounds (
+  target text primary key,
+  geometry text,
+  avas text,
+  basis text,
+  charge int,
+  spin int,
+  updated_by text,
+  updated_at timestamptz
+);
+```
+
 ### 2g. Gate 1 — structural resolvability, with an end-of-day promotion step
 
 A card at the very top of the Orchestration tab (before Rung 1) lets you look

@@ -201,6 +201,22 @@ async def get_record(target: str):
         return {"record": None, "error": str(e)}
 
 
+@router.get("/custom_compound/{target}")
+async def get_custom_compound(target: str):
+    """A saved custom compound's geometry/AVAS/charge/spin/basis — the
+    permanent store dispatch_custom_compound writes to (see its own docstring
+    for why this is separate from the disposable hpc_dispatch queue row).
+    Absent = never submitted, or submitted before this table existed."""
+    sb = get_supabase()
+    if not sb:
+        return {"compound": None, "db": "not_configured"}
+    try:
+        res = sb.table("custom_compounds").select("*").eq("target", target).execute()
+        return {"compound": (res.data[0] if res.data else None)}
+    except Exception as e:
+        return {"compound": None, "error": str(e)}
+
+
 @router.post("/record")
 async def upsert_record(payload: dict = Body(...), authorization: str | None = Header(None)):
     """Record (or update) a target's mechanism category and sign-offs.
@@ -282,6 +298,27 @@ async def dispatch_custom_compound(payload: dict = Body(...),
                                   f"{list(MECHANISM_CATEGORIES)}")
     if not sb:
         return {"queued": False, "db": "not_configured"}
+
+    # Persist the geometry/AVAS/charge/spin/basis to a PERMANENT store, not
+    # just the hpc_dispatch queue row — mirrors qm_clusters' cache-lookup
+    # pattern for PDB-derived clusters (§ solange_screen_and_classify.py /
+    # /api/simulate/cluster/save). Found the gap live 2026-09-02: a queue row
+    # is meant to be disposable (Clear Queue deletes it), so the ONLY copy of
+    # a hand-pasted 24-line .xyz geometry was destroyed the first time the
+    # queue was cleared, with no way to reload it for a second attempt.
+    # Saved BEFORE the missing_requirements check below (not after) so even a
+    # blocked-by-Gate-2 attempt still leaves the geometry recoverable —
+    # otherwise every failed first attempt would need the .xyz re-pasted too.
+    try:
+        sb.table("custom_compounds").upsert({
+            "target": target, "geometry": geometry, "avas": avas,
+            "basis": payload.get("basis", "sto-3g"),
+            "charge": int(payload.get("charge", 0)), "spin": int(payload.get("spin", 0)),
+            "updated_by": uid, "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="target").execute()
+    except Exception as e:
+        logging.warning("custom_compounds save failed for %s (non-fatal, continuing): %s",
+                        target, e)
 
     gate2_row = {k: v for k, v in payload.items() if k in _GATE2_COLUMNS}
     gate2_row["target"] = target

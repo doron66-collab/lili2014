@@ -5769,14 +5769,14 @@ async function reloadGate2ForDispatch(i, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'loading…'; }
   try {
     const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
-    const res = await fetch(`${API}/api/simulate/hpc/dispatch/list?limit=100`);
+    // Reads the PERMANENT custom_compounds store, not the disposable
+    // hpc_dispatch queue row — a "Clear Queue" click deletes the latter (and
+    // with it, the only copy of a hand-pasted .xyz geometry), so reload must
+    // not depend on a queue row still existing. See dispatch_custom_compound's
+    // own docstring in gate2.py for why this table exists.
+    const res = await fetch(`${API}/api/gate2/custom_compound/${encodeURIComponent(x.target)}`);
     const out = await res.json();
-    const jobs = (out && out.jobs) || [];
-    // Most recent dispatch for this exact target that actually carried a
-    // custom geometry (job_type='dmrg' + geometry set) — matches how
-    // dispatchDmrgRowToShci already copies inputs from an existing record
-    // rather than re-typing them.
-    const match = jobs.find(j => j.key === x.target && j.job_type === 'dmrg' && j.geometry);
+    const match = out && out.compound;
     const msg = document.getElementById('g2-custom-msg');
     if (match) {
       set('g2-custom-geometry', match.geometry);
@@ -5784,9 +5784,9 @@ async function reloadGate2ForDispatch(i, btn) {
       set('g2-custom-charge', match.charge);
       set('g2-custom-spin', match.spin);
       set('g2-custom-basis', match.basis);
-      if (msg) msg.innerHTML = '<span style="color:var(--teal)">↻ Loaded sign-offs + geometry/AVAS from a prior dispatch of ' + x.target + '.</span>';
+      if (msg) msg.innerHTML = '<span style="color:var(--teal)">↻ Loaded sign-offs + geometry/AVAS for ' + x.target + '.</span>';
     } else if (msg) {
-      msg.innerHTML = '<span style="color:var(--gray)">↻ Loaded sign-offs for ' + x.target + ' — no prior dispatch with a stored geometry was found, so the Custom Model Compound fields below were left as-is.</span>';
+      msg.innerHTML = '<span style="color:var(--gray)">↻ Loaded sign-offs for ' + x.target + ' — no saved geometry was found for it, so the Custom Model Compound fields below were left as-is.</span>';
     }
   } catch (e) {
     const msg = document.getElementById('g2-custom-msg');
