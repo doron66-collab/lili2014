@@ -1992,11 +1992,12 @@
             'it only matters once a mechanism-specific energy calculator (not built yet) checks it.</div>');
           return;
         }
-        var hh = '<table style="width:100%;min-width:820px;border-collapse:collapse;table-layout:fixed"><tr>'+
-          '<th style="'+TH+';width:130px">Target</th><th style="'+TH+';width:220px">Category</th>'+
-          '<th style="'+TH+';width:110px">Status</th><th style="'+TH+';width:300px">Missing</th>'+
-          '<th style="'+TH+';width:100px">By</th></tr>';
-        rows.forEach(function(x){
+        window.__gate2Rows = rows;
+        var hh = '<table style="width:100%;min-width:900px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:130px">Target</th><th style="'+TH+';width:200px">Category</th>'+
+          '<th style="'+TH+';width:110px">Status</th><th style="'+TH+';width:280px">Missing</th>'+
+          '<th style="'+TH+';width:100px">By</th><th style="'+TH+';width:80px"></th></tr>';
+        rows.forEach(function(x, i){
           var missing = x.missing_requirements || [];
           var status = x.gate3_allowed
             ? '<span style="color:var(--green);font-weight:700">✓ complete</span>'
@@ -2005,7 +2006,8 @@
                 '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.category||'—')+'</td>'+
                 '<td style="'+C+'">'+status+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray);white-space:normal;line-height:1.4">'+(missing.join('; ')||'—')+'</td>'+
-                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.updated_by?String(x.updated_by).slice(0,8):'—')+'</td></tr>';
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.updated_by?String(x.updated_by).slice(0,8):'—')+'</td>'+
+                '<td style="'+C+'"><button onclick="reloadGate2ForDispatch('+i+',this)" title="Fill the form above with this record\'s target/category/sign-offs, plus the geometry/AVAS/charge/spin from its most recent dispatch (if any) — for re-running or adjusting, not re-typing." style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer">↻ reload</button></td></tr>';
         });
         gate2Paint(hh+'</table>'+
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">"complete" means every field this category requires is on record — it does not mean the chemistry is correct, only that a human signed off on it explicitly (verify, don\'t trust applies to the computation, not to this).</div>');
@@ -5736,6 +5738,59 @@ async function saveGate2Record(btn) {
     if (typeof window.solangeLoadGate2 === 'function') window.solangeLoadGate2();
   } catch (e) {
     setMsg('<span style="color:#f87171">Save failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// Reload a Gate 2 record's own fields (target/category/sign-offs) PLUS the
+// geometry/AVAS/charge/spin/basis from its most recent matching dispatch — the
+// Gate 2 record itself never stores those (they belong to the dispatch job,
+// not the sign-off), so this is two lookups joined into one click instead of
+// re-typing/re-pasting everything from scratch every time (found live
+// 2026-09-02: re-testing the same custom compound twice meant re-pasting a
+// 24-line .xyz file by hand each time).
+async function reloadGate2ForDispatch(i, btn) {
+  const rows = window.__gate2Rows || [];
+  const x = rows[i];
+  if (!x || !x.target) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  set('g2-target', x.target);
+  set('g2-category', x.category);
+  const metalEl = document.getElementById('g2-metal'); if (metalEl) metalEl.checked = !!x.metal_present;
+  const tsEl = document.getElementById('g2-ts'); if (tsEl) tsEl.checked = !!x.ts_search_configured;
+  set('g2-spin', x.spin_assigned_by);
+  set('g2-ox', x.oxidation_state_assigned_by);
+  set('g2-proto', x.protonation_assigned_by);
+  set('g2-scope', x.scope_signoff_by);
+  set('g2-source', x.source);
+
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'loading…'; }
+  try {
+    const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch/list?limit=100`);
+    const out = await res.json();
+    const jobs = (out && out.jobs) || [];
+    // Most recent dispatch for this exact target that actually carried a
+    // custom geometry (job_type='dmrg' + geometry set) — matches how
+    // dispatchDmrgRowToShci already copies inputs from an existing record
+    // rather than re-typing them.
+    const match = jobs.find(j => j.key === x.target && j.job_type === 'dmrg' && j.geometry);
+    const msg = document.getElementById('g2-custom-msg');
+    if (match) {
+      set('g2-custom-geometry', match.geometry);
+      set('g2-custom-avas', match.avas);
+      set('g2-custom-charge', match.charge);
+      set('g2-custom-spin', match.spin);
+      set('g2-custom-basis', match.basis);
+      if (msg) msg.innerHTML = '<span style="color:var(--teal)">↻ Loaded sign-offs + geometry/AVAS from a prior dispatch of ' + x.target + '.</span>';
+    } else if (msg) {
+      msg.innerHTML = '<span style="color:var(--gray)">↻ Loaded sign-offs for ' + x.target + ' — no prior dispatch with a stored geometry was found, so the Custom Model Compound fields below were left as-is.</span>';
+    }
+  } catch (e) {
+    const msg = document.getElementById('g2-custom-msg');
+    if (msg) msg.innerHTML = '<span style="color:#f87171">Loaded sign-offs, but could not fetch a prior dispatch: ' + e.message + '</span>';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = orig; }
   }
