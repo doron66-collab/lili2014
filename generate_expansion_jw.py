@@ -584,35 +584,68 @@ def run_casscf(compound_name, verbose=0):
     }
 
 
-def build_jw_terms(h1e, h2e, ecore):
+def build_jw_terms(h1e, h2e, ecore, max_exact_diag_orbitals=7):
     """
-    Build Jordan-Wigner Pauli terms from CAS(2e,2o) active-space integrals.
+    Build Jordan-Wigner Pauli terms from arbitrary active-space integrals.
 
-    Uses openfermion InteractionOperator → jordan_wigner transform.
+    GENERALIZED 2026-09-02 from a version hardcoded to n_orb=2 (CAS(2,2), the
+    4-qubit Phase-3A demo compounds) to accept any active-space size — the
+    prerequisite for ever sending a REAL Rung-3 classification's active space
+    (e.g. CAS(46,32)) toward Rung 4, which no code path could do before this:
+    generate_expansion_jw.py only ever produced 4-qubit Hamiltonians. n_orb is
+    now read from h1e's own shape rather than hardcoded, and every loop below
+    was already written generically in terms of n_orb (not the literal 2), so
+    this is the same math at any size, not a rewrite.
+
+    Uses openfermion InteractionOperator → jordan_wigner transform — a general
+    transform already, for any qubit count; only this wrapper was restricted.
+
     Returns (terms, e_active_exact, e_active_rhf) where:
       terms           = list of {pauli, coeff} for PennyLane
-      e_active_exact  = exact diagonalisation energy of active-space Hamiltonian
-      e_active_rhf    = RHF energy contribution from active space
+      e_active_exact  = exact diagonalisation energy of active-space Hamiltonian,
+                        or None above max_exact_diag_orbitals (see below)
+      e_active_rhf    = RHF energy contribution from active space (2-orbital
+                        closed-shell formula — see the n_orb==2 branch; for
+                        n_orb>2 this is NOT computed, since the closed-shell
+                        assumption it hardcodes (only orbitals 0/1 doubly
+                        occupied) does not generalize without knowing the
+                        actual occupation, which this function is not given)
+
+    max_exact_diag_orbitals bounds the ONLY part of this function that does
+    not scale: get_sparse_operator + eigsh builds a 2^(2*n_orb)-dimensional
+    sparse matrix. At n_orb=7 (14 qubits) that is already a 16384-dimensional
+    problem; at n_orb=32 (64 qubits) it is astronomically larger than any
+    machine can hold, sparse or not. Above the bound this returns
+    e_active_exact=None instead of attempting it — the JW terms themselves
+    (the actual point of this function, and the only thing usable at that
+    scale) are unaffected either way.
     """
     from openfermion import InteractionOperator, jordan_wigner
-    from openfermion.linalg import get_sparse_operator
-    import scipy.sparse.linalg as spla
 
-    # Construct InteractionOperator from 1e/2e integrals (2 spatial orbitals, 4 spin-orbitals)
-    # PySCF get_h2eff returns CHEMIST-ordered integrals (pq|rs). OpenFermion's
-    # two_body_tensor expects PHYSICIST ordering for a†_p a†_q a_r a_s. The correct
-    # remap is g[p,q,r,s] = h2e_chem[p,s,q,r]  (numpy transpose (0,2,3,1)), paired
-    # with the ab/ba spin pattern below. Verified end-to-end: 2e-sector ground
-    # state of the resulting qubit Hamiltonian == e_casscf - ecore to <1e-4 Ha for
-    # BOTH symmetric compounds (toluene) and asymmetric ones (acetamide/formamide).
-    # The previous direct mapping h2e[p,q,r,s] with the swapped spin pattern was
-    # masked by integral symmetry for most compounds but wrong for acetamide —
-    # the ARID2 −206.86 vs −205.32 bug.
-    n_orb = 2
+    h1e = np.asarray(h1e)
+    h2e = np.asarray(h2e)
+    n_orb = h1e.shape[0]
+    if h1e.shape != (n_orb, n_orb):
+        raise ValueError(f"h1e must be square (n_orb, n_orb); got shape {h1e.shape}")
+    if h2e.shape != (n_orb, n_orb, n_orb, n_orb):
+        raise ValueError(f"h2e must be shape (n_orb,)*4 matching h1e's n_orb={n_orb}; "
+                         f"got shape {h2e.shape}")
+
     one_body = np.zeros((2 * n_orb, 2 * n_orb))
     two_body = np.zeros((2 * n_orb, 2 * n_orb, 2 * n_orb, 2 * n_orb))
 
-    g = np.transpose(np.asarray(h2e), (0, 2, 3, 1))   # chemist -> physicist ordering
+    # PySCF get_h2eff returns CHEMIST-ordered integrals (pq|rs). OpenFermion's
+    # two_body_tensor expects PHYSICIST ordering for a†_p a†_q a_r a_s. The correct
+    # remap is g[p,q,r,s] = h2e_chem[p,s,q,r]  (numpy transpose (0,2,3,1)), paired
+    # with the ab/ba spin pattern below. Verified end-to-end (at n_orb=2): 2e-sector
+    # ground state of the resulting qubit Hamiltonian == e_casscf - ecore to <1e-4 Ha
+    # for BOTH symmetric compounds (toluene) and asymmetric ones (acetamide/
+    # formamide). The previous direct mapping h2e[p,q,r,s] with the swapped spin
+    # pattern was masked by integral symmetry for most compounds but wrong for
+    # acetamide — the ARID2 −206.86 vs −205.32 bug. This ordering fix is a
+    # property of the chemist/physicist convention mismatch, not of n_orb, so it
+    # applies unchanged at any active-space size.
+    g = np.transpose(h2e, (0, 2, 3, 1))   # chemist -> physicist ordering
 
     # Spin-orbital mapping: index 2*p = orbital p (alpha), 2*p+1 = orbital p (beta)
     for p in range(n_orb):
@@ -633,14 +666,24 @@ def build_jw_terms(h1e, h2e, ecore):
     ham_op = InteractionOperator(constant=0.0, one_body_tensor=one_body, two_body_tensor=two_body)
     jw_op  = jordan_wigner(ham_op)
 
-    # Exact diagonalisation of 4-qubit Hamiltonian
-    sparse = get_sparse_operator(jw_op)
-    e_active_exact = float(spla.eigsh(sparse, k=1, which='SA')[0][0])
+    if n_orb <= max_exact_diag_orbitals:
+        from openfermion.linalg import get_sparse_operator
+        import scipy.sparse.linalg as spla
+        sparse = get_sparse_operator(jw_op)
+        e_active_exact = float(spla.eigsh(sparse, k=1, which='SA')[0][0])
+    else:
+        e_active_exact = None
 
-    # RHF active-space energy: h1e[0,0] + h1e[1,1] + 0.5*(J_aa + 2*J_ab - K_ab)
-    # For 2 electrons in 2 orbitals (doubly occupied α=0, β=0 in RHF):
-    e_active_rhf = (h1e[0, 0] + h1e[1, 1]
-                    + 0.5 * (h2e[0,0,0,0] + 2*h2e[0,0,1,1] - h2e[0,1,1,0]))
+    if n_orb == 2:
+        # RHF active-space energy: h1e[0,0] + h1e[1,1] + 0.5*(J_aa + 2*J_ab - K_ab)
+        # For 2 electrons in 2 orbitals (doubly occupied α=0, β=0 in RHF). This
+        # formula is specific to that occupation and does NOT generalize to an
+        # arbitrary active space without knowing which orbitals are occupied —
+        # deliberately left unset (None) above n_orb=2 rather than guessed.
+        e_active_rhf = float(h1e[0, 0] + h1e[1, 1]
+                             + 0.5 * (h2e[0,0,0,0] + 2*h2e[0,0,1,1] - h2e[0,1,1,0]))
+    else:
+        e_active_rhf = None
 
     # Convert JW terms to {pauli, coeff} format for PennyLane
     terms = []
@@ -653,7 +696,7 @@ def build_jw_terms(h1e, h2e, ecore):
             pauli_str = ' '.join(f'{op}{qubit}' for qubit, op in sorted(term))
         terms.append({'coeff': float(coeff.real), 'pauli': pauli_str})
 
-    return terms, e_active_exact, float(e_active_rhf)
+    return terms, e_active_exact, e_active_rhf
 
 
 def compute_jw_entry(compound_name, residue_note, cached_casscf=None, verbose=0):
