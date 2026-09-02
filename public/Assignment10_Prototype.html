@@ -820,7 +820,14 @@
       (measured || []).forEach(function(m){
         if (m.n == null || m.s == null) return;
         var mx = xPix(Math.max(N_MIN, Math.min(N_MAX, m.n))), my = yPix(Math.max(S_MIN, Math.min(S_AX, m.s)));
-        var label = esc((m.key || 'run').replace(/_/g, ' '));
+        // CAS size included in the visible label itself, not just the
+        // tooltip: the same target can carry multiple real DMRG measurements
+        // at different active-space sizes (e.g. an early proxy-compound run
+        // vs. a later real-cluster run), each its own point — found live
+        // 2026-09-02 when two TP53_C275F points looked identical at a glance
+        // with no way to tell them apart without hovering each one.
+        var label = esc((m.key || 'run').replace(/_/g, ' '))
+                  + (m.ncas != null ? ' CAS(' + m.n + ',' + m.ncas + ')' : '');
         // Grouped so CSS (.dmrg-point-label, see <style> below) can reveal the name
         // label only while the pointer is over this specific point's circle — the
         // <title> gives every browser a native tooltip too, this is the always-visible
@@ -938,7 +945,7 @@
       render(rows.map(function(x){
         var shci = shciByDmrgId[x.id];
         return {
-          n: Number(x.nelecas), s: Number(x.s_max), key: x.key, cls: x.bqp_class,
+          n: Number(x.nelecas), ncas: x.ncas, s: Number(x.s_max), key: x.key, cls: x.bqp_class,
           shciClass: shci ? shci.bqp_class : null,
           classAgreement: shci ? shci.class_agreement : null,
           energyAgreement: shci ? shci.agreement : null,
