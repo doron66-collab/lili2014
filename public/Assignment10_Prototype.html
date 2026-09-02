@@ -1593,9 +1593,15 @@
     window.solangeWakeAgent = function(){
       if(document.getElementById('wake-modal')) return;
       var loginCmd = 'ssh <your-NetID>@laguna.carc.usc.edu';
-      var keepalive = 'bash scripts/laguna/agent_keepalive.sh start';
+      // agent_keepalive.sh reads SOLANGE_EMAIL/SOLANGE_PASSWORD from the
+      // environment (it does not accept them as flags) and refuses to start
+      // without both set -- so the export must come first, every time you
+      // re-authenticate (its own "Honest limit" note: nothing survives past
+      // your Laguna session itself).
+      var keepalive = 'export SOLANGE_EMAIL="<your-solange-email>" SOLANGE_PASSWORD="<your-solange-password>" && \\\n'
+              + 'bash scripts/laguna/agent_keepalive.sh start';
       var raw = 'module load conda && conda activate <your-env> && cd ~/lili2014 && \\\n'
-              + 'python scripts/laguna/solange_hpc.py --agent --out ./out';
+              + 'python scripts/laguna/solange_hpc.py --agent --email <your-solange-email> --password <your-solange-password> --out ./out';
       var esc = function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');};
       var ov = document.createElement('div');
       ov.id = 'wake-modal';
