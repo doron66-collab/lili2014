@@ -826,9 +826,38 @@
         // <title> gives every browser a native tooltip too, this is the always-visible
         // variant for pointer devices, which is what was actually asked for.
         svg.push('<g class="dmrg-point">');
+        // SHCI cross-validation ring — a SECOND, independent method's read on
+        // this SAME point, drawn as a halo around DMRG's own measurement, not
+        // a second dot: purple/solid = SHCI agrees on the A/B/C verdict, red/
+        // dashed = SHCI reached a DIFFERENT verdict, no ring = not yet cross-
+        // validated. Deliberately NOT green (already means "measured (LEON)"
+        // in this chart's own legend) and NOT keyed to energy agreement (a
+        // separate question — see the E-mark below): two solvers that both
+        // correctly report the same unconverged class have no reason to
+        // report the same raw energy, so conflating the two read as a
+        // contradiction that was not one (found live 2026-09-02, [2Fe-2S] proxy).
+        var ringTitle = '';
+        if (m.classAgreement === true) {
+          svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="9" fill="none" stroke="#a78bfa" stroke-width="1.75"/>');
+          ringTitle = ' SHCI cross-validated: agrees on Class ' + esc(m.cls) + '.';
+        } else if (m.classAgreement === false) {
+          svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="9" fill="none" stroke="#f87171" stroke-width="1.75" stroke-dasharray="3,2"/>');
+          ringTitle = ' ⚠ SHCI DISAGREES: DMRG ' + esc(m.cls) + ' vs SHCI ' + esc(m.shciClass) + ' — not settled.';
+        }
         svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="5" fill="var(--green)" stroke="rgba(6,15,34,.8)" stroke-width="1">'
                + '<title>' + label + ' — CAS active space ' + m.n + 'e, measured S_max = ' + Number(m.s).toFixed(2)
-               + (m.cls ? ' — classified ' + esc(m.cls) : '') + '. Measured on this platform and sealed by LEON.</title></circle>');
+               + (m.cls ? ' — classified ' + esc(m.cls) : '') + '. Measured on this platform and sealed by LEON.' + ringTitle
+               + (m.deltaMha != null ? ' SHCI Δ=' + Number(m.deltaMha).toFixed(1) + ' mHa vs DMRG (' + (m.energyAgreement ? 'within' : 'above') + ' chemical accuracy).' : '')
+               + '</title></circle>');
+        // E-mark — energy agreement specifically, independent of the class-
+        // agreement ring above: white E = SHCI's raw energy matches DMRG's
+        // within chemical accuracy, red E = it does not (expected whenever
+        // either solver hasn't actually converged, even if their classes
+        // still agree — that's the ring's job to say, not this mark's).
+        if (m.energyAgreement != null) {
+          svg.push('<text x="' + mx.toFixed(1) + '" y="' + (my+2.6).toFixed(1) + '" fill="' + (m.energyAgreement ? '#ffffff' : '#f87171')
+                 + '" font-size="6.5" font-weight="700" text-anchor="middle" pointer-events="none">E</text>');
+        }
         svg.push('<text class="dmrg-point-label" x="' + (mx+8).toFixed(1) + '" y="' + (my-7).toFixed(1)
                + '" fill="var(--white)" font-size="9" font-weight="700" paint-order="stroke" stroke="rgba(6,15,34,.85)" stroke-width="3" pointer-events="none">'
                + label + '</text>');
@@ -842,7 +871,9 @@
           '<span style="color:rgba(239,68,68,.9)">&#9472; exact wall (vertical &middot; size)</span>'
         + '<span style="color:var(--amber)">&#9472; S_HARD (horizontal &middot; entanglement)</span>'
         + '<span style="color:var(--teal)">&#9679; platform calibration (N₂)</span>'
-        + '<span style="color:var(--green)">&#9679; measured (LEON)</span>';
+        + '<span style="color:var(--green)">&#9679; measured (LEON)</span>'
+        + '<span title="Ring around a point = a second, independent method (SHCI) cross-validated it. Purple solid = agrees on the A/B/C class. Red dashed = reached a DIFFERENT class — not settled."><span style="color:#a78bfa">&#9711;</span><span style="color:#f87171">&#9711;</span> SHCI: class agree/disagree</span>'
+        + '<span title="The E inside a point: white = SHCI\'s raw energy matches DMRG\'s within chemical accuracy. Red = it does not — expected when either solver has not actually converged, even if their classes still agree.">E <span style="color:var(--white)">white</span>/<span style="color:#f87171">red</span> = SHCI energy agree/disagree</span>';
 
       var fn = document.getElementById('scaling-footnote');
       if (fn) fn.innerHTML =
@@ -856,7 +887,24 @@
 
     function loadMeasured(){
       var rows = (window.__dmrgRows || []).filter(function(x){ return x && x.s_max != null && x.nelecas != null; });
-      render(rows.map(function(x){ return { n: Number(x.nelecas), s: Number(x.s_max), key: x.key, cls: x.bqp_class }; }));
+      // Join each DMRG point to its own SHCI cross-validation (if any), keyed by
+      // dmrg_classification_id — the point itself stays exactly what it always
+      // was (DMRG's own S_max/class measurement); this only adds what a SECOND,
+      // independent method said about that same point, for the ring/E-mark below.
+      var shciByDmrgId = {};
+      (window.__shciRows || []).forEach(function(s){
+        if (s.dmrg_classification_id) shciByDmrgId[s.dmrg_classification_id] = s;
+      });
+      render(rows.map(function(x){
+        var shci = shciByDmrgId[x.id];
+        return {
+          n: Number(x.nelecas), s: Number(x.s_max), key: x.key, cls: x.bqp_class,
+          shciClass: shci ? shci.bqp_class : null,
+          classAgreement: shci ? shci.class_agreement : null,
+          energyAgreement: shci ? shci.agreement : null,
+          deltaMha: shci ? shci.delta_mha : null,
+        };
+      }));
     }
 
     render([]);
@@ -1944,6 +1992,11 @@
         if (window.__dmrgRows && typeof window.solangeReconcileDmrgClasses === 'function') {
           window.solangeReconcileDmrgClasses(window.__dmrgRows);
         }
+        // Same reasoning for the Tractability Plane's SHCI rings/E-marks — they
+        // read window.__shciRows (just set above), so a page load or refresh
+        // where SHCI data arrives after the chart's own last DMRG-triggered
+        // render must not leave the rings stuck unset.
+        if (typeof window.solangeRefreshScalingChart === 'function') window.solangeRefreshScalingChart();
         if (!rows.length) {
           shciPaint('<div style="color:var(--gray);font-size:11px;line-height:1.6">'+
             'No SHCI classifications submitted yet. Runs from <code>solange_shci.py --submit</code> '+
