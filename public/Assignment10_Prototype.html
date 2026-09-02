@@ -1051,6 +1051,7 @@
       </span>
     </div>
     <div id="hpc-queue-status" style="display:none;margin:6px 0 10px;font-size:11px;line-height:1.6"></div>
+    <div id="hpc-queue-list" style="display:none;margin:0 0 10px"></div>
     <div id="dispatch-hpc" class="table-scroll"></div>
     </div>
 
@@ -1519,6 +1520,44 @@
       var n=function(s){return jobs.filter(function(j){return j.status===s;}).length;};
       var q=n('queued'), r=n('running'), f=n('failed');
       var lastFail=jobs.filter(function(j){return j.status==='failed'&&j.note;})[0];
+      // Real visibility into what is actually SITTING in the queue — before today
+      // only bare counts ("1 queued") existed anywhere, with no way to see which
+      // target/job_type/status it actually was until it started running (and even
+      // then only via a terse note line). Found live 2026-09-02: a custom-compound
+      // dispatch failed silently from the user's point of view because there was
+      // nowhere to look and confirm what the agent actually picked up.
+      (function(){
+        var lEl=document.getElementById('hpc-queue-list'); if(!lEl) return;
+        var pending=jobs.filter(function(j){return j.status==='queued'||j.status==='running'||j.status==='failed';});
+        if(!pending.length){ lEl.style.display='none'; lEl.innerHTML=''; return; }
+        var esc=function(s){return String(s==null?'':s).replace(/</g,'&lt;');};
+        var badge=function(st){
+          var c = st==='running' ? 'var(--teal)' : st==='failed' ? '#f87171' : 'var(--gray)';
+          return '<span style="color:'+c+';font-weight:700;text-transform:uppercase;font-size:9px">'+esc(st)+'</span>';
+        };
+        var rows=pending.map(function(j){
+          var age=j.created_at ? new Date(j.created_at).toLocaleString() : '—';
+          var note=j.note ? ' <span style="color:var(--gray)" title="'+esc(j.note)+'">— '+esc(String(j.note).slice(0,80))+'</span>' : '';
+          return '<tr>'
+            + '<td style="padding:3px 8px;font-size:10px;font-family:monospace">'+esc((j.id||'').slice(0,8))+'</td>'
+            + '<td style="padding:3px 8px;font-size:10px">'+esc(j.job_type||'hpc')+'</td>'
+            + '<td style="padding:3px 8px;font-size:10px;font-weight:600">'+esc(j.key||'—')+'</td>'
+            + '<td style="padding:3px 8px">'+badge(j.status)+'</td>'
+            + '<td style="padding:3px 8px;font-size:10px;color:var(--gray)">'+age+'</td>'
+            + '<td style="padding:3px 8px;font-size:10px">'+note+'</td>'
+            + '</tr>';
+        }).join('');
+        lEl.innerHTML = '<div style="font-size:10px;color:var(--gray);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Queue contents (queued · running · failed)</div>'
+          + '<div class="table-scroll"><table style="width:100%;border-collapse:collapse"><thead><tr>'
+          + '<th style="padding:3px 8px;text-align:left;font-size:9px;color:var(--gray)">ID</th>'
+          + '<th style="padding:3px 8px;text-align:left;font-size:9px;color:var(--gray)">TYPE</th>'
+          + '<th style="padding:3px 8px;text-align:left;font-size:9px;color:var(--gray)">TARGET</th>'
+          + '<th style="padding:3px 8px;text-align:left;font-size:9px;color:var(--gray)">STATUS</th>'
+          + '<th style="padding:3px 8px;text-align:left;font-size:9px;color:var(--gray)">CREATED</th>'
+          + '<th style="padding:3px 8px;text-align:left;font-size:9px;color:var(--gray)">NOTE</th>'
+          + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+        lEl.style.display='block';
+      })();
       var qQpu=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='queued';}).length;
       var runningQpuJobs=jobs.filter(function(j){return j.job_type==='qpu'&&j.status==='running';});
       var rQpu=runningQpuJobs.length;
