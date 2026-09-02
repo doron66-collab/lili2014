@@ -1484,10 +1484,11 @@ async def delete_selected_dmrg(payload: dict = Body(...),
 #   alter table public.shci_crossvalidations add column if not exists bqp_class text;
 #   alter table public.shci_crossvalidations add column if not exists class_rationale text;
 #   alter table public.shci_crossvalidations add column if not exists shci_energies jsonb;
+#   alter table public.shci_crossvalidations add column if not exists class_agreement boolean;
 _SHCI_DB_COLUMNS = frozenset({
     "id", "created_at", "key", "dmrg_classification_id", "ncas", "nelec",
     "e_shci", "sweep_eps", "method", "elapsed_s", "provenance_source",
-    "hardware", "e_dmrg_ref", "delta_mha", "agreement",
+    "hardware", "e_dmrg_ref", "delta_mha", "agreement", "class_agreement",
     "bqp_class", "class_rationale", "shci_energies",
     "shci_seal_payload", "shci_hash",
 })
@@ -1532,7 +1533,7 @@ async def submit_shci_crossvalidation(payload: dict = Body(...)):
 
     dmrg_id = payload.get("dmrg_classification_id")
     if dmrg_id:
-        dmrg_row = (sb.table("dmrg_classifications").select("nelecas, ncas, dmrg_energies, key")
+        dmrg_row = (sb.table("dmrg_classifications").select("nelecas, ncas, dmrg_energies, key, bqp_class")
                       .eq("id", str(dmrg_id)).execute())
         if not dmrg_row.data:
             leon.write_audit(sb, "reject", record["id"], verdict, actor=actor,
@@ -1546,7 +1547,20 @@ async def submit_shci_crossvalidation(payload: dict = Body(...)):
         e_dmrg_ref = dmrg_energies[-1][1]
         record["e_dmrg_ref"] = e_dmrg_ref
         record["delta_mha"] = round(abs(record.get("e_shci", 0.0) - e_dmrg_ref) * 1000.0, 4)
+        # "agreement" (energy) and "class_agreement" (A/B/C verdict) are
+        # DELIBERATELY separate signals, not one collapsed into the other —
+        # found live 2026-09-02 on a Class-A [2Fe-2S] proxy where they point
+        # opposite ways: both solvers independently concluded Class A (same
+        # verdict), yet their raw energies differed by 95.5 mHa, because
+        # NEITHER had actually converged — two unconverged numbers have no
+        # reason to agree even when the shared non-convergence is exactly
+        # what both classifiers are reporting. Collapsing that into a single
+        # "agreement: false" reads as a contradiction between the methods
+        # when it is actually corroboration of the same Class A verdict.
         record["agreement"] = record["delta_mha"] <= _SHCI_CHEM_ACC_MHA
+        dmrg_class = dmrg_rec.get("bqp_class")
+        record["class_agreement"] = (
+            (record.get("bqp_class") == dmrg_class) if dmrg_class else None)
         # Scope check mirrors the DMRG-record's own scope discipline (§06.i): a
         # cross-validation is only meaningful over the SAME active space, not a
         # fragment or a superset of it.
@@ -1568,7 +1582,8 @@ async def submit_shci_crossvalidation(payload: dict = Body(...)):
         db_status = "error"
         logging.error("SHCI cross-validation insert failed: %s", e)
 
-    cross_note = (f"delta={record['delta_mha']} mHa agreement={record['agreement']} vs DMRG {dmrg_id}"
+    cross_note = (f"delta={record['delta_mha']} mHa agreement={record['agreement']} "
+                  f"class_agreement={record.get('class_agreement')} vs DMRG {dmrg_id}"
                   if dmrg_id else "standalone — no DMRG record referenced")
     logging.info("LEON notarized SHCI classification %s (%s) — class=%s %s db=%s",
                  record["id"], record.get("key"), record.get("bqp_class"), cross_note, db_status)
@@ -1581,6 +1596,7 @@ async def submit_shci_crossvalidation(payload: dict = Body(...)):
         "seal_ok": verdict["seal_ok"], "run_id": record["id"], "db_status": db_status,
         "bqp_class": record.get("bqp_class"),
         "delta_mha": record.get("delta_mha"), "agreement": record.get("agreement"),
+        "class_agreement": record.get("class_agreement"),
     }
 
 
@@ -1594,7 +1610,7 @@ async def list_shci_crossvalidations(limit: int = 50):
         res = (sb.table("shci_crossvalidations")
                  .select("id, created_at, key, dmrg_classification_id, ncas, nelec, "
                          "e_shci, bqp_class, class_rationale, shci_energies, "
-                         "e_dmrg_ref, delta_mha, agreement, sweep_eps, method, "
+                         "e_dmrg_ref, delta_mha, agreement, class_agreement, sweep_eps, method, "
                          "elapsed_s, provenance_source, hardware, shci_hash")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"crossvalidations": res.data or []}

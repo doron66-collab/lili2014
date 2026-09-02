@@ -1259,8 +1259,20 @@
         var _av = (window.__activeVariants || {})[key];
         var label;
         if (dmrg && shci) {
-          var agree = shci.agreement === true || (shci.agreement == null && dmrg.bqp_class === shci.bqp_class);
-          var disagree = shci.agreement === false || (shci.agreement == null && dmrg.bqp_class !== shci.bqp_class);
+          // This badge is about the VERDICT (A/B/C), not the raw energy —
+          // compare bqp_class directly, never shci.agreement (that's an
+          // energy-Δ check, a different question). Conflating them was a
+          // real bug, found live 2026-09-02: two solvers that both correctly
+          // report Class A (because neither converged) have no reason to
+          // report the same energy, so shci.agreement===false there does NOT
+          // mean the classes disagree — it showed "DISAGREE — DMRG A / SHCI A"
+          // for a target where both methods agreed, which is not disagreement
+          // at all. class_agreement (computed server-side, see simulate.py's
+          // submit_shci_crossvalidation) is authoritative when present.
+          var agree = shci.class_agreement === true ||
+                      (shci.class_agreement == null && dmrg.bqp_class === shci.bqp_class);
+          var disagree = shci.class_agreement === false ||
+                      (shci.class_agreement == null && dmrg.bqp_class !== shci.bqp_class);
           if (agree) {
             label = '<span style="font-size:10px;font-weight:700;color:var(--green);border:1px solid var(--green);border-radius:4px;padding:1px 6px" '+
               'title="Both DMRG and SHCI independently classify this target as Class '+dmrg.bqp_class+'.">◆ DMRG + SHCI CONFIRMED '+dmrg.bqp_class+'</span>';
@@ -1906,8 +1918,13 @@
         // solangeReconcileDmrgClasses (Results-tab badges) and by the warn-slot
         // patch below (Rung-3 table). Rebuilt on every load so a re-run that
         // FIXES a prior disagreement also clears the warning, not just adds one.
+        // class_agreement (the A/B/C verdict), NOT agreement (an energy-Δ
+        // check) — two solvers that both correctly report the same
+        // unconverged class have no reason to report the same raw energy, so
+        // agreement===false there is not a class disagreement. See
+        // simulate.py's submit_shci_crossvalidation for where this is computed.
         var disMap = {};
-        rows.forEach(function(x){ if (x.agreement === false && x.dmrg_classification_id) disMap[x.dmrg_classification_id] = x; });
+        rows.forEach(function(x){ if (x.class_agreement === false && x.dmrg_classification_id) disMap[x.dmrg_classification_id] = x; });
         window.__shciDisagreementsByDmrgId = disMap;
         // Patch the Rung-3 DMRG table directly — it does not go through
         // solangeReconcileDmrgClasses, so its own warn-slot markers (added when
@@ -1944,12 +1961,28 @@
           '<th style="'+TH+';width:70px">Runtime</th><th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:150px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelec!=null && x.ncas!=null) ? ('CAS('+x.nelec+','+x.ncas+')') : '—';
-          var agree = x.agreement === true;
-          var agreeLabel = x.agreement == null
-            ? '<span style="color:var(--gray)" title="Standalone classification — no DMRG record was named to compare against">standalone</span>'
-            : (agree
-              ? '<span style="color:var(--green);font-weight:700">✓ agree</span>'
-              : '<span style="color:#f87171;font-weight:700">✗ DISAGREE</span>');
+          // agreement (energy match, Δ <= chemical accuracy) and class_agreement
+          // (same A/B/C verdict) are DELIBERATELY separate — collapsing them
+          // into one badge misreads a real, common case: two unconverged
+          // solvers (both correctly reporting Class A) have no reason to
+          // report the same raw energy, so "agreement: false" there is
+          // corroboration of the shared verdict, not a contradiction of it.
+          // Found live 2026-09-02 on a [2Fe-2S] proxy: Δ=95.5 mHa, both A.
+          var energyAgree = x.agreement === true;
+          var classAgree = x.class_agreement;
+          var agreeLabel;
+          if (x.agreement == null) {
+            agreeLabel = '<span style="color:var(--gray)" title="Standalone classification — no DMRG record was named to compare against">standalone</span>';
+          } else if (energyAgree) {
+            agreeLabel = '<span style="color:var(--green);font-weight:700">✓ agree</span>';
+          } else if (classAgree === true) {
+            agreeLabel = '<span style="color:var(--gold);font-weight:700" title="The two methods reached the SAME class (A/B/C) but their raw energies differ by more than chemical accuracy — expected when neither has actually converged (e.g. both Class A): two unconverged numbers have no reason to match even though the shared verdict is correct.">⚠ energy differs · same class</span>';
+          } else if (classAgree === false) {
+            agreeLabel = '<span style="color:#f87171;font-weight:700" title="The two methods reached DIFFERENT classes (A/B/C) — this is a real disagreement on the verdict itself, not just the energy.">✗ DISAGREE (class differs)</span>';
+          } else {
+            // class_agreement not computed (older record, before this field existed)
+            agreeLabel = '<span style="color:#f87171;font-weight:700">✗ energy differs</span>';
+          }
           hh += '<tr><td style="'+C+';font-weight:600;overflow:hidden;text-overflow:ellipsis" title="'+(x.key||'')+'">'+(x.key||'—')+'</td>'+
                 '<td style="'+C+';color:var(--gray);font-size:10px" title="When this classification was notarized &amp; stored">'+fmtTs(x.created_at)+'</td>'+
                 '<td style="'+C+'">'+cas+'</td>'+
@@ -6184,8 +6217,8 @@ function exportQpuCsv() {
 function exportShciCsv() {
   const rows = window.__shciRows || [];
   if (!rows.length) { alert('No SHCI classifications to export.'); return; }
-  const cols = ['key','nelec','ncas','e_shci','bqp_class','class_rationale','dmrg_classification_id','e_dmrg_ref','delta_mha','agreement','method','shci_hash','created_at'];
-  const head = ['target','active_electrons','active_orbitals','e_shci_ha','class','rationale','dmrg_record_id','e_dmrg_ref_ha','delta_mha','agreement','method','leon_seal','created_at'];
+  const cols = ['key','nelec','ncas','e_shci','bqp_class','class_rationale','dmrg_classification_id','e_dmrg_ref','delta_mha','agreement','class_agreement','method','shci_hash','created_at'];
+  const head = ['target','active_electrons','active_orbitals','e_shci_ha','class','rationale','dmrg_record_id','e_dmrg_ref_ha','delta_mha','energy_agreement','class_agreement','method','leon_seal','created_at'];
   const esc = v => { v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
   const body = rows.map(r => cols.map(c => esc(r[c])).join(','));
   const csv = solangeCsvProvenanceHeader('Rung 3 — SHCI classifications (independent + optional DMRG cross-validation)')
