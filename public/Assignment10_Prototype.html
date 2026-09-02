@@ -4461,14 +4461,54 @@ function parseNGSText(rawText) {
   }
 
   const CLINICAL_SIGNAL = /\b(?:Pathogenic|Likely\s*Pathogenic|VUS|Variant\s*of\s*Uncertain|Tier|Benign|Oncogenic|Detected|Positive)\b/i;
-  const variantRe = new RegExp(
-    `(?<![a-z])(${knownGenes.join('|')})\\b[\\s\\S]{0,150}?(${MUT_PAT})`, 'gi'
-  );
-  let vm;
-  while ((vm = variantRe.exec(text)) !== null) {
-    const gene   = vm[1];
-    const mut    = vm[2];
-    const nearby = text.slice(Math.max(0, vm.index - 100), vm.index + 500);
+  // Named hotspots this platform actually classifies — checked FIRST against
+  // the mutation notation itself, since it is unambiguous (p.Cys275Phe IS
+  // TP53 codon 275, full stop) and immune to whatever the surrounding text
+  // looks like. This is authoritative, not a proximity guess — mirrors the
+  // exact hotspot set loadNGSReport()'s own NAMED_MUTATIONS matches against
+  // for simId resolution, kept in sync deliberately (same biology, two call
+  // sites: this one decides the GENE at parse time, that one decides which
+  // simulation target the {gene, mutation} pair maps to).
+  const KNOWN_MUTATION_GENE = [
+    [/C275F|Cys275Phe/i, 'TP53'],
+    [/Y220C|Tyr220Cys/i, 'TP53'],
+    [/G333C|Gly333Cys/i, 'KEAP1'],
+    [/R320Q|Arg320Gln/i, 'KEAP1'],
+    [/F354L|Phe354Leu/i, 'STK11'],
+    [/D194N|Asp194Asn/i, 'STK11'],
+  ];
+  function knownGeneForMutation(mut) {
+    const hit = KNOWN_MUTATION_GENE.find(([re]) => re.test(mut));
+    return hit ? hit[1] : null;
+  }
+  // Fallback for anything NOT a known hotspot above: look BACKWARD from the
+  // mutation for the NEAREST preceding gene name, rather than forward from
+  // the first gene found anywhere in the document — a forward scan picks up
+  // whichever gene happens to appear earliest in the text (e.g. "EGFR" from
+  // an unrelated biomarker panel line) as long as some mutation pattern
+  // falls within the next 150 chars, even when a different, closer gene name
+  // sits in between. Still imperfect when a table's row/column order gets
+  // scrambled by OCR or PDF text extraction (see normalizeNGSText's own note
+  // on this) — found live 2026-09-02 on a real scanned report where "TP53
+  // p.Cys275Phe" was mis-attributed to "EGFR"; the hotspot check above is
+  // what actually fixes that case, this fallback only improves on the
+  // non-hotspot remainder.
+  const geneNameRe = new RegExp(`(?<![a-z])(${knownGenes.join('|')})\\b`, 'gi');
+  function nearestGeneBefore(snippet) {
+    geneNameRe.lastIndex = 0; // reused global regex — reset per call, or a
+                              // shorter later snippet inherits a stale offset
+    let m, last = null;
+    while ((m = geneNameRe.exec(snippet)) !== null) last = m[1];
+    return last;
+  }
+  const mutRe = new RegExp(MUT_PAT, 'g');
+  let mm;
+  while ((mm = mutRe.exec(text)) !== null) {
+    const mut  = mm[0];
+    const gene = knownGeneForMutation(mut)
+              || nearestGeneBefore(text.slice(Math.max(0, mm.index - 150), mm.index));
+    if (!gene) continue;
+    const nearby = text.slice(Math.max(0, mm.index - 100), mm.index + 500);
     const af     = extractAF(nearby);
     if (af !== null && af < 0.005) continue;
     if (af === null && !CLINICAL_SIGNAL.test(nearby)) continue;
