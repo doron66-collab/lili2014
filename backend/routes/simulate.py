@@ -1499,12 +1499,22 @@ async def delete_selected_dmrg(payload: dict = Body(...),
 #   alter table public.shci_crossvalidations add column if not exists class_rationale text;
 #   alter table public.shci_crossvalidations add column if not exists shci_energies jsonb;
 #   alter table public.shci_crossvalidations add column if not exists class_agreement boolean;
+#   alter table public.shci_crossvalidations add column if not exists geometry text;
+#   alter table public.shci_crossvalidations add column if not exists avas text;
+#   alter table public.shci_crossvalidations add column if not exists charge int;
+#   alter table public.shci_crossvalidations add column if not exists spin int;
 _SHCI_DB_COLUMNS = frozenset({
     "id", "created_at", "key", "dmrg_classification_id", "ncas", "nelec",
     "e_shci", "sweep_eps", "method", "elapsed_s", "provenance_source",
     "hardware", "e_dmrg_ref", "delta_mha", "agreement", "class_agreement",
     "bqp_class", "class_rationale", "shci_energies",
     "shci_seal_payload", "shci_hash",
+    # geometry/avas/charge/spin: reproducibility inputs for a Rung 3 -> Rung 4
+    # (QPU) escalation from this record's own row — without these, the "Send
+    # to QPU" button on the SHCI table has nothing to send (its render
+    # condition is x.id && x.geometry && x.bqp_class === 'A'; silently
+    # stripping this column here made every SHCI row fail that check).
+    "geometry", "avas", "charge", "spin",
 })
 _SHCI_CHEM_ACC_MHA = 1.6  # same bar solange_dmrg.py's classify() uses
 
@@ -1625,7 +1635,8 @@ async def list_shci_crossvalidations(limit: int = 50):
                  .select("id, created_at, key, dmrg_classification_id, ncas, nelec, "
                          "e_shci, bqp_class, class_rationale, shci_energies, "
                          "e_dmrg_ref, delta_mha, agreement, class_agreement, sweep_eps, method, "
-                         "elapsed_s, provenance_source, hardware, shci_hash")
+                         "elapsed_s, provenance_source, hardware, shci_hash, "
+                         "geometry, avas, charge, spin")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"crossvalidations": res.data or []}
     except Exception as e:

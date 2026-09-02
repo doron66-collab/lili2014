@@ -788,7 +788,13 @@ def main():
     # nothing to copy the geometry/AVAS/charge/spin from and would need them
     # re-typed by hand, exactly the friction this field exists to remove.
     if args.geometry:
-        out["geometry"] = args.geometry
+        # Store the RAW .xyz content, not the local path — this record may be
+        # read back much later (a different machine, a different run's scratch
+        # dir) to re-dispatch the SAME active space to Rung 4 (QPU), and the
+        # QPU agent writes this field verbatim as a new file's content
+        # (solange_qpu.py's run_agent: geom_path.write_text(job["geometry"])).
+        # A bare path string here would silently produce a garbage .xyz file.
+        out["geometry"] = Path(args.geometry).read_text()
         out["avas"] = args.avas
         out["charge"] = args.charge
         out["spin"] = args.spin

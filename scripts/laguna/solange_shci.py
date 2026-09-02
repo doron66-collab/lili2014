@@ -293,6 +293,17 @@ def main():
         "provenance_source": "HPC/Laguna (SHCI classifier)",
         "hardware": detect_hardware(args.num_thrds),
     }
+    # Recorded so a Class A SHCI verdict can escalate straight to Rung 4 (QPU)
+    # from its OWN row — mirrors solange_dmrg.py's --geometry record exactly
+    # (found missing live 2026-09-02: the "Send to QPU" button on the SHCI
+    # table never appeared because this script never captured these fields at
+    # all, so every SHCI record had x.geometry undefined regardless of the
+    # backend). Raw .xyz CONTENT is stored, not the local path — the QPU agent
+    # writes this field verbatim as a new file's content later.
+    out["geometry"] = Path(args.geometry).read_text()
+    out["avas"] = args.avas
+    out["charge"] = args.charge
+    out["spin"] = args.spin
     # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
     # trusted). e_dmrg_ref/delta_mha/agreement are NOT computed here on purpose,
     # even when --dmrg-classification-id is given — the backend computes them
