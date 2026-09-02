@@ -206,7 +206,27 @@ def main():
     mf.max_memory = args.max_memory
     mf.kernel()
     if not mf.converged:
-        sys.exit("RHF did not converge.")
+        # Plain RHF is a genuinely hard starting point for a system like this —
+        # found live 2026-09-02 on a [2Fe-2S](SR)4 proxy: two near-degenerate,
+        # antiferromagnetically-coupled iron centres are exactly the case a
+        # naive closed-shell SCF struggles to converge on, and solange_dmrg.py's
+        # own RHF call (same molecule, same basis, run minutes earlier) happened
+        # to converge while this one did not — SCF convergence for this class of
+        # system is genuinely borderline, not a code bug either side. Retrying
+        # with SOSCF (pyscf's second-order/Newton solver) is the standard
+        # robustification for exactly this failure mode before giving up.
+        print("  RHF did not converge on the first attempt — retrying with SOSCF "
+              "(second-order/Newton solver, pyscf's standard fallback for a "
+              "borderline SCF case)...")
+        mf = mf.newton()
+        mf.kernel()
+        if not mf.converged:
+            sys.exit("RHF did not converge, including after an SOSCF (Newton) retry. "
+                     "This may itself be informative for a metal-cluster target: even "
+                     "the classical mean-field starting point is failing to converge, "
+                     "which is consistent with (though not proof of) strong "
+                     "multireference character at this site.")
+        print("  SOSCF converged where plain RHF did not.")
     print(f"RHF E = {mf.e_tot:.8f} Ha")
 
     ncas, nelec, mo = avas.avas(mf, aolabels, threshold=args.threshold)
