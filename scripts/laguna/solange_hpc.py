@@ -805,13 +805,43 @@ def run_agent(api, poll_s, token, out_dir):
                 # DMRG classification — run run_dmrg.sh (handles block2/MKL) on this
                 # same compute node. It submits to /hpc/dmrg/submit and prints the same
                 # status=PASSED / db=stored tokens the detection below looks for.
-                ncas = str(job["ncas"])
-                cmd = ["bash", str(_HERE.parent / "run_dmrg.sh"),
-                       "--key", job["key"], "--side", job.get("side", "native"),
-                       "--ncas", ncas, "--nelecas", str(job.get("nelecas") or ncas),
-                       "--bond-dims", str(job.get("bond_dims") or "250,500,1000,2000"),
-                       "--submit", api]
-                if job.get("dmrg_scf"):
+                #
+                # geometry mode (job.get("geometry") set): a custom, non-PDB, non-
+                # --compound-library target — e.g. a Gate-2-gated model-compound
+                # dispatch (§ "Custom Model Compound" form). Mirrors the SHCI branch's
+                # geometry/avas/charge/spin handling below, since until now this branch
+                # only supported --key/--side/--ncas/--nelecas (the named-compound-
+                # library or size-prior path) — there was no queue-dispatchable path
+                # for an arbitrary geometry at all, only --geometry typed by hand into
+                # a Laguna terminal (found live 2026-09-02 building an SDHB Fe-S proxy
+                # with nowhere in the UI to send it).
+                if job.get("geometry"):
+                    # Written to a real file, not piped: run_dmrg.sh/solange_dmrg.py
+                    # read --geometry via Path(...).read_text() on the argument given,
+                    # so the path must exist on disk before the subprocess starts —
+                    # there is no stdin wiring on this Popen call to feed it any other
+                    # way. Keyed by dispatch id so concurrent geometry jobs never
+                    # collide (same reasoning as --dmrg-scf-scratch below).
+                    geom_path = Path(out_dir) / f"custom_geometry_{did}.xyz"
+                    geom_path.write_text(job["geometry"])
+                    cmd = ["bash", str(_HERE.parent / "run_dmrg.sh"),
+                           "--geometry", str(geom_path), "--key", job["key"],
+                           "--charge", str(job.get("charge") or 0),
+                           "--spin", str(job.get("spin") or 0),
+                           "--basis", job.get("basis") or "sto-3g",
+                           "--avas", job["avas"],
+                           "--bond-dims", str(job.get("bond_dims") or "250,500,1000,2000"),
+                           "--dmrg-scf", "--dmrg-scf-maxm", str(job.get("dmrg_scf_maxm") or 250),
+                           "--dmrg-scf-scratch", f"./tmp_dmrgscf_orb_{did}",
+                           "--casci", "--submit", api]
+                else:
+                    ncas = str(job["ncas"])
+                    cmd = ["bash", str(_HERE.parent / "run_dmrg.sh"),
+                           "--key", job["key"], "--side", job.get("side", "native"),
+                           "--ncas", ncas, "--nelecas", str(job.get("nelecas") or ncas),
+                           "--bond-dims", str(job.get("bond_dims") or "250,500,1000,2000"),
+                           "--submit", api]
+                if job.get("dmrg_scf") and not job.get("geometry"):
                     # Without this, orbital optimisation for a "Queue DMRG" job
                     # ALWAYS falls back to plain CASSCF/FCI, no matter how large
                     # --ncas is: this branch had no path to --dmrg-scf at all until
