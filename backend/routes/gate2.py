@@ -47,7 +47,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, HTTPException, Header
 
-from routes.simulate import get_supabase, _uid_from_auth
+from routes.simulate import get_supabase, _uid_from_auth, _require_dispatch_allowed
 
 router = APIRouter()
 
@@ -235,3 +235,93 @@ async def upsert_record(payload: dict = Body(...), authorization: str | None = H
         logging.error("Gate 2 record save failed: %s", e)
         return {"saved": False, "error": str(e),
                 "hint": "run the gate2_records migration — see RUN_GUIDE.md"}
+
+
+@router.post("/dispatch_custom_compound")
+async def dispatch_custom_compound(payload: dict = Body(...),
+                                    authorization: str | None = Header(None)):
+    """The FIRST real gate: Gate 2 as a pre-dispatch check, not just tracking.
+
+    Every other Gate 2 endpoint in this module only RECORDS a category and its
+    sign-offs — nothing consumes gate3_allowed to stop anything (see the module
+    docstring's STATUS line). This is the one exception, added because it was
+    the concrete case that exposed the gap: a Gate-1-unresolvable, non-PDB,
+    non-library target (e.g. an SDHB Fe-S-cluster proxy compound) had NO
+    queue-dispatchable path at all before today — the only way to run one was
+    to type a --geometry command by hand into a Laguna terminal, with no
+    record of who decided the spin state, oxidation state, or AVAS criterion
+    that made the run mean anything.
+
+    This endpoint closes that gap the way Gate 2 was always meant to: it
+    upserts the target's category + sign-off fields (same shape as /record,
+    same table), computes missing_requirements against the CURRENT taxonomy,
+    and refuses to queue anything if the list is non-empty. Only once every
+    required field for that category is on record does this insert the actual
+    hpc_dispatch row (job_type='dmrg', geometry mode — see
+    solange_hpc.py's job_type=='dmrg' branch and simulate.py's dispatch_hpc).
+
+    Uses _require_dispatch_allowed, the SAME executive-account block as every
+    other path that spends real HPC/DMRG/QPU time — a custom-compound
+    dispatch is not a lesser spend than any other.
+    """
+    sb = get_supabase()
+    uid = _require_dispatch_allowed(authorization, sb)
+    payload = payload or {}
+    target = payload.get("target")
+    category = payload.get("category")
+    geometry = payload.get("geometry")
+    avas = payload.get("avas")
+    if not target:
+        raise HTTPException(400, "missing target")
+    if not geometry or not str(geometry).strip():
+        raise HTTPException(400, "missing geometry (paste an .xyz file's contents)")
+    if not avas:
+        raise HTTPException(400, "missing avas (the AO criterion string, e.g. 'Fe 3d, S 3p')")
+    if category not in MECHANISM_CATEGORIES:
+        raise HTTPException(400, f"unknown category '{category}' — must be one of "
+                                  f"{list(MECHANISM_CATEGORIES)}")
+    if not sb:
+        return {"queued": False, "db": "not_configured"}
+
+    gate2_row = {k: v for k, v in payload.items() if k in _GATE2_COLUMNS}
+    gate2_row["target"] = target
+    gate2_row["category"] = category
+    gate2_row["updated_by"] = uid
+    gate2_row["updated_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        sb.table("gate2_records").upsert(gate2_row, on_conflict="target").execute()
+    except Exception as e:
+        return {"queued": False, "error": f"could not save the Gate 2 record: {e}",
+                "hint": "run the gate2_records migration — see RUN_GUIDE.md"}
+
+    missing = _missing_requirements(gate2_row)
+    if missing:
+        logging.info("Gate 2 blocked dispatch for %s (category=%s): %s",
+                     target, category, missing)
+        return {"queued": False, "blocked_by_gate2": True,
+                "missing_requirements": missing,
+                "note": "Fill in every field this category requires, then try again — "
+                        "nothing was sent to the compute queue."}
+
+    row = {
+        "requested_by": uid, "status": "queued", "job_type": "dmrg",
+        "key": target, "geometry": geometry, "avas": avas,
+        "basis": payload.get("basis", "sto-3g"),
+        "charge": int(payload.get("charge", 0)), "spin": int(payload.get("spin", 0)),
+        "ncas": 0, "nelecas": 0,   # unused in geometry mode; AVAS decides the active space
+        # bond_dims is NOT an hpc_dispatch column (checked against RUN_GUIDE.md's
+        # migrations) — the agent falls back to its own default
+        # ("250,500,1000,2000") when job.get("bond_dims") is absent, same as
+        # every other geometry-mode job type. Do not add it here without a
+        # migration first, or this insert breaks against a strict schema.
+        "dmrg_scf": True, "dmrg_scf_maxm": int(payload.get("dmrg_scf_maxm", 250)),
+    }
+    try:
+        res = sb.table("hpc_dispatch").insert(row).execute()
+        did = (res.data or [{}])[0].get("id")
+        logging.info("Gate 2 cleared dispatch for %s (category=%s) by %s — queued %s",
+                     target, category, uid, did)
+        return {"queued": True, "dispatch_id": did, "gate2_record": _enrich(gate2_row)}
+    except Exception as e:
+        return {"queued": False, "error": str(e),
+                "hint": "run backend/migrations to create table hpc_dispatch"}

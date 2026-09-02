@@ -967,6 +967,19 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         row["sweep_eps"] = payload.get("sweep_eps", "1e-2,1e-3,5e-4,1e-4")
         if payload.get("dmrg_classification_id"):
             row["dmrg_classification_id"] = payload.get("dmrg_classification_id")
+    # Custom-geometry DMRG dispatch (job_type='dmrg' + geometry present) — a target
+    # that is neither a --compound-library name nor a PDB-derived site, e.g. a
+    # Gate-2-gated model-compound submission. Mirrors the SHCI branch above; the
+    # agent side (solange_hpc.py) checks job.geometry to pick this path over the
+    # --key/--side/--ncas/--nelecas one. Gate 2's own missing_requirements() check
+    # happens BEFORE this endpoint is ever called (see gate2.py's
+    # dispatch_custom_compound) — this endpoint itself does not re-check it, so
+    # anything reaching here with geometry set has already cleared that gate.
+    if payload.get("job_type") == "dmrg" and payload.get("geometry"):
+        row["geometry"] = payload.get("geometry")
+        row["avas"] = payload.get("avas")
+        row["charge"] = int(payload.get("charge", 0))
+        row["spin"] = int(payload.get("spin", 0))
     # PDB-to-classification pipeline dispatch (job_type='screen_classify') — the
     # "New Target from PDB" form. Chains protonate -> carve/probe (shrinking radius
     # until the active space fits) -> DMRG -> SHCI (both mandatory — the

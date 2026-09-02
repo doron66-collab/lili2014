@@ -1197,6 +1197,28 @@
       <span id="g2-msg" style="color:var(--gray)"></span>
     </div>
     <div id="gate2-records" class="table-scroll" style="margin-top:10px"></div>
+
+    <!-- ── Custom Model Compound — the ONE Gate 2 action that actually blocks a
+         dispatch, not just tracks one (see gate2.py's dispatch_custom_compound).
+         For a target that is neither a real PDB site (Gate 1) nor a name in the
+         fixed compound library (Rung 2's dropdown) — e.g. a metal-cluster proxy
+         compound. Reuses the sign-off fields above (g2-metal/spin/ox/proto/
+         source); the button only queues a real Laguna job if THIS category's
+         requirements are all filled in — otherwise it reports exactly what's
+         missing and sends nothing. ── -->
+    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(232,160,32,0.4);border-radius:8px;background:rgba(232,160,32,0.04)">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:2px">Custom Model Compound <span class="info-i" data-tip="For a target that is neither a real PDB site (use Gate 1 + The Classifier above) nor already in the fixed compound library (Rung 2's dropdown) — e.g. a metal-cluster proxy compound. This is the one Gate 2 action that actually blocks dispatch: it reuses the category + sign-off fields above, and refuses to queue anything on Laguna until every field this category requires is filled in.">i</span></div>
+      <div style="font-size:10px;color:var(--gray);margin-bottom:8px">Uses the target/category/sign-off fields above. Paste a real .xyz geometry below — this platform does not generate molecular structures.</div>
+      <textarea id="g2-custom-geometry" placeholder="Paste .xyz file contents here (element + x y z per line, standard xyz format)" rows="4" style="width:100%;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:6px 8px;font-size:10.5px;font-family:monospace;margin-bottom:6px"></textarea>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px">
+        <input id="g2-custom-avas" placeholder="AVAS criterion (e.g. Fe 3d, S 3p)" style="width:220px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-custom-charge" type="number" placeholder="Charge" value="0" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-custom-spin" type="number" placeholder="Spin (2S)" value="0" style="width:90px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-custom-basis" placeholder="Basis (default sto-3g)" style="width:150px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <button onclick="dispatchCustomCompound(this)" title="Blocked unless every field this category requires (above) is filled in — see the info tooltip" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">▶ Dispatch (Gate 2 checked)</button>
+      </div>
+      <div id="g2-custom-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
+    </div>
   </div>
   <script>
   (function(){
@@ -5675,6 +5697,77 @@ async function saveGate2Record(btn) {
     if (typeof window.solangeLoadGate2 === 'function') window.solangeLoadGate2();
   } catch (e) {
     setMsg('<span style="color:#f87171">Save failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// Dispatch a custom (non-PDB, non-library) model compound for DMRG classification
+// — the ONE Gate 2 action that actually blocks a real Laguna dispatch, not just
+// tracks one. Reuses the target/category/sign-off fields already in the Gate 2
+// form above; the backend (gate2.py's dispatch_custom_compound) re-checks
+// missing_requirements itself before queuing anything, so this is not a
+// client-side-only gate — a request from anywhere else still gets refused the
+// same way if a required field is missing.
+async function dispatchCustomCompound(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const target = val('g2-target').trim(), category = val('g2-category');
+  const geometry = val('g2-custom-geometry').trim();
+  const avas = val('g2-custom-avas').trim();
+  const msg = document.getElementById('g2-custom-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!target || !category) {
+    setMsg('<span style="color:#f87171">Target key and category (above) are both required.</span>');
+    return;
+  }
+  if (!geometry) {
+    setMsg('<span style="color:#f87171">Paste an .xyz geometry first — this platform does not generate molecular structures.</span>');
+    return;
+  }
+  if (!avas) {
+    setMsg('<span style="color:#f87171">AVAS criterion is required (e.g. "Fe 3d, S 3p").</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'checking Gate 2…'; }
+  setMsg('checking Gate 2 requirements…');
+  try {
+    const body = {
+      target, category, geometry, avas,
+      charge: parseInt(val('g2-custom-charge') || '0', 10),
+      spin: parseInt(val('g2-custom-spin') || '0', 10),
+      basis: val('g2-custom-basis').trim() || 'sto-3g',
+      metal_present: document.getElementById('g2-metal')?.checked || false,
+      ts_search_configured: document.getElementById('g2-ts')?.checked || false,
+      spin_assigned_by: val('g2-spin').trim() || null,
+      oxidation_state_assigned_by: val('g2-ox').trim() || null,
+      protonation_assigned_by: val('g2-proto').trim() || null,
+      scope_signoff_by: val('g2-scope').trim() || null,
+      source: val('g2-source').trim() || null,
+    };
+    const res = await fetch(`${API}/api/gate2/dispatch_custom_compound`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body)
+    });
+    const out = await res.json();
+    if (out.blocked_by_gate2) {
+      setMsg('<span style="color:var(--gold)">⛔ Blocked by Gate 2 — nothing sent to Laguna. Missing: '
+           + out.missing_requirements.join('; ') + '</span>');
+      return;
+    }
+    if (!out.queued) {
+      setMsg('<span style="color:#f87171">Dispatch failed: ' + (out.error || out.detail || 'unknown error') + '</span>');
+      return;
+    }
+    setMsg('<span style="color:var(--green)">✓ Gate 2 cleared — queued on Laguna (dispatch ' + (out.dispatch_id || '').slice(0, 8) + ')</span>');
+    if (typeof window.solangeLoadGate2 === 'function') window.solangeLoadGate2();
+    if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Dispatch failed: ' + e.message + '</span>');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = orig; }
   }
