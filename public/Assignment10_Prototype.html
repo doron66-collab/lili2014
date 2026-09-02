@@ -2004,6 +2004,16 @@
                 (x.id && x.geometry
                   ? ('<button onclick="dispatchDmrgRowToShci('+i+',this)" title="Queue SHCI (Dice) against this SAME active space, on the classical Laguna agent — reuses this record\'s own geometry/AVAS/charge/spin, nothing re-typed" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">▶ Queue SHCI</button>')
                   : (x.id ? '<span style="color:var(--gray);font-size:9px;margin-left:4px" title="No stored geometry/AVAS on this record (e.g. a --compound demo run) — SHCI cross-validation needs a real --geometry DMRG run to copy inputs from">SHCI n/a</span>' : ''))+
+                // Rung 4 escalation — only offered for Class A (the ladder's own
+                // logic: quantum hardware is for the case classical methods did
+                // NOT deliver) with a real stored geometry/AVAS (the inputs
+                // geometry_target() in solange_qpu.py needs). This is the first
+                // concrete link from a real Rung-3 verdict to Rung 4 — before
+                // 2026-09-02 Rung 4 could only run the fixed 4-qubit demo
+                // library, with no path from an actual classification at all.
+                (x.id && x.geometry && x.bqp_class === 'A'
+                  ? ('<button onclick="dispatchDmrgRowToQpu('+i+',this)" title="Send this Class A active space to Rung 4 — reuses this record\'s own geometry/AVAS/charge/spin/basis, nothing re-typed. SPENDS REAL QUANTUM TIME the moment the QPU agent claims it (no automatic dry-run gate — asks for confirmation first). HONEST SCOPE: a large active space (many qubits, no qubit reduction) may not be practically transpilable — the attempt itself is the real test, not a guarantee." style="background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.6);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">▶ Send to QPU</button>')
+                  : '')+
                 (x.id?('<input type="checkbox" class="dmrg-del-chk" data-id="'+x.id+'" onchange="updateDmrgDelBtn()" title="Select this DMRG classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
         dmrgPaint(hh+'</table>'+
@@ -6111,6 +6121,62 @@ async function dispatchDmrgRowToShci(i, btn) {
         geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
         basis: x.basis, ncas: x.ncas, nelecas: x.nelecas,
         dmrg_classification_id: x.id,
+      })
+    });
+    const out = await res.json();
+    if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
+    if (btn) { btn.textContent = '✓ queued'; btn.style.color = 'var(--green)'; }
+    if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
+  } catch (e) {
+    alert('Queue failed: ' + e.message);
+  } finally {
+    if (btn && btn.textContent === 'queuing…') { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// Send ONE Class-A DMRG record's active space to Rung 4 (real QPU) — the "▶
+// Send to QPU" button on that record's own row. Copies geometry/AVAS/charge/
+// spin/basis straight from the DMRG row (window.__dmrgRows), never re-typed.
+//
+// Deliberately DOES dispatch from the browser, unlike the generic key-based
+// QPU flow below (solangeShowRunCmd), which stays copy-command-only by
+// design. The difference: reaching this button at all means a real Rung-3
+// classification already said quantum computation is necessary for this
+// active space — that is a materially different situation from picking an
+// arbitrary key to run on hardware speculatively, and the explicit confirm()
+// below is the human-in-the-loop gate for it (agreed with the user
+// 2026-09-02: option 2, real dispatch + explicit warning, not copy-command,
+// specifically because arriving here already implies a Class A result).
+async function dispatchDmrgRowToQpu(i, btn) {
+  const rows = window.__dmrgRows || [];
+  const x = rows[i];
+  if (!x || !x.id) return;
+  if (!x.geometry || !x.avas) {
+    alert('This DMRG record has no stored geometry/AVAS (likely a --compound demo '
+        + 'run) — Rung 4 needs a real --geometry run to copy inputs from.');
+    return;
+  }
+  if (!confirm(
+    `Send ${x.key} (CAS(${x.nelecas},${x.ncas}), Class ${x.bqp_class}) to Rung 4?\n\n` +
+    'This SPENDS REAL QUANTUM TIME the moment the QPU agent (if running) claims it ' +
+    '— there is no automatic dry-run gate on the agent path. A large active space ' +
+    '(many qubits, no qubit-reduction technique applied) may also not be practically ' +
+    'transpilable on current hardware at all; the attempt itself is the real test, ' +
+    'not a guarantee of success.\n\nProceed?'
+  )) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'queuing…'; }
+  try {
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        key: x.key, job_type: 'qpu',
+        geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
+        basis: x.basis, ncas: x.ncas, nelecas: x.nelecas,
       })
     });
     const out = await res.json();
