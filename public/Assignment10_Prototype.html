@@ -861,7 +861,13 @@
         // weight 900->700, halo 2.5->1.2 — thin enough for the green fill
         // to still show clearly around and behind the stroke.
         if (m.energyAgreement != null) {
-          svg.push('<text x="' + mx.toFixed(1) + '" y="' + (my+2.5).toFixed(1) + '" fill="' + (m.energyAgreement ? '#ffffff' : '#ff3b3b')
+          // Same weight/size/halo for both colors, but the vivid #ff3b3b red
+          // against the dark halo read as visibly "bolder" than the white
+          // version even at identical font-weight (a real perceptual effect,
+          // not a code difference) — switched to the project's own softer red
+          // (#f87171, already used everywhere else for disagreement/errors)
+          // for consistency and a calmer contrast.
+          svg.push('<text x="' + mx.toFixed(1) + '" y="' + (my+2.5).toFixed(1) + '" fill="' + (m.energyAgreement ? '#ffffff' : '#f87171')
                  + '" font-size="7" font-weight="700" text-anchor="middle" pointer-events="none" '
                  + 'paint-order="stroke" stroke="rgba(6,15,34,.9)" stroke-width="1.2">E</text>');
         }
