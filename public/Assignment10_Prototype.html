@@ -849,27 +849,23 @@
                + (m.cls ? ' — classified ' + esc(m.cls) : '') + '. Measured on this platform and sealed by LEON.' + ringTitle
                + (m.deltaMha != null ? ' SHCI Δ=' + Number(m.deltaMha).toFixed(1) + ' mHa vs DMRG (' + (m.energyAgreement ? 'within' : 'above') + ' chemical accuracy).' : '')
                + '</title></circle>');
-        // E-mark — energy agreement specifically, independent of the class-
-        // agreement ring above: white E = SHCI's raw energy matches DMRG's
-        // within chemical accuracy, red E = it does not (expected whenever
+        // Energy-agreement mark — independent of the class-agreement ring
+        // above: white triangle = SHCI's raw energy matches DMRG's within
+        // chemical accuracy, red triangle = it does not (expected whenever
         // either solver hasn't actually converged, even if their classes
         // still agree — that's the ring's job to say, not this mark's).
-        // The first bump (6.5->9.5, weight 900, thick halo) overcorrected:
-        // the letter itself got so heavy it swallowed the green dot entirely,
-        // reading as a plain badge with no ball visible underneath at all.
-        // Scaled back — dot 6->7 for a bit more room, letter 9.5->7,
-        // weight 900->700, halo 2.5->1.2 — thin enough for the green fill
-        // to still show clearly around and behind the stroke.
+        // Went through two letter-based attempts ("E", white/red) that both
+        // read poorly at this size (too heavy and swallowed the dot; then a
+        // vivid red that read as bolder than the white version even at
+        // identical weight — a perceptual contrast effect). A small solid
+        // triangle avoids both: no font-rendering quirks, and a flat colour
+        // fill reads the same in both colours.
         if (m.energyAgreement != null) {
-          // Same weight/size/halo for both colors, but the vivid #ff3b3b red
-          // against the dark halo read as visibly "bolder" than the white
-          // version even at identical font-weight (a real perceptual effect,
-          // not a code difference) — switched to the project's own softer red
-          // (#f87171, already used everywhere else for disagreement/errors)
-          // for consistency and a calmer contrast.
-          svg.push('<text x="' + mx.toFixed(1) + '" y="' + (my+2.5).toFixed(1) + '" fill="' + (m.energyAgreement ? '#ffffff' : '#f87171')
-                 + '" font-size="7" font-weight="700" text-anchor="middle" pointer-events="none" '
-                 + 'paint-order="stroke" stroke="rgba(6,15,34,.9)" stroke-width="1.2">E</text>');
+          var triClr = m.energyAgreement ? '#ffffff' : '#f87171';
+          var triPts = mx.toFixed(1) + ',' + (my-3.2).toFixed(1) + ' '
+                     + (mx-3).toFixed(1) + ',' + (my+2.2).toFixed(1) + ' '
+                     + (mx+3).toFixed(1) + ',' + (my+2.2).toFixed(1);
+          svg.push('<polygon points="' + triPts + '" fill="' + triClr + '" stroke="rgba(6,15,34,.85)" stroke-width="0.6" pointer-events="none"/>');
         }
         svg.push('<text class="dmrg-point-label" x="' + (mx+8).toFixed(1) + '" y="' + (my-7).toFixed(1)
                + '" fill="var(--white)" font-size="9" font-weight="700" paint-order="stroke" stroke="rgba(6,15,34,.85)" stroke-width="3" pointer-events="none">'
@@ -886,7 +882,7 @@
         + '<span style="color:var(--teal)">&#9679; platform calibration (N₂)</span>'
         + '<span style="color:var(--green)">&#9679; measured (LEON)</span>'
         + '<span title="Ring around a point = a second, independent method (SHCI) cross-validated it. Purple solid = agrees on the A/B/C class. Red dashed = reached a DIFFERENT class — not settled."><span style="color:#a78bfa">&#9711;</span><span style="color:#f87171">&#9711;</span> SHCI: class agree/disagree</span>'
-        + '<span title="The E inside a point: white = SHCI\'s raw energy matches DMRG\'s within chemical accuracy. Red = it does not — expected when either solver has not actually converged, even if their classes still agree.">E <span style="color:var(--white)">white</span>/<span style="color:#f87171">red</span> = SHCI energy agree/disagree</span>';
+        + '<span title="The small triangle inside a point: white = SHCI\'s raw energy matches DMRG\'s within chemical accuracy. Red = it does not — expected when either solver has not actually converged, even if their classes still agree.">&#9650; <span style="color:var(--white)">white</span>/<span style="color:#f87171">red</span> = SHCI energy agree/disagree</span>';
 
       var fn = document.getElementById('scaling-footnote');
       if (fn) fn.innerHTML =
