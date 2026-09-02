@@ -702,7 +702,7 @@
   <div class="card" style="margin-bottom:16px;margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px">
       <div class="card-title" style="margin-bottom:0"><span class="info-wrap"><span class="info-i">i</span><div class="footnote info-panel" id="scaling-footnote"></div></span> Classical Tractability Plane — Size vs. Measured Entanglement</div>
-      <div id="scaling-legend" style="display:flex;gap:14px;font-size:10px;flex-wrap:wrap"></div>
+      <div id="scaling-legend" style="display:flex;gap:14px;font-size:10px;flex-wrap:wrap;align-items:center"></div>
     </div>
     <div id="scaling-chart"></div>
   </div>
@@ -876,13 +876,44 @@
       document.getElementById('scaling-chart').innerHTML = svg.join('');
 
       var leg = document.getElementById('scaling-legend');
-      if (leg) leg.innerHTML =
-          '<span style="color:rgba(239,68,68,.9)">&#9472; exact wall (vertical &middot; size)</span>'
-        + '<span style="color:var(--amber)">&#9472; S_HARD (horizontal &middot; entanglement)</span>'
-        + '<span style="color:var(--teal)">&#9679; platform calibration (N₂)</span>'
-        + '<span style="color:var(--green)">&#9679; measured (LEON)</span>'
-        + '<span title="Ring around a point = a second, independent method (SHCI) cross-validated it. Purple solid = agrees on the A/B/C class. Red dashed = reached a DIFFERENT class — not settled."><span style="color:#a78bfa">&#9711;</span><span style="color:#f87171">&#9711;</span> SHCI: class agree/disagree</span>'
-        + '<span title="The small triangle inside a point: white = SHCI\'s raw energy matches DMRG\'s within chemical accuracy. Red = it does not — expected when either solver has not actually converged, even if their classes still agree.">&#9650; <span style="color:var(--white)">white</span>/<span style="color:#f87171">red</span> = SHCI energy agree/disagree</span>';
+      if (leg) {
+        // Legend icons are built from the SAME numbers the chart itself uses
+        // (ring radius/stroke, triangle points, dot radius/fill) rather than a
+        // generic glyph (&#9711;/&#9650;) standing in for them — asked for
+        // directly after the glyph-based legend didn't match what the chart
+        // actually draws. Each icon is its own tiny SVG at the real point's
+        // proportions, agree/disagree stacked one above the other per pair.
+        var ringIcon = function(agree){
+          var stroke = agree ? '#a78bfa' : '#f87171';
+          var dash = agree ? '' : ' stroke-dasharray="4,2.5"';
+          return '<svg width="20" height="20" viewBox="0 0 20 20" style="flex:none">'
+               + '<circle cx="10" cy="10" r="6" fill="var(--green)" stroke="rgba(6,15,34,.8)" stroke-width="1"/>'
+               + '<circle cx="10" cy="10" r="9" fill="none" stroke="' + stroke + '" stroke-width="2.2"' + dash + '/>'
+               + '</svg>';
+        };
+        var triIcon = function(agree){
+          var fill = agree ? '#ffffff' : '#f87171';
+          return '<svg width="20" height="20" viewBox="0 0 20 20" style="flex:none">'
+               + '<circle cx="10" cy="10" r="6" fill="var(--green)" stroke="rgba(6,15,34,.8)" stroke-width="1"/>'
+               + '<polygon points="10,7 7.3,11.6 12.7,11.6" fill="' + fill + '" stroke="rgba(6,15,34,.85)" stroke-width="0.6"/>'
+               + '</svg>';
+        };
+        var row = function(icon, txt){
+          return '<div style="display:flex;align-items:center;gap:5px">' + icon + '<span>' + txt + '</span></div>';
+        };
+        var col = function(rows, title){
+          return '<div style="display:flex;flex-direction:column;gap:2px" title="' + title + '">' + rows.join('') + '</div>';
+        };
+        leg.innerHTML =
+            '<span style="color:rgba(239,68,68,.9)">&#9472; exact wall (vertical &middot; size)</span>'
+          + '<span style="color:var(--amber)">&#9472; S_HARD (horizontal &middot; entanglement)</span>'
+          + '<span style="color:var(--teal)">&#9679; platform calibration (N₂)</span>'
+          + '<span style="color:var(--green)">&#9679; LEON sealed</span>'
+          + col([row(ringIcon(true), 'SHCI agree'), row(ringIcon(false), 'SHCI disagree')],
+                'Ring around a point = a second, independent method (SHCI) cross-validated it on the A/B/C verdict. Purple solid = agrees. Red dashed = reached a DIFFERENT class — not settled.')
+          + col([row(triIcon(true), 'energy agree'), row(triIcon(false), 'energy disagree')],
+                'Triangle inside a point = SHCI\'s raw energy vs. DMRG\'s. White = matches within chemical accuracy. Red = it does not — expected when either solver has not actually converged, even if their classes still agree.');
+      }
 
       var fn = document.getElementById('scaling-footnote');
       if (fn) fn.innerHTML =
