@@ -2275,69 +2275,7 @@
     <span class="persona-badge" style="color:var(--teal);background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.4)"
           title="Results, comparisons, uncertainty, and the evidence behind a computational-chemistry decision — for the researcher actually running and reading the science.">Scientist View</span>
     <h2 style="color:var(--white);margin-top:6px">Results &amp; Benchmarking</h2>
-    <p id="s3-header-sub" style="color:var(--white)">VQE Ground-State Energy · Phase 3A Live Results</p>
-  </div>
-
-  <!-- Phase 3A Live Results -->
-  <!-- Run history selector — populated after each completed run -->
-  <div id="run-history-bar" style="display:none;margin-bottom:12px">
-    <div style="font-size:10px;color:var(--white);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Completed Runs — click to review</div>
-    <div id="run-history-chips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-  </div>
-
-  <div class="card" id="s3-live-card" style="margin-bottom:16px;border:1px solid rgba(0,168,214,0.4);background:#223244">
-    <div class="card-title" style="color:var(--white);text-transform:uppercase;letter-spacing:0.5px">Phase 3A Live Results — Quantum Simulator · <span id="s3-mutation" style="color:var(--gray)">No run yet</span></div>
-    <div id="s3-proxy-notice" style="display:none;margin:8px 0 4px;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:6px;font-size:10.5px;color:var(--gray)">
-      <span style="color:var(--gold);font-weight:700">⚠ Phase 3A Residue-Class Proxy</span> — <span id="s3-proxy-text"></span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
-      <div class="stat">
-        <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-energy">—</div>
-        <div class="stat-lbl" id="s3-energy-lbl">Ground-state energy · active space</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-runtime">—</div>
-        <div class="stat-lbl" id="s3-runtime-lbl">VQE runtime · iterations</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="font-size:20px;color:var(--gray)" id="s3-circuit">—</div>
-        <div class="stat-lbl">Qubits / gates / depth</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="font-size:13px;color:var(--gray);word-break:break-all;font-family:monospace" id="s3-seal">—</div>
-        <div class="stat-lbl" id="s3-runid">P8 SHA-256 seal · Run a simulation to populate</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <div class="stat">
-        <div class="stat-val" style="font-size:13px;color:var(--gray);font-family:monospace" id="s3-ci">—</div>
-        <div class="stat-lbl">95% CI half-width</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="font-size:13px;color:var(--gray);font-family:monospace" id="s3-variance">—</div>
-        <div class="stat-lbl">Energy variance · convergence quality</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="font-size:15px;color:var(--gray)" id="s3-basis">—</div>
-        <div class="stat-lbl">Basis set</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="font-size:13px;color:var(--gray)" id="s3-ansatz">—</div>
-        <div class="stat-lbl">Ansatz · trial wavefunction circuit</div>
-      </div>
-    </div>
-    <div style="margin-top:10px;font-size:10.5px;color:var(--gray);border-top:1px solid var(--border);padding-top:8px" id="s3-footer">
-      Full Phase 3B target: <span id="s3-phase3b-target">—</span> · All P1–P9 provenance sealed
-    </div>
-    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="font-size:10px;color:var(--gray);flex:1;min-width:180px">
-        <strong style="color:var(--teal)">PySCF CASSCF(2,2) integrals available</strong><br>
-        <span id="s3-casscf-desc">Real ab initio Hamiltonian for TP53 C275F · Phe275 π system · STO-3G</span>
-      </div>
-      <button onclick="downloadCasscfIntegrals()" style="background:var(--teal);color:var(--white);border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
-        ⬇ Download CASSCF Integrals
-      </button>
-    </div>
+    <p id="s3-header-sub" style="color:var(--white)">DMRG / SHCI Classification · Rung 3-4 Escalation Evidence</p>
   </div>
 
   <!-- VQE Convergence Chart -->
@@ -3447,11 +3385,6 @@ function updateResultsCharts(data) {
   const mutId = rec.mutation_id || '';
   const mutName = getDisplayName(mutId) || rec.mutation_name || mutId;
   const electrons = rec.p2_active_electrons || '2';
-  const meta = MUT_META[mutId] || {};
-  const fullE = meta.full_electrons || '?';
-  const fullQ = meta.full_qubits   || '?';
-  const p3bTarget = document.getElementById('s3-phase3b-target');
-  if (p3bTarget) p3bTarget.textContent = `~${fullE}e / ${fullQ} qubits`;
 
   // 1. Bar chart — keep VQE bar at kcal/mol reference; live Hₐ goes to footnote only
   const barVal = document.getElementById('vqe-bar-val');
@@ -3560,17 +3493,10 @@ function updateResultsCharts(data) {
 }
 
 function updateAllTabs(data) {
-  // stash the extra jw fields returned by the API so downloadCasscfIntegrals() can use them
-  if (data.result) {
-    data._e_rhf    = data.result._e_rhf    || null;
-    data._jw_terms = data.result._jw_terms || [];
-  }
   lastRunData = data;
   addRunToHistory(data);
   const r   = data.result;
   const rec = data.full_record;
-  const now = new Date(rec.created_at).toLocaleString();
-  const runShort = data.run_id.slice(0, 8);
 
   // ── Orchestration tab result box (already shown inline) ──────────────
   document.getElementById('r-energy').textContent  = `${r.energy_ha} Hₐ`;
@@ -3579,43 +3505,6 @@ function updateAllTabs(data) {
   document.getElementById('r-runid').textContent   = data.run_id;
   document.getElementById('r-seal').textContent    = rec.p8_hash;
   document.getElementById('sim-result').style.display = 'block';
-
-  // ── Results tab — Phase 3A live card ─────────────────────────────────
-  const s3card = document.getElementById('s3-live-card');
-  if (s3card) {
-    const s3Mut = document.getElementById('s3-mutation');
-    if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = 'var(--gray)'; }
-    const s3Proxy = document.getElementById('s3-proxy-notice');
-    if (s3Proxy) s3Proxy.style.display = 'none';
-    const s3E = document.getElementById('s3-energy');
-    if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
-    const s3El = document.getElementById('s3-energy-lbl');
-    if (s3El) s3El.textContent = `Ground-state energy · ${rec.p2_active_electrons || 2}e/${rec.p2_active_orbitals || 2}orb active space`;
-    const s3R = document.getElementById('s3-runtime');
-    if (s3R) { s3R.textContent = `${r.elapsed_s}s`; s3R.style.color = 'var(--green)'; }
-    const s3Rl = document.getElementById('s3-runtime-lbl');
-    if (s3Rl) s3Rl.textContent = `VQE runtime · ${rec.p5_opt_steps || '—'} iterations · VQE ansatz`;
-    const s3C = document.getElementById('s3-circuit');
-    if (s3C) { s3C.textContent = `${r.qubits_used}q / ${r.gate_count}g / d${r.depth}`; s3C.style.color = 'var(--gold)'; }
-    const s3S = document.getElementById('s3-seal');
-    if (s3S) { s3S.textContent = rec.p8_hash.slice(0,20) + '…'; s3S.style.color = '#a78bfa'; }
-    const s3Ri = document.getElementById('s3-runid');
-    if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
-    // Row 2 — CI, variance, basis set, ansatz
-    const s3CI = document.getElementById('s3-ci');
-    if (s3CI) { const hw = r.ci_half ?? (r.ci_upper - r.ci_lower) / 2; s3CI.textContent = `± ${hw.toExponential(2)} Hₐ`; s3CI.style.color = 'var(--teal)'; }
-    const s3Var = document.getElementById('s3-variance');
-    if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
-    const s3Bas = document.getElementById('s3-basis');
-    if (s3Bas) { s3Bas.textContent = rec.p2_basis_set || '—'; s3Bas.style.color = 'var(--light)'; }
-    const s3Ans = document.getElementById('s3-ansatz');
-    if (s3Ans) { s3Ans.textContent = rec.p1_ansatz || '—'; s3Ans.style.color = 'var(--gold)'; }
-    const meta3b = MUT_META[rec.mutation_id] || {};
-    const s3Ft = document.getElementById('s3-footer');
-    if (s3Ft) s3Ft.innerHTML = `Full Phase 3B target: <span id="s3-phase3b-target">~${meta3b.full_electrons || '?'}e / ${meta3b.full_qubits || '?'} qubits on ${meta3b.backend || 'fault-tolerant QPU'}</span> · All P1–P9 provenance sealed`;
-    const s3Desc = document.getElementById('s3-casscf-desc');
-    if (s3Desc) s3Desc.textContent = `Real ab initio Hamiltonian for ${rec.mutation_name} · ${rec.p2_model_compound || r.compound || '—'} proxy · STO-3G`;
-  }
 
   // ── Compliance tab — P1-P9 schema table statuses ─────────────────────
   const schemaStatuses = {
@@ -6850,7 +6739,6 @@ function resetPlatform() {
   pqCompleted.clear();
   activeTargets = [];
   runHistory.length = 0;
-  printQueue.length = 0;
   sessionStorage.setItem('session_start', new Date().toISOString());
   // Clear the 3D-viewer bridge so /3d reverts to its built-in demo set.
   try { localStorage.removeItem('solange_3d_variants'); } catch (e) {}
@@ -6860,8 +6748,6 @@ function resetPlatform() {
   window.__ngsHydrated = false;
   window.__allVariants = [];
   if (typeof window.solangePopulateGate1VariantPicker === 'function') window.solangePopulateGate1VariantPicker();
-  const rhBar = document.getElementById('run-history-bar');
-  if (rhBar) rhBar.style.display = 'none';
 
   // Clear the Compute Dispatcher view (per-mutation routing + HPC ladder). Server
   // HPC records are archived and untouched — they reappear on reload.
@@ -6975,15 +6861,6 @@ function resetPlatform() {
   el('sim-result') && (el('sim-result').style.display = 'none');
   el('sim-status') && (el('sim-status').textContent = '');
   ['r-energy','r-ci','r-circuit','r-runid','r-seal'].forEach(id => { if (el(id)) el(id).textContent = ''; });
-
-  // ── Results — Phase 3A live card ─────────────────────────────────────
-  if (el('s3-mutation')) { el('s3-mutation').textContent = 'No run yet'; el('s3-mutation').style.color = 'var(--gray)'; }
-  if (el('s3-proxy-notice')) el('s3-proxy-notice').style.display = 'none';
-  ['s3-energy','s3-runtime','s3-circuit','s3-seal','s3-ci','s3-variance','s3-basis','s3-ansatz'].forEach(id => {
-    if (el(id)) { el(id).textContent = '—'; el(id).style.color = 'var(--gray)'; }
-  });
-  el('s3-runid') && (el('s3-runid').textContent = 'P8 SHA-256 seal · Run a simulation to populate');
-  if (el('s3-phase3b-target')) el('s3-phase3b-target').textContent = '~44e / 88 qubits';
 
   // ── Compliance — P1-P9 schema table statuses ─────────────────────────
   ['p1','p2','p3','p4','p5','p6','p7','p8','p9'].forEach(p => {
@@ -7111,8 +6988,7 @@ function resetJobCards() {
 
 // ── Export full P1-P9 provenance report as PDF ────────────────────────────
 let lastRunData = null;  // set by updateAllTabs()
-const runHistory = [];   // all completed runs this session
-const printQueue = [];   // runs selected via right-click for PDF export
+const runHistory = [];   // all completed runs this session — feeds exportPDF()
 
 const MUT_COLORS = {
   TP53_Y220C:  '#60a5fa', TP53_C275F:  '#E8A020',
@@ -7280,74 +7156,6 @@ function submitPhase3B(mutationId) {
   setTimeout(() => toast.remove(), 6000);
 }
 
-function downloadCasscfIntegrals() {
-  if (!lastRunData) {
-    alert('Run a simulation first — the download contains the actual results for the selected mutation.');
-    return;
-  }
-  const r   = lastRunData.result;
-  const rec = lastRunData.full_record;
-  const vqe = lastRunData._vqe || {};
-
-  const mutId    = rec.mutation_id   || '';
-  const mutName  = getDisplayName(mutId) || rec.mutation_name || mutId;
-  const compound = r.model_compound  || rec.p2_model_compound || 'unknown';
-  const eRhf     = lastRunData._e_rhf   || null;
-  const jwTerms  = lastRunData._jw_terms || [];
-
-  const pkg = {
-    title:        `SOLANGE™ — ${mutName} Phase 3A CASSCF(2,2) Hamiltonian`,
-    generated_at: new Date().toISOString(),
-    mutation_id:  mutId,
-    run_id:       lastRunData.run_id,
-    provenance: {
-      script:       'pyscf_mutations.py',
-      model:        `${compound} (sidechain proxy)`,
-      basis:        rec.p2_basis_set || 'STO-3G',
-      active_space: 'CAS(2e, 2o) — HOMO/LUMO pair',
-      encoding:     rec.p2_encoding  || 'Jordan-Wigner (openfermion)',
-      jw_qubits:    r.qubits_used    || 4,
-      p8_seal:      rec.p8_hash
-    },
-    energies: {
-      e_rhf_Ha:       eRhf,
-      e_casscf_Ha:    r.casscf_ref_ha,
-      e_active_Ha:    r.energy_active_ha,
-      ecore_Ha:       r.ecore_ha,
-      e_total_Ha:     r.energy_ha,
-      correlation_Ha: eRhf !== null ? +(r.casscf_ref_ha - eRhf).toFixed(10) : null,
-      units:          'Hartree (Ha)'
-    },
-    jw_hamiltonian: {
-      description: 'Jordan-Wigner Pauli decomposition — H = Σ_i c_i · P_i, P_i ∈ {I,X,Y,Z}^⊗4',
-      n_terms:     jwTerms.length,
-      terms:       jwTerms
-    },
-    references: [
-      'Sun Q et al. (2020) J Chem Phys 153:024109 — PySCF 2.0',
-      'Jordan P & Wigner E (1928) Z Phys 47:631 — Jordan-Wigner transform',
-      'McClean JR et al. (2020) Quantum Sci Technol 5:034014 — OpenFermion'
-    ]
-  };
-
-  const date    = new Date().toISOString().slice(0,10);
-  const safeMut = mutId.replace(/[^a-zA-Z0-9_]/g, '_');
-  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `SOLANGE_${safeMut}_CASSCF_${date}.json`;
-  a.click();
-
-  const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#223244;border:1px solid var(--teal);color:var(--white);padding:14px 20px;border-radius:10px;font-size:12px;z-index:9999;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease';
-  toast.innerHTML = `
-    <div style="font-weight:700;color:var(--teal);margin-bottom:6px">⬇ CASSCF Hamiltonian Downloaded</div>
-    <div style="color:#94a3b8;font-size:11px">Real PySCF CASSCF(2,2) data for ${mutName}.<br>${jwTerms.length} Pauli terms · feed into openfermion or qiskit-nature.</div>
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 6000);
-}
-
 function pipelineDesc(mutId) {
   const m = MUT_META[mutId] || {};
   const src = m.source === 'research' ? ' · 📚 Research' : '';
@@ -7396,44 +7204,8 @@ function rowToRunData(row) {
   };
 }
 
-// ── Rebuild run-history chip bar from runHistory[] ───────────────────────────
-function rebuildHistoryChips() {
-  const bar   = document.getElementById('run-history-bar');
-  const chips = document.getElementById('run-history-chips');
-  if (!bar || !chips) return;
-  if (!runHistory.length) { bar.style.display = 'none'; return; }
-  bar.style.display = 'block';
-  chips.innerHTML = '';
-  runHistory.forEach(d => {
-    const mid      = d.full_record?.mutation_id || '';
-    const color    = MUT_COLORS[mid] || 'var(--teal)';
-    const label    = d.full_record?.mutation_name || mid;
-    const inQueue  = printQueue.includes(d);
-    const chip     = document.createElement('button');
-    chip.textContent = `${inQueue ? '✓ ' : ''}${label} · ${d.result.energy_ha} Hₐ`;
-    chip.style.cssText = `background:${inQueue ? 'rgba(34,197,94,0.15)' : 'rgba(0,0,0,0.25)'};
-      color:${color};border:${inQueue ? '2px solid var(--green)' : `1px solid ${color}`};
-      padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap`;
-    chip.onclick = () => displayRunResults(d);
-    chip.oncontextmenu = (e) => {
-      e.preventDefault();
-      const already = printQueue.includes(d);
-      const msg = already
-        ? `Remove "${label}" from print queue?`
-        : `Add "${label}" to print queue?`;
-      if (confirm(msg)) {
-        if (already) printQueue.splice(printQueue.indexOf(d), 1);
-        else printQueue.push(d);
-        rebuildHistoryChips();
-      }
-    };
-    chips.appendChild(chip);
-  });
-}
-
 function addRunToHistory(data) {
   runHistory.push(data);
-  rebuildHistoryChips();
 }
 
 // ── Load previous runs from Supabase on login ─────────────────────────────────
@@ -7456,10 +7228,8 @@ async function loadSessionHistory() {
       runHistory.push(rowToRunData(row));
       pqCompleted.add(row.mutation_id);
     });
-    rebuildHistoryChips();
-    // Restore most recent run into Results tab + charts
+    // Restore most recent run's charts
     lastRunData = runHistory[runHistory.length - 1];
-    displayRunResults(lastRunData);
     updateResultsCharts(lastRunData);
     // Mark P1–P9 as captured (at least one run exists)
     ['p1','p2','p3','p4','p5','p6','p7'].forEach(p => {
@@ -7478,47 +7248,11 @@ async function loadSessionHistory() {
   }
 }
 
-function displayRunResults(data) {
-  const rec = data.full_record;
-  const r   = data.result;
-  const now = new Date(rec.created_at).toLocaleString();
-  const runShort = data.run_id.slice(0, 8);
-
-  // Results tab s3 card
-  const s3Mut = document.getElementById('s3-mutation');
-  if (s3Mut) { s3Mut.textContent = rec.mutation_name; s3Mut.style.color = ''; }
-  const s3ProxyD = document.getElementById('s3-proxy-notice');
-  if (s3ProxyD) s3ProxyD.style.display = 'none';
-  const s3E = document.getElementById('s3-energy');
-  if (s3E) { s3E.textContent = `${r.energy_ha} Hₐ`; s3E.style.color = 'var(--teal)'; }
-  const s3R = document.getElementById('s3-runtime');
-  if (s3R) { s3R.textContent = `${r.elapsed_s}s`; s3R.style.color = 'var(--green)'; }
-  const s3C = document.getElementById('s3-circuit');
-  if (s3C) { s3C.textContent = `${r.qubits_used}q / ${r.gate_count}g / d${r.depth}`; s3C.style.color = 'var(--gold)'; }
-  const s3S = document.getElementById('s3-seal');
-  if (s3S) { s3S.textContent = rec.p8_hash.slice(0, 20) + '…'; s3S.style.color = '#a78bfa'; }
-  const s3Ri = document.getElementById('s3-runid');
-  if (s3Ri) s3Ri.textContent = `Run ${runShort}… · ${now}`;
-  // Row 2
-  const s3CI = document.getElementById('s3-ci');
-  if (s3CI) { const hw = r.ci_half ?? (r.ci_upper - r.ci_lower) / 2; s3CI.textContent = `± ${hw.toExponential(2)} Hₐ`; s3CI.style.color = 'var(--teal)'; }
-  const s3Var = document.getElementById('s3-variance');
-  if (s3Var) { s3Var.textContent = rec.p5_energy_variance ? rec.p5_energy_variance.toExponential(3) : '—'; s3Var.style.color = 'var(--light)'; }
-  const s3Bas = document.getElementById('s3-basis');
-  if (s3Bas) { s3Bas.textContent = rec.p2_basis_set || '—'; s3Bas.style.color = 'var(--light)'; }
-  const s3Ans = document.getElementById('s3-ansatz');
-  if (s3Ans) { s3Ans.textContent = rec.p1_ansatz || '—'; s3Ans.style.color = 'var(--gold)'; }
-  const s3Desc = document.getElementById('s3-casscf-desc');
-  if (s3Desc) s3Desc.textContent = `Real ab initio Hamiltonian for ${rec.mutation_name} · ${rec.p2_model_compound || r.compound || '—'} proxy · STO-3G`;
-}
-
 function exportPDF() {
   let runs;
-  if (printQueue.length) {
-    runs = printQueue;
-  } else if (runHistory.length || lastRunData) {
+  if (runHistory.length || lastRunData) {
     const all = runHistory.length ? runHistory : [lastRunData];
-    if (!confirm(`No runs selected for print.\nExport all ${all.length} run(s)?`)) return;
+    if (!confirm(`Export all ${all.length} run(s)?`)) return;
     runs = all;
   } else {
     alert('Run a simulation first — no provenance record loaded yet.');
