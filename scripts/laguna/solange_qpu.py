@@ -39,6 +39,9 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+_HERE = Path(__file__).resolve()
+sys.path.insert(0, str(_HERE.parents[2]))      # repo root, for generate_expansion_jw
+
 # Canonical minimal-basis (STO-3G) H2 Hamiltonian, JW + 2-qubit reduction, 0.735 Å
 # — O'Malley et al., PRX 6:031007 (2016). Terms are (coeff, pauli-label q0q1).
 H2_TERMS = [
@@ -144,6 +147,79 @@ def jw_target(key, side, jw_file):
         "e_active_exact": e.get("e_active_exact"), "e_active_rhf": e.get("e_active_rhf"),
         "encoding": f"Jordan-Wigner (CASSCF({nelecas},{ncas}) -> {len(terms)} Pauli terms)",
         "basis": e.get("basis", "STO-3G"), "nelecas": nelecas, "ncas": ncas,
+    }
+
+
+def geometry_target(geometry_path, avas_str, key, charge=0, spin=0, basis="sto-3g",
+                     threshold=0.2, df_auxbasis="def2-universal-jkfit", max_memory=16000):
+    """Build a QPU target from a REAL classified active space — geometry + AVAS
+    criterion, exactly the inputs a Rung-3 (DMRG/SHCI) classification record
+    already stores — instead of the fixed 4-qubit jw_target()/h2_target()
+    library. This is the piece that did not exist before 2026-09-02: Rung 4
+    could only ever run the small demo compounds, with no path from an actual
+    Class-A classification's own active space to a QPU-ready Hamiltonian.
+
+    RHF+AVAS+CASCI extraction mirrors solange_shci.py's own (already proven in
+    production, including its SOSCF retry for a plain-RHF convergence failure
+    on a hard case) rather than solange_dmrg.py's heavier CASSCF/DMRG-SCF
+    machinery — this only needs h1e/h2e for the JW encoding below, not an
+    optimized active space.
+
+    HONEST SCOPE, stated once rather than buried: Jordan-Wigner encoding uses
+    2 qubits per spatial orbital with NO qubit-reduction technique applied, so
+    a genuinely large active space (e.g. CAS(46,32) -> 64 qubits) produces a
+    qubit count and Pauli-term count (build_jw_terms scales ~O(ncas^4)) that
+    may not be practically transpilable/executable on current hardware at
+    all -- this function does not know or check that; it builds the
+    Hamiltonian and circuit honestly and lets the actual attempt (dry-run
+    first, always) be the real test, per this whole module's own stated
+    purpose (moving-parts proof, not a guarantee of success at any size).
+    """
+    from pyscf import gto, scf, mcscf, ao2mo
+    from pyscf.mcscf import avas
+    from generate_expansion_jw import build_jw_terms
+
+    mol = gto.M(atom=Path(geometry_path).read_text(), basis=basis, charge=charge,
+               spin=spin, verbose=0, max_memory=max_memory)
+    mf = scf.RHF(mol).density_fit(auxbasis=df_auxbasis)
+    mf.max_memory = max_memory
+    mf.kernel()
+    if not mf.converged:
+        # Same SOSCF fallback as solange_shci.py's RHF step, for the same
+        # reason (found live 2026-09-02 on a [2Fe-2S] proxy: plain RHF is a
+        # genuinely hard starting point for e.g. antiferromagnetically-coupled
+        # metal centres, and this is the standard robustification before
+        # giving up, not evidence of a code bug on either side).
+        print("  RHF did not converge on the first attempt — retrying with SOSCF "
+              "(second-order/Newton solver)...")
+        mf = mf.newton()
+        mf.kernel()
+        if not mf.converged:
+            raise SystemExit("RHF did not converge, including after an SOSCF (Newton) retry.")
+
+    aolabels = [s.strip() for s in avas_str.split(",")]
+    ncas, nelec, mo = avas.avas(mf, aolabels, threshold=threshold)
+    ncas, nelec = int(ncas), int(nelec)
+    print(f"  AVAS(threshold={threshold}) -> CAS({nelec},{ncas})")
+
+    mc = mcscf.CASCI(mf, ncas, nelec)
+    mc.mo_coeff = mo
+    e_casci = mc.kernel()[0]
+    h1e, ecore = mc.get_h1eff()
+    h2e = ao2mo.restore(1, mc.get_h2eff(), ncas)
+
+    terms, e_active_exact, e_active_rhf = build_jw_terms(h1e, h2e, ecore)
+    nq = 2 * ncas
+    return {
+        "label": f"{key} — CAS({nelec},{ncas}) real classified active space ({len(terms)} Pauli terms)",
+        "mutation_id": key, "compound": None, "side": "native",
+        "nq": nq, "nelec": nelec, "obs": _pauli_terms_to_op(terms, nq),
+        "circuit": _hf_circuit(nelec, nq), "terms": terms,
+        "ecore": float(ecore), "e_casscf": float(e_casci),
+        "e_active_exact": e_active_exact, "e_active_rhf": e_active_rhf,
+        "encoding": f"Jordan-Wigner (CASCI({nelec},{ncas}) -> {len(terms)} Pauli terms, "
+                    f"no qubit reduction)",
+        "basis": basis, "nelecas": nelec, "ncas": ncas,
     }
 
 
@@ -539,13 +615,20 @@ def submit(api, record):
         return None
 
 
-def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, api, on_status=None, on_tick=None):
+def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, api, on_status=None, on_tick=None,
+                geometry_path=None, avas_str=None, charge=0, spin=0, basis="sto-3g"):
     """Execute ONE real-hardware QPU job end-to-end (used by --agent): build the
     target, measure ⟨H⟩ on hardware, seal the record, save it, and submit to SOLANGE.
     Returns (submit_response_or_None, record). on_status(job_id, status), if given,
     is forwarded to measure() to report live IBM-side status changes while waiting.
-    on_tick(), if given, is forwarded too (agent liveness heartbeat while waiting)."""
-    target = jw_target(key, side, jw_file) if key else h2_target()
+    on_tick(), if given, is forwarded too (agent liveness heartbeat while waiting).
+
+    geometry_path/avas_str present -> a REAL classified active space (Rung-3
+    origin), built via geometry_target() instead of the fixed demo library."""
+    if geometry_path:
+        target = geometry_target(geometry_path, avas_str, key, charge=charge, spin=spin, basis=basis)
+    else:
+        target = jw_target(key, side, jw_file) if key else h2_target()
     energy, backend_label, telemetry, meta = measure(target, True, backend, shots, token, instance,
                                                        on_status=on_status, on_tick=on_tick)
     hf_exact, _ground = _exact(target["obs"], target["circuit"])
@@ -598,7 +681,17 @@ def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, pa
         if not job:
             time.sleep(poll_s); continue
         did = job["id"]; key = job.get("key"); side = job.get("side", "native")
-        print(f"[{_ts()}] [qpu-agent] job {did[:8]} · {key}/{side} → REAL QPU on {backend}")
+        # geometry mode: a REAL Rung-3 classification's own active space, not
+        # the fixed demo library — the SAME "does this job carry a geometry"
+        # pattern already used for job_type='dmrg'/'shci' (solange_hpc.py).
+        # Written to a real file (Path(...).read_text() needs one to exist),
+        # keyed by dispatch id so concurrent geometry jobs never collide.
+        geom_path = None
+        if job.get("geometry"):
+            geom_path = Path(out_dir) / f"qpu_custom_geometry_{did}.xyz"
+            geom_path.write_text(job["geometry"])
+        print(f"[{_ts()}] [qpu-agent] job {did[:8]} · {key}/{side} → REAL QPU on {backend}"
+              + (" (real classified active space)" if geom_path else ""))
         # Surface IBM's live job status (QUEUED/RUNNING/...) in SOLANGE as it
         # changes — the same dispatch row, status stays 'running', only the note
         # updates — so a user watching SOLANGE (not IBM's own dashboard) can see
@@ -609,7 +702,10 @@ def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, pa
             did, "running", note=f"IBM job {ibm_job_id}: {st}")
         try:
             resp, _record = run_one_qpu(key, side, backend, shots, ibm_token, instance, jw_file, out_dir, api,
-                                         on_status=report_live_status, on_tick=heartbeat)
+                                         on_status=report_live_status, on_tick=heartbeat,
+                                         geometry_path=str(geom_path) if geom_path else None,
+                                         avas_str=job.get("avas"), charge=int(job.get("charge") or 0),
+                                         spin=int(job.get("spin") or 0), basis=job.get("basis") or "sto-3g")
             stored = bool(resp) and resp.get("db_status") in ("stored", "stored_no_payload")
             ok = bool(stored and resp.get("seal_ok"))
             note = "ok" if ok else ("verified but not stored" if resp else "submit failed")
@@ -635,9 +731,21 @@ def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, pa
 def main():
     ap = argparse.ArgumentParser(description="SOLANGE Phase 3B — real QPU hardware smoke test.")
     ap.add_argument("--key", help="SOLANGE target key from jw_hamiltonians.json "
-                                   "(e.g. TP53_C275F). Omit to run the default H2.")
+                                   "(e.g. TP53_C275F), OR the target key to label a "
+                                   "--geometry run. Omit (with no --geometry either) to run "
+                                   "the default H2.")
     ap.add_argument("--side", default="native", choices=["native", "mutant"])
     ap.add_argument("--jw-file", default=str(_JW_DEFAULT))
+    # ── geometry mode: a REAL Rung-3 (DMRG/SHCI) classified active space, not
+    # the fixed 4-qubit demo library — see geometry_target()'s own docstring
+    # for why this didn't exist before 2026-09-02 and what it honestly does
+    # and does not guarantee at a large active space.
+    ap.add_argument("--geometry", help="path to a QM-cluster .xyz — a real classified "
+                                        "active space, not a --key demo compound")
+    ap.add_argument("--avas", help="AVAS target AOs for --geometry mode, e.g. 'Fe 3d, S 3p'")
+    ap.add_argument("--charge", type=int, default=0, help="--geometry mode only")
+    ap.add_argument("--spin", type=int, default=0, help="--geometry mode only")
+    ap.add_argument("--basis", default="sto-3g", help="--geometry mode only")
     ap.add_argument("--hardware", action="store_true",
                     help="send ONE job to a real QPU (spends QPU time). Omit for a free dry-run.")
     ap.add_argument("--dry-run", action="store_true",
@@ -686,6 +794,10 @@ def main():
         print("=" * 72); sys.exit(1)
     if args.retrieve and not args.key:
         ap.error("--retrieve requires --key/--side to rebuild the P1-P9 record")
+    if args.geometry and not args.avas:
+        ap.error("--geometry requires --avas (the AO criterion string, e.g. 'Fe 3d, S 3p')")
+    if args.geometry and not args.key:
+        ap.error("--geometry requires --key to label the record")
 
     if args.agent:
         if not available:
@@ -699,7 +811,11 @@ def main():
                   args.instance, args.out, args.email, args.password)
         return
 
-    target = jw_target(args.key, args.side, args.jw_file) if args.key else h2_target()
+    if args.geometry:
+        target = geometry_target(args.geometry, args.avas, args.key, charge=args.charge,
+                                 spin=args.spin, basis=args.basis)
+    else:
+        target = jw_target(args.key, args.side, args.jw_file) if args.key else h2_target()
     _mode = ('RETRIEVE (fetch completed job — no QPU time)' if args.retrieve
              else 'REAL HARDWARE · backend='+args.backend if args.hardware
              else 'DRY-RUN (free local simulator)')

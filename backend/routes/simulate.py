@@ -980,6 +980,20 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         row["avas"] = payload.get("avas")
         row["charge"] = int(payload.get("charge", 0))
         row["spin"] = int(payload.get("spin", 0))
+    # Custom-geometry QPU dispatch (job_type='qpu' + geometry present) — Rung 4
+    # consuming a REAL Rung-3 classification's own active space (geometry/AVAS/
+    # charge/spin/basis), not the fixed 4-qubit demo library. Mirrors the DMRG
+    # branch immediately above; the agent side (solange_qpu.py's run_agent)
+    # checks job.geometry to pick geometry_target() over jw_target()/h2_target().
+    # This is the piece that did not exist before 2026-09-02 — the only inputs
+    # solange_qpu.py's agent could previously act on were --key/--side lookups
+    # into jw_hamiltonians.json.
+    if payload.get("job_type") == "qpu" and payload.get("geometry"):
+        row["geometry"] = payload.get("geometry")
+        row["avas"] = payload.get("avas")
+        row["charge"] = int(payload.get("charge", 0))
+        row["spin"] = int(payload.get("spin", 0))
+        row["basis"] = payload.get("basis", "sto-3g")
     # PDB-to-classification pipeline dispatch (job_type='screen_classify') — the
     # "New Target from PDB" form. Chains protonate -> carve/probe (shrinking radius
     # until the active space fits) -> DMRG -> SHCI (both mandatory — the
