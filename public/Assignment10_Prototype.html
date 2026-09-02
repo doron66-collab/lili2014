@@ -1505,10 +1505,16 @@
       // screen_classify ("The Classifier") belongs here too, not under Rung 2 —
       // it IS Rung 3 (cluster build + DMRG + SHCI), it just isn't literally
       // job_type 'dmrg'. Was falling through to the Rung 2 line by default
-      // before this was named explicitly.
+      // before this was named explicitly. 'shci' (the standalone "▶ Queue SHCI"
+      // cross-validation dispatch) belongs here for the same reason — it was
+      // falling through to Rung 2 too, and had NO per-step note to show even
+      // once it got there (fixed on the agent side, solange_hpc.py's
+      // _run_with_progress, to post "SHCI epsilon=…" per step instead of one
+      // static "SHCI classifying…" for the whole run — indistinguishable from
+      // a hang, found live 2026-09-02).
       (function(){
         var dEl=document.getElementById('dmrg-queue-status'); if(!dEl) return;
-        var dRun=jobs.filter(function(j){return j.status==='running'&&(j.job_type==='dmrg'||j.job_type==='screen_classify')&&j.note;});
+        var dRun=jobs.filter(function(j){return j.status==='running'&&(j.job_type==='dmrg'||j.job_type==='screen_classify'||j.job_type==='shci')&&j.note;});
         if(!dRun.length){ dEl.style.display='none'; dEl.innerHTML=''; return; }
         dEl.innerHTML=dRun.map(function(j){
           var dn=String(j.note).replace(/</g,'&lt;');
@@ -1544,7 +1550,7 @@
           // above), not here, so each rung's live status sits under its own header.
           // The target key is prefixed so two concurrent/ghost rows are
           // distinguishable at a glance.
-          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.job_type!=='dmrg'&&j.job_type!=='screen_classify'&&j.note;}).forEach(function(j){
+          jobs.filter(function(j){return j.status==='running'&&j.job_type!=='qpu'&&j.job_type!=='dmrg'&&j.job_type!=='screen_classify'&&j.job_type!=='shci'&&j.note;}).forEach(function(j){
             var cnote=String(j.note).replace(/</g,'&lt;');
             var ck=(j.key?String(j.key).replace(/</g,'&lt;')+': ':'');
             line+='<div style="margin-top:2px;color:var(--teal);font-size:10px" title="'+cnote.replace(/"/g,'&quot;')+'">⚙ '+ck+cnote+'</div>';

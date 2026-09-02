@@ -752,6 +752,14 @@ def _run_with_progress(cmd, api, hdr, did, job_type):
                 elif "DMRG M=" in s:
                     m = s.split("M=")[1].split()[0]
                     _post_status(api, hdr, did, "running", note=f"DMRG bond dim M={m}…")
+                elif s.startswith("epsilon="):
+                    # solange_shci.py's own per-step print: "epsilon=0.001  E=... Ha  [12.3s]"
+                    # — SHCI's equivalent of "DMRG M=...", previously unmatched here, so a
+                    # running SHCI job showed the single static "SHCI classifying…" note
+                    # (set once, above) for its entire runtime with no further update —
+                    # indistinguishable from a hang.
+                    eps = s.split("epsilon=")[1].split()[0]
+                    _post_status(api, hdr, did, "running", note=f"SHCI epsilon={eps}…")
             except Exception:
                 pass
         proc.wait()
