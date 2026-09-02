@@ -1592,6 +1592,7 @@
     // copy button. It never claims to have started anything.
     window.solangeWakeAgent = function(){
       if(document.getElementById('wake-modal')) return;
+      var loginCmd = 'ssh <your-NetID>@laguna.carc.usc.edu';
       var keepalive = 'bash scripts/laguna/agent_keepalive.sh start';
       var raw = 'module load conda && conda activate <your-env> && cd ~/lili2014 && \\\n'
               + 'python scripts/laguna/solange_hpc.py --agent --out ./out';
@@ -1612,6 +1613,19 @@
         +   'no bypass of Duo 2FA). Paste <em>one</em> of these into a terminal inside your authenticated '
         +   'Laguna / JupyterLab session:'
         + '</p>'
+        + '<div style="font-size:11px;color:var(--gold);font-weight:700;margin:0 0 4px">First wake after a shutdown — log in to Laguna itself first:</div>'
+        + '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:6px">'
+        +   '<code style="flex:1;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;word-break:break-all">'+esc(loginCmd)+'</code>'
+        +   '<button id="wake-copy-login-btn" style="background:var(--gold);color:var(--navy,#0B1E3D);border:none;border-radius:7px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Copy</button>'
+        + '</div>'
+        + '<div style="font-size:10.5px;color:var(--gray);line-height:1.6;margin-bottom:14px">'
+        +   'Enter your USC NetID password, then approve the Duo push on your phone. This is your own institutional '
+        +   'login — SOLANGE never sees or stores this password, and cannot do this step for you (same "no bypass '
+        +   'of Duo 2FA" boundary as below). No browser client? Use the OnDemand shell instead: '
+        +   '<code style="background:#020814;border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--white)">laguna-ood.carc.usc.edu</code> '
+        +   '→ log in (NetID + Duo) → <strong>Clusters → Laguna Shell Access</strong>. Either way you land on a login '
+        +   'node — only run the commands below once you are there.'
+        + '</div>'
         + '<div style="font-size:11px;color:var(--teal);font-weight:700;margin:0 0 4px">Recommended — keepalive (survives closing the terminal):</div>'
         + '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:14px">'
         +   '<code style="flex:1;background:#020814;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--white);font-family:monospace;white-space:pre-wrap;word-break:break-all">'+esc(keepalive)+'</code>'
@@ -1632,6 +1646,10 @@
       var cb = document.getElementById('wake-copy-btn');
       if (cb) cb.addEventListener('click', function(){
         navigator.clipboard.writeText(keepalive).then(function(){ cb.textContent = '✓ Copied'; });
+      });
+      var clb = document.getElementById('wake-copy-login-btn');
+      if (clb) clb.addEventListener('click', function(){
+        navigator.clipboard.writeText(loginCmd).then(function(){ clb.textContent = '✓ Copied'; });
       });
     };
 
