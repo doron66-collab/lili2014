@@ -1178,7 +1178,7 @@
 
         <a href="#problem" class="toc-entry toc-major">
           <span class="toc-num">§ 01</span>
-          <span class="toc-title">Background &amp; BQP-Relevance Argument</span>
+          <span class="toc-title">Problem Statement</span>
         </a>
         <a href="#sec-1-1" class="toc-entry toc-minor">
           <span class="toc-num">1.1</span>
@@ -1228,7 +1228,7 @@
         </a>
         <a href="#sec-3-1" class="toc-entry toc-minor">
           <span class="toc-num">3.1</span>
-          <span class="toc-title">Quantum Chemistry and VQE</span>
+          <span class="toc-title">The Classical&rarr;Quantum Lineage and the Tractability Ceiling</span>
         </a>
         <a href="#sec-3-2" class="toc-entry toc-minor">
           <span class="toc-num">3.2</span>
@@ -1245,6 +1245,10 @@
         <a href="#sec-3-5" class="toc-entry toc-minor">
           <span class="toc-num">3.5</span>
           <span class="toc-title">Regulatory Frameworks for Quantum Data</span>
+        </a>
+        <a href="#sec-3-6" class="toc-entry toc-minor">
+          <span class="toc-num">3.6</span>
+          <span class="toc-title">Enterprise Architecture and Scientific-Data Provenance</span>
         </a>
 
         <a href="#framework" class="toc-entry toc-major">
@@ -2272,9 +2276,9 @@
 
         <div style="margin:32px 0 28px 0; padding:24px 28px; background:rgba(6,182,212,0.06); border-left:3px solid var(--teal); border-radius:6px;">
           <h4 style="margin:0 0 14px 0; font-size:1em; color:var(--teal); letter-spacing:0.03em;">The Transitional Window: Situating SqDRIFT and Heron r3 Within IBM's Fault-Tolerant Roadmap</h4>
-          <p style="margin:0 0 12px 0;">The selection of IBM Heron r3 as the quantum hardware substrate and SqDRIFT as the molecular simulation algorithm reflects a deliberate positioning within a well-defined and time-bounded technological window. IBM's publicly disclosed roadmap — supported by a $10+ billion capital commitment and a $1 billion CHIPS Act award — establishes a clear architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction. The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and Starling (2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing 100 million quantum gates.</p>
+          <p style="margin:0 0 12px 0;">The selection of IBM Heron r3 as the quantum hardware substrate and SqDRIFT as the molecular simulation algorithm reflects a deliberate positioning within a well-defined and time-bounded technological window. IBM's publicly disclosed roadmap — supported by a $10+ billion capital commitment and a $1 billion CHIPS Act award — establishes a clear architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction — a more qubit-efficient alternative to the surface-code architectures <a href="#ref-35">[35]</a> that had defined the field's earlier fault-tolerance roadmaps. The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and Starling (2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing 100 million quantum gates.</p>
           <p style="margin:0 0 12px 0;">This roadmap does not diminish the contribution of the present work — it contextualizes and justifies it. Heron r3, as the current-generation superconducting processor, and SqDRIFT, as a leading NISQ-era sample-based quantum diagonalization protocol whose stochastic state sampling inherits qDRIFT's formally bounded error scaling, represent the state of the art during precisely the window in which clinically relevant quantum molecular simulation first becomes computationally tractable. IBM's own 2026 demonstration (IBM Research; arXiv:2603.08696) applied SqDRIFT on 100 qubits to a 32-electron active space of C₁₃Cl₂ — a benchmark that for the first time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach of available hardware.</p>
-          <p style="margin:0 0 12px 0;">IBM's own strategic moves reinforce this trajectory. In July 2026, IBM announced the acquisition of HRL Laboratories — formerly a joint research entity of Boeing and General Motors — establishing a formal two-track qubit roadmap: the existing <strong>superconducting qubit</strong> line (Heron r3 → Kookaburra → Starling → Blue Jay), which SOLANGE Phase 3B directly targets, and a new <strong>silicon-spin qubit</strong> track (HRL expertise, paired with the Anderon quantum wafer foundry established by IBM earlier in 2026 with U.S. Department of Commerce support) aimed at the fault-tolerant regime beyond the current NISQ ceiling. SOLANGE's Phase 3B target — C275F at 24–56 qubits (measured range, criterion-dependent), within the 94-qubit demonstrated ceiling (Merz et al. 2026) — sits squarely on the superconducting track. KEAP1 G333C (32–74 qubits, measured) and STK11 D194N (20–62 qubits, measured) — both DMRG-classified Class B — also sit within reach of the superconducting track; an earlier size-prior estimate (300+ qubits for both) had placed them in the fault-tolerant window formally assigned to IBM's silicon-spin trajectory (~2030+), but the real AVAS measurement supersedes that estimate. IBM's own acquisition is, in TOGAF terms, an ADM-class architectural migration — and constitutes independent industry validation that the NISQ-to-fault-tolerant transition this dissertation anticipates is a recognised engineering trajectory, not a speculative one <a href="#ref-60">[60]</a><a href="#ref-61">[61]</a>.</p>
+          <p style="margin:0 0 12px 0;">IBM's own strategic moves reinforce this trajectory. In July 2026, IBM announced the acquisition of HRL Laboratories — formerly a joint research entity of Boeing and General Motors — establishing a formal two-track qubit roadmap: the existing <strong>superconducting qubit</strong> line (Heron r3 → Kookaburra → Starling → Blue Jay), which SOLANGE Phase 3B directly targets, and a new <strong>silicon-spin qubit</strong> track (HRL expertise, paired with the Anderon quantum wafer foundry established by IBM earlier in 2026 with U.S. Department of Commerce support) aimed at the fault-tolerant regime beyond the current NISQ ceiling. SOLANGE's Phase 3B target — C275F at 24–56 qubits (measured range, criterion-dependent) — sits squarely on the superconducting track, comfortably within Heron r3's 156-qubit capacity (§1.2). KEAP1 G333C (32–74 qubits, measured) and STK11 D194N (20–62 qubits, measured) — both DMRG-classified Class B — also sit within reach of the superconducting track; an earlier size-prior estimate (300+ qubits for both) had placed them in the fault-tolerant window formally assigned to IBM's silicon-spin trajectory (~2030+), but the real AVAS measurement supersedes that estimate. IBM's own acquisition is, in TOGAF terms, an ADM-class architectural migration — and constitutes independent industry validation that the NISQ-to-fault-tolerant transition this dissertation anticipates is a recognised engineering trajectory, not a speculative one <a href="#ref-60">[60]</a><a href="#ref-61">[61]</a>.</p>
           <p style="margin:0 0 12px 0;">The significance of this window extends beyond the chemistry. The transition to fault-tolerant quantum computing will not resolve — and in fact will intensify — the information systems challenges that constitute the primary contribution of this dissertation. As IBM scales toward Starling (2029) and the Blue Jay quantum-centric supercomputer (2,000 logical qubits, 2033), targeting drug discovery as an explicit commercial vertical, the regulatory reconstruction problem becomes more acute, not less. Probabilistic, learned quantum outputs will be generated at greater scale and complexity, yet no established framework exists for governing their audit trails, ensuring reproducibility, or satisfying FDA 21 CFR Part 11 requirements in a clinical submission context. The pipeline architecture, P1–P9 provenance schema, and bifurcation-aware orchestration developed in this dissertation are designed precisely for this trajectory: they establish the IS governance substrate that fault-tolerant quantum drug discovery workflows will require, built and validated during the window in which the underlying quantum computation first becomes feasible.</p>
           <p style="margin:0; font-style:italic; font-weight:600;">The present work therefore occupies a strategically necessary position: it is neither premature nor transitional. It is foundational.</p>
         </div>
@@ -3385,13 +3389,13 @@
     <!-- ========== APPENDIX A — COMPLETE GLOSSARY ========== -->
     <section class="doc-section reveal" id="appendix-a">
       <div class="section-number">Appendix A <span class="dash"></span> Complete Glossary</div>
-      <h2 class="section-title">Ninety-Five Entries.</h2>
+      <h2 class="section-title">Ninety-Six Entries.</h2>
 
       <p><em>SOLANGE — Scientific Oncology Legacy: Adjudication of Necessity through Governed Evidence</em></p>
 
       <p>This glossary consolidates every acronym and technical term that appears across the dissertation proposal, conference poster, deployed prototype (<code>solange-platform.bio</code>), and supporting coursework artifacts. Each entry pairs the standard definition with the term's specific role in this dissertation, so a reader unfamiliar with quantum computing, computational chemistry, FDA regulation, or oncology can follow the work without external reference. Terms are listed alphabetically.</p>
 
-      <p><strong>Total entries:</strong> <strong>95</strong></p>
+      <p><strong>Total entries:</strong> <strong>96</strong></p>
 
       <div class="table-wrap">
         <table>
@@ -3849,14 +3853,14 @@
               <td>Contributes one structurally-verified target mutation, D194N: coordinate-verified from PDB 2WTK (residues 43&ndash;347), classified Class B (quantum-advantaged), real AVAS-tested range 18&ndash;54 active electrons (20&ndash;62 qubits under Jordan-Wigner encoding), DMRG-measured S_max=0.82 at 54e — designated current-era QPU target (fits Heron r3's ~156-qubit ceiling). F354L was checked against the same structure and excluded (§01, Table 1b): residue 354 sits outside 2WTK's resolved kinase domain entirely, in a C-terminal region with no identifiable folded domain. An earlier citation for this row (PDB 2QK7) was a straightforward error — 2QK7 is an unrelated bacterial toxin, not an LKB1 structure — and a proposed AlphaFold-based fallback (UniProt Q15831) was not independently confirmed to resolve the site either. D194N is the gene's only verified point mutation.</td>
             </tr>
             <tr>
-              <td><strong>TP53</strong></td>
-              <td><em>Tumor Protein 53 (the p53 tumor suppressor gene)</em></td>
-              <td>The most frequently mutated gene in human cancers (~59% of solid tumors). The dissertation focuses on TP53 structural (DNA-interface) mutants - particularly C275F - that disrupt DNA-binding geometry without creating druggable pockets. TP53's Zn²⁺ tetrahedral coordination site (Cys176/His179/Cys238/Cys242) requires ~22–28 active electrons, the paradigmatic case for SqDRIFT-grade simulation.</td>
-            </tr>
-            <tr>
               <td><strong>Supabase</strong></td>
               <td><em>Hosted PostgreSQL platform with authentication and row-level security</em></td>
               <td>The database and identity layer behind the platform: P1&ndash;P9 provenance records, the LEON audit table, the dispatch queue, and per-user authentication. Its append-only audit policy &mdash; insert and read permitted, update and delete denied &mdash; is what makes the Part 11 claim testable in running code rather than asserted (&sect;06.iii).</td>
+            </tr>
+            <tr>
+              <td><strong>TP53</strong></td>
+              <td><em>Tumor Protein 53 (the p53 tumor suppressor gene)</em></td>
+              <td>The most frequently mutated gene in human cancers (~59% of solid tumors). The dissertation focuses on TP53 structural (DNA-interface) mutants - particularly C275F - that disrupt DNA-binding geometry without creating druggable pockets. TP53's Zn²⁺ tetrahedral coordination site (Cys176/His179/Cys238/Cys242) requires ~22–28 active electrons, the paradigmatic case for SqDRIFT-grade simulation.</td>
             </tr>
             <tr>
               <td><strong>Trp-cage</strong></td>
