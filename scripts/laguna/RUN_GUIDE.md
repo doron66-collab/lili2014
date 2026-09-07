@@ -184,6 +184,9 @@ alter table public.dmrg_classifications add column if not exists geometry text;
 alter table public.dmrg_classifications add column if not exists avas text;
 alter table public.dmrg_classifications add column if not exists charge int;
 alter table public.dmrg_classifications add column if not exists spin int;
+-- avas_threshold: the AVAS projection-score threshold actually used (pyscf
+-- default 0.2 unless explicitly widened via solange_dmrg.py's --avas-threshold).
+alter table public.dmrg_classifications add column if not exists avas_threshold numeric;
 
 -- hpc_dispatch: carries an SHCI job's parameters from the "Queue SHCI" button
 -- to the agent that picks it up.

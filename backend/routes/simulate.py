@@ -1292,12 +1292,20 @@ _DMRG_DB_COLUMNS = frozenset({
     # solange_dmrg.py's own out[] construction and the "Queue SHCI
     # Cross-Validation" button in the frontend).
     "geometry", "avas", "charge", "spin",
+    # avas_threshold: the AVAS projection-score threshold actually used (pyscf
+    # default 0.2 unless explicitly widened) — previously never recorded at
+    # all, so a widened-threshold classification (the basis of three Class A
+    # findings, TP53 R282W/C275F and KEAP1 G333C) carried no record of the
+    # non-default choice that produced it. Added 2026-09-04 alongside
+    # solange_dmrg.py's new --avas-threshold flag.
+    "avas_threshold",
 })
 # NOTE: "elapsed_s" and "hardware" each require their matching Supabase column
 # to exist first — see the one-time migration in scripts/laguna/RUN_GUIDE.md §2
 # (or run:
 #   alter table public.dmrg_classifications add column if not exists elapsed_s numeric;
 #   alter table public.dmrg_classifications add column if not exists hardware text;
+#   alter table public.dmrg_classifications add column if not exists avas_threshold numeric;
 # ). There is no partial-insert fallback below (unlike simulation_runs'
 # p8_seal_payload retry): a submit against a column that does not yet exist
 # fails the WHOLE insert with Postgres's "column does not exist" (db_status=
@@ -1378,7 +1386,7 @@ async def list_dmrg_classifications(limit: int = 50):
                          "e_casscf, s_max, bqp_class, class_rationale, "
                          "time_budget_hit, bond_dims_requested, dmrg_energies, "
                          "elapsed_s, method, provenance_source, dmrg_hash, hardware, "
-                         "geometry, avas, charge, spin")
+                         "geometry, avas, charge, spin, avas_threshold")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"classifications": res.data or []}
     except Exception as e:

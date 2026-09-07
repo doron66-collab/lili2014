@@ -316,11 +316,24 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                              density_fit=True, max_memory=16000, df_auxbasis="def2-universal-jkfit",
                              max_cycle_macro=20, dmrg_scf=False, dmrg_scf_maxm=500,
                              dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4,
-                             orbital_deadline=None, stack_mem_gb=None, casci=False):
+                             orbital_deadline=None, stack_mem_gb=None, casci=False,
+                             avas_threshold=0.2):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
     H-capping) is the chemist's input — that step is NOT auto-generated here.
+
+    avas_threshold defaults to pyscf's own library default (0.2), never before
+    exposed here — every prior --geometry run used it implicitly, silently,
+    with no record that a choice was even made. Widening it (e.g. 0.1, 0.05)
+    admits more virtual orbitals into the active space and is how three
+    targets (TP53 R282W, KEAP1 G333C, TP53 C275F) were previously pushed from
+    Class B to Class A — but that was done via an undocumented, unrecorded
+    code path outside this script, not reproducibly through this CLI. Exposed
+    now specifically so a widened-threshold run (and its negative-control
+    counterpart on a chemically boring cluster of matched size) goes through
+    the same auditable script and bond-dimension protocol as every other run,
+    instead of an ad hoc one-off.
 
     charge/spin are ALSO the chemist's input, not guessed: pyscf defaults to a
     neutral (charge=0), closed-shell (spin=0) molecule, which silently assumes
@@ -393,7 +406,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     if density_fit:
         mf = mf.density_fit(auxbasis=df_auxbasis)
     mf = mf.run()
-    ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")])
+    ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")], threshold=avas_threshold)
     # Report the active space BEFORE paying for CASSCF, not after: CASSCF cost is
     # roughly combinatorial in ncas, so a caller needs this number while they can
     # still Ctrl+C and narrow --avas, not only once the (possibly hours-long) run
@@ -557,6 +570,12 @@ def main():
     ap.add_argument("--compound", help="model compound (key in GEOM) — demo mode")
     ap.add_argument("--geometry", help="path to a QM-cluster .xyz (real functional site)")
     ap.add_argument("--avas", help="comma-separated AVAS target AOs, e.g. 'Zn 3d,S 3p'")
+    ap.add_argument("--avas-threshold", type=float, default=0.2,
+                    help="--geometry mode only: AVAS projection-score threshold (pyscf default "
+                         "0.2, previously never exposed here — every prior run used it silently). "
+                         "Widening this (0.1, 0.05) admits more virtual orbitals; see "
+                         "integrals_from_geometry()'s docstring for why this needs to be an "
+                         "explicit, recorded choice rather than an implicit library default.")
     ap.add_argument("--charge", type=int, default=0,
                     help="net molecular charge for --geometry mode (default 0/neutral). A QM "
                          "cluster cut from a protein rarely sums to a neutral closed shell by "
@@ -695,7 +714,7 @@ def main():
                                        dmrg_scf=args.dmrg_scf, dmrg_scf_maxm=args.dmrg_scf_maxm,
                                        dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads,
                                        orbital_deadline=orbital_deadline, stack_mem_gb=args.stack_mem_gb,
-                                       casci=args.casci)
+                                       casci=args.casci, avas_threshold=args.avas_threshold)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
         if cas.get("orbital_optimization_truncated"):
@@ -798,6 +817,7 @@ def main():
         out["avas"] = args.avas
         out["charge"] = args.charge
         out["spin"] = args.spin
+        out["avas_threshold"] = args.avas_threshold
     # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
     # trusted). dmrg_seal_payload is stored verbatim so re-verification later is
     # exact-string, not float-reconstruction (the same robustness fix the P8 seal
