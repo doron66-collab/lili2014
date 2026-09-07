@@ -93,6 +93,7 @@ bash scripts/laguna/run_dmrg.sh \
     --side      "${SIDE:-native}" \
     --geometry  "${GEOMETRY:-tp53_c275_r5.0_h.xyz}" \
     --avas      "${AVAS:-S 3p}" \
+    --avas-threshold "${AVAS_THRESHOLD:-0.2}" \
     --basis     "${BASIS:-sto-3g}" \
     --charge    "${CHARGE:-0}" \
     --verbose   "${VERBOSE:-3}" \
