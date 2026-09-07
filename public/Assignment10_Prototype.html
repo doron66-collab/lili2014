@@ -963,7 +963,9 @@
         + 'DMRG needs a bond dimension growing as e<sup>S</sup> at a cost of M<sup>3</sup>, with no electron count in the expression &mdash; its threshold is horizontal. '
         + 'The earlier version of this chart drew the DMRG wall vertically at 33e; FeMoco, solved classically at CAS(113,76), is the published counterexample.<br><br>'
         + '<strong>The two zones above the exact wall.</strong> At or below the exact wall a target is Class C, whatever its entanglement, because exact diagonalisation already suffices. '
-        + 'Above the wall, S_HARD alone decides: below it, this pipeline delivers (Class B); above it, Class A — full stop, not a budget question.';
+        + 'Above the wall, Class A follows from either of two INDEPENDENT triggers, either one sufficient alone: S_max above S_HARD (this axis), OR the DMRG energy failing to converge '
+        + '(&Delta;E between the last two bond dimensions &ge; the pipeline\'s own accuracy bar) even while S_max stays below S_HARD &mdash; a real, budget-dependent path to Class A that this '
+        + 'chart\'s single entanglement axis cannot show on its own. A point sitting below the S_HARD line is not automatically Class B for that reason &mdash; check its own convergence status too.';
     }
 
     function loadMeasured(){
@@ -3838,18 +3840,13 @@ const BQP_CLASS_SCOPE = {
   },
   TP53: {
     variants: ['C275F'], acceptsLof: false,
-    // ⚠ UNRESOLVED CONTRADICTION between the code and the dissertation.
-    // The dissertation states, once and unambiguously — it is the only "X is Class Y"
-    // sentence in the document — "Under this template C275F is Class B: it sits in the
-    // empirically quantum-advantaged regime". It reaches that deliberately, arguing
-    // "the claim is the weaker but defensible one" and explicitly declining to assert
-    // that no classical path exists.
-    // GENE_MAP.TP53 and backend/routes/simulate.py both carry "A" (quantum-necessary),
-    // which is the STRONGER claim the thesis chose not to make. GENE_MAP's own comment
-    // asserts it "matches backend + dissertation"; it matches the backend only.
-    // Not silently changed here: the anchor target's class is a thesis-level decision,
-    // not a code cleanup. Flagged for resolution — see the conversation of 2026-08-03.
-    source: 'dissertation: the BQP argument is made at "C275F\'s 44-electron active-space boundary", and TP53 mutant classes are explicitly distinguished — cavity-creating (Y220C) vs DNA-interface structural (C275F) vs direct contact (R248W). The class is tied to C275F specifically, which carries a single-residue Zn-coordination anchor, so it does not transfer to other TP53 variants. NOTE: the dissertation assigns C275F Class B; the code currently says A. Unresolved.'
+    // RESOLVED (was flagged as an unresolved contradiction 2026-08-03; fixed since).
+    // GENE_MAP.TP53 no longer carries a gene-level bqp_class at all — C275F's Class B
+    // now lives solely in MUTATION_CLASS.TP53_C275F, matching the dissertation's
+    // single "C275F is Class B" sentence exactly. This scope entry's own `source`
+    // text below was left describing the old, now-superseded contradiction; updated
+    // to reflect the actual current, consistent state.
+    source: 'dissertation: the BQP argument is made at "C275F\'s 44-electron active-space boundary", and TP53 mutant classes are explicitly distinguished — cavity-creating (Y220C) vs DNA-interface structural (C275F) vs direct contact (R248W). The class is tied to C275F specifically, which carries a single-residue Zn-coordination anchor, so it does not transfer to other TP53 variants. C275F is Class B per MUTATION_CLASS.TP53_C275F, consistent with the dissertation.'
   },
   CDKN2A: {
     variants: [], acceptsLof: true, borderline: true,
