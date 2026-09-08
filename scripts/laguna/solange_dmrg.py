@@ -213,14 +213,49 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     # a fresh random one if none exists (first submission into this scratch dir) or the
     # load fails for any reason (block2 API/version mismatch, corrupted state, etc.) —
     # a failed load must never crash the run, only cost it the resume it would have given.
-    try:
-        ket = drv.load_mps(tag="KET", nroots=1)
-        print(f"  [resume] loaded existing MPS from {scratch} — continuing, not restarting "
-              f"the bond-dimension ladder from scratch.", flush=True)
-    except Exception as e:
+    #
+    # A saved MPS's own (ncas, nelecas) is checked BEFORE ever calling load_mps() —
+    # found live 2026-09-07: two different targets sharing one --scratch directory
+    # (a real submission mistake, not this function's fault) produced a SEGFAULT
+    # inside block2's C++ load path when the dimensions didn't match, not a catchable
+    # Python exception — the try/except above is no protection against that, since a
+    # segfault never reaches it. A small sidecar metadata file, written once
+    # per (ncas, nelecas) and checked here, means a mismatch is refused in Python
+    # before block2 ever sees the incompatible file, at the cost of one extra
+    # resume being treated as "start fresh" if the metadata file itself is missing
+    # (e.g. a scratch dir from before this check existed).
+    meta_path = Path(scratch) / ".solange_dmrg_meta.json"
+    dims_match = False
+    if meta_path.exists():
+        try:
+            saved_dims = json.loads(meta_path.read_text())
+            dims_match = (saved_dims.get("ncas") == ncas and saved_dims.get("nelecas") == nelecas)
+            if not dims_match:
+                print(f"  [resume] {scratch} holds a saved MPS for a DIFFERENT active space "
+                      f"(CAS({saved_dims.get('nelecas')},{saved_dims.get('ncas')}) on disk vs. "
+                      f"CAS({nelecas},{ncas}) requested) — refusing to load it (this is what a "
+                      f"mismatched load segfaults on inside block2) and starting fresh instead.",
+                      flush=True)
+        except Exception:
+            dims_match = False  # unreadable/corrupt metadata — treat like no metadata at all
+    if dims_match:
+        try:
+            ket = drv.load_mps(tag="KET", nroots=1)
+            print(f"  [resume] loaded existing MPS from {scratch} — continuing, not restarting "
+                  f"the bond-dimension ladder from scratch.", flush=True)
+        except Exception as e:
+            ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)
+            print(f"  [resume] no usable saved MPS in {scratch} ({type(e).__name__}) — "
+                  f"starting from a fresh random MPS.", flush=True)
+    else:
         ket = drv.get_random_mps(tag="KET", bond_dim=min(bond_dims[0], 250), nroots=1)
-        print(f"  [resume] no usable saved MPS in {scratch} ({type(e).__name__}) — "
-              f"starting from a fresh random MPS.", flush=True)
+        if meta_path.exists():
+            pass  # already explained above (dimension mismatch)
+        else:
+            print(f"  [resume] no active-space metadata recorded in {scratch} — "
+                  f"starting from a fresh random MPS.", flush=True)
+    Path(scratch).mkdir(parents=True, exist_ok=True)
+    meta_path.write_text(json.dumps({"ncas": ncas, "nelecas": nelecas}))
     energies = []
     stop_reason = "completed"            # completed | converged | time_budget
     t_start = time.time()
