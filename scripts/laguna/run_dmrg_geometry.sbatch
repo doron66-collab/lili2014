@@ -17,6 +17,28 @@
 # when your browser/SSH session disconnects. Submit it, close everything, come
 # back later and check with `squeue --me` / `tail -f dmrg_<jobid>.out`.
 #
+# *** DO NOT put a value containing a comma directly in --export=... ***
+# sbatch's --export list is itself comma-separated, so
+#   sbatch --export=AVAS="N 2p, O 2p" run_dmrg_geometry.sbatch
+# silently truncates AVAS at the internal comma (found live 2026-09-07,
+# cost several hours: it ran on half the intended active space with no
+# error, just a smaller-than-expected CAS). Any AVAS criterion listing more
+# than one AO — which is the common case — needs this instead:
+#   export AVAS="N 2p, O 2p"
+#   sbatch --export=ALL,KEY=...,GEOMETRY=...,AVAS_THRESHOLD=... run_dmrg_geometry.sbatch
+# (export the comma-containing variable(s) in the shell first, then pass
+# --export=ALL so sbatch inherits the whole environment instead of a
+# comma-delimited override list).
+#
+# Also: --key uniquely identifies a --scratch directory (default
+# ./tmp_dmrg_${KEY}) that DMRG warm-starts from on re-submission — reusing
+# the same KEY for two runs with a DIFFERENT active-space size (e.g. after
+# fixing a mistake like the one above) reuses that same scratch dir with an
+# incompatible saved MPS. solange_dmrg.py now refuses that mismatch instead
+# of segfaulting (fixed 2026-09-07), but the safer habit is still: after any
+# submission that used the wrong parameters, `rm -rf tmp_dmrg_<KEY>
+# tmp_dmrgscf_orb_<old_jobid>` before resubmitting correctly.
+#
 # Defaults below match the TP53_C275F validation run (5A cluster around
 # Cys275, sto-3g). Density fitting is ON by default with an explicit modest
 # auxbasis (def2-universal-jkfit) for both RHF and CASSCF — an earlier
