@@ -234,6 +234,7 @@ export default function NSCLCViewer() {
 
   return (
     <PDBMolViewer
+      key={`${cur}-${resolved.pdb}`}
       mutation={resolved}
       onBack={closeOrBack}
       onPrev={view.entries.length > 1 ? () => setCur((cur - 1 + view.entries.length) % view.entries.length) : undefined}

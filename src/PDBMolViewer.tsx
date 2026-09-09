@@ -36,6 +36,19 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
+    // Defensive: NGL.Stage appends its own <canvas> into `el` and this effect
+    // re-runs (new Stage) every time mutation.pdb changes, since PDBMolViewer
+    // is now the ONLY view and stays mounted across navigation instead of
+    // being conditionally unmounted. If the previous Stage's own dispose()
+    // ever leaves its canvas behind for any reason, canvases would silently
+    // accumulate here on every "next" click - each holding its own live
+    // WebGL context, of which a browser allows only a small fixed number
+    // before it starts failing/evicting contexts (surfacing as exactly what
+    // was reported live 2026-09-09: navigation appearing stuck on the first
+    // mutation, and the whole machine feeling sluggish after a few clicks).
+    // Clearing the container explicitly before creating the new Stage makes
+    // that impossible regardless of what dispose() itself guarantees.
+    el.innerHTML = '';
 
     const stage = new NGL.Stage(el, {
       backgroundColor: '#020d1f',
