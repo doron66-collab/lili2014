@@ -49,7 +49,7 @@ const PDB_MAP = [
   { pdb: '2VUK', chain: 'A', highlightRes: [220] },        // TP53 Y220C
   { pdb: '2FLU', chain: 'X', highlightRes: [] as number[] }, // KEAP1 LOF
   { pdb: '2A5E', chain: 'A', highlightRes: [] as number[] }, // CDKN2A p16 INK4a
-  { pdb: '2QK7', chain: 'A', highlightRes: [] as number[] }, // STK11 LKB1
+  { pdb: '2WTK', chain: 'A', highlightRes: [] as number[] }, // STK11 LKB1
   { pdb: '2OCJ', chain: 'A', highlightRes: [275] },         // TP53 C275F
 ] as const;
 
