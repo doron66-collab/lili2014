@@ -10,12 +10,17 @@ interface MutInfo {
   color: number;
   drug: string;
   phase: string;
+  sub?: string;    // drug detail line, e.g. "APR-246 · Pan-mutant p53 reactivator"
+  mech?: string;   // mechanism-of-action text
   url?: string;   // explicit structure URL (e.g. AlphaFold); defaults to RCSB
 }
 
 interface Props {
   mutation: MutInfo;
   onBack: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  navPosition?: string;   // e.g. "2 / 5" — shown next to the prev/next controls
 }
 
 // Map hex color → NGL color string
@@ -23,7 +28,7 @@ function hexToNGLColor(hex: number): string {
   return '#' + hex.toString(16).padStart(6, '0');
 }
 
-export default function PDBMolViewer({ mutation, onBack }: Props) {
+export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosition }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
   const [spinning, setSpinning] = useState(true);
@@ -137,6 +142,37 @@ export default function PDBMolViewer({ mutation, onBack }: Props) {
           >
             ← BACK
           </button>
+          {(onPrev || onNext) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={onPrev}
+                disabled={!onPrev}
+                style={{
+                  background: 'rgba(100,140,255,.12)', border: '1px solid rgba(100,140,255,.4)',
+                  color: onPrev ? 'rgba(160,200,255,.9)' : 'rgba(160,200,255,.3)',
+                  borderRadius: 8, padding: '5px 10px',
+                  cursor: onPrev ? 'pointer' : 'default', fontSize: 12,
+                }}
+              >
+                ◀
+              </button>
+              {navPosition && (
+                <span style={{ color: 'rgba(160,200,255,.6)', fontSize: 10, letterSpacing: 1 }}>{navPosition}</span>
+              )}
+              <button
+                onClick={onNext}
+                disabled={!onNext}
+                style={{
+                  background: 'rgba(100,140,255,.12)', border: '1px solid rgba(100,140,255,.4)',
+                  color: onNext ? 'rgba(160,200,255,.9)' : 'rgba(160,200,255,.3)',
+                  borderRadius: 8, padding: '5px 10px',
+                  cursor: onNext ? 'pointer' : 'default', fontSize: 12,
+                }}
+              >
+                ▶
+              </button>
+            </div>
+          )}
           <button
             onClick={toggleSpin}
             title={spinning ? 'Pause rotation' : 'Resume rotation'}
@@ -183,7 +219,21 @@ export default function PDBMolViewer({ mutation, onBack }: Props) {
       </div>
 
       {/* NGL canvas */}
-      <div ref={mountRef} style={{ flex: 1, position: 'relative' }} />
+      <div ref={mountRef} style={{ flex: 1, position: 'relative' }}>
+        {mutation.mech && (
+          <div style={{
+            position: 'absolute', top: 14, left: 14, zIndex: 10, maxWidth: 300,
+            background: 'rgba(2,6,18,.88)', border: `1px solid ${cc}44`, borderRadius: 10,
+            padding: '12px 16px', backdropFilter: 'blur(10px)',
+          }}>
+            {mutation.sub && (
+              <div style={{ color: 'rgba(190,215,255,.9)', fontSize: 10, marginBottom: 6 }}>{mutation.sub}</div>
+            )}
+            <div style={{ color: cc, fontSize: 9, letterSpacing: 2, marginBottom: 5 }}>● BINDING MECHANISM</div>
+            <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.6 }}>{mutation.mech}</div>
+          </div>
+        )}
+      </div>
 
       {/* Footer legend */}
       <div style={{
