@@ -275,7 +275,11 @@ export default function NSCLCViewer() {
     <form
       onSubmit={handleSearch}
       style={{
-        position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 70,
+        // Sits just BELOW the header bar (not on top of it) — the header itself
+        // is a flex row that already fills its full height with the back/nav
+        // buttons, the mutation label, and the PDB/drug info columns, so
+        // overlaying this at top:0 covered that text (found live 2026-09-09).
+        position: 'absolute', top: 58, left: '50%', transform: 'translateX(-50%)', zIndex: 70,
         display: 'flex', gap: 6, alignItems: 'center',
         background: 'rgba(0,8,30,0.92)', border: '1px solid rgba(6,182,212,.4)',
         borderRadius: 8, padding: '5px 8px',
