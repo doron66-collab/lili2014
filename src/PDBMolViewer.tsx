@@ -49,6 +49,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     // Clearing the container explicitly before creating the new Stage makes
     // that impossible regardless of what dispose() itself guarantees.
     el.innerHTML = '';
+    let cancelled = false;
 
     const stage = new NGL.Stage(el, {
       backgroundColor: '#020d1f',
@@ -62,6 +63,16 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     const pdbUrl = mutation.url || `https://files.rcsb.org/download/${mutation.pdb}.pdb`;
 
     stage.loadFile(pdbUrl, { ext: 'pdb', defaultRepresentation: false }).then((component: any) => {
+      // `stage.dispose()` in this effect's cleanup does NOT reliably run
+      // before a slow network load resolves — clicking prev/next quickly
+      // (or a slow RCSB response racing a fast click) let this callback add
+      // representations to, and call autoView on, a component whose stage
+      // had already been torn down. That's consistent with what was reported
+      // live 2026-09-09: the viewer intermittently not showing a mutation at
+      // all, and going back not re-showing one that displayed fine moments
+      // earlier — a disposed/half-torn-down stage rendering nothing rather
+      // than throwing a visible error.
+      if (cancelled) return;
       const ch = mutation.chain;
 
       // Cartoon — restrict to one chain only
@@ -105,7 +116,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
 
       component.autoView(800);
     }).catch((err: any) => {
-      console.error('NGL load error:', err);
+      if (!cancelled) console.error('NGL load error:', err);
     });
 
     stage.setSpin([0, 1, 0], 0.006);
@@ -114,8 +125,24 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     window.addEventListener('resize', onResize);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('resize', onResize);
       stageRef.current = null;
+      // stage.dispose() removes NGL's own bookkeeping and the canvas element,
+      // but (confirmed against NGL's own dispose() source) never calls the
+      // underlying THREE.WebGLRenderer's forceContextLoss() — the canvas can
+      // be gone from the DOM while its WebGL context is still alive and
+      // counted against the browser's small fixed per-page context limit.
+      // Once enough quick navigations exhaust that limit, new Stages fail to
+      // get a context and silently render nothing — again matching the
+      // "works, then a mutation just doesn't show, and going back doesn't
+      // bring back one that worked before" report. Force the real GPU
+      // context to release, not just NGL's own cleanup.
+      try {
+        stage.viewer?.renderer?.forceContextLoss?.();
+      } catch {
+        // Best-effort — a missing/renamed internal shouldn't block teardown.
+      }
       stage.dispose();
     };
   }, [mutation.pdb]);
