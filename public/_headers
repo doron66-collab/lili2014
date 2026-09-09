@@ -1,0 +1,20 @@
+# Every push to main triggers a new Netlify build with newly-hashed JS/CSS
+# filenames (Vite's default). Without an explicit rule here, Netlify's
+# default caching behaviour for plain .html files is not guaranteed strict
+# enough to stop a browser from holding onto an OLD index.html/3d.html across
+# a redeploy — and this project redeploys constantly (dissertation sync is a
+# standing rule, and this session alone pushed six times in under two
+# hours). A stale HTML page references a build's own specific hashed asset
+# filenames; if the browser doesn't refetch the HTML after a new deploy, it
+# can end up requesting assets from a build state that no longer matches
+# what's live, which reads as exactly what was reported live 2026-09-09:
+# the /3d viewer working once right after a fresh deploy, then intermittently
+# hanging on a later visit with no code change in between. Force every HTML
+# entry point to always revalidate, while the hashed, content-addressed
+# assets underneath /assets/ are safe to cache forever (a new build always
+# gets new filenames, never reuses old ones).
+/*.html
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
