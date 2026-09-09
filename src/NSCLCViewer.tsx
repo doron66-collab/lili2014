@@ -88,10 +88,10 @@ const MUT = [
   {
     // TP53 C275F — structural β-sandwich core mutant (p.Cys275Phe)
     // Detected: Emek Medical Center MI25-0349 · June 2025
-    // sqDRIFT active space: ~44 active electrons · ~44 orbitals · ~88 qubits
+    // sqDRIFT active space: 18–48 active electrons (AVAS-tested, criterion-dependent) · 24–56 qubits
     id: 'TP53', variant: 'C275F', drug: 'Eprenetapopt', sub: 'APR-246 · Pan-mutant p53 reactivator',
     phase: 'No C275F-specific trial · Research stage', color: 0xffdd22, pCol: 0xff7700, dCol: 0x44ffee,
-    mech: 'p.Cys275Phe replaces core β-sandwich Cys with bulky Phe → hydrophobic core collapse → global misfolding. No mutation-specific drug exists. Quantum simulation (sqDRIFT) of the π-electron pocket is the frontier approach. Active space: ~44e · ~88 qubits',
+    mech: 'p.Cys275Phe replaces core β-sandwich Cys with bulky Phe → hydrophobic core collapse → global misfolding. No mutation-specific drug exists. Quantum simulation (sqDRIFT) of the π-electron pocket is the frontier approach. Active space: 18–48e · 24–56 qubits',
     pocket: genPocket(505, 0.12, 0.22, 0.30, 0.70),
     atoms: [[0,0,0,.21,0x44ffee],[.50,.24,.08,.16,0x22ddcc],[-.44,.28,-.12,.16,0x66ffee],[.12,-.46,.28,.17,0x44ffee],[-.30,-.28,-.28,.15,0x22ccdd],[.62,-.16,-.24,.13,0x55eecc],[-.60,.12,.32,.13,0x44ffdd],[.24,.50,.24,.15,0x66eedd],[.38,.10,-.46,.13,0x33eedd]],
     helices: [[551,2.6,0.80,1.15, 1.1, 0.2, 0.2],[662,2.0,0.68,1.05,-0.8,-0.4, 0.5],[773,1.6,0.60,0.90, 0.1,-0.9, 0.7]],
@@ -594,8 +594,8 @@ export default function NSCLCViewer() {
           <div style="color:#ffdd22;font-size:8.5px;letter-spacing:2px;margin-bottom:5px;">◈ BQP QUANTUM TARGET</div>
           <div style="color:rgba(255,240,180,.92);font-size:9px;line-height:1.7;">
             Phe275 π-system: 6e / 6 orbitals<br>
-            Full pocket active space: ~44e · ~44 orbitals<br>
-            Jordan-Wigner encoding: <span style="color:#ffdd22;font-weight:bold;">~88 qubits</span><br>
+            Full pocket active space: 18–48e (AVAS-tested range)<br>
+            Jordan-Wigner encoding: <span style="color:#ffdd22;font-weight:bold;">24–56 qubits</span><br>
             Status: <span style="color:#44ffee;">within IBM Heron r3 range</span>
           </div>
         </div>

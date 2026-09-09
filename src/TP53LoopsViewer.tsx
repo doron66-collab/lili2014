@@ -236,7 +236,7 @@ export default function TP53LoopsViewer({ onBack }: Props) {
         <div style={{ fontSize: 10, color: 'rgba(180,210,255,.85)', lineHeight: 1.8 }}>
           Loops L1 · L2 · L3 + DNA Double Helix<br />
           <span style={{ color: '#00ff88' }}>Mutation: p.Cys275Phe (C275F)</span><br />
-          <span style={{ color: 'rgba(255,221,34,.8)' }}>Active space: ~44e · ~88 qubits</span><br />
+          <span style={{ color: 'rgba(255,221,34,.8)' }}>Active space: 18–48e · 24–56 qubits (AVAS-tested range)</span><br />
           <span style={{ color: 'rgba(140,170,220,.65)', fontSize: 9 }}>IST 697 · Doron Cohen · CGU 2026</span>
         </div>
       </div>
@@ -251,7 +251,7 @@ export default function TP53LoopsViewer({ onBack }: Props) {
         <div style={{ color: '#ffdd22', fontSize: 9, letterSpacing: 2, marginBottom: 3 }}>◈ BQP QUANTUM TARGET</div>
         <div style={{ color: 'rgba(255,240,180,.88)', fontSize: 9, lineHeight: 1.7 }}>
           Phe275 π-electrons: 6e / 6 orbitals<br />
-          Full pocket: ~44e · Jordan-Wigner: <span style={{ color: '#44ffee', fontWeight: 'bold' }}>~88 qubits</span><br />
+          Full pocket: 18–48e · Jordan-Wigner: <span style={{ color: '#44ffee', fontWeight: 'bold' }}>24–56 qubits</span><br />
           <span style={{ color: 'rgba(100,220,255,.8)' }}>IBM Heron r3 · sqDRIFT-tractable</span>
         </div>
       </div>
