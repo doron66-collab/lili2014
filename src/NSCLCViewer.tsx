@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import PDBMolViewer from './PDBMolViewer';
 
 // ── Mutation info — text only, no fabricated geometry ────────────────────────
@@ -171,11 +171,28 @@ interface PdbMutInfo {
   url?: string;   // optional explicit structure URL (e.g. AlphaFold model)
 }
 
+// Loose PDB ID shape: 4 chars, first a digit (e.g. 2WTK, 6NFI) — RCSB's own
+// convention. Anything else is treated as a gene symbol and resolved via the
+// same UniProt→RCSB→AlphaFold backend lookup the NGS-driven path already uses.
+function looksLikePdbId(s: string): boolean {
+  return /^[0-9][a-z0-9]{3}$/i.test(s.trim());
+}
+
 export default function NSCLCViewer() {
   const [view] = useState(buildViewList);
   const [cur, setCur] = useState(0);
   const [resolved, setResolved] = useState<PdbMutInfo | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+
+  // Manual lookup — the system now resolves ANY gene or PDB ID with a real
+  // mapping, not just the five built-in demo targets or an uploaded NGS
+  // report's genes, so a direct search box (rather than another hardcoded
+  // list) is the generic way to expose that. Independent of the entries/`cur`
+  // state above: a manual result temporarily replaces the list view, and
+  // "← BACK" from it returns to wherever the list was, not out of the viewer.
+  const [query, setQuery] = useState('');
+  const [manual, setManual] = useState<PdbMutInfo | null>(null);
+  const [manualStatus, setManualStatus] = useState<string | null>(null);
 
   const entry = view.entries[cur];
 
@@ -223,36 +240,119 @@ export default function NSCLCViewer() {
     if (typeof window !== 'undefined' && window.opener && !window.opener.closed) window.close();
   }
 
-  if (!view.entries.length) {
+  async function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    setManual(null);
+    if (looksLikePdbId(q)) {
+      setManualStatus(null);
+      setManual({
+        id: q.toUpperCase(), variant: '', pdb: q.toUpperCase(), chain: 'A',
+        highlightRes: [], color: 0x06b6d4,
+        drug: 'User-selected structure', phase: '—',
+      });
+      return;
+    }
+    const gene = q.toUpperCase();
+    setManualStatus(`◌ Resolving ${gene} structure…`);
+    const s = await resolveStructure(gene);
+    if (!s) { setManualStatus(`✗ No structure found for ${gene}`); return; }
+    setManualStatus(null);
+    setManual({
+      id: gene, variant: '', pdb: s.pdb, chain: s.chain, highlightRes: [],
+      color: 0x06b6d4, drug: 'User-selected structure', phase: '—', url: s.url,
+    });
+  }
+
+  function clearManual() {
+    setManual(null);
+    setManualStatus(null);
+    setQuery('');
+  }
+
+  const searchBox = (
+    <form
+      onSubmit={handleSearch}
+      style={{
+        position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 70,
+        display: 'flex', gap: 6, alignItems: 'center',
+        background: 'rgba(0,8,30,0.92)', border: '1px solid rgba(6,182,212,.4)',
+        borderRadius: 8, padding: '5px 8px',
+      }}
+    >
+      <input
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder="Gene symbol or PDB ID (e.g. ARID1A, 2WTK)"
+        style={{
+          background: 'rgba(6,182,212,.08)', border: '1px solid rgba(6,182,212,.3)',
+          color: '#f1f5f9', borderRadius: 6, padding: '4px 8px', fontSize: 11,
+          width: 230, outline: 'none',
+        }}
+      />
+      <button
+        type="submit"
+        style={{
+          background: 'rgba(6,182,212,.18)', border: '1px solid rgba(6,182,212,.5)',
+          color: '#06b6d4', borderRadius: 6, padding: '4px 10px', fontSize: 11,
+          cursor: 'pointer', letterSpacing: 1,
+        }}
+      >
+        🔍 LOAD
+      </button>
+      {manual && (
+        <button
+          type="button"
+          onClick={clearManual}
+          style={{
+            background: 'transparent', border: '1px solid rgba(203,213,225,.4)',
+            color: '#cbd5e1', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
+          }}
+        >
+          ✕ CLEAR
+        </button>
+      )}
+    </form>
+  );
+
+  const active = manual || (manualStatus ? null : resolved);
+
+  if (manualStatus) {
     return (
       <div style={{
-        width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#020610', color: 'rgba(200,220,255,.85)', fontFamily: 'Courier New, monospace',
+        width: '100%', height: '100vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#020610', color: 'rgba(200,220,255,.85)', fontFamily: 'Courier New, monospace', fontSize: 13,
       }}>
-        No variants to display.
+        {searchBox}
+        {manualStatus}
       </div>
     );
   }
 
-  if (!resolved) {
+  if (!active) {
     return (
       <div style={{
-        width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '100%', height: '100vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: '#020610', color: 'rgba(200,220,255,.85)', fontFamily: 'Courier New, monospace', fontSize: 13,
       }}>
-        {status || 'Loading…'}
+        {searchBox}
+        {view.entries.length ? (status || 'Loading…') : 'No variants to display — search for a gene or PDB ID above.'}
       </div>
     );
   }
 
   return (
-    <PDBMolViewer
-      key={`${cur}-${resolved.pdb}`}
-      mutation={resolved}
-      onBack={closeOrBack}
-      onPrev={view.entries.length > 1 ? () => setCur((cur - 1 + view.entries.length) % view.entries.length) : undefined}
-      onNext={view.entries.length > 1 ? () => setCur((cur + 1) % view.entries.length) : undefined}
-      navPosition={view.entries.length > 1 ? `${cur + 1} / ${view.entries.length}` : undefined}
-    />
+    <>
+      <PDBMolViewer
+        key={manual ? `manual-${active.pdb}` : `${cur}-${active.pdb}`}
+        mutation={active}
+        onBack={manual ? clearManual : closeOrBack}
+        onPrev={!manual && view.entries.length > 1 ? () => setCur((cur - 1 + view.entries.length) % view.entries.length) : undefined}
+        onNext={!manual && view.entries.length > 1 ? () => setCur((cur + 1) % view.entries.length) : undefined}
+        navPosition={!manual && view.entries.length > 1 ? `${cur + 1} / ${view.entries.length}` : undefined}
+      />
+      {searchBox}
+    </>
   );
 }
