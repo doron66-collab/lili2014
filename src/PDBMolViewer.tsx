@@ -28,10 +28,57 @@ function hexToNGLColor(hex: number): string {
   return '#' + hex.toString(16).padStart(6, '0');
 }
 
+interface PdbMeta {
+  title: string;
+  method?: string;
+  resolution?: number;
+}
+
+// Real, sourced structure data from RCSB's own data API — the one piece of
+// substantive information available for ANY real PDB entry, not just the
+// five curated demo mutations. Curated mech/sub/drug text only exists for
+// those five (it's chemist-authored, per-mutation content); a gene pulled
+// through the generic search box has none of that, so without this the
+// manual-search path showed a bare rotating structure with no data at all
+// (reported live 2026-09-09). Deliberately factual and RCSB-sourced only —
+// no per-mutation mechanism is invented for an arbitrary structure.
+async function fetchPdbMeta(pdbId: string): Promise<PdbMeta | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(`https://data.rcsb.org/rest/v1/core/entry/${pdbId.toUpperCase()}`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const r = await res.json();
+    const title = r?.struct?.title;
+    if (!title) return null;
+    return {
+      title,
+      method: r?.exptl?.[0]?.method,
+      resolution: r?.rcsb_entry_info?.resolution_combined?.[0],
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosition }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
   const [spinning, setSpinning] = useState(true);
+  const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
+  const isAlphaFold = mutation.pdb.startsWith('AF-');
+
+  useEffect(() => {
+    setPdbMeta(null);
+    if (isAlphaFold) return; // predicted model, not an RCSB experimental entry
+    let cancelled = false;
+    fetchPdbMeta(mutation.pdb).then(m => { if (!cancelled) setPdbMeta(m); });
+    return () => { cancelled = true; };
+  }, [mutation.pdb, isAlphaFold]);
 
   useEffect(() => {
     const el = mountRef.current;
@@ -273,6 +320,33 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.6 }}>{mutation.mech}</div>
           </div>
         )}
+
+        {/* PDB structure data — RCSB-sourced, shown for every structure (the
+            curated mech card above only exists for the five demo mutations;
+            this is the real data a manually-searched gene/PDB ID otherwise
+            had none of). */}
+        <div style={{
+          position: 'absolute', bottom: 14, left: 14, zIndex: 10, maxWidth: 340,
+          background: 'rgba(2,6,18,.88)', border: `1px solid ${cc}44`, borderRadius: 10,
+          padding: '10px 14px', backdropFilter: 'blur(10px)',
+        }}>
+          <div style={{ color: cc, fontSize: 9, letterSpacing: 2, marginBottom: 5 }}>● PDB STRUCTURE DATA — RCSB</div>
+          {isAlphaFold ? (
+            <div style={{ color: 'rgba(190,215,255,.75)', fontSize: 10 }}>
+              AlphaFold predicted model — no RCSB experimental record.
+            </div>
+          ) : pdbMeta ? (
+            <>
+              <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.5 }}>{pdbMeta.title}</div>
+              <div style={{ color: 'rgba(150,180,255,.7)', fontSize: 9, marginTop: 4 }}>
+                {pdbMeta.method || 'Method unknown'}
+                {pdbMeta.resolution != null ? ` · ${pdbMeta.resolution.toFixed(2)} Å` : ''}
+              </div>
+            </>
+          ) : (
+            <div style={{ color: 'rgba(190,215,255,.6)', fontSize: 10 }}>Loading structure data…</div>
+          )}
+        </div>
       </div>
 
       {/* Footer legend */}
