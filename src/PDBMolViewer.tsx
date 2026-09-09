@@ -306,7 +306,19 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       </div>
 
       {/* NGL canvas */}
-      <div ref={mountRef} style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative' }}>
+        {/* NGL.Stage owns this div exclusively — its mount effect does
+            `el.innerHTML = ''` on every structure change to defend against
+            leaked canvases (see that effect's own comment). That call used
+            to target THIS OUTER div, which also held the overlay cards
+            below as React children — wiping it out silently deleted the
+            overlay DOM nodes too, out from under React, every single
+            reload. That's why the PDB-metadata card (and the mech card)
+            intermittently vanished (reported live 2026-09-09). Giving NGL
+            its own dedicated child div means clearing it can never touch
+            the overlays, which live as siblings instead. */}
+        <div ref={mountRef} style={{ position: 'absolute', inset: 0 }} />
+
         {mutation.mech && (
           <div style={{
             position: 'absolute', top: 14, left: 14, zIndex: 10, maxWidth: 300,
