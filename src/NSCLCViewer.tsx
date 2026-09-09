@@ -135,12 +135,25 @@ function buildViewList(): { entries: ViewEntry[]; reportId: string | null } {
 async function resolveStructure(gene: string): Promise<{ pdb: string; chain: string; url?: string } | null> {
   const base = (typeof window !== 'undefined' && (window as any).QCAIHPC_API_BASE)
     || 'https://qcaihpc-simulation-api.onrender.com';
+  // Render's free/starter tier can take 30-60s+ to wake a sleeping backend from
+  // cold, and this fetch previously had NO client-side timeout at all - if the
+  // backend never answers (asleep, unreachable, DNS/CORS issue), the caller's
+  // "Resolving <gene> structure…" status just sat there forever with no
+  // fallback message, indistinguishable from the viewer being stuck. Found
+  // live 2026-09-09 (ARID2, an AlphaFold-only entry with no RCSB PDB, so it
+  // always takes this fallback path). 25s covers a real cold-start without
+  // making a genuinely offline backend look hung for longer than necessary.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
   try {
-    const r = await fetch(`${base}/api/pdb/lookup/gene/${encodeURIComponent(gene)}`).then(res => res.json());
+    const r = await fetch(`${base}/api/pdb/lookup/gene/${encodeURIComponent(gene)}`, { signal: controller.signal })
+      .then(res => res.json());
     if (r?.pdb_ids?.length) return { pdb: r.pdb_ids[0], chain: 'A' };
     if (r?.alphafold_model_url) return { pdb: `AF-${r.uniprot_id || gene}`, chain: 'A', url: r.alphafold_model_url };
   } catch {
-    // Backend asleep / offline — caller surfaces a message.
+    // Backend asleep / offline / timed out — caller surfaces a message.
+  } finally {
+    clearTimeout(timeout);
   }
   return null;
 }
