@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import TP53LoopsViewer from './TP53LoopsViewer';
 import PDBMolViewer from './PDBMolViewer';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -259,7 +258,6 @@ interface PdbMutInfo {
 
 export default function NSCLCViewer() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [showLoops, setShowLoops] = useState(false);
   const [pdbMut, setPdbMut] = useState<PdbMutInfo | null>(null);
   // Read the patient report (or demo fallback) once, at mount.
   const [view] = useState(buildViewList);
@@ -521,15 +519,6 @@ export default function NSCLCViewer() {
       d.onclick = () => openPdbFallback(entry.meta);
       return { el: d, sceneIndex: -1, color: c };
     });
-    // 6th dot — Loops 3D structural viewer
-    const loopsBtn = document.createElement('button');
-    loopsBtn.textContent = '🧬';
-    loopsBtn.title = 'TP53 L1·L2·L3 Loops 3D';
-    loopsBtn.style.cssText = 'background:rgba(0,180,180,.12);border:1.5px solid rgba(0,220,220,.5);color:rgba(0,240,220,.9);border-radius:18px;padding:5px 11px;cursor:pointer;font-size:13px;pointer-events:all;transition:background .2s;letter-spacing:1px;';
-    loopsBtn.onmouseover = () => loopsBtn.style.background = 'rgba(0,180,180,.28)';
-    loopsBtn.onmouseout  = () => loopsBtn.style.background = 'rgba(0,180,180,.12)';
-    loopsBtn.onclick = () => setShowLoops(true);
-
     // PDB crystallographic viewer button
     const pdbBtn = document.createElement('button');
     pdbBtn.textContent = '🔬';
@@ -547,7 +536,7 @@ export default function NSCLCViewer() {
         color: m.color, drug: m.drug, phase: m.phase,
       });
     };
-    nav.append(prevBtn, ...dots.map(d => d.el), nextBtn, dockBtn, loopsBtn, pdbBtn);
+    nav.append(prevBtn, ...dots.map(d => d.el), nextBtn, dockBtn, pdbBtn);
 
     // Open the real crystallographic / AlphaFold structure for a variant that
     // has no built-in 3D model (resolved live via the platform backend).
@@ -829,11 +818,6 @@ export default function NSCLCViewer() {
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
       <div ref={mountRef} style={{ width: '100%', height: '100%', background: '#020610' }} />
-      {showLoops && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50 }}>
-          <TP53LoopsViewer onBack={() => setShowLoops(false)} />
-        </div>
-      )}
       {pdbMut && (
         <PDBMolViewer mutation={pdbMut} onBack={() => setPdbMut(null)} />
       )}
