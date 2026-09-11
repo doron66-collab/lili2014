@@ -1319,9 +1319,9 @@
       <div class="section-number">Essential Terminology <span class="dash"></span></div>
       <h2 class="section-title">A Reader's Guide.</h2>
 
-      <p><em>A reader's guide to the eighteen terms that recur most often across this proposal.</em></p>
+      <p><em>A reader's guide to the nineteen terms that recur most often across this proposal.</em></p>
 
-      <p>This dissertation sits at the intersection of information systems, quantum computing, computational chemistry, and FDA regulatory science. Each of these fields contributes vocabulary that is unfamiliar to readers from the others. The eighteen terms below are the minimum set required to follow the argument from the Problem Statement through the Methodology section without consulting external references. A complete glossary of ninety-five terms appears as <a href="#appendix-a">Appendix A</a>.</p>
+      <p>This dissertation sits at the intersection of information systems, quantum computing, computational chemistry, and FDA regulatory science. Each of these fields contributes vocabulary that is unfamiliar to readers from the others. The nineteen terms below are the minimum set required to follow the argument from the Problem Statement through the Methodology section without consulting external references. A complete glossary of ninety-six terms appears as <a href="#appendix-a">Appendix A</a>.</p>
 
       <p><em>Terms are listed alphabetically. Where a term has both a formal definition and a specific role in this dissertation, the role is given priority — readers seeking deeper coverage are referred to <a href="#appendix-a">Appendix A</a>.</em></p>
 
@@ -1369,6 +1369,11 @@
               <td><strong>KEAP1</strong></td>
               <td><em>Kelch-like ECH-Associated Protein 1</em></td>
               <td>Contributes one structurally-verified target mutation, G333C: coordinate-verified from PDB structures 1U6D and 2FLU (residues 322&ndash;609), classified Class B (quantum-advantaged), real AVAS-tested range 30&ndash;72 active electrons (32&ndash;74 qubits under Jordan-Wigner encoding), DMRG-measured S_max=0.22 at 72e — well beyond the exact-classical wall (~18e) yet classically tractable, designated current-era QPU target (fits Heron r3's ~156-qubit ceiling). Two related candidates were checked against the same structures and excluded (§01, Table 1b): R320Q, whose residue sits two positions before the Kelch domain's resolved boundary in a documented flexible linker, and the generic LOF finding (a frameshift, p.Cys196Leufs*), which has no single residue to anchor a computation to at all. Only G333C is coordinate-verified.</td>
+            </tr>
+            <tr>
+              <td><strong>LEON</strong></td>
+              <td><em>Lineage-Evidence Orchestration &amp; Notarization</em></td>
+              <td>The notarization layer that guarantees a sealed P1&ndash;P9 record cannot be altered undetected: it independently recomputes the P8 cryptographic seal (the specific field inside P1&ndash;P9 that carries the SHA-256 hash) and re-checks physics-consistency at ingestion, rejecting any externally-submitted run whose lineage does not verify, and re-attests integrity on demand at query time. LEON is the guarantor <em>around</em> P1&ndash;P9, not another name for the record itself &mdash; the relationship is: P1&ndash;P9 is what gets sealed, P8 is where that seal lives, LEON is what verifies it never drifted. Discussed in &sect;06.ii and &sect;06.iv (DP1). Named in memory of the candidate's father, Leon.</td>
             </tr>
             <tr>
               <td><strong>NGS</strong></td>
@@ -1429,7 +1434,7 @@
         </table>
       </div>
 
-      <p><em>See also: <a href="#appendix-a">Appendix A — Complete Glossary</a> (ninety-five entries) for full coverage of acronyms, methods, and technical terms appearing throughout the dissertation, prototype, and supporting artifacts.</em></p>
+      <p><em>See also: <a href="#appendix-a">Appendix A — Complete Glossary</a> (ninety-six entries) for full coverage of acronyms, methods, and technical terms appearing throughout the dissertation, prototype, and supporting artifacts.</em></p>
     </section>
 
     <div class="ornament">
