@@ -133,7 +133,14 @@ async def admin_stats(authorization: str | None = Header(None)):
     """Summary stats for the admin dashboard."""
     sb = get_supabase()
     _require_admin(authorization, sb, "stats")
-    runs  = sb.table("simulation_runs").select("id, mutation_id, created_at, user_id").execute()
+    # ORDER BY is required here: without it, Postgres/Supabase returns rows in
+    # an unspecified order (not necessarily insertion order), so `data[0]`
+    # was effectively a random row, not the most recent one - the Admin
+    # Console's "Last Run" tile showed a stale date from months back
+    # (reported live 2026-09-11) purely because whatever row Postgres
+    # happened to return first was old.
+    runs  = (sb.table("simulation_runs").select("id, mutation_id, created_at, user_id")
+               .order("created_at", desc=True).execute())
     users = sb.table("users_profile").select("id, role").execute()
     data  = runs.data or []
     by_mutation = {}
