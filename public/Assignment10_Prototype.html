@@ -3530,7 +3530,7 @@ function updateAllTabs(data) {
   if (compAlert) {
     compAlert.className = 'alert alert-green';
     compAlert.style.cssText = 'margin-bottom:16px';
-    compAlert.innerHTML = `<strong style="color:var(--green)">✓ Provenance Status: SEALED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 audit-trail requirements <em>aligned</em> (not a certified-compliant system) · Run ID: ${data.run_id} · Phase 3A LIVE · ${now}`;
+    compAlert.innerHTML = `<strong style="color:var(--green)">✓ Provenance Status: SEALED</strong> — All 9 provenance elements (P1–P8 + P9 ML-decoder) captured · FDA 21 CFR Part 11 audit-trail requirements <em>aligned</em> (not a certified-compliant system) · Run ID: ${data.run_id} · Phase 3A LIVE · ${new Date(rec.created_at).toLocaleString()}`;
   }
 
   // ── Compliance tab — audit trail ─────────────────────────────────────
