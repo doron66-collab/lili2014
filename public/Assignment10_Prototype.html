@@ -3612,9 +3612,16 @@ async function runN2SelfTest() {
   const _aiStR = document.getElementById('job-ai-status');
   if (_aiStR) { _aiStR.textContent = 'Waiting'; _aiStR.style.color = 'var(--gray)'; }
 
-  // Crawl VQE bar 0→100% over 10s — always cancelled and snapped on API return
+  // The VQE bar used to crawl 0→100% on a fixed 10s timer, independent of the
+  // convergence chart below (which draws from real SSE points as they arrive
+  // — 80 Adam steps, backend's own step count). The two had no relationship:
+  // a cold-started Render backend or a slower run made the chart still
+  // drawing points while the bar already sat at 100%, or the reverse for a
+  // fast run — reported live 2026-09-11. The bar is now driven by the same
+  // real point count as the chart (see the stream loop below) instead of a
+  // timer, so both visuals always reach 100% at the same actual moment.
   updateJobCard(mutationId, 'running');
-  _vqeBarRaf = animateBar(_vqeBar, 0, 100, 10000);
+  if (_vqeBar) _vqeBar.style.width = '0%';
 
   try {
     const { data: { session } } = await supa.auth.getSession();
@@ -3659,6 +3666,10 @@ async function runN2SelfTest() {
         }
         const e = msg.energy;
         streamPts.push(e);
+        // Same real progress the chart is about to draw (see toX below, which
+        // assumes 80 total points) — this is what keeps the Orchestration
+        // tab's bar and the Results tab's chart in lockstep.
+        if (_vqeBar) _vqeBar.style.width = Math.min(100, (streamPts.length / 80) * 100) + '%';
         if (streamEMax === null || e > streamEMax) streamEMax = e;
         if (streamEMin === null || e < streamEMin) streamEMin = e;
         const eRange = (streamEMax - streamEMin) || 1e-6;
