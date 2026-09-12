@@ -188,6 +188,15 @@ alter table public.dmrg_classifications add column if not exists spin int;
 -- default 0.2 unless explicitly widened via solange_dmrg.py's --avas-threshold).
 alter table public.dmrg_classifications add column if not exists avas_threshold numeric;
 
+-- orbital_optimization_converged: whether CASSCF/DMRG-SCF's own orbital
+-- optimization actually converged (mc.converged), independent of whether
+-- the subsequent DMRG bond-dimension sweep converged. Found live 2026-09-12:
+-- a run whose orbitals hit max_cycle_macro without converging (not a time-
+-- budget stop) was previously indistinguishable from a fully-converged run
+-- in the stored record, even though the console log itself said "CASSCF did
+-- NOT converge" - the classification could not honestly be called FINAL.
+alter table public.dmrg_classifications add column if not exists orbital_optimization_converged boolean;
+
 -- hpc_dispatch: carries an SHCI job's parameters from the "Queue SHCI" button
 -- to the agent that picks it up.
 alter table public.hpc_dispatch add column if not exists geometry text;

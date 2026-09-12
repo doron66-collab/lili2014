@@ -525,12 +525,27 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                 raise OrbitalTimeBudgetExceeded(envs.get("imacro"), envs.get("e_tot"),
                                                 envs.get("mo"))
         mc.callback = _budget_callback
+    # casscf_converged tracks orbital-optimization convergence specifically -
+    # separate from `truncated` (which only fires on the TIME-budget path).
+    # Found live 2026-09-12: a run that hit max_cycle_macro without either
+    # exception or mc.converged=True fell through as if nothing were wrong -
+    # orbital_optimization_truncated stayed False, so main() never printed
+    # the PROVISIONAL warning and the eventual classification was labeled
+    # "FINAL result, not provisional" purely from DMRG's own bond-dimension
+    # convergence, with no check at all on whether the ORBITALS underneath
+    # it had actually settled. The same TP53_C275_NATIVE run's own log
+    # printed "CASSCF did NOT converge" one line above that - the exact
+    # oscillating-orbital-partition instability seen on NEGCTRL_BORING - and
+    # nothing downstream acted on it. CASCI mode has no orbital optimization
+    # to (not) converge, so it is always reported converged.
     try:
         e_casscf = mc.kernel(mo)[0]
-        conv_note = ("converged" if mc.converged else
+        casscf_converged = True if casci else bool(mc.converged)
+        conv_note = ("converged" if casscf_converged else
                      f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first")
     except OrbitalTimeBudgetExceeded as exc:
         truncated = True
+        casscf_converged = False
         # NOT mc.e_tot — see the class docstring: never populated on an
         # interrupted run, so float(mc.e_tot) raises TypeError on None instead
         # of the guard doing its job.
@@ -560,6 +575,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
             "e_fci_active": None if e_fci is None else float(e_fci),
             "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec),
             "orbital_optimization_truncated": bool(truncated),
+            "orbital_optimization_converged": bool(casscf_converged),
             "orbital_optimization_method": (
                 ("CASCI, fixed AVAS orbitals (no optimization) + " +
                  (f"DMRG solve (block2)" if dmrg_scf else "exact FCI solve") if casci else
@@ -790,6 +806,23 @@ def main():
         if cas.get("orbital_optimization_truncated"):
             print("  *** orbital optimisation hit its time budget — orbitals are usable but "
                   "NOT converged; the classification below is PROVISIONAL on that basis too ***")
+    # Two independent keys across the two code paths this branches into
+    # (integrals_from_geometry's own "orbital_optimization_converged" vs.
+    # solange_hpc.run_casscf's "converged") - normalized here once. A run
+    # that hit max_cycle_macro without raising OrbitalTimeBudgetExceeded used
+    # to fall through this entirely: orbital_optimization_truncated stayed
+    # False (that flag only ever fires on the time-budget path), so neither
+    # branch's own warning above ever printed, and the "FINAL result" message
+    # below was reached with orbitals that were never actually checked.
+    # exactly what happened live 2026-09-12 on TP53_C275_NATIVE, whose own
+    # log said "CASSCF did NOT converge" one line above a run this code
+    # would otherwise have called final.
+    orbital_converged = cas.get("orbital_optimization_converged",
+                                 cas.get("converged", True))
+    if not orbital_converged and not cas.get("orbital_optimization_truncated"):
+        print("  *** orbital optimisation hit max_cycle_macro without converging (not a time-"
+              "budget stop) — orbitals are usable but NOT converged; the classification below "
+              "is PROVISIONAL on that basis too ***")
     print(f"{cas['orbital_optimization_method']} E = {cas['e_casscf']:.8f} Ha")
 
     t0 = time.time()
@@ -809,14 +842,22 @@ def main():
         print(f"NOTE: stopped early at {len(energies)}/{len(bond_dims)} bond dimensions "
               f"(--max-minutes {args.max_minutes}). The class below is PROVISIONAL — "
               f"re-run with --scratch {args.scratch} to resume toward the full bond-dim list.")
-    elif stop_reason == "converged":
+    elif stop_reason == "converged" and orbital_converged:
         print(f"NOTE: converged early at M={energies[-1][0]} "
               f"({len(energies)}/{len(bond_dims)} bond dims run) — larger M cannot change "
               f"the verdict. This is a FINAL result, not provisional.")
+    elif stop_reason == "converged" and not orbital_converged:
+        print(f"NOTE: DMRG itself converged at M={energies[-1][0]}, but the ORBITALS underneath "
+              f"it did not (see the orbital-optimisation warning above) — this is PROVISIONAL, "
+              f"not final: a different orbital solution could give a different S_max.")
 
+    orbital_provisional = not orbital_converged and not cas.get("orbital_optimization_truncated")
     cls, rationale = classify(args.nelecas, energies, s_max)
     print("-" * 68)
-    print(f"CLASS {cls}{' (PROVISIONAL — time budget hit)' if time_budget_hit else ''}")
+    provisional_tag = (' (PROVISIONAL — time budget hit)' if time_budget_hit
+                        else ' (PROVISIONAL — orbital optimization did not converge)' if orbital_provisional
+                        else '')
+    print(f"CLASS {cls}{provisional_tag}")
     print(f"  {rationale}")
     elapsed_s = round(time.time() - t0, 1)
     print(f"elapsed {elapsed_s}s")
@@ -828,7 +869,8 @@ def main():
         "e_casscf": cas["e_casscf"],
         "dmrg_energies": energies, "s_max": s_max,
         "bqp_class": cls, "class_rationale": rationale,
-        "time_budget_hit": time_budget_hit, "bond_dims_requested": bond_dims,
+        "time_budget_hit": time_budget_hit, "orbital_optimization_converged": orbital_converged,
+        "bond_dims_requested": bond_dims,
         "elapsed_s": elapsed_s,
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
         "orbital_optimization_method": cas["orbital_optimization_method"],
