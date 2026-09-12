@@ -1351,6 +1351,27 @@
       </div>
       <div id="g2-custom-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
     </div>
+
+    <!-- ── Stabilizer Comparison — the first real "oven" for a Gate 2
+         category (structural_stabilizer_local_comparison): takes two
+         already-classified DMRG records (wild-type + mutant) and computes
+         their local ΔE, but only after the apples-to-apples check on
+         basis/AVAS/charge/spin/ncas/nelecas passes and a Gate 2 sign-off for
+         the target is complete. See backend/routes/gate2.py's
+         stabilizer_compare for what it does and does not guarantee. ── -->
+    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(232,160,32,0.4);border-radius:8px;background:rgba(232,160,32,0.04)">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:2px">Stabilizer Comparison <span class="info-i" data-tip="For the structural_stabilizer_local_comparison category only: computes ΔE = E(mutant) - E(WT) from two ALREADY-CLASSIFIED DMRG records (Rung 3 A/B/C table, copy their IDs below). Refuses (409) unless a complete Gate 2 sign-off exists for this target in that category, and unless the two records match on basis/AVAS/AVAS threshold/charge/spin/ncas/nelecas - a real apples-to-oranges case (drifted avas_threshold) was caught live by this exact check 2026-09-12.">i</span></div>
+      <div style="font-size:10px;color:var(--gray);margin-bottom:8px">Both IDs are DMRG classification record IDs from the Rung 3 table above (the small id shown next to "Verify"/"↓ JSON").</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px">
+        <input id="g2-stab-target" placeholder="Target key (e.g. TP53_C275F)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-stab-wt" placeholder="Wild-type DMRG record ID" style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-stab-mut" placeholder="Mutant DMRG record ID" style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <button onclick="dispatchStabilizerCompare(this)" title="Blocked unless Gate 2 is complete for this target AND the two records share the same computational setup" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🧮 Compute ΔE</button>
+        <button onclick="window.solangeLoadStabilizer && window.solangeLoadStabilizer()" title="Reload saved comparisons" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.4);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">↻ Refresh</button>
+      </div>
+      <div id="g2-stab-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
+      <div id="gate2-stabilizer-list" class="table-scroll" style="margin-top:10px"></div>
+    </div>
   </div>
   <script>
   (function(){
@@ -2204,6 +2225,46 @@
       });
     };
     window.solangeLoadGate2();
+
+    // ── Stabilizer comparisons — read side of Gate 2's first real "oven"
+    // (structural_stabilizer_local_comparison). Each row is a sealed,
+    // already-computed ΔE; this only lists them, it never computes anything.
+    var stabBox = document.getElementById('gate2-stabilizer-list');
+    var stabPaint = function(html){
+      if (!stabBox) return;
+      if (stabBox.__lastHtml === html) return;
+      stabBox.__lastHtml = html; stabBox.innerHTML = html;
+    };
+    window.solangeLoadStabilizer = function(silent){
+      if (!stabBox) return;
+      if (!silent) stabPaint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
+      fetch(API+'/api/gate2/stabilizer/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.comparisons) || [];
+        if (!rows.length) {
+          stabPaint('<div style="color:var(--gray);font-size:11px">No stabilizer comparisons computed yet.</div>');
+          return;
+        }
+        var hh = '<table style="width:100%;min-width:820px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:120px">Target</th><th style="'+TH+';width:110px">ΔE (mHa)</th>'+
+          '<th style="'+TH+';width:150px">E(WT) Ha</th><th style="'+TH+';width:150px">E(mutant) Ha</th>'+
+          '<th style="'+TH+';width:120px">When</th><th style="'+TH+';width:100px">By</th></tr>';
+        rows.forEach(function(x){
+          var dHa = Number(x.delta_e_mha);
+          var dCol = dHa > 0 ? 'var(--gold)' : (dHa < 0 ? 'var(--teal)' : 'var(--gray)');
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.target||'—')+'</td>'+
+                '<td style="'+C+';font-weight:700;color:'+dCol+'">'+(Number.isFinite(dHa)?dHa.toFixed(4):'—')+'</td>'+
+                '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.e_wt_ha!=null?Number(x.e_wt_ha).toFixed(8):'—')+'</td>'+
+                '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.e_mutant_ha!=null?Number(x.e_mutant_ha).toFixed(8):'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.requested_by?String(x.requested_by).slice(0,8):'—')+'</td></tr>';
+        });
+        stabPaint(hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">ΔE = E(mutant) − E(WT) at a matched active space. Positive (gold) = mutant higher energy (locally less stable); negative (teal) = mutant lower energy. Not a chemical/biological conclusion on its own — see POC_DISCLAIMER.</div>');
+      }).catch(function(){
+        stabPaint('<div style="color:var(--gray);font-size:11px">Stabilizer comparisons unavailable (backend unreachable).</div>');
+      });
+    };
+    window.solangeLoadStabilizer();
 
     // ── Gate 1 — pending gate1_checks cache, read-only list. Targets.json's
     // own entries never appear here — they never needed the cache.
@@ -6026,6 +6087,49 @@ async function dispatchCustomCompound(btn) {
     if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
   } catch (e) {
     setMsg('<span style="color:#f87171">Dispatch failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// Runs Gate 2's first real "oven" (structural_stabilizer_local_comparison):
+// POST /api/gate2/stabilizer/compare. Both IDs come from the DMRG A/B/C
+// table above (Rung 3), not typed from anywhere else. Requires a complete
+// Gate 2 sign-off for the target AND that the two records share the same
+// computational setup — either failure returns a specific reason, not a
+// silent no-op.
+async function dispatchStabilizerCompare(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const target = val('g2-stab-target').trim();
+  const wtId = val('g2-stab-wt').trim();
+  const mutId = val('g2-stab-mut').trim();
+  const msg = document.getElementById('g2-stab-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!target || !wtId || !mutId) {
+    setMsg('<span style="color:#f87171">Target key, wild-type ID, and mutant ID are all required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'computing…'; }
+  setMsg('checking Gate 2 + apples-to-apples, then computing…');
+  try {
+    const res = await fetch(`${API}/api/gate2/stabilizer/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ target, wt_dmrg_id: wtId, mutant_dmrg_id: mutId }),
+    });
+    const out = await res.json();
+    if (!res.ok || !out.compared) {
+      setMsg('<span style="color:#f87171">Refused: ' + (out.detail || out.error || 'unknown error') + '</span>');
+      return;
+    }
+    setMsg('<span style="color:var(--green)">✓ ΔE = ' + out.delta_e_mha + ' mHa (mutant − WT), saved.</span>');
+    if (typeof window.solangeLoadStabilizer === 'function') window.solangeLoadStabilizer();
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Failed: ' + e.message + '</span>');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = orig; }
   }

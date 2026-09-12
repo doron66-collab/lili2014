@@ -19,11 +19,18 @@ SPECIFIC quantity for actual drug design — a covalent activation barrier
 researcher makes for a specific promising target, not a step every screened
 mutation passes through.
 
-STATUS: tracking and sign-off only. No live SOLANGE endpoint currently checks
-gate3_allowed() before running anything — because the tool that would consume
-it (a mechanism-specific energy calculator, e.g. a covalent ΔG‡ pipeline) does
-not exist yet. Wiring this module's records into that tool's dispatch path,
-once it exists, is what turns this from documentation into an actual gate.
+STATUS: one of the five categories now has a real consumer.
+structural_stabilizer_local_comparison's own "oven" (POST
+/stabilizer/compare, below) computes the wild-type/mutant energy
+difference the category asks for, from two already-classified DMRG
+records, but only after this module's own missing_requirements() check
+passes for that target. The other four categories (covalent_reactive_
+cysteine, metal_redox_center, protein_interface_disruption,
+catalytic_loss_of_function) still have no downstream tool that branches
+on them — this module keeps tracking and enforcing sign-off for those,
+but nothing yet consumes it. Wiring each remaining category's own
+calculator, once it exists, is what turns tracking into an actual gate
+for that category specifically.
 
 THE MAPPING THIS MODULE OWNS (mechanism category -> what quantity matters,
 what pair of states it is a difference between): a taxonomy problem, argued
@@ -48,6 +55,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, HTTPException, Header
 
 from routes.simulate import get_supabase, _uid_from_auth, _require_dispatch_allowed
+import routes.leon as leon
+import uuid
 
 router = APIRouter()
 
@@ -390,7 +399,11 @@ async def stabilizer_compare(payload: dict = Body(...), authorization: str | Non
     decision rather than a script someone ran once, and (2) is what stops a
     difference between two DIFFERENT setups from being reported as if it were
     the wild-type/mutant answer. Does not run anything new — both DMRG
-    records must already exist (via the normal Rung 3 --geometry pipeline)."""
+    records must already exist (via the normal Rung 3 --geometry pipeline).
+    The result is sealed (LEON's generic seal — tamper-evident, not the full
+    P1-P9 physics-consistency check that schema needs a JW circuit for) and
+    stored in stabilizer_comparisons, not just returned once and forgotten."""
+    uid = _uid_from_auth(authorization)
     payload = payload or {}
     target = payload.get("target")
     wt_id = payload.get("wt_dmrg_id")
@@ -438,13 +451,44 @@ async def stabilizer_compare(payload: dict = Body(...), authorization: str | Non
         raise HTTPException(409, "one or both records have no dmrg_energies to compare")
     e_wt, e_mut = wt_energies[-1][1], mut_energies[-1][1]
     delta_ha = e_mut - e_wt
-    return {
-        "compared": True, "target": target,
-        "wt_dmrg_id": wt_id, "mutant_dmrg_id": mut_id,
+
+    record = {
+        "id": str(uuid.uuid4()), "created_at": datetime.now(timezone.utc).isoformat(),
+        "target": target, "wt_dmrg_id": wt_id, "mutant_dmrg_id": mut_id,
         "e_wt_ha": e_wt, "e_mutant_ha": e_mut,
         "delta_e_ha": delta_ha, "delta_e_mha": round(delta_ha * 1000.0, 4),
         "shared_setup": {f: wt.get(f) for f in _STABILIZER_MATCH_FIELDS},
+        "requested_by": uid,
         "note": "Local energy difference (mutant - WT) at a matched active space — the "
                 "quantity structural_stabilizer_local_comparison asks for. Not yet a "
                 "chemical/biological conclusion on its own (see POC_DISCLAIMER discipline).",
     }
+    record["seal"] = leon.build_generic_seal(record, exclude={"seal"})
+    try:
+        sb.table("stabilizer_comparisons").insert(record).execute()
+    except Exception as e:
+        logging.error("stabilizer_comparisons insert failed: %s", e)
+        record["stored"] = False
+        record["store_error"] = str(e)
+        return {"compared": True, **record}
+
+    return {"compared": True, "stored": True, **record}
+
+
+@router.get("/stabilizer/list")
+async def stabilizer_list(limit: int = 50):
+    """Every saved structural_stabilizer_local_comparison result, newest first —
+    the read side of the 'oven' above. Each record's own seal is re-verifiable
+    on demand (recompute leon.build_generic_seal over every field except
+    "seal" and compare) exactly like any other LEON-sealed record, but that
+    re-check is not run automatically here — this is a listing endpoint, not
+    a verify endpoint."""
+    sb = get_supabase()
+    if not sb:
+        return {"comparisons": [], "db": "not_configured"}
+    try:
+        res = (sb.table("stabilizer_comparisons").select("*")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"comparisons": res.data or []}
+    except Exception as e:
+        return {"comparisons": [], "error": str(e)}

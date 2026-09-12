@@ -349,6 +349,55 @@ create table if not exists public.custom_compounds (
 );
 ```
 
+### 2i. Gate 2's first real "oven" — structural_stabilizer_local_comparison
+
+`POST /api/gate2/stabilizer/compare` is the first mechanism-category
+calculator to actually consume a Gate 2 sign-off (the other four categories
+still have no downstream tool — see the module docstring). Given a target,
+a wild-type DMRG classification id, and a mutant DMRG classification id, it:
+
+1. Requires a Gate 2 record for that target in the
+   `structural_stabilizer_local_comparison` category with every required
+   sign-off on file (`missing_requirements` empty) — refuses (409) otherwise.
+2. Fetches both DMRG records and requires them to match on every field that
+   defines the computational setup — `basis`, `avas`, `avas_threshold`,
+   `charge`, `spin`, `ncas`, `nelecas` — refusing (409, with the specific
+   mismatched fields named) if they don't. Found live 2026-09-12: two real
+   DMRG records for the SAME key had silently drifted on `avas_threshold`
+   (one recorded it, one predated that column) — this check is what a
+   genuinely apples-to-oranges comparison looks like before it reaches
+   anyone as a number.
+3. Computes ΔE = E(mutant) − E(WT) from each record's own converged
+   `dmrg_energies`, seals the result (LEON's generic seal — tamper-evident,
+   not the full P1-P9 physics check that schema needs a JW circuit for),
+   and stores it.
+
+`GET /api/gate2/stabilizer/list` reads every saved comparison back, newest
+first. First real result (2026-09-12): TP53_C275F vs. its own wild-type
+cluster, both CAS(42,25) at the same site, ΔE = 2.61 mHa (mutant higher
+energy) — see the dissertation's own POC_DISCLAIMER framing before treating
+that number as more than a first, gate-validated measurement.
+
+One-time migration (Supabase SQL editor):
+
+```sql
+create table if not exists public.stabilizer_comparisons (
+  id uuid primary key,
+  created_at timestamptz not null default now(),
+  target text,
+  wt_dmrg_id uuid,
+  mutant_dmrg_id uuid,
+  e_wt_ha numeric,
+  e_mutant_ha numeric,
+  delta_e_ha numeric,
+  delta_e_mha numeric,
+  shared_setup jsonb,
+  requested_by text,
+  note text,
+  seal text
+);
+```
+
 ### 2g. Gate 1 — structural resolvability, with an end-of-day promotion step
 
 A card at the very top of the Orchestration tab (before Rung 1) lets you look
