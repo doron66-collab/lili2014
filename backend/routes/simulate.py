@@ -1074,6 +1074,35 @@ async def list_dispatch(limit: int = 20):
         return {"jobs": [], "error": msg}
 
 
+@router.delete("/hpc/dispatch/{dispatch_id}")
+async def cancel_dispatch(dispatch_id: str, authorization: str | None = Header(None)):
+    """Cancel ONE queued job by id — the fine-grained counterpart to /clear
+    (which only ever does all-or-nothing). Only deletes a row still in
+    'queued' status: a job an agent has already claimed ('running') is not
+    pulled out from under it here, since that agent has no way to learn the
+    job vanished mid-flight. This removes the QUEUE ENTRY only, never the
+    classification/result row a completed job would have produced — those
+    live in dmrg_classifications/shci_crossvalidations/simulation_runs, a
+    different table entirely (found live 2026-09-12: a user double-clicked
+    "Queue SHCI" and wanted to cancel the accidental duplicate without
+    touching the DMRG record it was queued against)."""
+    _uid_from_auth(authorization)
+    sb = get_supabase()
+    if not sb:
+        return {"cancelled": False, "db": "not_configured"}
+    try:
+        res = (sb.table("hpc_dispatch").delete()
+                 .eq("id", dispatch_id).eq("status", "queued").execute())
+        n = len(res.data) if getattr(res, "data", None) else 0
+        if n == 0:
+            return {"cancelled": False,
+                    "error": "not found in 'queued' state — it may already be running, "
+                             "done, or already cancelled"}
+        return {"cancelled": True}
+    except Exception as e:
+        return {"cancelled": False, "error": str(e)}
+
+
 @router.post("/hpc/dispatch/clear")
 async def clear_dispatch(payload: dict = Body(default={}),
                          authorization: str | None = Header(None)):

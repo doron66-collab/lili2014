@@ -6087,6 +6087,41 @@ async function dispatchScreenClassify(btn) {
 // AVAS/charge/spin/basis/ncas/nelecas straight from the DMRG row (window.__dmrgRows),
 // never re-typed by the user — the same classical agent that already runs HPC/DMRG
 // jobs pulls this one too (job_type='shci').
+// Cancel ONE queued job by id — turns a "✓ queued" pill (left clickable after
+// a successful dispatch below) back into a live cancel action. Only removes
+// the QUEUE ENTRY (hpc_dispatch row); the DMRG/SHCI/QPU record this was
+// queued against is never touched. Re-loads the owning table afterward so the
+// button naturally reverts to its original "▶ Queue ..." state instead of
+// this function trying to reconstruct that state by hand.
+async function cancelQueuedDispatch(btn) {
+  const did = btn.dataset.dispatchId;
+  if (!did) return;
+  if (!confirm('Cancel this queued job?\n\nRemoves it from the run queue only — '
+             + 'does not delete this row or any existing result.')) return;
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'cancelling…';
+  try {
+    const res = await fetch(`${API}/api/simulate/hpc/dispatch/${did}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const out = await res.json();
+    if (!out.cancelled) {
+      alert('Cancel failed: ' + (out.error || 'unknown error'));
+      btn.disabled = false; btn.textContent = orig;
+      return;
+    }
+    if (typeof window.solangeLoadDmrg === 'function') window.solangeLoadDmrg(true);
+    if (typeof window.solangeLoadHpc === 'function') window.solangeLoadHpc();
+  } catch (e) {
+    alert('Cancel failed: ' + e.message);
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
 async function dispatchDmrgRowToShci(i, btn) {
   const rows = window.__dmrgRows || [];
   const x = rows[i];
@@ -6114,7 +6149,12 @@ async function dispatchDmrgRowToShci(i, btn) {
     });
     const out = await res.json();
     if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
-    if (btn) { btn.textContent = '✓ queued'; btn.style.color = 'var(--green)'; }
+    if (btn) {
+      btn.textContent = '✕ Cancel queued'; btn.style.color = '#f87171';
+      btn.style.borderColor = 'rgba(239,68,68,0.4)'; btn.disabled = false;
+      btn.dataset.dispatchId = out.dispatch_id || '';
+      btn.onclick = function () { cancelQueuedDispatch(btn); };
+    }
     if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
   } catch (e) {
     alert('Queue failed: ' + e.message);
@@ -6181,7 +6221,12 @@ async function dispatchDmrgRowToQpu(i, btn) {
     });
     const out = await res.json();
     if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
-    if (btn) { btn.textContent = '✓ queued'; btn.style.color = 'var(--green)'; }
+    if (btn) {
+      btn.textContent = '✕ Cancel queued'; btn.style.color = '#f87171';
+      btn.style.borderColor = 'rgba(239,68,68,0.4)'; btn.disabled = false;
+      btn.dataset.dispatchId = out.dispatch_id || '';
+      btn.onclick = function () { cancelQueuedDispatch(btn); };
+    }
     if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
   } catch (e) {
     alert('Queue failed: ' + e.message);
@@ -6241,7 +6286,12 @@ async function dispatchShciRowToQpu(i, btn) {
     });
     const out = await res.json();
     if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
-    if (btn) { btn.textContent = '✓ queued'; btn.style.color = 'var(--green)'; }
+    if (btn) {
+      btn.textContent = '✕ Cancel queued'; btn.style.color = '#f87171';
+      btn.style.borderColor = 'rgba(239,68,68,0.4)'; btn.disabled = false;
+      btn.dataset.dispatchId = out.dispatch_id || '';
+      btn.onclick = function () { cancelQueuedDispatch(btn); };
+    }
     if (typeof window.solangeStartHpcAutoRefresh === 'function') window.solangeStartHpcAutoRefresh();
   } catch (e) {
     alert('Queue failed: ' + e.message);
