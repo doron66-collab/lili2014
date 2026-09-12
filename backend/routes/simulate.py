@@ -994,6 +994,15 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         row["charge"] = int(payload.get("charge", 0))
         row["spin"] = int(payload.get("spin", 0))
         row["basis"] = payload.get("basis", "sto-3g")
+        # Opt-in Zero-Noise Extrapolation (Qiskit Runtime resilience_level=2) —
+        # genuinely multiplies QPU time/cost (runs the circuit at several noise
+        # scale factors, not just extra calibration circuits like the always-on
+        # TREX readout mitigation), so this is a per-job choice, not a default.
+        # Only attached when set — same backward-compatible reasoning as the
+        # other optional columns above (a fresh deployment may not have this
+        # column yet; every job that never requests it must keep working).
+        if payload.get("zne"):
+            row["zne"] = True
     # PDB-to-classification pipeline dispatch (job_type='screen_classify') — the
     # "New Target from PDB" form. Chains protonate -> carve/probe (shrinking radius
     # until the active space fits) -> DMRG -> SHCI (both mandatory — the

@@ -196,6 +196,11 @@ alter table public.hpc_dispatch add column if not exists charge int;
 alter table public.hpc_dispatch add column if not exists spin int;
 alter table public.hpc_dispatch add column if not exists sweep_eps text;
 alter table public.hpc_dispatch add column if not exists dmrg_classification_id uuid;
+
+-- hpc_dispatch: opt-in Zero-Noise Extrapolation for a Rung 4 (QPU) job — set
+-- per-job, since it genuinely multiplies QPU time/cost (unlike the always-on
+-- TREX readout-error mitigation, which only needs extra calibration circuits).
+alter table public.hpc_dispatch add column if not exists zne boolean;
 ```
 
 The agent needs `boost/1.85.0` loadable via `module load` for Dice's shared

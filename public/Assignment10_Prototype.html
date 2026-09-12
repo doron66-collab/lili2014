@@ -2558,8 +2558,8 @@
         <div style="font-size:11px;line-height:2;color:var(--light)">
           <div><span style="color:var(--green)">✓</span> VQE convergence — N<sub>2</sub> CAS(6,6)/cc-pVDZ reproduced to 0.00 mHa classically, 0.471 mHa on 12-qubit VQE</div>
           <div><span style="color:var(--green)">✓</span> Audit log integrity — append-only ledger, seals independently re-verifiable on demand</div>
-          <div><span style="color:var(--green)">✓</span> TREX readout-error mitigation — Qiskit Runtime resilience_level=1, cheap (no extra QPU shots)</div>
-          <div><span style="color:#f87171">✗</span> ZNE error mitigation — <strong style="color:#f87171">not yet implemented</strong> (multiplies QPU time; deferred until a real Class A target needs it)</div>
+          <div><span style="color:var(--green)">✓</span> TREX readout-error mitigation — Qiskit Runtime resilience_level=1, cheap (no extra QPU shots), always on</div>
+          <div><span style="color:var(--green)">✓</span> ZNE error mitigation — Qiskit Runtime resilience_level=2, <strong>opt-in per job</strong> (multiplies QPU time/cost, so requested deliberately, not by default)</div>
           <div><span style="color:var(--gray)">?</span> Backend failover — not tested</div>
         </div>
         <div style="margin-top:8px;font-size:10px;color:var(--gray);border-top:1px solid var(--border);padding-top:6px">
@@ -6153,6 +6153,17 @@ async function dispatchDmrgRowToQpu(i, btn) {
     'transpilable on current hardware at all; the attempt itself is the real test, ' +
     'not a guarantee of success.\n\nProceed?'
   )) return;
+  // ZNE (Zero-Noise Extrapolation) is opt-in per job, asked separately from the
+  // spend confirm above — it genuinely multiplies QPU time/cost on top of the
+  // always-on TREX readout-error mitigation, so defaulting it on would silently
+  // make every Rung 4 dispatch more expensive than the user asked for.
+  const zne = confirm(
+    'Also apply ZNE (Zero-Noise Extrapolation)?\n\n' +
+    'Runs the circuit at several noise scale factors and extrapolates back to ' +
+    'zero — meaningfully MORE ACCURATE, but MULTIPLIES the QPU time/cost of this ' +
+    'job on top of the always-on readout-error mitigation (TREX).\n\n' +
+    'OK = with ZNE · Cancel = without (TREX only, cheaper)'
+  );
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const { data: { session } } = await supa.auth.getSession();
   if (!session?.access_token) { alert('Please log in first.'); return; }
@@ -6165,7 +6176,7 @@ async function dispatchDmrgRowToQpu(i, btn) {
       body: JSON.stringify({
         key: x.key, job_type: 'qpu',
         geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
-        basis: x.basis, ncas: x.ncas, nelecas: x.nelecas,
+        basis: x.basis, ncas: x.ncas, nelecas: x.nelecas, zne,
       })
     });
     const out = await res.json();
@@ -6204,6 +6215,15 @@ async function dispatchShciRowToQpu(i, btn) {
     'transpilable on current hardware at all; the attempt itself is the real test, ' +
     'not a guarantee of success.\n\nProceed?'
   )) return;
+  // See dispatchDmrgRowToQpu's identical prompt for why this is asked separately
+  // from the spend confirm above (ZNE genuinely multiplies QPU cost further).
+  const zne = confirm(
+    'Also apply ZNE (Zero-Noise Extrapolation)?\n\n' +
+    'Runs the circuit at several noise scale factors and extrapolates back to ' +
+    'zero — meaningfully MORE ACCURATE, but MULTIPLIES the QPU time/cost of this ' +
+    'job on top of the always-on readout-error mitigation (TREX).\n\n' +
+    'OK = with ZNE · Cancel = without (TREX only, cheaper)'
+  );
   const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
   const { data: { session } } = await supa.auth.getSession();
   if (!session?.access_token) { alert('Please log in first.'); return; }
@@ -6216,7 +6236,7 @@ async function dispatchShciRowToQpu(i, btn) {
       body: JSON.stringify({
         key: x.key, job_type: 'qpu',
         geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
-        basis: x.basis, ncas: x.ncas, nelecas: x.nelec,
+        basis: x.basis, ncas: x.ncas, nelecas: x.nelec, zne,
       })
     });
     const out = await res.json();

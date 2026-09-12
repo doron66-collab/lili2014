@@ -324,12 +324,20 @@ def _report_job_progress(job, on_status, poll_s=5, on_tick=None):
         time.sleep(poll_s)
 
 
-def measure(target, hardware, backend_name, shots, token, instance, on_status=None, on_tick=None):
+def measure(target, hardware, backend_name, shots, token, instance, zne=False, on_status=None, on_tick=None):
     """Measure <H> of the target on its fixed reference state. dry-run → local
     simulator (free); hardware → one real QPU job. on_status(job_id, status), if
     given, is called on every IBM-side status change while waiting (agent mode).
     on_tick(), if given, fires every poll tick regardless of status change (agent
-    liveness heartbeat while waiting on a long-queued job)."""
+    liveness heartbeat while waiting on a long-queued job).
+
+    zne=True switches from resilience_level=1 (TREX readout-error mitigation,
+    cheap) to resilience_level=2 (adds Zero-Noise Extrapolation on top - Qiskit
+    Runtime actually runs the circuit at multiple noise scale factors and
+    extrapolates back to zero, so this genuinely multiplies QPU time/cost per
+    job). Opt-in per run, not the default, so a routine dispatch doesn't
+    silently pay the ZNE premium — request it deliberately (--zne) when a
+    specific target's result is worth the extra cost."""
     from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
     obs, qc = target["obs"], target["circuit"]
 
@@ -375,11 +383,13 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
     # resilience_level=1 turns on Qiskit Runtime's built-in TREX (Twirled
     # Readout Error eXtinction) - cheap because it only needs extra
     # calibration circuits, not repeated runs of the whole circuit at scaled
-    # noise (that's ZNE, resilience_level=2, which multiplies QPU time and
-    # is deliberately NOT enabled here yet). Set explicitly rather than left
-    # to the SDK's own default so this is a stated choice, not an accident -
-    # p6 below reports exactly this value, not a hardcoded claim.
-    est.options.resilience_level = 1
+    # noise. resilience_level=2 (--zne) adds Zero-Noise Extrapolation on top,
+    # which DOES multiply QPU time/cost, so it's opt-in rather than default.
+    # Set explicitly rather than left to the SDK's own default so this is a
+    # stated choice, not an accident - p6 below reports exactly this value,
+    # not a hardcoded claim.
+    resilience_level = 2 if zne else 1
+    est.options.resilience_level = resilience_level
     # IBM's job-queueing API can return transient 5xx / connection errors even when
     # the backend shows operational (the "Error queueing job" / "too many 500" we hit).
     # Retry the SUBMISSION with backoff so a flaky window doesn't kill the run — a
@@ -409,7 +419,7 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
     return (energy, f"{backend_name} (real QPU)", tel,
             {"mode": "hardware", "shots": shots, "job_id": job.job_id(),
              "backend": backend_name, "qpu_seconds": qpu_s, "qpu_seconds_source": qpu_src,
-             "resilience_level": 1})
+             "resilience_level": resilience_level})
 
 
 def _billable_qpu_seconds(job):
@@ -636,7 +646,7 @@ def submit(api, record):
 
 
 def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, api, on_status=None, on_tick=None,
-                geometry_path=None, avas_str=None, charge=0, spin=0, basis="sto-3g"):
+                geometry_path=None, avas_str=None, charge=0, spin=0, basis="sto-3g", zne=False):
     """Execute ONE real-hardware QPU job end-to-end (used by --agent): build the
     target, measure ⟨H⟩ on hardware, seal the record, save it, and submit to SOLANGE.
     Returns (submit_response_or_None, record). on_status(job_id, status), if given,
@@ -650,7 +660,7 @@ def run_one_qpu(key, side, backend, shots, token, instance, jw_file, out_dir, ap
     else:
         target = jw_target(key, side, jw_file) if key else h2_target()
     energy, backend_label, telemetry, meta = measure(target, True, backend, shots, token, instance,
-                                                       on_status=on_status, on_tick=on_tick)
+                                                       zne=zne, on_status=on_status, on_tick=on_tick)
     hf_exact, _ground = _exact(target["obs"], target["circuit"])
     record = build_record(target, energy, hf_exact, backend_label, telemetry, meta)
     Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -725,7 +735,8 @@ def run_agent(api, backend, shots, poll_s, jw_file, instance, out_dir, email, pa
                                          on_status=report_live_status, on_tick=heartbeat,
                                          geometry_path=str(geom_path) if geom_path else None,
                                          avas_str=job.get("avas"), charge=int(job.get("charge") or 0),
-                                         spin=int(job.get("spin") or 0), basis=job.get("basis") or "sto-3g")
+                                         spin=int(job.get("spin") or 0), basis=job.get("basis") or "sto-3g",
+                                         zne=bool(job.get("zne")))
             stored = bool(resp) and resp.get("db_status") in ("stored", "stored_no_payload")
             ok = bool(stored and resp.get("seal_ok"))
             note = "ok" if ok else ("verified but not stored" if resp else "submit failed")
@@ -772,6 +783,11 @@ def main():
                     help="explicit free local-simulator run (already the default without --hardware).")
     ap.add_argument("--backend", default="ibm_marrakesh",
                     help="QPU name (with --hardware). ibm_marrakesh = Heron r2, open trial instance.")
+    ap.add_argument("--zne", action="store_true",
+                    help="--hardware only: opt in to Zero-Noise Extrapolation "
+                         "(Qiskit Runtime resilience_level=2) on top of the always-on "
+                         "TREX readout-error mitigation. Genuinely multiplies QPU "
+                         "time/cost — omit for TREX-only (cheaper, the default).")
     ap.add_argument("--shots", type=int, default=4096)
     ap.add_argument("--instance", default=os.environ.get("QISKIT_IBM_INSTANCE"))
     ap.add_argument("--out", default="./out")
@@ -847,7 +863,7 @@ def main():
             args.retrieve, args.backend, token, args.instance)
     else:
         energy, backend_label, telemetry, meta = measure(
-            target, args.hardware, args.backend, args.shots, token, args.instance)
+            target, args.hardware, args.backend, args.shots, token, args.instance, zne=args.zne)
     hf_exact, ground = _exact(target["obs"], target["circuit"])
     record = build_record(target, energy, hf_exact, backend_label, telemetry, meta)
 
