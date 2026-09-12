@@ -110,6 +110,14 @@ if [[ -n "${DMRG_SCF:-}" ]]; then
 fi
 
 # ── The run ──────────────────────────────────────────────────────────────────
+# MAX_CYCLE_MACRO: solange_dmrg.py's own default is 20, previously not
+# overridable from this template at all. Found live 2026-09-12
+# (TP53_C275_NATIVE, job 93290): the orbital optimizer can oscillate between
+# two orbital partitions instead of settling, and 20 macro-iterations isn't
+# always enough for that oscillation to resolve on its own — raise this
+# (e.g. 60) on a resubmission to give it more room, rather than just
+# re-running with identical inputs and expecting a different (deterministic)
+# outcome.
 bash scripts/laguna/run_dmrg.sh \
     --key       "${KEY:-TP53_C275F}" \
     --side      "${SIDE:-native}" \
@@ -126,6 +134,7 @@ bash scripts/laguna/run_dmrg.sh \
     --bond-dims "${BOND_DIMS:-250,500,1000,2000}" \
     --max-minutes "${MAX_MINUTES:-215}" \
     --stack-mem-gb "${STACK_MEM_GB:-4}" \
+    --max-cycle-macro "${MAX_CYCLE_MACRO:-20}" \
     "${DMRG_SCF_ARGS[@]}" \
     --submit
 
