@@ -347,7 +347,8 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
         except Exception:
             hf, _ = _exact(obs, qc)      # exact statevector fallback (still free)
             energy, label = hf, "Statevector (local dry-run fallback — NOT real hardware)"
-        return energy, label, {"p3_calibration_epoch": None}, {"mode": "dry-run", "shots": shots}
+        return energy, label, {"p3_calibration_epoch": None}, {"mode": "dry-run", "shots": shots,
+                                                                 "resilience_level": 0}
 
     from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2
     kwargs = {}
@@ -371,6 +372,14 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
     isa = pm.run(qc)
     est = EstimatorV2(mode=backend)
     est.options.default_shots = shots
+    # resilience_level=1 turns on Qiskit Runtime's built-in TREX (Twirled
+    # Readout Error eXtinction) - cheap because it only needs extra
+    # calibration circuits, not repeated runs of the whole circuit at scaled
+    # noise (that's ZNE, resilience_level=2, which multiplies QPU time and
+    # is deliberately NOT enabled here yet). Set explicitly rather than left
+    # to the SDK's own default so this is a stated choice, not an accident -
+    # p6 below reports exactly this value, not a hardcoded claim.
+    est.options.resilience_level = 1
     # IBM's job-queueing API can return transient 5xx / connection errors even when
     # the backend shows operational (the "Error queueing job" / "too many 500" we hit).
     # Retry the SUBMISSION with backoff so a flaky window doesn't kill the run — a
@@ -399,7 +408,8 @@ def measure(target, hardware, backend_name, shots, token, instance, on_status=No
     qpu_s, qpu_src = _billable_qpu_seconds(job)
     return (energy, f"{backend_name} (real QPU)", tel,
             {"mode": "hardware", "shots": shots, "job_id": job.job_id(),
-             "backend": backend_name, "qpu_seconds": qpu_s, "qpu_seconds_source": qpu_src})
+             "backend": backend_name, "qpu_seconds": qpu_s, "qpu_seconds_source": qpu_src,
+             "resilience_level": 1})
 
 
 def _billable_qpu_seconds(job):
@@ -573,7 +583,17 @@ def build_record(target, active_energy, hf_exact_active, backend_label, telemetr
         "p5_active_energy_ha": active_energy,
         "p5_casscf_ref_ha": target.get("e_casscf"),
 
-        "p6_method": "none (raw estimator)", "p6_note": "hardware smoke test — no error mitigation",
+        # Was a hardcoded "none (raw estimator)" regardless of what actually ran -
+        # Qiskit Runtime's EstimatorV2 has its own default resilience_level that
+        # this code never used to set explicitly, so the claim here could silently
+        # drift from reality. resilience_level is now set explicitly in measure()
+        # and reported from there, so this reflects what actually happened, not
+        # an assumption.
+        "p6_method": ({0: "none (raw estimator)",
+                       1: "TREX readout-error mitigation (Qiskit Runtime resilience_level=1)",
+                       2: "ZNE (Qiskit Runtime resilience_level=2)"}
+                      .get(meta.get("resilience_level"), f"resilience_level={meta.get('resilience_level')}")),
+        "p6_note": ("hardware smoke test" if is_hw else "dry-run — no hardware noise to mitigate"),
 
         "p7_energy_ha": total_energy,
         "p7_ref_hf_ha": total_hf_ref,   # exact <H> on the SAME fixed HF state — the
