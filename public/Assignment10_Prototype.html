@@ -6114,6 +6114,17 @@ async function cancelQueuedDispatch(btn) {
       btn.disabled = false; btn.textContent = orig;
       return;
     }
+    // Restore the button ourselves — don't rely solely on the table repaint
+    // below to undo "cancelling…". If that repaint doesn't happen to touch
+    // this exact row (still loading, silently failed, wrong table), the
+    // button was left stuck disabled forever (reported live 2026-09-12).
+    if (btn._origState) {
+      const s = btn._origState;
+      btn.textContent = s.label; btn.style.color = s.color || '';
+      btn.style.borderColor = s.borderColor || ''; btn.onclick = s.onclick;
+      delete btn.dataset.dispatchId;
+    }
+    btn.disabled = false;
     if (typeof window.solangeLoadDmrg === 'function') window.solangeLoadDmrg(true);
     if (typeof window.solangeLoadHpc === 'function') window.solangeLoadHpc();
   } catch (e) {
@@ -6150,6 +6161,11 @@ async function dispatchDmrgRowToShci(i, btn) {
     const out = await res.json();
     if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
     if (btn) {
+      // Stash enough to fully restore this exact button on a later cancel —
+      // btn.onclick here is still the original inline handler, captured
+      // before we overwrite it below.
+      btn._origState = { label: orig, color: btn.style.color,
+                          borderColor: btn.style.borderColor, onclick: btn.onclick };
       btn.textContent = '✕ Cancel queued'; btn.style.color = '#f87171';
       btn.style.borderColor = 'rgba(239,68,68,0.4)'; btn.disabled = false;
       btn.dataset.dispatchId = out.dispatch_id || '';
@@ -6222,6 +6238,11 @@ async function dispatchDmrgRowToQpu(i, btn) {
     const out = await res.json();
     if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
     if (btn) {
+      // Stash enough to fully restore this exact button on a later cancel —
+      // btn.onclick here is still the original inline handler, captured
+      // before we overwrite it below.
+      btn._origState = { label: orig, color: btn.style.color,
+                          borderColor: btn.style.borderColor, onclick: btn.onclick };
       btn.textContent = '✕ Cancel queued'; btn.style.color = '#f87171';
       btn.style.borderColor = 'rgba(239,68,68,0.4)'; btn.disabled = false;
       btn.dataset.dispatchId = out.dispatch_id || '';
@@ -6287,6 +6308,11 @@ async function dispatchShciRowToQpu(i, btn) {
     const out = await res.json();
     if (!out.queued) { alert('Queue failed: ' + (out.error || 'unknown error')); return; }
     if (btn) {
+      // Stash enough to fully restore this exact button on a later cancel —
+      // btn.onclick here is still the original inline handler, captured
+      // before we overwrite it below.
+      btn._origState = { label: orig, color: btn.style.color,
+                          borderColor: btn.style.borderColor, onclick: btn.onclick };
       btn.textContent = '✕ Cancel queued'; btn.style.color = '#f87171';
       btn.style.borderColor = 'rgba(239,68,68,0.4)'; btn.disabled = false;
       btn.dataset.dispatchId = out.dispatch_id || '';
