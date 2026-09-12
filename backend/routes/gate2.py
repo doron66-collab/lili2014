@@ -362,3 +362,89 @@ async def dispatch_custom_compound(payload: dict = Body(...),
     except Exception as e:
         return {"queued": False, "error": str(e),
                 "hint": "run backend/migrations to create table hpc_dispatch"}
+
+
+# Fields that BOTH sides of a structural_stabilizer_local_comparison must
+# share exactly — "same method, same active space" is the category's own
+# stated requirement (MECHANISM_CATEGORIES above), not a suggestion. A
+# mismatch here means the two DMRG records describe different computational
+# setups, so their energy difference conflates "wild-type vs mutant" with
+# "different basis/AVAS/active-space" and answers neither question cleanly —
+# found live 2026-09-12 while checking whether a WT comparison run already
+# existed for TP53_C275F: two REAL DMRG records for the SAME mutant key
+# turned out to use different cluster radii (CAS(48,28) vs CAS(42,25)),
+# which is exactly the apples-to-oranges failure mode this guards against.
+_STABILIZER_MATCH_FIELDS = ("basis", "avas", "avas_threshold", "charge", "spin",
+                            "ncas", "nelecas")
+
+
+@router.post("/stabilizer/compare")
+async def stabilizer_compare(payload: dict = Body(...), authorization: str | None = Header(None)):
+    """The 'oven' for the structural_stabilizer_local_comparison category:
+    takes two ALREADY-CLASSIFIED DMRG records (one wild-type, one mutant) and
+    computes their energy difference — but ONLY after (1) a Gate 2 record for
+    this target is on file in that category with every required field signed
+    off, and (2) the two records are verified apples-to-apples on every field
+    that defines the computational setup (see _STABILIZER_MATCH_FIELDS).
+    Neither check is a formality: (1) is what makes this a documented chemist
+    decision rather than a script someone ran once, and (2) is what stops a
+    difference between two DIFFERENT setups from being reported as if it were
+    the wild-type/mutant answer. Does not run anything new — both DMRG
+    records must already exist (via the normal Rung 3 --geometry pipeline)."""
+    payload = payload or {}
+    target = payload.get("target")
+    wt_id = payload.get("wt_dmrg_id")
+    mut_id = payload.get("mutant_dmrg_id")
+    if not (target and wt_id and mut_id):
+        raise HTTPException(400, "target, wt_dmrg_id, and mutant_dmrg_id are all required")
+
+    sb = get_supabase()
+    if not sb:
+        return {"compared": False, "db": "not_configured"}
+
+    gate2_res = sb.table("gate2_records").select("*").eq("target", target).execute()
+    if not gate2_res.data:
+        raise HTTPException(409, f"no Gate 2 record for target '{target}' — categorise and "
+                                  f"sign off before comparing anything")
+    gate2_row = gate2_res.data[0]
+    if gate2_row.get("category") != "structural_stabilizer_local_comparison":
+        raise HTTPException(409, f"target '{target}' is categorised as "
+                                  f"'{gate2_row.get('category')}', not "
+                                  f"structural_stabilizer_local_comparison — this tool only "
+                                  f"answers that category's question")
+    missing = _missing_requirements(gate2_row)
+    if missing:
+        raise HTTPException(409, f"Gate 2 record for '{target}' is incomplete, cannot proceed: "
+                                  f"{missing}")
+
+    cols = "id, key, dmrg_energies, basis, avas, avas_threshold, charge, spin, ncas, nelecas"
+    wt_res = sb.table("dmrg_classifications").select(cols).eq("id", str(wt_id)).execute()
+    mut_res = sb.table("dmrg_classifications").select(cols).eq("id", str(mut_id)).execute()
+    if not wt_res.data:
+        raise HTTPException(404, f"wt_dmrg_id {wt_id} not found")
+    if not mut_res.data:
+        raise HTTPException(404, f"mutant_dmrg_id {mut_id} not found")
+    wt, mut = wt_res.data[0], mut_res.data[0]
+
+    mismatches = [f"{f}: WT={wt.get(f)!r} vs mutant={mut.get(f)!r}"
+                  for f in _STABILIZER_MATCH_FIELDS if wt.get(f) != mut.get(f)]
+    if mismatches:
+        raise HTTPException(409, "apples-to-oranges — these two records do not share the same "
+                                  "computational setup, so their difference is not a valid "
+                                  f"wild-type/mutant comparison: {mismatches}")
+
+    wt_energies, mut_energies = wt.get("dmrg_energies") or [], mut.get("dmrg_energies") or []
+    if not wt_energies or not mut_energies:
+        raise HTTPException(409, "one or both records have no dmrg_energies to compare")
+    e_wt, e_mut = wt_energies[-1][1], mut_energies[-1][1]
+    delta_ha = e_mut - e_wt
+    return {
+        "compared": True, "target": target,
+        "wt_dmrg_id": wt_id, "mutant_dmrg_id": mut_id,
+        "e_wt_ha": e_wt, "e_mutant_ha": e_mut,
+        "delta_e_ha": delta_ha, "delta_e_mha": round(delta_ha * 1000.0, 4),
+        "shared_setup": {f: wt.get(f) for f in _STABILIZER_MATCH_FIELDS},
+        "note": "Local energy difference (mutant - WT) at a matched active space — the "
+                "quantity structural_stabilizer_local_comparison asks for. Not yet a "
+                "chemical/biological conclusion on its own (see POC_DISCLAIMER discipline).",
+    }
