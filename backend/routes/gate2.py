@@ -492,3 +492,169 @@ async def stabilizer_list(limit: int = 50):
         return {"comparisons": res.data or []}
     except Exception as e:
         return {"comparisons": [], "error": str(e)}
+
+
+# metal_redox_center's own question ("does this metal site have near-degenerate
+# spin states classical single-reference methods cannot resolve?") is answered
+# by a gap between two spin states of the SAME site — so, unlike the stabilizer
+# comparison, `spin` is deliberately EXCLUDED from the match requirement (it is
+# exactly the field the two records must differ on) while everything else that
+# defines the computational setup must still match.
+_REDOX_MATCH_FIELDS = ("basis", "avas", "avas_threshold", "charge", "ncas", "nelecas")
+
+
+@router.post("/redox/compare")
+async def redox_compare(payload: dict = Body(...), authorization: str | None = Header(None)):
+    """The 'oven' for the metal_redox_center category: takes two ALREADY-
+    CLASSIFIED DMRG records for candidate spin states of the SAME metal site
+    and computes their energy gap — the quantity metal_redox_center asks for.
+    Same two-part discipline as stabilizer_compare: (1) requires a complete
+    Gate 2 sign-off for this target in this category, and (2) requires the two
+    records to share every field that defines the computational setup EXCEPT
+    spin (see _REDOX_MATCH_FIELDS) — and requires spin to actually differ,
+    since two records at the same spin are not two candidate states at all.
+    Does not run anything new; both DMRG records must already exist."""
+    uid = _uid_from_auth(authorization)
+    payload = payload or {}
+    target = payload.get("target")
+    state_a_id = payload.get("state_a_dmrg_id")
+    state_b_id = payload.get("state_b_dmrg_id")
+    if not (target and state_a_id and state_b_id):
+        raise HTTPException(400, "target, state_a_dmrg_id, and state_b_dmrg_id are all required")
+
+    sb = get_supabase()
+    if not sb:
+        return {"compared": False, "db": "not_configured"}
+
+    gate2_res = sb.table("gate2_records").select("*").eq("target", target).execute()
+    if not gate2_res.data:
+        raise HTTPException(409, f"no Gate 2 record for target '{target}' — categorise and "
+                                  f"sign off before comparing anything")
+    gate2_row = gate2_res.data[0]
+    if gate2_row.get("category") != "metal_redox_center":
+        raise HTTPException(409, f"target '{target}' is categorised as "
+                                  f"'{gate2_row.get('category')}', not "
+                                  f"metal_redox_center — this tool only answers that "
+                                  f"category's question")
+    missing = _missing_requirements(gate2_row)
+    if missing:
+        raise HTTPException(409, f"Gate 2 record for '{target}' is incomplete, cannot proceed: "
+                                  f"{missing}")
+
+    cols = "id, key, dmrg_energies, basis, avas, avas_threshold, charge, spin, ncas, nelecas"
+    a_res = sb.table("dmrg_classifications").select(cols).eq("id", str(state_a_id)).execute()
+    b_res = sb.table("dmrg_classifications").select(cols).eq("id", str(state_b_id)).execute()
+    if not a_res.data:
+        raise HTTPException(404, f"state_a_dmrg_id {state_a_id} not found")
+    if not b_res.data:
+        raise HTTPException(404, f"state_b_dmrg_id {state_b_id} not found")
+    a, b = a_res.data[0], b_res.data[0]
+
+    mismatches = [f"{f}: A={a.get(f)!r} vs B={b.get(f)!r}"
+                  for f in _REDOX_MATCH_FIELDS if a.get(f) != b.get(f)]
+    if mismatches:
+        raise HTTPException(409, "apples-to-oranges — these two records do not share the same "
+                                  "computational setup, so their gap is not a valid spin-state "
+                                  f"comparison: {mismatches}")
+    if a.get("spin") == b.get("spin"):
+        raise HTTPException(409, f"both records are spin={a.get('spin')} — these are not two "
+                                  f"candidate spin states, so there is no gap to compute")
+
+    a_energies, b_energies = a.get("dmrg_energies") or [], b.get("dmrg_energies") or []
+    if not a_energies or not b_energies:
+        raise HTTPException(409, "one or both records have no dmrg_energies to compare")
+    e_a, e_b = a_energies[-1][1], b_energies[-1][1]
+    gap_ha = e_b - e_a
+
+    record = {
+        "id": str(uuid.uuid4()), "created_at": datetime.now(timezone.utc).isoformat(),
+        "target": target, "state_a_dmrg_id": state_a_id, "state_b_dmrg_id": state_b_id,
+        "spin_a": a.get("spin"), "spin_b": b.get("spin"),
+        "e_state_a_ha": e_a, "e_state_b_ha": e_b,
+        "gap_ha": gap_ha, "gap_mha": round(gap_ha * 1000.0, 4),
+        "shared_setup": {f: a.get(f) for f in _REDOX_MATCH_FIELDS},
+        "requested_by": uid,
+        "note": "Energy gap (state B - state A) between two candidate spin states of the "
+                "same metal site, at a matched active space — the quantity metal_redox_center "
+                "asks for. A small gap suggests near-degenerate spin states a single-reference "
+                "method could not resolve; not yet a chemical/biological conclusion on its own "
+                "(see POC_DISCLAIMER discipline).",
+    }
+    record["seal"] = leon.build_generic_seal(record, exclude={"seal"})
+    try:
+        sb.table("redox_comparisons").insert(record).execute()
+    except Exception as e:
+        logging.error("redox_comparisons insert failed: %s", e)
+        record["stored"] = False
+        record["store_error"] = str(e)
+        return {"compared": True, **record}
+
+    return {"compared": True, "stored": True, **record}
+
+
+@router.get("/redox/list")
+async def redox_list(limit: int = 50):
+    """Every saved metal_redox_center spin-gap result, newest first — the read
+    side of the 'oven' above."""
+    sb = get_supabase()
+    if not sb:
+        return {"comparisons": [], "db": "not_configured"}
+    try:
+        res = (sb.table("redox_comparisons").select("*")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"comparisons": res.data or []}
+    except Exception as e:
+        return {"comparisons": [], "error": str(e)}
+
+
+@router.get("/catalytic/{target}")
+async def catalytic_status(target: str):
+    """catalytic_loss_of_function needs NO new calculator — its own quantity
+    ("local energy/entanglement of the wild-type catalytic site", state_pair
+    = (wild-type active site, None), per MECHANISM_CATEGORIES above) is
+    exactly what a normal Rung 3 (DMRG/SHCI) classification of that site
+    already produces. This was the implicit category all along for the eight
+    archived Class B targets, never stated as one. This endpoint does not
+    compute anything; it (1) requires a complete Gate 2 sign-off for this
+    target in this category, then (2) looks up and returns whatever DMRG/SHCI
+    classification(s) already exist for the SAME key, framed as the answer
+    to this category's question rather than left as an unlabeled coincidence."""
+    sb = get_supabase()
+    if not sb:
+        return {"target": target, "db": "not_configured"}
+
+    gate2_res = sb.table("gate2_records").select("*").eq("target", target).execute()
+    if not gate2_res.data:
+        raise HTTPException(409, f"no Gate 2 record for target '{target}' — categorise and "
+                                  f"sign off before checking this category's answer")
+    gate2_row = gate2_res.data[0]
+    if gate2_row.get("category") != "catalytic_loss_of_function":
+        raise HTTPException(409, f"target '{target}' is categorised as "
+                                  f"'{gate2_row.get('category')}', not "
+                                  f"catalytic_loss_of_function — this endpoint only answers "
+                                  f"that category's question")
+    missing = _missing_requirements(gate2_row)
+    if missing:
+        raise HTTPException(409, f"Gate 2 record for '{target}' is incomplete, cannot proceed: "
+                                  f"{missing}")
+
+    dmrg_cols = "id, key, bqp_class, s_max, dmrg_energies, created_at"
+    dmrg_res = (sb.table("dmrg_classifications").select(dmrg_cols)
+                  .eq("key", target).order("created_at", desc=True).execute())
+    shci_cols = "id, key, bqp_class, e_shci, created_at"
+    shci_res = (sb.table("shci_crossvalidations").select(shci_cols)
+                  .eq("key", target).order("created_at", desc=True).execute())
+    dmrg_rows, shci_rows = dmrg_res.data or [], shci_res.data or []
+    if not dmrg_rows and not shci_rows:
+        return {"target": target, "answered": False,
+                "note": "Gate 2 is complete for this category, but no Rung 3 (DMRG/SHCI) "
+                        "classification exists yet for this key — run one on the wild-type "
+                        "site; no separate calculator is needed for this category."}
+
+    return {
+        "target": target, "answered": True,
+        "dmrg_classifications": dmrg_rows, "shci_crossvalidations": shci_rows,
+        "note": "This category's quantity (local energy/entanglement of the wild-type "
+                "catalytic site) is exactly what the Rung 3 classification(s) below already "
+                "measured — no separate calculation was run or is needed for this category.",
+    }
