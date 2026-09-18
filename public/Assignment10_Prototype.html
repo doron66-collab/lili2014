@@ -2244,19 +2244,28 @@
           stabPaint('<div style="color:var(--gray);font-size:11px">No stabilizer comparisons computed yet.</div>');
           return;
         }
-        var hh = '<table style="width:100%;min-width:820px;border-collapse:collapse;table-layout:fixed"><tr>'+
+        var hh = '<table style="width:100%;min-width:960px;border-collapse:collapse;table-layout:fixed"><tr>'+
           '<th style="'+TH+';width:120px">Target</th><th style="'+TH+';width:110px">ΔE (mHa)</th>'+
           '<th style="'+TH+';width:150px">E(WT) Ha</th><th style="'+TH+';width:150px">E(mutant) Ha</th>'+
-          '<th style="'+TH+';width:120px">When</th><th style="'+TH+';width:100px">By</th></tr>';
+          '<th style="'+TH+';width:120px">When</th><th style="'+TH+';width:100px">By</th>'+
+          '<th style="'+TH+';width:150px">Seal (LEON)</th></tr>';
         rows.forEach(function(x){
           var dHa = Number(x.delta_e_mha);
           var dCol = dHa > 0 ? 'var(--gold)' : (dHa < 0 ? 'var(--teal)' : 'var(--gray)');
+          var seal = x.seal ? String(x.seal) : '';
+          var sealCell = seal
+            ? '<span style="font-family:monospace;font-size:10px;color:var(--gold)">'+seal.slice(0,16)+'…</span> '
+              + '<span onclick="navigator.clipboard.writeText(this.dataset.seal).then(()=>{this.textContent=\'✓\';setTimeout(()=>this.textContent=\'⧉\',1200)})" '
+              + 'data-seal="'+seal.replace(/"/g,'&quot;')+'" title="Copy full P8 seal (SHA-256)" '
+              + 'style="cursor:pointer;font-size:9px;color:var(--gray);vertical-align:middle">⧉</span>'
+            : '<span style="color:var(--gray);font-size:10px">—</span>';
           hh += '<tr><td style="'+C+';font-weight:600">'+(x.target||'—')+'</td>'+
                 '<td style="'+C+';font-weight:700;color:'+dCol+'">'+(Number.isFinite(dHa)?dHa.toFixed(4):'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.e_wt_ha!=null?Number(x.e_wt_ha).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.e_mutant_ha!=null?Number(x.e_mutant_ha).toFixed(8):'—')+'</td>'+
                 '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+'</td>'+
-                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.requested_by?String(x.requested_by).slice(0,8):'—')+'</td></tr>';
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.requested_by?String(x.requested_by).slice(0,8):'—')+'</td>'+
+                '<td style="'+C+'">'+sealCell+'</td></tr>';
         });
         stabPaint(hh+'</table>'+
           '<div style="color:var(--gray);font-size:10px;margin-top:6px">ΔE = E(mutant) − E(WT) at a matched active space. Positive (gold) = mutant higher energy (locally less stable); negative (teal) = mutant lower energy. Not a chemical/biological conclusion on its own — see POC_DISCLAIMER.</div>');
