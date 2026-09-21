@@ -48,7 +48,14 @@ TWO INDEPENDENT USES, both real, neither privileged over the other:
      ADDITIONALLY fetches that DMRG record's own stored energy and computes
      delta_mha/agreement against it (DP1, verify-don't-trust: never taken from
      this script's own claim). This does not replace SHCI's own classification
-     above — both are recorded on the same submission.
+     above — both are recorded on the same submission. IMPORTANT: this only
+     compares like with like when both methods solved on the SAME orbital
+     basis — default (no --orbitals) matches a DMRG record run with --casci
+     (fixed AVAS orbitals, no optimization); a DMRG record run with --dmrg-scf
+     (orbital-optimized) needs --orbitals pointing at that run's own saved
+     mo_coeff_final.npy, or any energy delta partly reflects the orbital-basis
+     mismatch itself, not a real solver disagreement (found live 2026-09-22 on
+     TP53_R175_NATIVE — see --orbitals's own help text below).
 
 USAGE
   # standalone — no DMRG record needed or referenced
@@ -56,9 +63,23 @@ USAGE
       --avas "N 2p, O 2p" --key SDHB_C101Y \\
       --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-2,1e-3,5e-4,1e-4 --submit
 
-  # cross-validated against an existing DMRG classification
+  # cross-validated against an existing DMRG classification (own AVAS orbitals —
+  # only a fair comparison if that DMRG record was run with --casci, i.e. no
+  # orbital optimization of its own; see the --orbitals note below otherwise)
   python3 solange_shci.py --geometry cluster.xyz --charge 1 --basis sto-3g \\
       --avas "N 2p, O 2p" --key DNMT3A_R882 \\
+      --dmrg-classification-id <uuid-from-dmrg-submit-response> \\
+      --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
+
+  # cross-validated against a --dmrg-scf (orbital-optimized) DMRG record — pass
+  # --orbitals pointing at THAT run's own <its --scratch>/mo_coeff_final.npy so
+  # SHCI solves on the SAME rotated basis instead of its own unrotated AVAS set
+  # (--ncas/--nelecas must match that DMRG record's own CAS size; AVAS is not
+  # run in this mode, so --avas is only used for the geometry read, not to pick
+  # the active space)
+  python3 solange_shci.py --geometry cluster.xyz --charge 1 --basis sto-3g \\
+      --avas "N 2p, O 2p" --orbitals tmp_dmrg_DNMT3A_R882/mo_coeff_final.npy \\
+      --ncas 68 --nelecas 126 --key DNMT3A_R882 \\
       --dmrg-classification-id <uuid-from-dmrg-submit-response> \\
       --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
 """
@@ -69,6 +90,8 @@ import sys
 import time
 import uuid
 from pathlib import Path
+
+import numpy as np
 
 EXACT_WALL_E = 18       # same wall solange_dmrg.py uses -- method-independent:
                          # below it, exact diagonalisation already suffices.
@@ -163,6 +186,20 @@ def main():
     ap.add_argument("--charge", type=int, default=0)
     ap.add_argument("--spin", type=int, default=0)
     ap.add_argument("--threshold", type=float, default=0.2)
+    ap.add_argument("--orbitals", default=None,
+                    help="path to a .npy mo_coeff matrix (as solange_dmrg.py's "
+                         "--geometry path now saves to <its --scratch>/mo_coeff_final.npy) "
+                         "-- when given, SKIPS this script's own avas.avas() call and builds "
+                         "h1e/h2e from THESE orbitals instead, so a cross-validation compares "
+                         "the SAME basis a DMRG-SCF run actually solved on rather than SHCI's "
+                         "default fixed/unrotated AVAS orbitals (a real methodological gap "
+                         "found live 2026-09-22 -- see this script's own module docstring). "
+                         "Requires --ncas/--nelecas explicitly, since AVAS is not run to "
+                         "derive them.")
+    ap.add_argument("--ncas", type=int, default=None,
+                    help="required with --orbitals (no AVAS run to derive it from)")
+    ap.add_argument("--nelecas", type=int, default=None,
+                    help="required with --orbitals (no AVAS run to derive it from)")
     ap.add_argument("--max-memory", type=int, default=16000)
     ap.add_argument("--df-auxbasis", default="def2-universal-jkfit")
     ap.add_argument("--dice-scripts", required=True,
@@ -229,16 +266,34 @@ def main():
         print("  SOSCF converged where plain RHF did not.")
     print(f"RHF E = {mf.e_tot:.8f} Ha")
 
-    ncas, nelec, mo = avas.avas(mf, aolabels, threshold=args.threshold)
-    ncas, nelec = int(ncas), int(nelec)
-    occ = nelec // 2
-    print(f"AVAS(threshold={args.threshold}) -> CAS({nelec},{ncas})  "
-          f"{occ} occupied, {ncas - occ} virtual")
+    if args.orbitals:
+        # Load the EXACT rotated orbitals a DMRG-SCF run solved on (saved by
+        # solange_dmrg.py's --geometry path to <its --scratch>/mo_coeff_final.npy)
+        # instead of building SHCI's own fixed/unrotated AVAS set. Without this,
+        # a DMRG-SCF-vs-SHCI comparison silently mixed two different orbital
+        # bases -- a real methodological gap, not a solver disagreement -- found
+        # live 2026-09-22 on TP53_R175_NATIVE (Δ=42.276 mHa, entirely explainable
+        # by the basis mismatch alone). ncas/nelec must be given explicitly since
+        # no AVAS call runs to derive them.
+        if not (args.ncas and args.nelecas):
+            sys.exit("--orbitals requires --ncas and --nelecas (no AVAS run to derive them from)")
+        ncas, nelec = int(args.ncas), int(args.nelecas)
+        mo = np.load(args.orbitals)
+        occ = nelec // 2
+        print(f"loaded external orbitals from {args.orbitals} -> CAS({nelec},{ncas})  "
+              f"{occ} occupied, {ncas - occ} virtual (AVAS not run — matching a DMRG-SCF basis)")
+    else:
+        ncas, nelec, mo = avas.avas(mf, aolabels, threshold=args.threshold)
+        ncas, nelec = int(ncas), int(nelec)
+        occ = nelec // 2
+        print(f"AVAS(threshold={args.threshold}) -> CAS({nelec},{ncas})  "
+              f"{occ} occupied, {ncas - occ} virtual")
 
     # Same effective-Hamiltonian construction the DMRG path uses (solange_hpc.py's
-    # run_casscf / integrals_from_geometry) -- fixed AVAS orbitals, no
-    # optimisation -- so a later cross-validation compares the SAME orbitals a
-    # --casci DMRG run used, not a DMRG-SCF-optimised set.
+    # run_casscf / integrals_from_geometry) -- fixed orbitals, no optimisation of
+    # its own -- so a later cross-validation compares the SAME orbitals a
+    # --casci DMRG run used (default AVAS path), or, with --orbitals, the SAME
+    # rotated orbitals a --dmrg-scf run actually solved on.
     mc = mcscf.CASCI(mf, ncas, nelec)
     h1e, ecore = mc.get_h1eff(mo_coeff=mo)
     h2e = ao2mo.restore(1, mc.get_h2eff(mo), ncas)
@@ -288,7 +343,9 @@ def main():
         "shci_energies": energies,  # [[eps, E], ...] -- own convergence trace, mirrors dmrg_energies
         "bqp_class": bqp_class, "class_rationale": class_rationale,
         "sweep_eps": ",".join(str(e) for e in eps_schedule),
-        "method": "SHCI (Dice, semistochastic heat-bath CI), independent classification",
+        "method": ("SHCI (Dice, semistochastic heat-bath CI), independent classification"
+                   + (f" — orbitals: DMRG-SCF-matched ({args.orbitals})" if args.orbitals
+                      else " — orbitals: own AVAS (fixed/unrotated)")),
         "elapsed_s": elapsed_s,
         "provenance_source": "HPC/Laguna (SHCI classifier)",
         "hardware": detect_hardware(args.num_thrds),

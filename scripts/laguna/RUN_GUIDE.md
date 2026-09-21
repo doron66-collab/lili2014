@@ -164,6 +164,31 @@ python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
   --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
 ```
 
+**IMPORTANT — orbital basis must match, or the comparison is not apples-to-apples.**
+The `--ncas`/`--nelecas` check above only confirms the active-space *size* matches;
+it says nothing about whether the two methods solved on the *same orbitals*. The
+command above builds SHCI's own fixed, unrotated AVAS orbitals — a fair
+comparison only if the referenced DMRG record was run with `--casci` (no
+orbital optimization of its own). If it was run with `--dmrg-scf` (required
+above ~16 active orbitals — i.e. every real CAS(100+,60+) run so far), its
+orbitals were CASSCF-rotated, a genuinely different basis, and a raw energy
+delta between the two is partly an artifact of that mismatch, not a real
+solver disagreement (found live 2026-09-22 on TP53_R175_NATIVE — Δ=42.276 mHa,
+fully explainable by the basis mismatch alone, with no way from the numbers
+alone to tell how much, if any, was real). solange_dmrg.py's `--geometry` path
+now saves the exact rotated orbitals it solved on to `<its --scratch>/mo_coeff_final.npy`
+— pass that file via `--orbitals` (with `--ncas`/`--nelecas` set explicitly,
+since AVAS does not run in this mode) to make SHCI solve on that SAME basis:
+
+```bash
+python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
+  --charge <SAME> --spin <SAME> --basis <SAME> --avas "<SAME AVAS as the DMRG run>" \
+  --orbitals <that DMRG run's --scratch>/mo_coeff_final.npy \
+  --ncas <SAME as the DMRG record> --nelecas <SAME as the DMRG record> \
+  --key <KEY> --dmrg-classification-id <uuid-from-dmrg-submit> \
+  --dice-scripts ~/lili2014/Dice/scripts --sweep-eps 1e-3,5e-4,1e-4 --submit
+```
+
 ### 2d. Queue SHCI from the browser — "▶ Queue SHCI" button (Rung 3)
 
 A DMRG record with stored geometry/AVAS (any real `--geometry` run submitted

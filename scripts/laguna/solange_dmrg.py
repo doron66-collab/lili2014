@@ -559,6 +559,16 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # argument, since get_h1eff/get_h2eff both default to self.mo_coeff when None.
     h1e, ecore = mc.get_h1eff(mo_coeff=truncated_mo)
     h2e = ao2mo.restore(1, mc.get_h2eff(truncated_mo), ncas)
+    # The actual orbitals h1e/h2e above were built from — truncated_mo when the
+    # time budget cut CASSCF short, mc.mo_coeff (post-optimization) otherwise.
+    # Returned so main() can persist it: until this, no code anywhere wrote the
+    # rotated orbitals to disk, so a later SHCI cross-validation had no way to
+    # reuse the SAME basis DMRG-SCF actually solved on — solange_shci.py always
+    # built its own fixed, unrotated AVAS orbitals instead (see that script's
+    # own module comment), making any DMRG-SCF-vs-SHCI energy delta partly an
+    # artifact of comparing two different orbital bases, not a real solver
+    # disagreement. Found live 2026-09-22 on TP53_R175_NATIVE.
+    mo_used = truncated_mo if truncated else mc.mo_coeff
     if dmrg_scf:
         # Deliberately NOT re-verified against a full FCI diagonalization here —
         # that call (fci.direct_spin1.FCI(), below, for the plain-CASSCF path) is
@@ -574,6 +584,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     return {"e_casscf": float(e_casscf), "ecore": float(ecore),
             "e_fci_active": None if e_fci is None else float(e_fci),
             "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec),
+            "mo_coeff": mo_used,
             "orbital_optimization_truncated": bool(truncated),
             "orbital_optimization_converged": bool(casscf_converged),
             "orbital_optimization_method": (
@@ -771,6 +782,19 @@ def main():
         if cas.get("orbital_optimization_truncated"):
             print("  *** orbital optimisation hit its time budget — orbitals are usable but "
                   "NOT converged; the classification below is PROVISIONAL on that basis too ***")
+        # Persist the ACTUAL rotated orbitals h1e/h2e were built from — in
+        # --scratch (the stable, --key-named directory), not dmrg_scf_scratch
+        # (block2's own internal MPS state, which does not hold this matrix at
+        # all — confirmed live 2026-09-22 while investigating why a DMRG-SCF
+        # run's orbitals could not be recovered after the fact for an SHCI
+        # cross-validation). solange_shci.py's own --orbitals flag loads this
+        # file to build h1e/h2e from the SAME basis DMRG-SCF solved on, instead
+        # of its default fixed/unrotated AVAS orbitals.
+        if cas.get("mo_coeff") is not None:
+            Path(args.scratch).mkdir(parents=True, exist_ok=True)
+            mo_path = Path(args.scratch) / "mo_coeff_final.npy"
+            np.save(mo_path, cas["mo_coeff"])
+            print(f"  saved rotated orbitals -> {mo_path} (for a matching-basis SHCI cross-validation)")
     else:
         # Auto-resolve the model compound from key/side (same mapping the HPC agent
         # uses) so a run needs only --key/--side/--ncas/--nelecas — the caller does
