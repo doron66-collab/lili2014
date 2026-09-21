@@ -1348,6 +1348,19 @@ _DMRG_DB_COLUMNS = frozenset({
     # and displayed as a plain final result, contradicting its own console
     # log. Found live 2026-09-21 reading a stored TP53_R175_NATIVE record.
     "orbital_optimization_converged",
+    # orbital_optimization_method: e.g. "DMRG-SCF (block2, maxM=250)" vs
+    # "CASCI, fixed AVAS orbitals (no optimization) + ...". solange_dmrg.py
+    # has always submitted this (main()'s out[] dict), but this whitelist
+    # never let it through either — the SAME class of bug as
+    # orbital_optimization_converged above, on a different field. Without it,
+    # there is no way to tell after the fact whether a DMRG record's orbitals
+    # were rotated (--dmrg-scf) or left fixed (--casci) — exactly the fact an
+    # SHCI cross-validation needs to know whether it must load that record's
+    # own saved orbitals (--orbitals) instead of building its own AVAS set.
+    # Found live 2026-09-22 trying to audit two historical cross-validations
+    # (NEGCTRL_BORING, FE2S2_PROXY) for this exact question and finding the
+    # field simply absent from both stored records.
+    "orbital_optimization_method",
 })
 # NOTE: "elapsed_s" and "hardware" each require their matching Supabase column
 # to exist first — see the one-time migration in scripts/laguna/RUN_GUIDE.md §2
@@ -1434,6 +1447,7 @@ async def list_dmrg_classifications(limit: int = 50):
                  .select("id, created_at, key, compound, basis, ncas, nelecas, "
                          "e_casscf, s_max, bqp_class, class_rationale, "
                          "time_budget_hit, orbital_optimization_converged, "
+                         "orbital_optimization_method, "
                          "bond_dims_requested, dmrg_energies, "
                          "elapsed_s, method, provenance_source, dmrg_hash, hardware, "
                          "geometry, avas, charge, spin, avas_threshold")
