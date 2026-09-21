@@ -1194,8 +1194,12 @@
          a running SHCI job (job_type='shci') appeared there instead of under
          Rung 3 where it belongs. This table itself stays generic/unfiltered (it's
          a shared-agent queue view, not a per-rung one) — only its PLACEMENT
-         changed. -->
-    <div id="hpc-queue-list" style="display:none;margin:8px 0"></div>
+         changed. Wrapped in the same card look (var(--card)/var(--border)/
+         var(--radius)) as every other block on this tab, neutral rather than
+         any one rung's tint since it spans every job_type — was unstyled
+         before this, so it broke the tab's visual rhythm of rounded-corner
+         cards when it appeared. -->
+    <div id="hpc-queue-list" style="display:none;margin:12px 0;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)"></div>
 
     <!-- ── RUNG 3 · DMRG — the last classical resort before quantum. Sits ABOVE the
          QPU block: you exhaust tensor-network DMRG first, and only a Class-A target
