@@ -1202,10 +1202,10 @@
          the agent, no terminal step for the end user. Does NOT choose the AVAS
          chemical criterion, the protonation pH, or a metal site's spin/oxidation
          state — those remain a computational chemist's call (Gate 2, tracked
-         above, not yet gating anything). The DMRG and SHCI tables below this
+         below, not yet gating anything). The DMRG and SHCI tables below this
          block are its result records, not separate features. -->
     <div id="the-classifier-card" style="padding:12px;margin-bottom:14px;border:1px solid rgba(167,139,250,0.3);border-radius:8px;background:rgba(167,139,250,0.05)">
-      <div class="card-title" style="font-size:13px">The Classifier — PDB to a Two-Method Decision<span class="info-i" data-tip="Part 1: reuses a cluster already built for this exact PDB/chain/residue (cache lookup), or builds one from scratch (protonate -> carve -> shrink radius until AVAS fits --max-orbitals) and saves it for next time. Part 2: classifies with BOTH DMRG and SHCI — mandatory, not optional — and reports whether their energies agree. Does not choose the AVAS chemical criterion, protonation pH, or a metal site's spin/oxidation state for you — those stay a computational chemist's call (Gate 2, above).">i</span></div>
+      <div class="card-title" style="font-size:13px">The Classifier — PDB to a Two-Method Decision<span class="info-i" data-tip="Part 1: reuses a cluster already built for this exact PDB/chain/residue (cache lookup), or builds one from scratch (protonate -> carve -> shrink radius until AVAS fits --max-orbitals) and saves it for next time. Part 2: classifies with BOTH DMRG and SHCI — mandatory, not optional — and reports whether their energies agree. Does not choose the AVAS chemical criterion, protonation pH, or a metal site's spin/oxidation state for you — those stay a computational chemist's call (Gate 2, below).">i</span></div>
       <div style="font-size:10px;color:var(--gray);margin:4px 0 8px">Part 1 — cluster (cached if this exact site was built before, otherwise built from scratch) · Part 2 — classify with both DMRG and SHCI, and report agreement</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-top:6px">
         <input id="ntp-pdbid" placeholder="PDB ID (e.g. 8TDR)" style="width:110px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
