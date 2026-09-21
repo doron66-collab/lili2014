@@ -888,9 +888,21 @@ def run_agent(api, poll_s, token, out_dir):
                         "SHCI job missing geometry/avas — this dispatch path only "
                         "supports jobs copied from a real --geometry DMRG record, "
                         "not a --compound one")
+                # Written to a real file, not passed inline: solange_shci.py's own
+                # read_xyz() does Path(args.geometry).read_text(), so the argument
+                # must be a path that exists on disk, not the geometry text itself.
+                # Mirrors the "dmrg" branch's geom_path handling above — found live
+                # 2026-09-21 when "Queue SHCI" on a real --geometry DMRG record
+                # passed the raw multi-line xyz content straight through as
+                # --geometry, and Path(...).read_text() on that string failed with
+                # OSError: [Errno 36] File name too long, since the OS tried to
+                # open a "file" whose name was the entire geometry block. Keyed by
+                # dispatch id so concurrent SHCI jobs never collide.
+                shci_geom_path = Path(out_dir) / f"shci_geometry_{did}.xyz"
+                shci_geom_path.write_text(job["geometry"])
                 dice_scripts = str(_HERE.parent.parent.parent / "Dice" / "scripts")
                 shci_cmd = [sys.executable, "-u", str(_HERE.parent / "solange_shci.py"),
-                           "--geometry", job["geometry"], "--charge", str(job.get("charge") or 0),
+                           "--geometry", str(shci_geom_path), "--charge", str(job.get("charge") or 0),
                            "--spin", str(job.get("spin") or 0), "--basis", job.get("basis", "sto-3g"),
                            "--avas", job["avas"], "--key", job["key"],
                            "--dice-scripts", dice_scripts,
