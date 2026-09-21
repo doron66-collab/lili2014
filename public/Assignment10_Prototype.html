@@ -1995,8 +1995,22 @@
           '<th style="'+TH+';width:130px">(P8)LEON</th><th style="'+TH+';width:350px"></th></tr>';
         rows.forEach(function(x, i){
           var cas = (x.nelecas!=null && x.ncas!=null) ? ('CAS('+x.nelecas+','+x.ncas+')') : '—';
-          var provisional = x.time_budget_hit ? '<br><span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
-          // "provisional" means the sweep was cut short. This is a different caveat:
+          // time_budget_hit only covers the DMRG bond-dimension sweep itself being cut
+          // short — it says nothing about whether the ORBITALS underneath it (CASSCF/
+          // DMRG-SCF) converged. A run whose orbital optimization hit its own time
+          // budget (solange_dmrg.py's OrbitalTimeBudgetExceeded) can still let the DMRG
+          // sweep converge normally afterward, which used to display here as a plain
+          // final result even though the console log for that exact run said
+          // "STOPPED at the orbital time budget ... PROVISIONAL" — found live 2026-09-21
+          // reading a stored TP53_R175_NATIVE record. orbital_optimization_converged
+          // (added to the DB/API in the same fix) is the independent flag that catches
+          // that case; === false (not falsy) so an older record with the column simply
+          // absent (null/undefined, before this fix existed) doesn't wrongly flip to
+          // provisional.
+          var provisional = (x.time_budget_hit || x.orbital_optimization_converged === false) ?
+            '<br><span style="color:var(--gray);font-size:9px">(provisional)</span>' : '';
+          // "provisional" means the sweep was cut short, or the orbitals underneath it
+          // were not converged. This is a different caveat:
           // the sweep completed, but over an active space far smaller than the target's
           // own site — so the verdict is about that fragment. Flagged here, on the
           // authoritative record row, so it is never read as a full-site classification.

@@ -1337,6 +1337,17 @@ _DMRG_DB_COLUMNS = frozenset({
     # non-default choice that produced it. Added 2026-09-04 alongside
     # solange_dmrg.py's new --avas-threshold flag.
     "avas_threshold",
+    # orbital_optimization_converged: whether CASSCF/DMRG-SCF's own orbital
+    # optimization converged, independent of whether the DMRG bond-dimension
+    # sweep afterward converged (time_budget_hit only covers the latter).
+    # solange_dmrg.py has computed and submitted this since 2026-09-12, and
+    # RUN_GUIDE.md's migration for it predates this line — but this whitelist
+    # was never updated to let it through, so every submission silently
+    # dropped it before the insert, and a run whose orbitals were truncated
+    # by time budget (but whose DMRG sweep still converged normally) stored
+    # and displayed as a plain final result, contradicting its own console
+    # log. Found live 2026-09-21 reading a stored TP53_R175_NATIVE record.
+    "orbital_optimization_converged",
 })
 # NOTE: "elapsed_s" and "hardware" each require their matching Supabase column
 # to exist first — see the one-time migration in scripts/laguna/RUN_GUIDE.md §2
@@ -1422,7 +1433,8 @@ async def list_dmrg_classifications(limit: int = 50):
         res = (sb.table("dmrg_classifications")
                  .select("id, created_at, key, compound, basis, ncas, nelecas, "
                          "e_casscf, s_max, bqp_class, class_rationale, "
-                         "time_budget_hit, bond_dims_requested, dmrg_energies, "
+                         "time_budget_hit, orbital_optimization_converged, "
+                         "bond_dims_requested, dmrg_energies, "
                          "elapsed_s, method, provenance_source, dmrg_hash, hardware, "
                          "geometry, avas, charge, spin, avas_threshold")
                  .order("created_at", desc=True).limit(limit).execute())
