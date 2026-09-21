@@ -191,13 +191,20 @@ python3 scripts/laguna/solange_shci.py --geometry <SAME xyz the DMRG run used> \
 
 ### 2d. Queue SHCI from the browser — "▶ Queue SHCI" button (Rung 3)
 
-A DMRG record with stored geometry/AVAS (any real `--geometry` run submitted
-after this was added) shows a **▶ Queue SHCI** button on its own row in the
-Rung 3 table. Clicking it copies that record's own geometry/AVAS/charge/spin —
-nothing re-typed — and queues an SHCI job for the SAME classical agent that
-already runs HPC/DMRG jobs (`solange_hpc.py --agent`, started once via
+A DMRG record with stored geometry/AVAS AND its own saved orbitals
+(`orbitals_path` — every real `--geometry` run submitted since 2026-09-22)
+shows a **▶ Queue SHCI** button on its own row in the Rung 3 table. Clicking
+it copies that record's own geometry/AVAS/charge/spin/orbitals — nothing
+re-typed — and queues an SHCI job for the SAME classical agent that already
+runs HPC/DMRG jobs (`solange_hpc.py --agent`, started once via
 `agent_keepalive.sh start`). No terminal interaction needed per job once that
-agent is running.
+agent is running, and no need to think about which orbital basis to match —
+`orbitals_path` being present is exactly what makes the SAME basis get used
+automatically (`--orbitals`, under the hood; see §2c's cross-validation note
+below for why this matters). A record with geometry/AVAS but no
+`orbitals_path` (predates 2026-09-22) shows **"SHCI needs re-run"** instead —
+its rotated orbitals, if any, were never saved and cannot be recovered
+after the fact; re-run DMRG to get a matchable record.
 
 One-time migrations (Supabase SQL editor) — additive, safe to re-run:
 
@@ -222,6 +229,24 @@ alter table public.dmrg_classifications add column if not exists avas_threshold 
 -- NOT converge" - the classification could not honestly be called FINAL.
 alter table public.dmrg_classifications add column if not exists orbital_optimization_converged boolean;
 
+-- orbital_optimization_method: e.g. "DMRG-SCF (block2, maxM=250)" vs "CASCI,
+-- fixed AVAS orbitals (no optimization) + ...". solange_dmrg.py always
+-- submitted this; it was never in the backend's DB whitelist either (found
+-- live 2026-09-22 auditing two historical SHCI cross-validations and finding
+-- the field simply absent from both stored records).
+alter table public.dmrg_classifications add column if not exists orbital_optimization_method text;
+
+-- orbitals_path: a LOCAL Laguna filesystem path to the .npy mo_coeff matrix
+-- h1e/h2e were actually built from (solange_dmrg.py's --geometry path saves
+-- this since 2026-09-22). Lets "Queue SHCI" pass --orbitals automatically so
+-- SHCI solves on the SAME basis a --dmrg-scf DMRG record actually used,
+-- instead of building its own unrotated AVAS orbitals — the root cause of a
+-- spurious Class-A "disagreement" found live on TP53_R175_NATIVE (Δ=42.276
+-- mHa, fully explainable by the basis mismatch alone). NOT portable content
+-- like geometry/avas/charge/spin below — meaningless off this cluster, but
+-- that's fine since the whole SHCI cross-validation flow already runs here.
+alter table public.dmrg_classifications add column if not exists orbitals_path text;
+
 -- hpc_dispatch: carries an SHCI job's parameters from the "Queue SHCI" button
 -- to the agent that picks it up.
 alter table public.hpc_dispatch add column if not exists geometry text;
@@ -230,6 +255,9 @@ alter table public.hpc_dispatch add column if not exists charge int;
 alter table public.hpc_dispatch add column if not exists spin int;
 alter table public.hpc_dispatch add column if not exists sweep_eps text;
 alter table public.hpc_dispatch add column if not exists dmrg_classification_id uuid;
+-- orbitals_path: mirrors dmrg_classifications' own column above — carries the
+-- referenced DMRG record's saved mo_coeff_final.npy path through to the agent.
+alter table public.hpc_dispatch add column if not exists orbitals_path text;
 
 -- hpc_dispatch: opt-in Zero-Noise Extrapolation for a Rung 4 (QPU) job — set
 -- per-job, since it genuinely multiplies QPU time/cost (unlike the always-on

@@ -967,6 +967,16 @@ async def dispatch_hpc(payload: dict = Body(...), authorization: str | None = He
         row["sweep_eps"] = payload.get("sweep_eps", "1e-2,1e-3,5e-4,1e-4")
         if payload.get("dmrg_classification_id"):
             row["dmrg_classification_id"] = payload.get("dmrg_classification_id")
+        # orbitals_path: the referenced DMRG record's own saved mo_coeff_final.npy
+        # (a LOCAL Laguna path — see solange_dmrg.py's own comment on the field).
+        # When present, the agent passes --orbitals so SHCI solves on the SAME
+        # basis that DMRG record actually used instead of building its own
+        # unrotated AVAS orbitals — the root cause of a spurious Class-A
+        # "disagreement" found live on TP53_R175_NATIVE. ncas/nelecas (already
+        # captured above in row[] from payload) double as --orbitals's required
+        # explicit CAS size, since AVAS does not run in that mode to derive it.
+        if payload.get("orbitals_path"):
+            row["orbitals_path"] = payload.get("orbitals_path")
     # Custom-geometry DMRG dispatch (job_type='dmrg' + geometry present) — a target
     # that is neither a --compound-library name nor a PDB-derived site, e.g. a
     # Gate-2-gated model-compound submission. Mirrors the SHCI branch above; the
@@ -1361,6 +1371,16 @@ _DMRG_DB_COLUMNS = frozenset({
     # (NEGCTRL_BORING, FE2S2_PROXY) for this exact question and finding the
     # field simply absent from both stored records.
     "orbital_optimization_method",
+    # orbitals_path: a LOCAL Laguna filesystem path (not portable content, unlike
+    # geometry/avas/charge/spin above) to the .npy mo_coeff matrix h1e/h2e were
+    # actually built from — solange_dmrg.py's --geometry path saves this since
+    # 2026-09-22. Lets "Queue SHCI" (dispatchDmrgRowToShci in the frontend) pass
+    # --orbitals automatically, so SHCI solves on the SAME basis DMRG-SCF
+    # actually used instead of building its own unrotated AVAS orbitals — the
+    # root cause of a spurious Class-A "disagreement" found live on
+    # TP53_R175_NATIVE (Δ=42.276 mHa, fully explainable by the basis mismatch
+    # alone). None on a record predating this field.
+    "orbitals_path",
 })
 # NOTE: "elapsed_s" and "hardware" each require their matching Supabase column
 # to exist first — see the one-time migration in scripts/laguna/RUN_GUIDE.md §2
@@ -1450,7 +1470,7 @@ async def list_dmrg_classifications(limit: int = 50):
                          "orbital_optimization_method, "
                          "bond_dims_requested, dmrg_energies, "
                          "elapsed_s, method, provenance_source, dmrg_hash, hardware, "
-                         "geometry, avas, charge, spin, avas_threshold")
+                         "geometry, avas, charge, spin, avas_threshold, orbitals_path")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"classifications": res.data or []}
     except Exception as e:

@@ -910,6 +910,33 @@ def run_agent(api, poll_s, token, out_dir):
                            "--out", out_dir, "--submit", api]
                 if job.get("dmrg_classification_id"):
                     shci_cmd += ["--dmrg-classification-id", job["dmrg_classification_id"]]
+                # orbitals_path: the referenced DMRG record's own saved
+                # mo_coeff_final.npy (a LOCAL Laguna path, since this agent and
+                # solange_shci.py both run on this same filesystem). When present,
+                # pass --orbitals so SHCI solves on the SAME basis that DMRG record
+                # actually used instead of building its own unrotated AVAS
+                # orbitals — the root cause of a spurious Class-A "disagreement"
+                # found live on TP53_R175_NATIVE (Δ=42.276 mHa, fully explainable
+                # by the basis mismatch alone). Requires --ncas/--nelecas
+                # explicitly (already on job[] for every shci dispatch — see
+                # simulate.py's /hpc/dispatch), since AVAS does not run in that
+                # mode to derive them. The frontend only offers "Queue SHCI" when
+                # the DMRG record actually has orbitals_path (Assignment10_
+                # Prototype.html's render condition), so reaching here without it
+                # means a manually-built dispatch row skipped that check —
+                # refuse rather than silently fall back to a mismatched-basis
+                # comparison.
+                if job.get("orbitals_path"):
+                    shci_cmd += ["--orbitals", job["orbitals_path"],
+                                 "--ncas", str(job.get("ncas") or ""),
+                                 "--nelecas", str(job.get("nelecas") or "")]
+                elif job.get("dmrg_classification_id"):
+                    raise RuntimeError(
+                        "SHCI cross-validation job has a dmrg_classification_id but no "
+                        "orbitals_path — this DMRG record predates orbital-basis matching "
+                        "(2026-09-22) or was dispatched without the frontend's own check; "
+                        "refusing rather than silently comparing mismatched orbital bases "
+                        "(see solange_shci.py's module docstring)")
                 # Dice's binary links against Boost loaded via `module load
                 # boost/1.85.0` at build time (RUN_GUIDE.md) -- the agent process
                 # itself is not guaranteed to have that module loaded (agent

@@ -753,6 +753,7 @@ def main():
     bond_dims = [int(x) for x in args.bond_dims.split(",")]
 
     print("=" * 68)
+    mo_path = None   # set below only for a --geometry run whose orbitals were saved
     if args.geometry:
         if not args.avas:
             ap.error("--geometry requires --avas (target AOs for active-space selection)")
@@ -919,6 +920,15 @@ def main():
         out["charge"] = args.charge
         out["spin"] = args.spin
         out["avas_threshold"] = args.avas_threshold
+        # Unlike geometry/avas/charge/spin above, this is stored as a LOCAL PATH,
+        # not portable content — an mo_coeff matrix is a binary numpy array, not
+        # something that fits a JSON field the way the raw .xyz text does. This
+        # is safe only because the whole SHCI cross-validation flow already runs
+        # on this SAME Laguna filesystem (solange_hpc.py's agent dispatches
+        # solange_shci.py as a local subprocess, never remotely) — the path is
+        # meaningless off this cluster. None when orbitals weren't saved (no
+        # --geometry run predating this field, or mo_coeff unexpectedly absent).
+        out["orbitals_path"] = str(mo_path) if mo_path is not None else None
     # Seal at source (LEON re-verifies at ingestion — a mismatch is rejected, not
     # trusted). dmrg_seal_payload is stored verbatim so re-verification later is
     # exact-string, not float-reconstruction (the same robustness fix the P8 seal

@@ -2068,9 +2068,18 @@
                 '<td style="'+C+'"><span style="color:var(--green);font-family:monospace;font-size:10px;user-select:all" title="Notarized by LEON · full seal: '+(x.dmrg_hash||'')+'">✓ '+(x.dmrg_hash?String(x.dmrg_hash).slice(0,16):'—')+'…</span></td>'+
                 '<td style="'+C+'">'+(x.id?('<button onclick="verifyDmrgRun(\''+x.id+'\',this)" style="background:rgba(6,182,212,0.12);color:var(--teal);border:1px solid rgba(6,182,212,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">Verify</button>'):'')+
                 (x.id?('<button onclick="downloadDmrgJson('+i+',this)" title="Download the full classification record (all fields incl. per-bond-dim energies) as JSON" style="background:rgba(255,196,0,0.12);color:var(--gold);border:1px solid rgba(255,196,0,0.35);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px">⬇ JSON</button>'):'')+
-                (x.id && x.geometry
-                  ? ('<button onclick="dispatchDmrgRowToShci('+i+',this)" title="Queue SHCI (Dice) against this SAME active space, on the classical Laguna agent — reuses this record\'s own geometry/AVAS/charge/spin, nothing re-typed" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">▶ Queue SHCI</button>')
-                  : (x.id ? '<span style="color:var(--gray);font-size:9px;margin-left:4px" title="No stored geometry/AVAS on this record (e.g. a --compound demo run) — SHCI cross-validation needs a real --geometry DMRG run to copy inputs from">SHCI n/a</span>' : ''))+
+                // Three states, not two — found live 2026-09-22 on TP53_R175_NATIVE:
+                // a record can have geometry/AVAS (so the button used to appear) yet
+                // still compare unfairly against SHCI if its orbitals were rotated
+                // (--dmrg-scf) and never saved for SHCI to load via --orbitals. Since
+                // that date every --geometry run saves orbitals_path automatically —
+                // its absence now specifically flags a record from BEFORE this fix
+                // (or a --compound demo run, the pre-existing "SHCI n/a" case).
+                (x.id && x.geometry && x.orbitals_path
+                  ? ('<button onclick="dispatchDmrgRowToShci('+i+',this)" title="Queue SHCI (Dice) against this SAME active space AND the SAME orbital basis (mo_coeff_final.npy), on the classical Laguna agent — reuses this record\'s own geometry/AVAS/charge/spin/orbitals, nothing re-typed" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.6);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">▶ Queue SHCI</button>')
+                  : (x.id && x.geometry
+                    ? '<span style="color:var(--gray);font-size:9px;margin-left:4px" title="This record predates orbital-basis matching (2026-09-22) — its rotated orbitals (if any) were never saved, so an SHCI cross-validation against it would silently compare mismatched orbital bases (see solange_shci.py\'s own module docstring). Re-run DMRG to get a matchable record.">SHCI needs re-run</span>'
+                    : (x.id ? '<span style="color:var(--gray);font-size:9px;margin-left:4px" title="No stored geometry/AVAS on this record (e.g. a --compound demo run) — SHCI cross-validation needs a real --geometry DMRG run to copy inputs from">SHCI n/a</span>' : '')))+
                 // Rung 4 escalation — only offered for Class A (the ladder's own
                 // logic: quantum hardware is for the case classical methods did
                 // NOT deliver) with a real stored geometry/AVAS (the inputs
@@ -6310,6 +6319,11 @@ async function dispatchDmrgRowToShci(i, btn) {
         key: x.key, job_type: 'shci',
         geometry: x.geometry, avas: x.avas, charge: x.charge, spin: x.spin,
         basis: x.basis, ncas: x.ncas, nelecas: x.nelecas,
+        // orbitals_path: this record's own saved mo_coeff_final.npy (button is
+        // gated on it existing — see the render condition above) — lets the
+        // agent pass --orbitals automatically so SHCI solves on the SAME basis
+        // this DMRG record actually used, never its own independent AVAS set.
+        orbitals_path: x.orbitals_path,
         dmrg_classification_id: x.id,
       })
     });
