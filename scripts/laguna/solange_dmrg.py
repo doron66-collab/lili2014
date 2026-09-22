@@ -751,6 +751,7 @@ def main():
     args = ap.parse_args()
     Path(args.out).mkdir(parents=True, exist_ok=True)
     bond_dims = [int(x) for x in args.bond_dims.split(",")]
+    script_start = time.time()   # the ONE clock --max-minutes is a budget against — see below
 
     print("=" * 68)
     mo_path = None   # set below only for a --geometry run whose orbitals were saved
@@ -851,10 +852,29 @@ def main():
     print(f"{cas['orbital_optimization_method']} E = {cas['e_casscf']:.8f} Ha")
 
     t0 = time.time()
+    # run_dmrg()'s own max_minutes check starts counting from ITS OWN t_start (set
+    # when it's called), not from this script's start — so passing args.max_minutes
+    # through unchanged gave the ladder phase a FRESH full budget on top of whatever
+    # the orbital-optimization phase (0.6*args.max_minutes, above) already spent,
+    # instead of the REMAINING share of one shared budget the "60%/rest" design
+    # comment above describes. A real bug, not a documentation gap: found live
+    # 2026-09-22 when TP53_R175H's job ran orbitals for ~368m then was still mid-M=1000
+    # (nowhere near a graceful stop) when Slurm's OWN --time=720m hard-killed it at
+    # 720m with NOTHING saved — the internal graceful stop, at what was actually a
+    # ~968m (368+600) effective budget, never had a chance to fire first. Computed
+    # here from the REAL elapsed time (not the nominal 60/40 split), so it accounts
+    # correctly regardless of whether the orbital phase finished early, late, or hit
+    # its own time budget. max(0, ...) so an orbital phase that already overran the
+    # WHOLE budget still lets the ladder attempt bond_dims[0] once (run_dmrg's own
+    # "and energies" guard never stops before at least one M completes) rather than
+    # passing a negative number.
+    ladder_max_minutes = (
+        max(0.0, args.max_minutes - (time.time() - script_start) / 60.0)
+        if args.max_minutes is not None else None)
     energies, s_max, stop_reason = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
                                args.ncas, args.nelecas, bond_dims,
                                scratch=args.scratch, n_threads=args.threads,
-                               max_minutes=args.max_minutes,
+                               max_minutes=ladder_max_minutes,
                                early_stop=not args.no_early_stop,
                                stack_mem_gb=args.stack_mem_gb)
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
