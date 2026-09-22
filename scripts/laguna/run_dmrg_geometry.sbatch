@@ -109,6 +109,18 @@ if [[ -n "${DMRG_SCF:-}" ]]; then
                  --dmrg-scf-scratch "${DMRG_SCF_SCRATCH:-./tmp_dmrgscf_orb_$SLURM_JOB_ID}")
 fi
 
+# LOAD_ORBITALS: skip the whole orbital-optimization phase and reuse a
+# mo_coeff_final.npy a PRIOR run of this same --key already saved (see
+# solange_dmrg.py's --load-orbitals) — for resubmitting after an
+# infrastructure failure (Slurm --time kill, OOM) without redoing what can be
+# a multi-hour orbital phase. Same array-not-inline pattern as DMRG_SCF_ARGS
+# above, for the same reason (unset must be byte-identical to before this
+# option existed).
+LOAD_ORBITALS_ARGS=()
+if [[ -n "${LOAD_ORBITALS:-}" ]]; then
+  LOAD_ORBITALS_ARGS=(--load-orbitals "$LOAD_ORBITALS")
+fi
+
 # ── The run ──────────────────────────────────────────────────────────────────
 # MAX_CYCLE_MACRO: solange_dmrg.py's own default is 20, previously not
 # overridable from this template at all. Found live 2026-09-12
@@ -136,6 +148,7 @@ bash scripts/laguna/run_dmrg.sh \
     --stack-mem-gb "${STACK_MEM_GB:-4}" \
     --max-cycle-macro "${MAX_CYCLE_MACRO:-20}" \
     "${DMRG_SCF_ARGS[@]}" \
+    "${LOAD_ORBITALS_ARGS[@]}" \
     --submit
 
 echo "Done $(date)."
