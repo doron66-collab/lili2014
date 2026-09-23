@@ -403,6 +403,30 @@ async def stabilizer_compare(payload: dict = Body(...), authorization: str | Non
     The result is sealed (LEON's generic seal — tamper-evident, not the full
     P1-P9 physics-consistency check that schema needs a JW circuit for) and
     stored in stabilizer_comparisons, not just returned once and forgotten."""
+    # DISABLED 2026-09-23 — same STRUCTURALLY_UNRESOLVED-style refusal pattern
+    # as Gate 1's own block (a checkbox the user could still click reads as
+    # tacit endorsement regardless of what a tooltip elsewhere says). Found
+    # live: the raw energy difference this endpoint computes is not a
+    # chemically meaningful quantity whenever the two clusters differ in
+    # elemental composition — true of essentially every real point mutation.
+    # A real, verified C275F mutant measured ΔE ≈ +166 Ha, fully explained by
+    # atomic-composition arithmetic alone (a Cys→Phe swap's atomic
+    # Hartree-Fock reference energies predict ≈+171 Ha), with no local-
+    # stability signal surviving above that noise floor. _STABILIZER_MATCH_FIELDS
+    # above verifies the two records share the same computational SETUP; it
+    # was never designed to (and cannot) verify that the comparison itself is
+    # physically meaningful. See RUN_GUIDE.md's "isodesmic-correction
+    # direction" note for the unvalidated approach being explored instead —
+    # re-enable this endpoint only once that (or an equivalent correction) is
+    # built in and chemist-signed-off, not by deleting this block.
+    raise HTTPException(
+        409,
+        "structural_stabilizer_local_comparison is disabled pending a fix: raw ΔE between "
+        "wild-type and mutant clusters is not chemically meaningful for any substitution that "
+        "changes elemental composition (found 2026-09-23 on TP53_C275F — see RUN_GUIDE.md and "
+        "the dissertation §08 for the full finding). No number this endpoint could return right "
+        "now would be valid.",
+    )
     uid = _uid_from_auth(authorization)
     payload = payload or {}
     target = payload.get("target")

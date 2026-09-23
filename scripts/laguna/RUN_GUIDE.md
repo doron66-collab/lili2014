@@ -426,10 +426,23 @@ a wild-type DMRG classification id, and a mutant DMRG classification id, it:
    and stores it.
 
 `GET /api/gate2/stabilizer/list` reads every saved comparison back, newest
-first. First real result (2026-09-12): TP53_C275F vs. its own wild-type
-cluster, both CAS(42,25) at the same site, ΔE = 2.61 mHa (mutant higher
-energy) — see the dissertation's own POC_DISCLAIMER framing before treating
-that number as more than a first, gate-validated measurement.
+first. **The 2026-09-12 "first real result" (TP53_C275F vs. its own
+wild-type cluster, ΔE = 2.61 mHa) is RETRACTED, found 2026-09-23**: both
+sides' PDB files recorded residue 275 as CYS — no Cys→Phe substitution had
+actually been applied to the structure the "mutant" run used. The apples-
+to-apples check this endpoint performs (same basis, AVAS criterion,
+active-space size) verifies computational SETUP, not that the two sites
+being compared are actually chemically different at the mutation site —
+this gap let an unmutated pair through undetected. A real C275F mutant was
+subsequently built (PyMOL mutagenesis, verified atom-by-atom against the
+source PDB) and re-run; that exposed a second, more general problem —
+raw ΔE between clusters of DIFFERENT elemental composition (any real
+substitution) is dominated by atomic-composition energy (measured ≈+166 Ha
+here, matching a simple atomic-Hartree-Fock estimate almost exactly) and
+carries no local-stability signal above that noise floor. **This
+calculator has no valid output for a real point mutation as currently
+implemented.** See the isodesmic-correction note and the Y220C cross-check
+below for the (unvalidated) direction being explored instead.
 
 One-time migration (Supabase SQL editor):
 
@@ -450,6 +463,29 @@ create table if not exists public.stabilizer_comparisons (
   seal text
 );
 ```
+
+**Isodesmic-correction direction (2026-09-23, manual, not built into the
+pipeline):** balancing a reference reaction so atom types/counts cancel on
+both sides (native cluster + [mutant's model compound] → mutant cluster +
+[native's model compound], reusing the small-molecule RHF energies already
+in `all_mutations_casscf.json`) reduces the raw atomic-composition artifact
+above to a chemically plausible range: for C275F, +166 Ha → −82 mHa. Cross-
+checked the same evening against TP53 Y220C, which has a real published
+value (ΔTm = −8.4°C, ΔΔG ≈ +4 kcal/mol destabilizing; Joerger & Fersht) —
+built from the actual native (2OCJ) and mutant (2VUK, a real crystal
+structure, no in-silico mutagenesis needed) clusters, RHF-only (bypassing
+`--dmrg-scf` entirely, see the instability note above — RHF is unaffected
+by it and is the correct level anyway, since it matches the pre-existing
+reference-compound energies). Result: **destabilizing in sign, consistent
+with experiment, but ~50 kcal/mol vs. the real ~4 kcal/mol — off by roughly
+an order of magnitude.** Working explanation: the reference compounds are
+at their own relaxed/optimized geometries while the cluster is frozen at
+its crystallographic geometry, a strain mismatch the correction does not
+currently account for. **Established:** the correction points the right
+direction on an independent test case. **Not established:** its magnitude
+is trustworthy. **Not claimed:** any number from this approach is
+citable — it needs geometry-consistent reference compounds and chemist
+review before it is.
 
 ### 2g. Gate 1 — structural resolvability, with an end-of-day promotion step
 
