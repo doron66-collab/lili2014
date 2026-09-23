@@ -277,9 +277,28 @@ class Block2FCISolver:
                   f"{bond_dims[0]} → {self.maxM} over {n} sweeps. This one is the "
                   f"slowest; later solves warm-start from it.", flush=True)
 
-        energy = float(driver.dmrg(mpo, ket, n_sweeps=n, bond_dims=bond_dims,
-                                   noises=noises, thrds=[self.tol] * n,
-                                   iprint=1 if self.verbose else 0))
+        # ONE dmrg() CALL PER BOND DIMENSION, not one call with the whole ramp
+        # handed to block2 internally — found live 2026-09-23. run_dmrg() (the
+        # downstream bond-dimension ladder, never observed to crash all night)
+        # already calls driver.dmrg() once per M with a single-element bond_dims
+        # list; this solver instead handed block2 ONE call carrying the entire
+        # 50→maxM ramp as a multi-element bond_dims/noises list internally, on
+        # every cold solve. That is a genuinely different way of driving the same
+        # API, on the same active spaces where `--dmrg-scf` crashed repeatedly
+        # and non-deterministically (Intel MKL DGEMM parameter errors,
+        # std::length_error, heap corruption, plain segfault — a different
+        # symptom each identical attempt, never explained by thread count,
+        # stack-mem-gb, ulimit -s, or active-space atomic composition — see
+        # RUN_GUIDE.md's "--dmrg-scf instability" note). Splitting into
+        # per-rung calls, mirroring run_dmrg()'s proven-stable pattern exactly,
+        # is a real fix to test — not yet confirmed to resolve the crash, so
+        # treat any run using it as provisional until it's seen to survive a
+        # previously-crashing active space.
+        energy = None
+        for Mi, noise_i in zip(bond_dims, noises):
+            energy = float(driver.dmrg(mpo, ket, n_sweeps=1, bond_dims=[Mi],
+                                       noises=[noise_i], thrds=[self.tol],
+                                       iprint=1 if self.verbose else 0))
 
         dm1 = np.asarray(driver.get_1pdm(ket))
         dm2 = np.asarray(driver.get_2pdm(ket)).transpose(*_BLOCK2_TO_PYSCF_2PDM_AXES)
