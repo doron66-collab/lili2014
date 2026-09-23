@@ -639,6 +639,61 @@ python scripts/laguna/solange_qpu.py --key <KEY> --side native --hardware --back
 | `Provided API key could not be found` | wrong/expired API key | create a **new** IBM Cloud API key, copy once, `save_account` again |
 | `not a valid instance name` | hidden char in the CRN, or wrong value | re-copy the CRN with the copy button; `save_account` again |
 | `REFUSING hardware without credentials` | no IBM token/account | do §3a (save_account), then retry |
+| `--dmrg-scf` crashes at CAS(~30,30) or larger (`Intel MKL ERROR: Parameter N incorrect on entry to DGEMM`, `std::length_error`, `terminate called without an active exception`, `malloc(): unsorted double linked list corrupted`, plain `Segmentation fault` — a *different* one of these each attempt, on the *identical* command) | genuine, non-deterministic instability in this Laguna pyblock2/block2 build once the active space grows past roughly CAS(30,30) — not root-caused (see note below) | if the run only needs a total energy at one fixed level of theory (e.g. an isodesmic-style comparison), bypass `--dmrg-scf`/block2 entirely: a standalone plain-PySCF RHF calculation on the same geometry/charge/basis is unaffected and completes in seconds. Otherwise: no reliable workaround yet — re-test before trusting `--dmrg-scf` above ~30 active orbitals |
+| two concurrent `--dmrg-scf` runs both silently corrupt each other's resume check (`[resume] ./tmp_dmrg holds a saved MPS for a DIFFERENT active space...` followed by a crash, even though neither run's own `--scratch` flag was misspelled) | both jobs defaulted to (or were pasted with a stale copy of) the same `--scratch ./tmp_dmrg` and ran at the same time | always pass a distinct `--scratch <path>` per concurrent job; confirm it actually reached the process by checking `with_block2.sh`'s own printed `running →` line, not just the command you meant to paste |
 
 All runs are re-verified and notarized by **LEON** on ingestion, independent of
 Laguna/IBM connectivity afterward.
+
+### `--dmrg-scf` instability at large active spaces (found 2026-09-23)
+
+While validating an isodesmic-correction approach on TP53 Y220C (native Tyr220
+vs. the real 2VUK Cys220 mutant structure), `--dmrg-scf` crashed repeatedly and
+non-deterministically at active spaces around CAS(54,31)–CAS(60,68), on both
+native and mutant clusters. The `[validate]` CAS(6,6) self-check inside the
+same script (the element-wise DMRG-vs-FCI RDM comparison — see
+`dmrgscf_block2.py`'s module docstring) always passed first, ruling out the
+2-RDM axis-convention wiring as the cause; the crash is inside block2's own
+`driver.dmrg(...)` C++ call, on the real active space, not in this project's
+adapter code.
+
+**Ruled out, one at a time, with direct evidence — not by assumption:**
+- Thread count (`--threads 2` vs the default 4, with `OMP_NUM_THREADS`/
+  `MKL_NUM_THREADS` set to match) — crashed both ways.
+- block2's own internal memory pool (`--stack-mem-gb` raised from the 4.0
+  default to 32) — crashed both ways.
+- The shell's stack `ulimit -s` (8192 kB default vs. `unlimited`) — crashed
+  both ways; a run that had survived once at the small limit later crashed
+  at the unlimited one, ruling out a simple stack-overflow explanation too.
+- AVAS criterion including sulfur (`S 3p`) — crashed with S included in
+  four separate attempts, but a same-size run (CAS(54,31)) *without* S in
+  the criterion also crashed at least once — so sulfur is not the sole
+  trigger either, even though it looked that way after the first few tries.
+
+**A separate, real bug found and fixed along the way:** two concurrent
+`solange_dmrg.py --dmrg-scf` processes sharing the default `--scratch
+./tmp_dmrg` corrupt each other's resume-metadata check
+(`.solange_dmrg_meta.json` / MPS files) — always pass a distinct `--scratch`
+per concurrent job, and verify it actually reached the process via
+`with_block2.sh`'s own `running →` line (a pasted stale command silently
+missing the flag is what caused this the first two times it was "tested"
+tonight).
+
+**Working conclusion:** this Laguna pyblock2/block2 build has a real,
+non-deterministic instability once the active space grows past roughly
+CAS(30,30)-ish, independent of thread count, memory pool size, shell stack
+limit, and active-space atomic composition. Not yet root-caused — candidates
+include an internal block2 buffer-sizing bug at scale, or an MKL/ABI mismatch
+specific to this environment's `with_block2.sh` LD_PRELOAD setup. **Do not
+treat `--dmrg-scf` as reliable above ~30 active orbitals on Laguna without
+re-testing.**
+
+**Practical workaround used tonight:** for the Y220C check, only a total
+energy at one fixed level of theory (RHF, matching the pre-existing
+p-cresol/methanethiol reference-compound energies) was actually needed —
+not a converged DMRG classification. A ~20-line standalone PySCF script
+(no block2, no AVAS, no CASCI) gave both cluster RHF energies reliably in
+seconds. Reach for this whenever the question is "what does a fixed-method
+total energy say," not "what is this active space's true entanglement" —
+the latter still needs `--dmrg-scf` (or a smaller, FCI-tractable
+`--casci` space) to answer at all.
