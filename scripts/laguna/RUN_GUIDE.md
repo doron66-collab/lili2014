@@ -733,3 +733,34 @@ seconds. Reach for this whenever the question is "what does a fixed-method
 total energy say," not "what is this active space's true entanglement" —
 the latter still needs `--dmrg-scf` (or a smaller, FCI-tractable
 `--casci` space) to answer at all.
+
+**Code-level attempt, same night, partial result — `dmrgscf_block2.py`'s
+`Block2FCISolver.kernel()`:** the cold-solve ramp was originally handed to
+block2 as ONE `driver.dmrg()` call carrying the whole 50→maxM bond-dimension
+list internally. `run_dmrg()` (the downstream ladder, never observed to
+crash all night on the same active spaces) instead calls `driver.dmrg()`
+once per bond dimension, each with a single-element list. Splitting the
+cold-solve ramp into one call per rung, mirroring that pattern, raised the
+success rate on the previously-100%-crashing CAS(60,35)+sulfur case to 2 of
+3 attempts — a real improvement, not nothing — but did **not** eliminate the
+crash, and the surviving native run at the same active space took roughly
+5-6x longer (79 min vs. 14 min) than before the change. Read together, this
+is consistent with (not proof of) the ramp genuinely mattering to whatever
+internal state block2 corrupts: many short calls sharing one long-lived
+`ket`/`mpo` cost more overhead per call and reduce, but do not remove,
+exposure to the same underlying issue, since the shared objects are still
+reused across all of them. **Status: improves the odds, does not fix the
+bug. Do not report this as resolved.**
+
+**If the instability needs to actually go away, not just improve:**
+`CheMPS2` is a more realistic path than continuing to patch this adapter —
+unlike pyblock2, it has an **official, community-maintained** PySCF CASSCF
+integration (`pyscf.dmrgscf`) built and tested by others for exactly this
+"DMRG as CASSCF's inner solver" role, at active-space sizes matching where
+this build of block2 struggles (20-40 orbitals). Switching would retire
+`dmrgscf_block2.py`'s from-scratch 2-RDM convention validation entirely
+(`validate()`/`diagnose()`), since that convention is already the
+community's problem to have gotten right, not this project's own. Real
+cost: installing/compiling CheMPS2 on Laguna (untested, may hit its own
+linking issues) and a short benchmark run — smaller than the validation
+work already sunk into block2, but not zero. Not attempted tonight.
