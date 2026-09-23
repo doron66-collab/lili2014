@@ -743,14 +743,16 @@ once per bond dimension, each with a single-element list. Splitting the
 cold-solve ramp into one call per rung, mirroring that pattern, raised the
 success rate on the previously-100%-crashing CAS(60,35)+sulfur case to 2 of
 3 attempts — a real improvement, not nothing — but did **not** eliminate the
-crash, and the surviving native run at the same active space took roughly
-5-6x longer (79 min vs. 14 min) than before the change. Read together, this
-is consistent with (not proof of) the ramp genuinely mattering to whatever
-internal state block2 corrupts: many short calls sharing one long-lived
-`ket`/`mpo` cost more overhead per call and reduce, but do not remove,
-exposure to the same underlying issue, since the shared objects are still
-reused across all of them. **Status: improves the odds, does not fix the
-bug. Do not report this as resolved.**
+crash (a third, identical attempt crashed again). The cold-solve step itself
+shows **no timing regression**: 871.6s / 852.7s across two successful native
+runs, essentially identical. (An earlier version of this note claimed a
+5-6x slowdown, based on watching cumulative CPU time on a still-running
+process and wrongly assuming it was stuck at the cold-solve step it had
+already passed, when it had actually moved on to the downstream
+bond-dimension ladder — corrected once the actual per-step log timings were
+read directly, rather than inferred from an in-progress `ps` snapshot.)
+**Status: improves the odds, does not fix the bug. Do not report this as
+resolved.**
 
 **If the instability needs to actually go away, not just improve:**
 `CheMPS2` is a more realistic path than continuing to patch this adapter —
