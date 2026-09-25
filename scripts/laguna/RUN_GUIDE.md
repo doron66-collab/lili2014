@@ -487,6 +487,39 @@ is trustworthy. **Not claimed:** any number from this approach is
 citable — it needs geometry-consistent reference compounds and chemist
 review before it is.
 
+**Second independent cross-check (2026-09-25) — the correction is not just
+imprecise, it is unreliable:** ran the identical scheme against TP53 R249S
+(PDB 2BIO, a real crystal structure; native 2OCJ), which also has a real
+published value (ΔΔG ≈ +2 kcal/mol destabilizing; Bullock & Fersht). Native
+and mutant clusters matched atom-for-atom outside the mutation site (an
+Arg neighbor and a Pro, both identical) — a clean case, no construction
+ambiguity. Reference compounds: methanol (Ser proxy, already validated) and
+a propylguanidinium cation (Arg proxy, built via RDKit embedding + MMFF
+since a hand-built initial geometry relaxed into a chemically wrong
+structure with a spurious N-N bond instead of the intended resonance-
+delocalized guanidinium — verified this time by checking all three C-N
+bond lengths came out equal, ~1.35-1.36 Å, before trusting the energy).
+Result: **ΔE_corrected ≈ −54 kcal/mol — wrong in SIGN**, not just
+magnitude (the correction says more stable; the real mutation is
+destabilizing). A single hand-built model compound geometry can silently
+relax into the wrong molecule entirely — always verify bond lengths/
+connectivity after optimization, not just that it converged.
+
+Two independent test cases, two different failure modes (Y220C: right
+direction, ~13x too large; R249S: wrong direction entirely) is the answer
+to whether the magnitude error is a correctable, consistent bias: **it is
+not.** **Established:** this isodesmic scheme, without a geometry-
+consistency fix, is unreliable in both magnitude and sign — not a
+promising-but-imprecise method, an unreliable one. **Not established:**
+whether a geometry-consistent version would do better (the geometry-strain
+test attempted the same night gave implausibly large, inconsistent values
+for the two amino acids tried, and did not resolve this either — see git
+history for that attempt). **Not claimed:** that this line of work should
+continue as manual one-off checks — any further attempt needs a properly
+scoped, chemist-reviewed effort, not another quick script.
+**`structural_stabilizer_local_comparison` stays disabled; no further ad
+hoc validation attempts are planned.**
+
 ### 2g. Gate 1 — structural resolvability, with an end-of-day promotion step
 
 A card at the very top of the Orchestration tab (before Rung 1) lets you look
