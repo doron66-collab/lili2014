@@ -1,0 +1,36 @@
+{
+ "out": "Cohen_TNDY315_Module5_Models_APA.docx",
+ "date": "September 24, 2026",
+ "title": "Tailoring Through Models: The Cynefin Framework in a Quantum Research Platform",
+ "body": [
+  {
+   "p": "Chapter 4 of the PMBOK Guide describes models as small-scale, simplified views of reality (Project Management Institute [PMI], 2021, Section 4.2). Each model therefore shows only part of a project. This essay argues that a project manager leverages a model by applying it to the central problem and then checking which performance domains it leaves uncovered. Choosing that combination is tailoring. The case is SOLANGE, my multidisciplinary dissertation platform for classifying cancer mutations."
+  },
+  {
+   "h": "Leveraging the Cynefin Framework"
+  },
+  {
+   "p": "The central problem of SOLANGE is technological: its quantum stage depends on immature hardware, and no one can say today whether quantum computing will become reliable enough for sensitive medical research. The Cynefin framework diagnoses cause-and-effect relationships in five contexts (PMI, 2021, Section 4.2.5.1). In a complicated context, the unknowns are known, and the team applies analysis and good practices. In a complex context, the unknowns are unknown and no answer is obviously right, so the team works in repeated cycles of probe, sense, and respond. When the context is unclear, the framework recommends breaking the problem into parts and matching each part to a context (PMI, 2021, Section 4.2.5.1). A project manager leverages the framework through this rule. The classification stage uses established classical methods, so it is complicated and can follow a plan. The quantum stage is complex. In our group A3, that stage slipped because its dates followed a vendor roadmap, which treated a complex component as a complicated one. Our countermeasure was a probe-sense-respond cycle: the team admits a target only if it fits the largest calculation completed on real hardware. The framework also warns that what worked once may not work the next time, so one successful quantum run does not establish reliability for medical use."
+  },
+  {
+   "h": "The Thinking Needed to Select Models"
+  },
+  {
+   "p": "Three kinds of thinking guide the choice. The first is coverage. The needs of the project, its stakeholders, and its organizational environment determine which models apply, and the project manager and team keep the ultimate responsibility for the choice (PMI, 2021, Section 4.3). Table 4-1 links Cynefin to five performance domains, but not to stakeholders. The gap matters, because a chemist, a biologist, and a physician read the same result through different disciplines. The cross-cultural communication model, which Table 4-1 links to stakeholders, explains why: the knowledge, experience, language, and thinking style of the sender shape a message, and those of the receiver shape its interpretation (PMI, 2021, Section 4.2.2.1). A physician who receives a quantum result without its Cynefin context may read an experimental result as an established one. Each result must therefore state which context produced it."
+  },
+  {
+   "p": "The second is cost. Every model costs time, expertise, and productivity, and teams should avoid anything that duplicates or adds unnecessary effort (PMI, 2021, Section 4.1). A second model is justified only when it covers a domain that the first model leaves open."
+  },
+  {
+   "p": "The third is iteration. Rittel and Webber (1972) argue that a wicked problem cannot be defined until a solution has been found. The context assigned to a component is therefore provisional. If the hardware matures, the quantum stage may move from complex to complicated. Chapter 3 names review points, phase gates, and retrospectives as the occasions for revisiting tailoring (PMI, 2021). MacDonald (2018) shows the same habit in a magic act: he improves one element at a time and asks why each problem occurred until he reaches its cause."
+  },
+  {
+   "p": "In SOLANGE, Cynefin governs how the team handles quantum uncertainty. The communication model governs how the team reports that uncertainty to stakeholders, whom Cynefin does not cover."
+  }
+ ],
+ "refs": [
+  "MacDonald, S. (2018, September). *Fooling Penn & Teller with lean principles & continuous improvement* [Video]. TEDxDetroit. https://www.ted.com/talks/stuart_macdonald_fooling_penn_teller_with_lean_principles_continuous_improvement",
+  "Project Management Institute. (2021). *A guide to the project management body of knowledge (PMBOK guide)* (7th ed.). Project Management Institute.",
+  "Rittel, H. W. J., & Webber, M. M. (1972). *Dilemmas in a general theory of planning* (Working Paper No. 194). Institute of Urban and Regional Development, University of California, Berkeley. https://escholarship.org/uc/item/01v4t1c9"
+ ]
+}

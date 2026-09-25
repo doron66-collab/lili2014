@@ -35,7 +35,7 @@
 
 %% ── Metadata ─────────────────────────────────────────────────────────────────
 \hypersetup{
-  pdftitle  = {A Governed QC-AI-HPC Information-Systems Architecture for Quantum Simulation of Non-druggable NSCLC Tumor Suppressor Mutations},
+  pdftitle  = {A Governed QC-AI-HPC Architecture for Deciding When Quantum Computation Is Warranted in Non-Druggable Oncology},
   pdfauthor = {Doron Cohen},
 }
 
@@ -44,14 +44,15 @@
 
 %% ── Title block ──────────────────────────────────────────────────────────────
 \begin{center}
-{\Large\bfseries A Governed QC--AI--HPC Information-Systems Architecture\\
-for Quantum Simulation of Non-druggable NSCLC Tumor Suppressor Mutations}\\[10pt]
+{\Large\bfseries A Governed QC-AI-HPC Architecture for Deciding When\\
+Quantum Computation Is Warranted in Non-Druggable Oncology}\\[10pt]
 {\normalsize Doron Cohen}\\
 {\small PhD/DTech Candidate, Center for Information Systems and Technology (CISAT)\\
 Claremont Graduate University (CGU)\\
 \href{mailto:doron.cohen@cgu.edu}{doron.cohen@cgu.edu}\\
 Supervisor: Prof.\ Itamar Shabtai}\\[6pt]
-{\small May 2026 \quad|\quad Intended arXiv category: cs.ET}\\
+{\small Working draft, September 2026 (revised from the May 2026 version)}\\
+{\small Intended arXiv category: cs.ET \quad|\quad Not yet submitted}\\
 {\small Author-selected arXiv license: CC BY-NC-ND 4.0}
 \end{center}
 
@@ -62,34 +63,34 @@ Supervisor: Prof.\ Itamar Shabtai}\\[6pt]
 
 % CORRECTION #1 / #5: Assertive IS framing replaces defensive opener;
 % all clinical/chemistry disclaimers moved to Limitations (Section 10).
-Regulated quantum-oncology simulation is an information-systems problem before it is a
-computational-chemistry problem.  Governing \emph{when} to escalate a workload to a quantum
-kernel---and producing an auditable record of that decision---requires an orchestration
-architecture, not merely a quantum algorithm.  The contribution of this paper is precisely
-that architecture: a governed QC--AI--HPC orchestration system that coordinates regulated
-molecular inputs, active-space classification, selective computational escalation,
-backend-specific compilation, AI/HPC support services, stakeholder-facing visualisation,
-and Part-11 provenance for probabilistic quantum simulation outputs.
+Regulated quantum-oncology computation is an information-systems problem before it is a
+computational-chemistry problem.  The first question is not how to run a quantum algorithm
+but whether a given target warrants one.  This paper presents a governed QC-AI-HPC
+orchestration architecture that adjudicates, per mutation target, whether quantum computation
+is warranted, and that records every step of that decision in a nine-element P1-P9 provenance
+record aligned with the audit-trail logic of FDA~21~CFR~Part~11.
 
-The architecture has three layers.  Layer~1 is the quantum-kernel layer, anchored by SqDRIFT
-on IBM Heron~r3 for frontier fermionic-Hamiltonian workloads.  Layer~2 is the hybrid-substrate
-layer, covering classical preprocessing and postprocessing, GPU/HPC services, AI calibration,
-and emerging AI-decoded quantum-error-correction substrates including NVIDIA CUDA-Q, NVQLink,
-and Ising-class learned decoders.  Layer~3 is the governed orchestration and provenance layer,
-which routes tasks across the first two layers while emitting a nine-element P1--P9 provenance
-record---the paper's core information-systems contribution---at each stage of execution.
-A design-science evaluation protocol is proposed combining technical harnesses, comparative
-benchmarking, expert review, and case-based walkthroughs.  The current implementation executes
-on a PennyLane \texttt{default.qubit} simulator (Phase~3A) executing real 4-qubit VQE circuits
-with PySCF-derived Jordan--Wigner Hamiltonians (CAS(2e,2o)/STO-3G, AllSinglesDoubles UCCSD ansatz,
-80 Adam optimisation steps); IBM Heron~r3 hardware execution with full molecular
-Hamiltonians is Phase~3B.  No energy result in this paper should be interpreted as a
-quantum-computed molecular binding energy.
+The architecture has three layers.  Layer~1 is the quantum-kernel layer, anchored by
+sample-based quantum diagonalization (SqDRIFT) on IBM Heron-class hardware.  Layer~2 is the
+hybrid-substrate layer, covering classical preprocessing, GPU/HPC services, AI calibration,
+and emerging learned quantum-error-correction decoders.  Layer~3 is the governed
+orchestration and provenance layer.  Its central component is a two-method classifier:
+DMRG and SHCI, two classical methods with independent failure modes, run on the same active
+space, and the platform records the verdict of each method and any disagreement between them.
+
+The classifier has now been exercised on real targets.  Every real biological target measured
+to date, including TP53~C275F at active spaces of 36 and 48 electrons, is classically
+tractable (Class~B).  The same classifier returns the opposite verdict (Class~A) for a
+declared model-compound proxy of a [2Fe-2S] redox center, so the Class~B findings are
+measurements rather than a default.  Small pipeline test jobs (4 to 8 qubits) also ran on
+three IBM Heron-class devices in July and August 2026; they validate the pipeline, not
+chemical accuracy.  A design-science evaluation protocol is proposed.  No energy result in
+this paper should be interpreted as a quantum-computed molecular binding energy.
 
 \smallskip
 \noindent\textbf{Keywords:} information systems; design science research; emerging computing;
-QC--AI--HPC orchestration; quantum computing; high-performance computing; artificial intelligence;
-precision oncology; TP53; NSCLC; SqDRIFT; IBM Heron; NVIDIA NVQLink; FDA~21~CFR~Part~11;
+QC-AI-HPC orchestration; quantum computing; high-performance computing; artificial intelligence;
+precision oncology; classical-tractability adjudication; DMRG; SHCI; TP53; NSCLC; SqDRIFT; IBM Heron; NVIDIA NVQLink; FDA~21~CFR~Part~11;
 provenance.
 
 \vfill
@@ -97,6 +98,37 @@ provenance.
 {\small\textit{\copyright{} 2026 Doron Cohen.  Licensed under CC BY-NC-ND~4.0.}}
 
 \clearpage
+\section*{Status Update, September 2026}
+
+This version revises the May 2026 manuscript.  Four developments since May change how the
+paper should be read.
+
+\textbf{Reframing.}  The contribution is now stated as adjudication: the platform decides,
+per target, whether quantum computation is warranted, instead of assuming that it
+is~\cite{cohen2026proposal}.
+
+\textbf{Two-method classification.}  The escalation rule of Section~5 now runs DMRG and SHCI
+in parallel on the same active space.  The two methods fail in independent ways, so agreement
+between them is stronger evidence than either result alone, and a disagreement is flagged
+instead of hidden.
+
+\textbf{Measured classifications.}  Eight real targets have been classified by DMRG, and all
+are Class~B: TP53~C275F, R175H, R282W, G245S, and R249S; SETD2~R1625C; KEAP1~G333C; and
+STK11~D194N.  C275F was measured at 36 and 48 active electrons (S$_\mathrm{max}$ = 0.25 and
+0.35), and SHCI agrees on its class.  The earlier figure of about 44 electrons and 88 qubits
+for C275F was an architectural estimate without a verifiable derivation and has been
+withdrawn.  An early provisional Class~A reading for R175H did not survive a warm-started
+re-run.  The Class~A designations of the May 2026 version are therefore superseded.  Size
+figures for targets not yet measured remain pre-measurement estimates and are labeled as such.
+
+\textbf{Hardware and evidence discipline.}  Between July and August 2026, pipeline test jobs
+at CAS(2,2) to CAS(4,4), on 4 to 8 qubits, ran on three IBM Heron-class devices (Kingston,
+Marrakesh, and Fez).  On September 23, 2026, a first wild-type-versus-mutant energy difference
+was retracted after a check showed that the mutation had not been applied to the input
+structure.  The retraction is recorded in the provenance trail rather than silently corrected.
+
+Sections~3, 5, 7, and 10 have been revised to match these findings.
+
 %% ── §1 Introduction ──────────────────────────────────────────────────────────
 \section{Introduction}
 
@@ -104,11 +136,11 @@ provenance.
 % One "rules of engagement" paragraph replaces scattered defensive disclaimers.
 The central thesis of the dissertation proposal underlying this article is direct: the
 contribution is the \textbf{architecture}; simulation is the application; the patient case is
-the motivation~\cite{cohen2026proposal}.  This paper asks a systems question---what
+the motivation~\cite{cohen2026proposal}.  This paper asks a systems question - what
 architecture is required so that a quantum-enabled oncology simulation workflow can be
 executed, reviewed, rerun, and governed without pretending that all computation occurs in
-a single deterministic environment?---and answers it with a governed orchestration layer
-implementing a real-time audit log for hybrid quantum--classical--AI pipelines.
+a single deterministic environment? - and answers it with a governed orchestration layer
+implementing a real-time audit log for hybrid quantum-classical-AI pipelines.
 
 \textbf{Scope of this paper.}  The architecture specifically addresses the information-systems
 challenge of regulated computational escalation: deciding when, why, and under what recorded
@@ -132,7 +164,7 @@ probabilistic distributions, not deterministic values, so the compliance record 
 operationalise reproducibility as statistical equivalence under recorded conditions rather
 than bitwise replay.
 
-This paper therefore presents a bifurcation-aware QC--AI--HPC orchestration architecture.
+This paper therefore presents a bifurcation-aware QC-AI-HPC orchestration architecture.
 It treats IBM Heron~r3 and SqDRIFT as the dissertation's quantum-kernel anchor; treats NVIDIA
 CUDA-Q, NVQLink, and Ising-class decoders as an emerging hybrid-substrate pattern where
 applicable; and locates the information-systems contribution in the orchestration layer that
@@ -144,7 +176,7 @@ makes those choices explicit, auditable, and revisable~\cite{heron2026ibm,ising2
 The paper follows design science research (DSR): the research contribution is an artifact
 designed and evaluated for utility, rigor, and novelty~\cite{hevner2004,peffers2007}.  The
 artifact is a workflow architecture and provenance schema for a class of regulated
-QC--AI--HPC simulation workflows, not a molecule, a clinical endpoint, or a standalone quantum
+QC-AI-HPC simulation workflows, not a molecule, a clinical endpoint, or a standalone quantum
 circuit.
 
 Three dissertation-derived contributions are translated into arXiv form:
@@ -156,13 +188,13 @@ classical accuracy under available resources and the corresponding fermionic-Ham
 admits a known quantum algorithmic formulation.  This is a decision rule for computational
 escalation, not a formal hardness proof.
 
-\item \textbf{Part-11-governed QC--AI--HPC orchestration.}  The architecture is designed for
+\item \textbf{Part-11-governed QC-AI-HPC orchestration.}  The architecture is designed for
 oncology mutation simulation workflows in which regulated inputs, backend execution, AI/HPC
 services, and stakeholder outputs are coordinated by a governable information system rather
 than by ad hoc scripts.
 
 \item \textbf{Provenance for probabilistic quantum outputs and learned decoders.}  A
-nine-element P1--P9 record operationalises auditability for quantum simulation outputs.  P9
+nine-element P1-P9 record operationalises auditability for quantum simulation outputs.  P9
 is included because emerging learned quantum-error-correction (QEC) decoders make model
 lineage part of the computational record.
 \end{enumerate}
@@ -185,7 +217,7 @@ guidelines~\cite{hevner2004} to make the design-science structure explicit for I
 \textbf{DSR Guideline} & \textbf{How this paper addresses it} \\
 \midrule
 Design as artifact &
-The three-layer architecture, P1--P9 provenance schema, RBAC/JWT access layer, and working
+The three-layer architecture, P1-P9 provenance schema, RBAC/JWT access layer, and working
 prototype (Phase~3A live; Phase~3B planned) collectively constitute the artifact, publicly
 accessible at \url{https://nsclc-quantum-viewer.netlify.app}. \\[4pt]
 Problem relevance &
@@ -194,11 +226,11 @@ NSCLC patients), computational (classical FCI ceiling at $\sim$18 active electro
 systems (no governed orchestration connecting these layers exists). \\[4pt]
 Design evaluation &
 Section~8 specifies a four-layer evaluation protocol: technical harnesses ($\geq$95\%
-completion, 100\% P1--P9 emission), comparative benchmarks against four alternatives,
-expert-panel scoring (n\,=\,4--6, Hevner criteria, 1--5 scale), and case-based walkthrough
+completion, 100\% P1-P9 emission), comparative benchmarks against four alternatives,
+expert-panel scoring (n\,=\,4-6, Hevner criteria, 1-5 scale), and case-based walkthrough
 of two mutation scenarios. \\[4pt]
 Research contributions &
-Sections~2 and~6: BQP classification rule (novel operational escalation criterion), P1--P9
+Sections~2 and~6: BQP classification rule (novel operational escalation criterion), P1-P9
 schema (first provenance framework for probabilistic quantum simulation outputs), RBAC/JWT
 access layer (Part-11 access control and user attribution).  None are present in existing
 orchestration alternatives. \\[4pt]
@@ -229,8 +261,8 @@ active-space definition, selective escalation, and stakeholder-facing explanatio
 TP53 is selected because its mutation landscape is architecturally heterogeneous.  Different
 mutations produce different active-space sizes, placing distinct demands on qubit count,
 circuit depth, telemetry volume, and backend routing.  C275F is used because its active-space
-boundary---approximately 24 active electrons at the local binding site---sits at the
-classical--quantum frontier where escalation decisions are genuinely contested and the
+boundary - approximately 24 active electrons at the local binding site - sits at the
+classical-quantum frontier where escalation decisions are genuinely contested and the
 governance architecture is most severely stressed.
 
 Table~\ref{tab:tiers} expresses the requirements as systems-design tiers.  The active-space
@@ -239,7 +271,7 @@ provenance granularity.
 
 \begin{table}[H]
 \centering
-\caption{Dissertation-derived workload tiers used by the orchestration architecture.}
+\caption{Workload tiers used by the orchestration architecture.  Rows marked ``measured'' reflect September 2026 DMRG classifications; rows marked ``estimate'' are pre-measurement size estimates.}
 \label{tab:tiers}
 \small
 \begin{tabular}{@{}lccp{6.5cm}@{}}
@@ -248,57 +280,40 @@ provenance granularity.
 \midrule
 Reference molecular benchmark & 32 & 100 &
   External SqDRIFT/Heron precedent (IBM Research 2026; arXiv:2603.08696) \\
-C275F local active site & $\sim$24 & $\sim$48 &
-  Phase 3A proof-of-concept; simulator validation; near-term quantum-kernel test \\
-C275F full active site  & $\sim$44 & $\sim$88 &
-  \textbf{Only target within today's hardware ceiling.} Merz et al.~\cite{merz2026protein} demonstrated 94 qubits on IBM Heron~r2 (May 2026, PDB:~2OCJ active-site verified); Phase~3B pending IBM Quantum Network access \\
-KEAP1 local site (G333C) & $\sim$104 & $\sim$208 &
-  Fault-tolerant QPU required ($\sim$2030+); PDB:~1U6D+2FLU coordinate-verified \\
-KEAP1 full Nrf2 interface & $\sim$155 & $\sim$310 &
-  Fault-tolerant QPU required; PDB:~2FLU coordinate-verified (19 interface residues) \\
-STK11/LKB1 local site (D194) & $\sim$76 & $\sim$152 &
-  Fault-tolerant QPU required; PDB:~2WTK coordinate-verified (D194A backbone position) \\
-STK11/LKB1 full ATP pocket & $\sim$152 & $\sim$304 &
-  Fault-tolerant QPU required; PDB:~2WTK coordinate-verified (8\,\AA{} shell) \\
+C275F active site (measured) & 18-48 & 24-56 &
+  AVAS-tested range.  DMRG Class~B at 36e and 48e (S$_\mathrm{max}$ = 0.25, 0.35); SHCI agrees.  Within Heron~r3 capacity (156 qubits) \\
+KEAP1 G333C site (measured) & 30-72 & 32-74 &
+  AVAS-tested range.  DMRG Class~B (S$_\mathrm{max}$ = 0.22 at 72e).  Within Heron~r3 capacity \\
+KEAP1 full Nrf2 interface (estimate) & $\sim$155 & $\sim$310 &
+  Pre-measurement size estimate; PDB:~2FLU (19 interface residues) \\
+STK11/LKB1 full ATP pocket (estimate) & $\sim$152 & $\sim$304 &
+  Pre-measurement size estimate; PDB:~2WTK (8\,\AA{} shell).  STK11~D194N measured Class~B at its own site \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The local tier tests end-to-end execution: de-identified input handling, active-space
 construction, fermion-to-qubit mapping, backend routing, error-mitigation metadata, AI/HPC
-support, stakeholder visualisation, and P1--P9 provenance emission.  The full tier tests
+support, stakeholder visualisation, and P1-P9 provenance emission.  The full tier tests
 whether the same architecture scales without changing its governance contract.
 
-The platform addresses seven scientifically classified NSCLC mutation targets selected
-on three criteria: (1)~clinical significance in NSCLC specifically, (2)~absence of an
-approved targeted therapy, and (3)~BQP-relevant active space exceeding classical
-tractability.  Hardware feasibility on current quantum computers was deliberately
-\emph{not} a selection criterion---the architecture must be mutation-agnostic and
-future-ready.  The seven targets are: TP53~C275F (Class~A), KEAP1~LOF, KEAP1~G333C,
-KEAP1~R320Q (all Class~B), STK11~LKB1~(LOF), STK11~F354L, and STK11~D194N (all
-Class~A).  STK11 and KEAP1 targets were selected for their clinical urgency in NSCLC:
-STK11/LKB1 loss-of-function occurs in $\sim$20\% of NSCLC adenocarcinomas and is the
-primary driver of immunotherapy (PD-1/PD-L1) resistance; KEAP1 mutations co-occur in
-$\sim$10--15\% of NSCLC cases and together define the ``double-negative''
-immunotherapy non-responder profile---one of the most urgent unsolved problems in
-thoracic oncology.
+The platform was designed around NSCLC mutation targets selected on three criteria:
+(1)~clinical significance in NSCLC specifically, (2)~absence of an approved targeted therapy,
+and (3)~an active space large enough that classical tractability cannot be assumed in advance.
+Hardware feasibility on current quantum computers was deliberately \emph{not} a selection
+criterion, because the architecture must be mutation-agnostic.  STK11 and KEAP1 targets were
+selected for their clinical urgency in NSCLC: STK11/LKB1 loss-of-function occurs in
+$\sim$20\% of NSCLC adenocarcinomas and is a driver of immunotherapy (PD-1/PD-L1) resistance,
+and KEAP1 mutations co-occur in $\sim$10-15\% of NSCLC cases.
 
-Coordinate-level active-space analysis from PDB structures (2OCJ, 1U6D, 2FLU, 2WTK)
-establishes a critical hardware-tier distinction.  TP53~C275F is the \emph{only} target
-whose full active site ($\sim$44 electrons, $\sim$88 qubits; PDB:~2OCJ) falls within the
-94-qubit ceiling independently demonstrated by Merz et al.~\cite{merz2026protein}.
-STK11~F354L local site ($\sim$48 electrons, $\sim$96 qubits; AlphaFold Q15831) is a
-near-term exception: only 2 qubits beyond the demonstrated ceiling and within IBM Heron
-r3 hardware capacity (156 qubits), making local Phase~3B executable without
-fault-tolerant hardware.  The remaining five KEAP1 and STK11 targets require 152--310
-qubits (Table~\ref{tab:tiers}) and are designated fault-tolerant QPU targets
-($\sim$2030+).  Their inclusion in the platform
-validates the architecture's mutation-agnostic routing and governance pipeline across the
-full hardware-tier spectrum---demonstrating that the same provenance schema and compliance
-framework apply whether the backend is a 4-qubit PennyLane simulator today or a
-fault-tolerant QPU tomorrow.  C275F is the primary stress-test case because it is the
-only target that is simultaneously quantum-necessary (Class~A---no classical path at
-chemical accuracy) and executable on today's IBM Heron hardware.
+The May 2026 version of this paper designated TP53~C275F and three STK11 targets as Class~A
+(quantum-necessary).  Measurement has replaced that designation: every real target classified
+so far, including C275F at 36 and 48 active electrons, is Class~B.  C275F remains the primary
+stress-test case for two reasons.  It anchors the work in a real patient report, and its
+measured active space (18 to 48 electrons, 24 to 56 qubits across tested criteria) sits within
+IBM Heron~r3 capacity, so Phase~3B can demonstrate the governed pipeline at hardware scale.
+On current evidence, that demonstration tests the architecture; it does not answer a question
+that classical computation cannot already answer.
 
 \textbf{Translational chain and governance claim.}  The architecture produces
 quantum-accurate ground-state energy differentials ($\Delta E$) between wild-type and
@@ -306,13 +321,13 @@ mutant active sites.  $\Delta E$ is not the terminal output; it is the necessary
 downstream binding free energy estimation via QM/MM frameworks, where
 $\Delta G_{\text{binding}} = \Delta E_{\text{total}} + \Delta G_{\text{solvation}} -
 T\Delta S$.  Classical density-functional methods introduce systematic errors of
-2--4~kcal/mol in correlated active sites; at this error level, predicted binding affinities
+2-4~kcal/mol in correlated active sites; at this error level, predicted binding affinities
 shift by a factor of five to six, sufficient to misclassify a viable drug candidate as
 inactive.  Quantum-accurate $\Delta E$ reduces this error to approximately 0.5~kcal/mol,
 within the threshold of chemical accuracy.  For the IS architecture, this chain establishes
 the scope of the governance claim: the output the system audits and cryptographically seals
 is the minimum computational signal required to justify downstream drug-design
-investment---making the provenance record a prerequisite for translational use, not a
+investment - making the provenance record a prerequisite for translational use, not a
 compliance formality.
 
 %% ── §4 Three-Layer Architecture ──────────────────────────────────────────────
@@ -352,8 +367,8 @@ study objective, admissible backend policy
 \noindent\colorbox{gray!15}{\parbox{\dimexpr\textwidth-2\fboxsep}{%
 \textbf{Layer~3: governed orchestration and provenance layer}\\
 Selective escalation, workflow routing, stakeholder visualisation, exception handling,
-Part-11 audit trail, P1--P9 emission.\\
-\textit{Records: P1 (circuit fingerprint), P2 (compilation lineage), P6 (error-mitigation lineage), P7 (estimator/CI), P8 (cryptographic seal over P1--P7/P9).}
+Part-11 audit trail, P1-P9 emission.\\
+\textit{Records: P1 (circuit fingerprint), P2 (compilation lineage), P6 (error-mitigation lineage), P7 (estimator/CI), P8 (cryptographic seal over P1-P7/P9).}
 }}
 
 \smallskip
@@ -381,10 +396,10 @@ Fermionic Hamiltonian, mapping and compilation, SqDRIFT sampling, backend execut
 \medskip
 \noindent\textbf{Governed output} $\leftarrow$
 Observable estimate, uncertainty, escalation rationale, backend lineage,
-P8 cryptographic seal over P1--P7/P9, reviewer-facing provenance package
+P8 cryptographic seal over P1-P7/P9, reviewer-facing provenance package
 \end{minipage}%
 }
-\caption{Three-layer QC--AI--HPC orchestration architecture. Each layer is annotated with
+\caption{Three-layer QC-AI-HPC orchestration architecture. Each layer is annotated with
 the P-records emitted at that execution stage. The quantum kernel is invoked selectively;
 the hybrid substrate supplies surrounding AI/HPC services; the orchestration layer preserves
 provenance and auditability across backend-specific execution paths.}
@@ -408,14 +423,14 @@ explores a 32-electron active space beyond an approximately 18-electron exact-cl
 ceiling~\cite{ibm2026molecule,qcreport2026}.
 
 At the moment of backend dispatch, Layer~1 stamps three provenance records.  The system emits
-\textbf{P3}---device identifier and calibration epoch timestamp---to satisfy the FDA Part~11
+\textbf{P3} - device identifier and calibration epoch timestamp - to satisfy the FDA Part~11
 requirement that the specific computing resource and its current characterisation be traceable
 in the audit log; without P3, a regulator cannot verify that the hardware was within a valid
 calibration window when the run was authorised.  Simultaneously, the system captures
-\textbf{P4}---the per-gate error budget snapshot (one- and two-qubit fidelities, readout-error
-matrices, T1/T2 values)---to provide the quantitative hardware state against which the
+\textbf{P4} - the per-gate error budget snapshot (one- and two-qubit fidelities, readout-error
+matrices, T1/T2 values) - to provide the quantitative hardware state against which the
 output's uncertainty bound can later be re-derived.  After shot execution, the system stores
-\textbf{P5}---the full bitstring-level shot histogram---enabling independent re-derivation
+\textbf{P5} - the full bitstring-level shot histogram - enabling independent re-derivation
 of any aggregated estimator from the raw data, which is the probabilistic analogue of raw-data
 preservation required under 21~CFR~Part~11~\S{}11.10(e).
 
@@ -439,13 +454,13 @@ QEC~\cite{ising2026nvidia}.  NVIDIA's CUDA-Q QEC 0.6 documentation further descr
 and real-time decoder pipelines including Ising CNN pre-decoders paired with
 PyMatching~\cite{cudaqec2026}.
 
-When an AI-based QEC decoder is active in Layer~2, the system emits \textbf{P9}---ML-decoder
+When an AI-based QEC decoder is active in Layer~2, the system emits \textbf{P9} - ML-decoder
 lineage: decoder identifier and version, weights checksum, training-corpus manifest hash,
 inference-time configuration, and execution environment.  This record exists to satisfy the
 FDA Good Machine Learning Practice principle of model lifecycle control and
 transparency~\cite{fda2021gmlp}: if a learned decoder shapes the inferred correction path, its
 identity and configuration become part of the regulated computational record, not a hidden
-implementation detail.  The cryptographic seal in P8 anchors P9 together with P1--P7, making
+implementation detail.  The cryptographic seal in P8 anchors P9 together with P1-P7, making
 any post-hoc modification of decoder lineage detectable.  For deterministic decoders, P9
 records the algorithm name and software version, preserving the same auditability at lower
 lineage complexity.
@@ -456,23 +471,23 @@ lineage complexity.
 % CORRECTION #2 / #3: Animate P1, P2, P6, P7, P8 at Layer 3 with regulatory rationale.
 Layer~3 is the information-systems contribution.  It coordinates the first two layers and
 emits the governance artifacts.  It implements selective escalation, records backend and
-compilation choices, manages exceptions, presents stakeholder views, and produces the P1--P9
+compilation choices, manages exceptions, presents stakeholder views, and produces the P1-P9
 provenance record.
 
 Specifically, Layer~3 stamps the following records in sequence.  At circuit compilation,
-\textbf{P1}---the cryptographic hash of the post-transpilation compiled circuit---is
+\textbf{P1} - the cryptographic hash of the post-transpilation compiled circuit - is
 recorded; this is the regulatory anchor that makes the executed computation uniquely
 identifiable and tamper-evident, fulfilling the audit-trail integrity requirement of
-21~CFR~Part~11~\S{}11.10(a).  At fermion-to-qubit mapping, \textbf{P2}---compilation
+21~CFR~Part~11~\S{}11.10(a).  At fermion-to-qubit mapping, \textbf{P2} - compilation
 lineage including source Hamiltonian, mapping choice, Trotter order/step, and SqDRIFT
-sampling parameters---is populated; this record satisfies the traceability requirement
+sampling parameters - is populated; this record satisfies the traceability requirement
 that every data transformation be documented so the output can be reconstructed from
 inputs~\cite{fda21cfr11,fda2003guidance}.  After quantum execution and mitigation,
-\textbf{P6}---the complete error-mitigation lineage, logging every transformation applied
-to raw outcomes, method versions, and parameters---is stored.  Layer~3 then computes
-\textbf{P7}---the final statistical estimator and 95\% confidence interval bounded by
-shot count and noise-model variance---and finally applies \textbf{P8}, the time-stamped
-cryptographic seal over P1--P7 and P9, anchoring the entire record against subsequent
+\textbf{P6} - the complete error-mitigation lineage, logging every transformation applied
+to raw outcomes, method versions, and parameters - is stored.  Layer~3 then computes
+\textbf{P7} - the final statistical estimator and 95\% confidence interval bounded by
+shot count and noise-model variance - and finally applies \textbf{P8}, the time-stamped
+cryptographic seal over P1-P7 and P9, anchoring the entire record against subsequent
 modification in compliance with the electronic-signature and record-locking provisions
 of 21~CFR~Part~11.
 
@@ -494,7 +509,7 @@ correlation structure, and accuracy requirements justify an escalated kernel.
 The BQP-relevant classification is therefore operational, not absolutist.  It relies on
 the established quantum-computing framing that selected local-Hamiltonian and
 molecular-energy estimation problems admit quantum
-formulations~\cite{abrams1999,aspuru2005,bennett1997}.  No formal classical--quantum
+formulations~\cite{abrams1999,aspuru2005,bennett1997}.  No formal classical-quantum
 separation is claimed: ground-state finding is QMA-hard in the general case, and
 containment in BQP is conditional on preparing an initial state with sufficient overlap on
 the true ground state.  Lee et al.~\cite{lee2023} argue that these caveats erode the case
@@ -532,7 +547,7 @@ routing rationale recorded in the P2 provenance field.
   $\checkmark$ \\[4pt]
 \textbf{C2: Algorithmic formulation} &
   Fermionic Hamiltonian admits a known quantum algorithmic formulation &
-  Jordan--Wigner mapping available; SqDRIFT applicable &
+  Jordan-Wigner mapping available; SqDRIFT applicable &
   $\checkmark$ \\[4pt]
 \textbf{C3: Hardware readiness} &
   Calibration epoch meets P3 timestamp policy for target backend &
@@ -549,29 +564,23 @@ routing rationale recorded in the P2 provenance field.
 
 \textbf{Distinction from quantum-enhanced classical workflows.}  The BQP-relevant
 classification operationalises a boundary that existing quantum drug-discovery literature
-does not always make explicit.  Vakili et al.\ applied a hybrid quantum--classical
-generative model---a quantum circuit Born machine (QCBM) on a 16-qubit IBM processor
-paired with an LSTM network---to KRAS inhibitor design, yielding experimentally validated
+does not always make explicit.  Vakili et al.\ applied a hybrid quantum-classical
+generative model - a quantum circuit Born machine (QCBM) on a 16-qubit IBM processor
+paired with an LSTM network - to KRAS inhibitor design, yielding experimentally validated
 hits and a 21.5\% improvement in candidate quality over the classical
 baseline~\cite{vakili2025kras}.  This is quantum-\emph{enhanced} drug discovery: KRAS
 has resolved crystal structures, a substantial library of known inhibitors, and classical
 algorithms already generate viable candidates.  Quantum computing refines the search;
 it does not replace the only available computational path.
 
-The mutations targeted by this dissertation occupy a categorically different regime.
-TP53~C275F, STK11~F354L, STK11~D194N, KEAP1~G333C, and KEAP1~R320Q have no
-binding pocket accessible by classical structure-based methods, no prior computational
-characterisation at chemical accuracy, and active-space sizes at which DFT introduces
-systematic errors of 2--4~kcal/mol---sufficient to invert the sign of a binding
-prediction.  Quantum simulation is therefore not an enhancement but the
-approach this artifact targets for that regime: once exact classical treatments
-(CCSD(T)/CASSCF) become intractable at these active-space sizes and lower-cost
-methods introduce sign-inverting error, it is the computational path this work is
-built to govern and orchestrate toward a physically grounded
-$\Delta E$ estimate.  The three-condition escalation rule in Table~\ref{tab:escalation}
-encodes this distinction as a routing decision; the Vakili et al.\ KRAS workflow would
-not satisfy C1 (active-space ceiling not exceeded by classical methods) and would
-route to Layer~2 rather than the quantum kernel.
+The mutations targeted by this dissertation differ from KRAS in one respect: most have no
+resolved drug-binding pocket and no prior computational characterisation at chemical accuracy.
+The escalation rule in Table~\ref{tab:escalation} therefore does not assume that quantum
+simulation is required for them; it tests that assumption per target, with two independent
+classical methods.  To date the test has returned Class~B for every real target measured,
+which means classical tensor-network methods still converge at those sizes.  The Vakili et
+al.\ KRAS workflow would also fail condition C1 and would route to Layer~2 rather than to the
+quantum kernel.
 
 %% ── §6 Provenance Schema and Lifecycle ────────────────────────────────────────
 \section{Part-11-Governed Provenance for Probabilistic Quantum Simulation}
@@ -588,7 +597,7 @@ the dissertation proposal because this schema is the paper's core governance con
 
 \begin{table}[H]
 \centering
-\caption{P1--P9 provenance schema for governed probabilistic quantum simulation.}
+\caption{P1-P9 provenance schema for governed probabilistic quantum simulation.}
 \label{tab:provenance}
 \small
 \begin{tabularx}{\textwidth}{@{}lX@{}}
@@ -602,8 +611,8 @@ the dissertation proposal because this schema is the paper's core governance con
 \textbf{P5} & Shot count and raw outcome distribution: full bitstring-level histogram permitting independent re-derivation of any aggregated estimator. \\
 \textbf{P6} & Error-mitigation lineage: every transformation applied to raw outcomes, including zero-noise extrapolation, probabilistic error cancellation, twirling, parameters, and method versions. \\
 \textbf{P7} & Statistical estimator and confidence interval: final reported observable, estimator function, 95\% CI bounded by shot-count and noise-model variance. \\
-\textbf{P8} & Cryptographic seal: time-stamped digital signature over P1--P7 and P9, anchoring the record against subsequent modification. \\
-\textbf{P9} & ML-decoder lineage: when QEC inference uses a learned model---decoder identifier and version, weights checksum, training-corpus manifest hash, inference-time configuration (precision, batch size, decoder threshold), and execution environment (GPU class, CUDA/runtime version).  For deterministic decoders: algorithm name and software version. \\
+\textbf{P8} & Cryptographic seal: time-stamped digital signature over P1-P7 and P9, anchoring the record against subsequent modification. \\
+\textbf{P9} & ML-decoder lineage: when QEC inference uses a learned model - decoder identifier and version, weights checksum, training-corpus manifest hash, inference-time configuration (precision, batch size, decoder threshold), and execution environment (GPU class, CUDA/runtime version).  For deterministic decoders: algorithm name and software version. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -615,7 +624,7 @@ systems~\cite{fda2021gmlp}.  NVIDIA's Ising/CUDA-Q materials show why the same l
 relevant inside a quantum pipeline when learned decoders become part of
 execution~\cite{ising2026nvidia,cudaqec2026}.
 
-\subsection*{Provenance in motion: P1--P9 lifecycle for a C275F local-site run}
+\subsection*{Provenance in motion: P1-P9 lifecycle for a C275F local-site run}
 \label{sec:provenance-lifecycle}
 
 % CORRECTION #6: Step-by-step numbered walkthrough annotating each P-record
@@ -627,13 +636,13 @@ Part-11/GMLP regulatory need it satisfies.
 \begin{enumerate}[leftmargin=2em,itemsep=4pt]
 
 \item \textbf{Circuit compilation (Layer~3).}\;
-After the Jordan--Wigner-mapped fermionic Hamiltonian is transpiled to a Heron-native
+After the Jordan-Wigner-mapped fermionic Hamiltonian is transpiled to a Heron-native
 gate set, Layer~3 computes a SHA-256 hash of the compiled circuit and writes it as \textbf{P1}.
-\textit{Regulatory purpose:} satisfies 21~CFR~Part~11~\S{}11.10(a) audit-trail integrity---any
+\textit{Regulatory purpose:} satisfies 21~CFR~Part~11~\S{}11.10(a) audit-trail integrity - any
 subsequent modification of the compiled circuit would invalidate P1 and be detected on audit.
 
 \item \textbf{Compilation lineage capture (Layer~3).}\;
-The system writes \textbf{P2}: source Hamiltonian identity, choice of Jordan--Wigner
+The system writes \textbf{P2}: source Hamiltonian identity, choice of Jordan-Wigner
 mapping, Trotter order and step size, and SqDRIFT sampling configuration.
 \textit{Regulatory purpose:} satisfies the traceability requirement that every
 data-transformation parameter be documented so that the output can be reconstructed from
@@ -659,7 +668,7 @@ histogram.
 \textit{Regulatory purpose:} equivalent to raw-data preservation under 21~CFR~Part~11
 \S{}11.10(e); enables independent re-derivation of any aggregated estimator from raw data.
 
-\item \textbf{Decoder lineage (Layer~2---conditional).}\;
+\item \textbf{Decoder lineage (Layer~2 - conditional).}\;
 If an Ising-class or other learned QEC decoder is active, Layer~2 emits \textbf{P9}: decoder
 identifier, weights checksum, training-corpus manifest hash, inference-time configuration,
 and execution environment.  For deterministic decoders, P9 records algorithm name and
@@ -669,8 +678,8 @@ makes decoder identity part of the regulated computation record, not a hidden de
 
 \item \textbf{Error-mitigation lineage (Layer~3).}\;
 Layer~3 writes \textbf{P6}: a complete ordered log of every mitigation transformation
-applied to raw outcomes---zero-noise extrapolation factors, probabilistic error-cancellation
-quasi-probabilities, twirling parameters---along with method identifiers and software
+applied to raw outcomes - zero-noise extrapolation factors, probabilistic error-cancellation
+quasi-probabilities, twirling parameters - along with method identifiers and software
 versions.
 \textit{Regulatory purpose:} enables independent auditors to reproduce the post-processed
 estimate from the raw P5 histogram.
@@ -685,7 +694,7 @@ probabilistic quantum outputs.
 
 \item \textbf{Cryptographic seal (Layer~3).}\;
 Layer~3 applies \textbf{P8}: a time-stamped digital signature over the concatenated
-P1--P7 and P9 record.
+P1-P7 and P9 record.
 \textit{Regulatory purpose:} satisfies 21~CFR~Part~11 electronic-signature and
 record-locking provisions; any post-hoc modification of any P-field is detectable by
 re-verifying P8.
@@ -707,8 +716,8 @@ through two IS-level mechanisms that operate within the governed orchestration l
 
 \textbf{Role-based access control (RBAC).}  On authentication, the platform queries a
 persistent user-profile store for the authenticated user's assigned role.  Administrative
-functions---including access to all simulation runs across users, the provenance audit log,
-and user management---are gated behind a role check and invisible to non-administrative
+functions - including access to all simulation runs across users, the provenance audit log,
+and user management - are gated behind a role check and invisible to non-administrative
 users.  The access boundary is enforced by a database-resident role assignment, not by
 convention or self-restraint, mapping directly to the \S11.10(d) requirement that the
 system boundary be actively enforced.
@@ -717,12 +726,12 @@ system boundary be actively enforced.
 credential.  The platform fetches the authenticated session JWT and transmits it as a
 Bearer credential with each simulation request.  The backend decodes the JWT to extract
 the user identifier and records it against the provenance row in the database, creating an
-unbroken chain from authenticated login to sealed P1--P9 record.  This satisfies
-\S11.10(i) without requiring the backend to maintain independent credential state---the
+unbroken chain from authenticated login to sealed P1-P9 record.  This satisfies
+\S11.10(i) without requiring the backend to maintain independent credential state - the
 identity provider handles verification separately.
 
 Together, RBAC and JWT attribution are IS design decisions with direct regulatory
-consequences.  A quantum simulation pipeline that emits complete, SHA-256-sealed P1--P9
+consequences.  A quantum simulation pipeline that emits complete, SHA-256-sealed P1-P9
 records but cannot identify which authorised user initiated each run is not
 Part-11-compatible.  These mechanisms extend the governance contract of Layer~3 into the
 access and identity layer and are accordingly treated as part of the IS contribution of
@@ -731,7 +740,7 @@ this paper.
 %% ── §7 Research Artifact and Prototype ───────────────────────────────────────
 \section{Research Artifact and Prototype}
 
-The research artifact is a QC--AI--HPC orchestration platform and associated governance
+The research artifact is a QC-AI-HPC orchestration platform and associated governance
 schema.  The public prototype associated with the dissertation proposal demonstrates the
 intended stakeholder workflow, including a multi-screen platform, architecture visualisation,
 and molecular-viewer interface~\cite{cohen2026prototype}.  In this article, the prototype is
@@ -739,26 +748,29 @@ treated as an executable design specification rather than as evidence of quantum
 binding energies.
 
 Phase~3A of the prototype executes live 4-qubit VQE circuits on a PennyLane
-\texttt{default.qubit} noiseless simulator.  Jordan--Wigner Hamiltonians are derived from
+\texttt{default.qubit} noiseless simulator.  Jordan-Wigner Hamiltonians are derived from
 real PySCF CASSCF(2,2)/STO-3G quantum chemistry calculations on mutation-specific sidechain
 model compounds (toluene for Phe275, methanethiol for Cys, acetic acid for Asp194, etc.),
 producing 27 Pauli terms per target stored in a pre-computed Hamiltonian library.  At
-runtime, an AllSinglesDoubles UCCSD ansatz with Hartree--Fock initial state $|1100\rangle$
+runtime, an AllSinglesDoubles UCCSD ansatz with Hartree-Fock initial state $|1100\rangle$
 is optimised over 80 Adam steps, converging to within $10^{-5}$~H$_\mathrm{a}$ of the
 CASSCF-exact ground state by proof for the CAS(2e,2o) active space.  Every simulation run
-exercises the complete pipeline---NGS ingestion, Hamiltonian construction, live circuit
-execution, provenance assembly, cryptographic sealing, and database storage---and produces
-a P1--P9 provenance record with a unique P8 SHA-256 seal, demonstrating that the
+exercises the complete pipeline - NGS ingestion, Hamiltonian construction, live circuit
+execution, provenance assembly, cryptographic sealing, and database storage - and produces
+a P1-P9 provenance record with a unique P8 SHA-256 seal, demonstrating that the
 governance schema correctly distinguishes between mutation-specific ground-state energies.
-Phase~3B replaces this minimal active space with the full 24e/48q local site and 44e/88q
-complete active site on IBM Heron~r3 via sqDRIFT.
+Phase~3B scales this minimal active space toward the measured C275F range (up to 48 active
+electrons) on IBM Heron~r3 via SqDRIFT, contingent on IBM Quantum Network access.  Between
+July and August 2026, small test jobs (CAS(2,2) to CAS(4,4), 4 to 8 qubits) already ran
+through the same pipeline on three IBM Heron-class devices.  They validate the pipeline, not
+chemical accuracy.
 
 \subsection*{The Transitional Window: Situating SqDRIFT and Heron~r3 Within IBM's Fault-Tolerant Roadmap}
 
 The selection of IBM Heron~r3 as the quantum hardware substrate and SqDRIFT as the
 molecular simulation algorithm reflects a deliberate positioning within a well-defined and
-time-bounded technological window.  IBM's publicly disclosed roadmap---supported by a
-\$10+~billion capital commitment and a \$1~billion CHIPS Act award---establishes a clear
+time-bounded technological window.  IBM's publicly disclosed roadmap - supported by a
+\$10+~billion capital commitment and a \$1~billion CHIPS Act award - establishes a clear
 architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward
 fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction.
 The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces
@@ -766,18 +778,18 @@ modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and
 (2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing
 100 million quantum gates.
 
-This roadmap does not diminish the contribution of the present work---it contextualizes and
+This roadmap does not diminish the contribution of the present work - it contextualizes and
 justifies it.  Heron~r3, as the current-generation superconducting processor, and SqDRIFT,
 as a leading NISQ-era sample-based quantum diagonalization protocol whose stochastic state
 sampling inherits qDRIFT's formally bounded error scaling, represent the state of the art during precisely the window in which clinically
 relevant quantum molecular simulation first becomes computationally tractable.  IBM's own
 March 2026 demonstration applied SqDRIFT on 100 qubits to a 32-electron active space of
-C\textsubscript{13}Cl\textsubscript{2}---a benchmark that for the first
+C\textsubscript{13}Cl\textsubscript{2} - a benchmark that for the first
 time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach
 of available hardware.
 
 The significance of this window extends beyond the chemistry.  The transition to
-fault-tolerant quantum computing will not resolve---and in fact will intensify---the
+fault-tolerant quantum computing will not resolve - and in fact will intensify - the
 information systems challenges that constitute the primary contribution of this
 dissertation.  As IBM scales toward Starling (2029) and the Blue~Jay quantum-centric
 supercomputer (2,000 logical qubits, 2033), targeting drug discovery as an explicit
@@ -785,7 +797,7 @@ commercial vertical, the regulatory reconstruction problem becomes more acute, n
 Probabilistic, learned quantum outputs will be generated at greater scale and complexity,
 yet no established framework exists for governing their audit trails, ensuring
 reproducibility, or satisfying FDA 21~CFR Part~11 requirements in a clinical submission
-context.  The pipeline architecture, P1--P9 provenance schema, and bifurcation-aware
+context.  The pipeline architecture, P1-P9 provenance schema, and bifurcation-aware
 orchestration developed in this dissertation are designed precisely for this trajectory:
 they establish the IS governance substrate that fault-tolerant quantum drug discovery
 workflows will require, built and validated during the window in which the underlying
@@ -827,7 +839,7 @@ orchestration logic rather than hardware noise.
 unhandled exception path, rendering the architecture non-deployable in a regulated
 oncology pipeline.
 
-\item \textbf{100\% P1--P9 provenance emission for all recorded outputs.}\;
+\item \textbf{100\% P1-P9 provenance emission for all recorded outputs.}\;
 Derived from 21~CFR~Part~11's requirement that every regulated computational output carry
 a complete, unambiguous audit record; partial records cannot satisfy regulatory review.
 \textit{Failure mode:} any missing P-field in a regulated run constitutes an audit gap
@@ -874,14 +886,14 @@ Part-11-grade provenance.
 
 % CORRECTION #4 / #7: Failure modes and physics/social rationale added.
 The proposed architecture passes the comparative evaluation if and only if: (a)~0\% of
-simulated runs produce incomplete P1--P9 records, where all four alternatives are expected
-to produce partial or absent audit trails---\textit{failure mode: any incomplete record
+simulated runs produce incomplete P1-P9 records, where all four alternatives are expected
+to produce partial or absent audit trails - \textit{failure mode: any incomplete record
 disqualifies the architecture for FDA-regulated submissions}; (b)~Part-11-grade
 cryptographic seal (P8) verification succeeds with latency overhead $\leq 5\%$ of total
 workflow wall-clock time, justified by the NVQLink real-time coherence constraint described
-above---\textit{failure mode: P8 latency above 5\% breaks the real-time QEC callback loop};
+above - \textit{failure mode: P8 latency above 5\% breaks the real-time QEC callback loop};
 and (c)~stakeholder visualisation is available across all three active-space tiers defined
-in Table~\ref{tab:tiers}, a capability absent from all four alternatives---\textit{failure
+in Table~\ref{tab:tiers}, a capability absent from all four alternatives - \textit{failure
 mode: missing tier coverage implies the governance contract does not extend to
 frontier-scale runs, limiting translational utility}.
 
@@ -895,7 +907,7 @@ information-systems/DSR methodology, and regulatory/clinical-informatics experti
 criteria map to the Hevner DSR guidelines: artifact existence, problem relevance, design
 evaluation, contribution, rigor, design-search process, and communication~\cite{hevner2004}.
 
-Reviewers score the artifact against each of Hevner's seven DSR criteria on a 1--5 integer
+Reviewers score the artifact against each of Hevner's seven DSR criteria on a 1-5 integer
 scale.  The expert-panel evaluation passes if the mean score across all reviewers reaches at
 least \textbf{3.5} on every dimension and no criterion receives a majority of scores of 2 or
 below.  The 3.5 threshold is meaningfully demanding in this setting because it represents
@@ -936,7 +948,7 @@ The architecture's governance contract is defined by three domain-independent pa
 active-space size relative to the classical tractability ceiling, availability of a known
 quantum algorithmic formulation, and the compliance tier of the regulated workflow.  None
 of these parameters are specific to TP53 or NSCLC.  Any fermionic simulation workload
-whose active-space boundary falls at the classical--quantum frontier and whose regulatory
+whose active-space boundary falls at the classical-quantum frontier and whose regulatory
 context requires an auditable escalation record is a candidate for the same three-layer
 orchestration pattern.  Extension to other mutation classes, cancer types, or non-oncology
 molecular simulation domains requires only reconfiguration of the active-space routing
@@ -971,12 +983,13 @@ workflow; that is a future phase.
 
 A May 2026 milestone by Merz et al.\ demonstrates that the hardware scale required for
 Phase~3B is no longer speculative: 94 qubits were used on IBM Heron~r2 processors to
-compute the electronic structure of a 12,635-atom trypsin–benzamidine complex via
-EWF-TrimSQD at chemical accuracy~\cite{merz2026protein}.  C275F's full binding-site
-target ($\sim$44 electrons, $\sim$88 qubits) falls comfortably within this demonstrated
-range.  The architectural contribution of this dissertation is therefore validated against
+compute the electronic structure of a 12,635-atom trypsin-benzamidine complex via
+EWF-TrimSQD at chemical accuracy~\cite{merz2026protein}.  C275F's measured active
+space (up to 48 electrons) falls within this demonstrated range.  The architectural contribution of this dissertation is therefore validated against
 hardware that can execute Phase~3B; the remaining step is institutional IBM Quantum Network
-access, not algorithmic or hardware feasibility.
+access, not algorithmic or hardware feasibility.  Because every real target measured so far
+is Class~B, Phase~3B would demonstrate the governed pipeline at hardware scale; on current
+evidence it would not demonstrate quantum necessity.
 
 The architecture is evaluated initially on one mutation instance and one quantum-modality
 anchor.  Generalisation is therefore analytical rather than statistical.  Multi-patient
@@ -991,9 +1004,9 @@ information-systems claim.
 
 This work is strongest when read as an information-systems contribution: the problem is not
 merely to compute a molecular number, but to design the system that makes such computation
-governable.  The proposed QC--AI--HPC architecture organises
+governable.  The proposed QC-AI-HPC architecture organises
 the work into a quantum-kernel layer, a hybrid-substrate layer, and a governed
-orchestration/provenance layer.  The P1--P9 provenance schema animates that architecture,
+orchestration/provenance layer.  The P1-P9 provenance schema animates that architecture,
 stamping records at each execution stage with a clear regulatory purpose: P3, P4, and P5
 anchor hardware-state traceability at Layer~1; P9 captures decoder lineage at Layer~2;
 and P1, P2, P6, P7, and P8 seal the complete computational chain at Layer~3.  Together,
@@ -1022,7 +1035,7 @@ and arXiv submission settings before upload.
 
 \bibitem{cohen2026proposal}
 Doron Cohen.
-A Translational QC--AI--HPC Orchestration Platform for Non-druggable NSCLC Tumor-Suppressor Mutations.
+A Translational QC-AI-HPC Orchestration Platform for Non-druggable NSCLC Tumor-Suppressor Mutations.
 Dissertation proposal website, 2026.
 \url{https://nsclc-quantum-viewer.netlify.app/dissertation_revised}.
 Accessed May~11, 2026.
@@ -1030,13 +1043,13 @@ Accessed May~11, 2026.
 \bibitem{abrams1999}
 Daniel S. Abrams and Seth Lloyd.
 Quantum algorithm providing exponential speed increase for finding eigenvalues and eigenvectors.
-\textit{Physical Review Letters}, 83(24):5162--5165, 1999.
+\textit{Physical Review Letters}, 83(24):5162-5165, 1999.
 \doi{10.1103/PhysRevLett.83.5162}.
 
 \bibitem{aspuru2005}
 Al\'{a}n Aspuru-Guzik, Anthony~D. Dutoi, Peter~J. Love, and Martin Head-Gordon.
 Simulated quantum computation of molecular energies.
-\textit{Science}, 309(5741):1704--1707, 2005.
+\textit{Science}, 309(5741):1704-1707, 2005.
 \doi{10.1126/science.1113479}.
 
 \bibitem{heron2026ibm}
@@ -1061,18 +1074,18 @@ Accessed May~11, 2026.
 \bibitem{hevner2004}
 Alan~R. Hevner, Salvatore~T. March, Jinsoo Park, and Sudha Ram.
 Design science in information systems research.
-\textit{MIS Quarterly}, 28(1):75--105, 2004.
+\textit{MIS Quarterly}, 28(1):75-105, 2004.
 
 \bibitem{peffers2007}
 Ken Peffers, Tuure Tuunanen, Marcus~A. Rothenberger, and Samir Chatterjee.
 A design science research methodology for information systems research.
-\textit{Journal of Management Information Systems}, 24(3):45--77, 2007.
+\textit{Journal of Management Information Systems}, 24(3):45-77, 2007.
 \doi{10.2753/MIS0742-1222240302}.
 
 \bibitem{venable2016}
 John Venable, Jan Pries-Heje, and Richard Baskerville.
 FEDS: A Framework for Evaluation in Design Science Research.
-\textit{European Journal of Information Systems}, 25(1):77--89, 2016.
+\textit{European Journal of Information Systems}, 25(1):77-89, 2016.
 \doi{10.1057/ejis.2014.36}.
 
 \bibitem{ibm2026molecule}
@@ -1104,7 +1117,7 @@ arXiv:2508.02578, 2026.
 \bibitem{bennett1997}
 Charles~H. Bennett, Ethan Bernstein, Gilles Brassard, and Umesh Vazirani.
 Strengths and weaknesses of quantum computing.
-\textit{SIAM Journal on Computing}, 26(5):1510--1523, 1997.
+\textit{SIAM Journal on Computing}, 26(5):1510-1523, 1997.
 \doi{10.1137/S0097539796300933}.
 
 \bibitem{fda21cfr11}
@@ -1114,7 +1127,7 @@ Electronic Code of Federal Regulations, 2026.
 
 \bibitem{fda2003guidance}
 U.S. Food and Drug Administration.
-Guidance for industry: Part~11, electronic records; electronic signatures---scope and application.
+Guidance for industry: Part~11, electronic records; electronic signatures - scope and application.
 FDA guidance document, 2003.
 
 \bibitem{fda2021gmlp}
@@ -1124,7 +1137,7 @@ FDA web resource, 2021.
 
 \bibitem{cohen2026prototype}
 Doron Cohen.
-NSCLC Quantum Viewer and QC--AI--HPC Prototype.
+NSCLC Quantum Viewer and QC-AI-HPC Prototype.
 Prototype website, 2026.
 \url{https://nsclc-quantum-viewer.netlify.app/}.
 Accessed May~11, 2026.
@@ -1132,7 +1145,7 @@ Accessed May~11, 2026.
 \bibitem{vakili2025kras}
 Mohammad~Ghazi Vakili, Christoph Gorgulla, Jamie Snider, et~al.
 Quantum-computing-enhanced algorithm unveils potential KRAS inhibitors.
-\textit{Nature Biotechnology}, 43:1954--1959, 2025.
+\textit{Nature Biotechnology}, 43:1954-1959, 2025.
 \doi{10.1038/s41587-024-02526-3}.
 
 \bibitem{merz2026protein}
