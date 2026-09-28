@@ -19,14 +19,20 @@ SPECIFIC quantity for actual drug design — a covalent activation barrier
 researcher makes for a specific promising target, not a step every screened
 mutation passes through.
 
-STATUS: one of the five categories now has a real consumer.
+STATUS: three of the five categories now have a real consumer.
 structural_stabilizer_local_comparison's own "oven" (POST
 /stabilizer/compare, below) computes the wild-type/mutant energy
 difference the category asks for, from two already-classified DMRG
 records, but only after this module's own missing_requirements() check
-passes for that target. The other four categories (covalent_reactive_
-cysteine, metal_redox_center, protein_interface_disruption,
-catalytic_loss_of_function) still have no downstream tool that branches
+passes for that target. metal_redox_center's own "oven" (POST
+/redox/compare, below) computes the energy gap between two candidate
+spin-state DMRG records the same way. catalytic_loss_of_function needs no
+new calculator at all (GET /catalytic/{target}, below): its own quantity
+is exactly what a normal Rung 3 (DMRG/SHCI) classification of the
+wild-type site already produces, so that endpoint only looks up and
+labels an existing classification rather than computing anything new. The
+remaining two categories (covalent_reactive_cysteine,
+protein_interface_disruption) still have no downstream tool that branches
 on them — this module keeps tracking and enforcing sign-off for those,
 but nothing yet consumes it. Wiring each remaining category's own
 calculator, once it exists, is what turns tracking into an actual gate
