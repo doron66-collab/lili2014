@@ -56,6 +56,12 @@ _DB_COLUMNS = frozenset({
     "p6_method", "p6_note",
     "p7_energy_ha", "p7_ci_lower", "p7_ci_upper", "p7_confidence", "p7_method", "p7_ref_hf_ha",
     "p8_hash", "p8_algorithm", "p8_sealed_at", "p8_seal_payload",
+    # Ed25519 signature over p8_hash -- non-repudiation on top of the SHA-256
+    # integrity digest (2026-09-29, Claude Science security review). Null until
+    # LEON_SIGNING_PRIVATE_KEY is configured in the deployment; a null value means
+    # "not yet signed", not "tampered". Needs:
+    #   alter table public.simulation_runs add column if not exists p8_signature text;
+    "p8_signature",
     "p9_applicable", "p9_note",
 })
 
@@ -565,18 +571,13 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
     }
 
 
-# Fields excluded from the P8 seal because they do NOT survive a DB round-trip
-# byte-identically (e.g. timestamptz is reformatted by Postgres), which would make
-# a re-verification from the stored row spuriously FAIL. They are metadata, not
-# result-integrity data, so excluding them keeps the seal robust and re-verifiable.
 # The P8 seal is owned by LEON (routes.leon) — the single notarization authority.
 # Import the canonical helpers so the seal can never drift between ingestion here
-# and query-time re-verification in routes.provenance.
+# and query-time re-verification in routes.provenance. p3_calibration_epoch is
+# canonicalized (not excluded) inside build_p8_payload — see leon.py for why.
 from routes import leon
 from routes.leon import build_p8_payload, build_p8_seal
 from routes.security_log import log_denied
-
-_SEAL_EXCLUDE = leon._SEAL_EXCLUDE
 
 
 # ── API endpoint ───────────────────────────────────────────────────────────────
@@ -2007,6 +2008,9 @@ def _assemble_and_persist(mutation_id: str, config: dict, vqe: dict, authorizati
     record["p8_hash"]      = hashlib.sha256(record["p8_seal_payload"].encode()).hexdigest()
     record["p8_algorithm"] = "SHA-256"
     record["p8_sealed_at"] = datetime.now(timezone.utc).isoformat()
+    # Ed25519 signature over p8_hash — None until LEON_SIGNING_PRIVATE_KEY is
+    # configured in the deployment (see leon.sign_p8_seal's own docstring).
+    record["p8_signature"] = leon.sign_p8_seal(record["p8_hash"])
 
     # ── Persist to Supabase ────────────────────────────────────────────────────
     # Insert only columns that exist in the table schema, so a future record field
