@@ -1387,6 +1387,40 @@
       <div id="g2-stab-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
       <div id="gate2-stabilizer-list" class="table-scroll" style="margin-top:10px"></div>
     </div>
+
+    <!-- ── Redox (spin-gap) Comparison — the second real "oven" for a Gate 2
+         category (metal_redox_center): takes two already-classified DMRG
+         records for candidate SPIN STATES of the SAME metal site (same
+         atoms, same charge — not a composition-changing substitution, so
+         the raw-ΔE problem that disabled Stabilizer Comparison above does
+         not apply here) and computes their energy gap. See
+         backend/routes/gate2.py's redox_compare. ── -->
+    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(6,182,212,0.5);border-radius:8px;background:rgba(6,182,212,0.06)">
+      <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:2px">Redox / Spin-Gap Comparison <span class="info-i" data-tip="Energy gap between two candidate spin states of the same metal site (e.g. SDHB [2Fe-2S] centre S1: S=0 antiferromagnetic vs S=5 ferromagnetic) — the quantity metal_redox_center asks for. Both records must share the identical computational setup and differ ONLY in spin. Unlike Stabilizer Comparison, the two states are isoelectronic by construction, so a raw energy difference is chemically meaningful here.">i</span></div>
+      <div style="font-size:10px;color:var(--gray);margin-bottom:8px">Requires a complete Gate 2 sign-off (category = metal_redox_center) for the target, and two DMRG records that match on everything except spin.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px">
+        <input id="g2-redox-target" placeholder="Target key (e.g. SDHB_C101Y)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-redox-a" placeholder="State A DMRG record ID" style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-redox-b" placeholder="State B DMRG record ID" style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <button onclick="dispatchRedoxCompare(this)" title="Compute the spin-state energy gap" style="background:rgba(6,182,212,0.15);color:var(--teal);border:1px solid rgba(6,182,212,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🧮 Compute Gap</button>
+      </div>
+      <div id="g2-redox-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
+      <div id="gate2-redox-list" class="table-scroll" style="margin-top:10px"></div>
+    </div>
+
+    <!-- ── Catalytic Loss-of-Function status — needs no new calculator
+         (catalytic_loss_of_function's own quantity is exactly what a normal
+         Rung 3 DMRG/SHCI classification of the wild-type site already
+         produces); this just looks up and labels one. See
+         backend/routes/gate2.py's catalytic_status. ── -->
+    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(34,197,94,0.5);border-radius:8px;background:rgba(34,197,94,0.06)">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:2px">Catalytic Loss-of-Function — Status Lookup <span class="info-i" data-tip="This category needs no new calculator: its own quantity (local energy/entanglement of the wild-type catalytic site) is exactly what a normal Rung 3 DMRG/SHCI classification of that site already measures. This looks up and labels the existing classification for a target signed off under this category — it computes nothing new.">i</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px">
+        <input id="g2-cat-target" placeholder="Target key (e.g. TP53_C275F)" style="width:200px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <button onclick="loadCatalyticStatus(this)" title="Look up this target's existing Rung 3 classification" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔍 Look Up</button>
+      </div>
+      <div id="gate2-catalytic-result" style="margin-top:8px;font-size:11px;color:var(--gray)"></div>
+    </div>
   </div>
   <script>
   (function(){
@@ -2324,6 +2358,46 @@
       });
     };
     window.solangeLoadStabilizer();
+
+    // ── Redox (spin-gap) comparisons — read side of Gate 2's second real
+    // "oven" (metal_redox_center). Each row is a sealed, already-computed
+    // spin-state energy gap; this only lists them.
+    var redoxBox = document.getElementById('gate2-redox-list');
+    var redoxPaint = function(html){
+      if (!redoxBox) return;
+      if (redoxBox.__lastHtml === html) return;
+      redoxBox.__lastHtml = html; redoxBox.innerHTML = html;
+    };
+    window.solangeLoadRedox = function(silent){
+      if (!redoxBox) return;
+      if (!silent) redoxPaint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
+      fetch(API+'/api/gate2/redox/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.comparisons) || [];
+        if (!rows.length) {
+          redoxPaint('<div style="color:var(--gray);font-size:11px">No redox/spin-gap comparisons computed yet.</div>');
+          return;
+        }
+        var hh = '<table style="width:100%;min-width:960px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:130px">Target</th><th style="'+TH+';width:90px">Spin A</th>'+
+          '<th style="'+TH+';width:90px">Spin B</th><th style="'+TH+';width:110px">Gap (mHa)</th>'+
+          '<th style="'+TH+';width:150px">E(A) Ha</th><th style="'+TH+';width:150px">E(B) Ha</th>'+
+          '<th style="'+TH+';width:120px">When</th></tr>';
+        rows.forEach(function(x){
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.target||'—')+'</td>'+
+                '<td style="'+C+'">'+(x.spin_a!=null?x.spin_a:'—')+'</td>'+
+                '<td style="'+C+'">'+(x.spin_b!=null?x.spin_b:'—')+'</td>'+
+                '<td style="'+C+';font-weight:700;color:var(--teal)">'+(x.gap_mha!=null?Number(x.gap_mha).toFixed(4):'—')+'</td>'+
+                '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.e_state_a_ha!=null?Number(x.e_state_a_ha).toFixed(8):'—')+'</td>'+
+                '<td style="'+C+';font-family:monospace;font-size:10px">'+(x.e_state_b_ha!=null?Number(x.e_state_b_ha).toFixed(8):'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+'</td></tr>';
+        });
+        redoxPaint(hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Gap = E(state B) − E(state A) at a matched active space, isoelectronic (same atoms, same charge, different spin). A small gap suggests near-degenerate spin states a single-reference method could not resolve. Not a chemical/biological conclusion on its own — see POC_DISCLAIMER.</div>');
+      }).catch(function(){
+        redoxPaint('<div style="color:var(--gray);font-size:11px">Redox comparisons unavailable (backend unreachable).</div>');
+      });
+    };
+    window.solangeLoadRedox();
 
     // ── Gate 1 — pending gate1_checks cache, read-only list. Targets.json's
     // own entries never appear here — they never needed the cache.
@@ -6189,6 +6263,92 @@ async function dispatchStabilizerCompare(btn) {
     if (typeof window.solangeLoadStabilizer === 'function') window.solangeLoadStabilizer();
   } catch (e) {
     setMsg('<span style="color:#f87171">Failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// POST /api/gate2/redox/compare. Same discipline as dispatchStabilizerCompare
+// above, but for two SPIN-STATE DMRG records of the same site (metal_redox_
+// center) rather than a wild-type/mutant pair — the two records must match on
+// everything except spin, and spin must actually differ between them.
+async function dispatchRedoxCompare(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const target = val('g2-redox-target').trim();
+  const aId = val('g2-redox-a').trim();
+  const bId = val('g2-redox-b').trim();
+  const msg = document.getElementById('g2-redox-msg');
+  const setMsg = h => { if (msg) msg.innerHTML = h; };
+  if (!target || !aId || !bId) {
+    setMsg('<span style="color:#f87171">Target key, state A ID, and state B ID are all required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session?.access_token) { alert('Please log in first.'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'computing…'; }
+  setMsg('checking Gate 2 + matched setup, then computing…');
+  try {
+    const res = await fetch(`${API}/api/gate2/redox/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ target, state_a_dmrg_id: aId, state_b_dmrg_id: bId }),
+    });
+    const out = await res.json();
+    if (!res.ok || !out.compared) {
+      setMsg('<span style="color:#f87171">Refused: ' + (out.detail || out.error || 'unknown error') + '</span>');
+      return;
+    }
+    setMsg('<span style="color:var(--green)">✓ Gap = ' + out.gap_mha + ' mHa (state B − state A), saved.</span>');
+    if (typeof window.solangeLoadRedox === 'function') window.solangeLoadRedox();
+  } catch (e) {
+    setMsg('<span style="color:#f87171">Failed: ' + e.message + '</span>');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+// GET /api/gate2/catalytic/{target}. Computes nothing — looks up and labels
+// whatever Rung 3 (DMRG/SHCI) classification already exists for this key.
+async function loadCatalyticStatus(btn) {
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const target = val('g2-cat-target').trim();
+  const box = document.getElementById('gate2-catalytic-result');
+  const setBox = h => { if (box) box.innerHTML = h; };
+  if (!target) {
+    setBox('<span style="color:#f87171">Target key is required.</span>');
+    return;
+  }
+  const API = (window.QCAIHPC_API_BASE || 'https://qcaihpc-simulation-api.onrender.com');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'looking up…'; }
+  setBox('<span style="color:var(--gray)">Looking up…</span>');
+  try {
+    const res = await fetch(`${API}/api/gate2/catalytic/${encodeURIComponent(target)}`);
+    const out = await res.json();
+    if (!res.ok) {
+      setBox('<span style="color:#f87171">Refused: ' + (out.detail || out.error || 'unknown error') + '</span>');
+      return;
+    }
+    if (!out.answered) {
+      setBox('<span style="color:var(--gray)">' + (out.note || 'No Rung 3 classification exists yet for this key.') + '</span>');
+      return;
+    }
+    const dmrg = out.dmrg_classifications || [], shci = out.shci_crossvalidations || [];
+    let h = '<div style="color:var(--green);font-weight:700;margin-bottom:4px">✓ Answered from existing Rung 3 classification(s)</div>';
+    dmrg.forEach(function(r){
+      h += '<div style="font-size:10px;color:var(--gray)">DMRG: bqp_class=' + (r.bqp_class||'—') +
+           ', S_max=' + (r.s_max!=null?r.s_max:'—') + ', ' + (r.created_at?new Date(r.created_at).toLocaleString():'') + '</div>';
+    });
+    shci.forEach(function(r){
+      h += '<div style="font-size:10px;color:var(--gray)">SHCI: bqp_class=' + (r.bqp_class||'—') +
+           ', ' + (r.created_at?new Date(r.created_at).toLocaleString():'') + '</div>';
+    });
+    h += '<div style="font-size:10px;color:var(--gray);margin-top:4px">' + (out.note || '') + '</div>';
+    setBox(h);
+  } catch (e) {
+    setBox('<span style="color:#f87171">Failed: ' + e.message + '</span>');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = orig; }
   }
