@@ -102,6 +102,28 @@ def build_cluster(atoms, side):
             continue
         groups.setdefault(key, []).append(a)
 
+    # DEDUP: found live 2026-09-29 on the mutant side -- pdbfixer duplicated
+    # residue 275 (the modelled PHE) 11x in struct/2OCJ_C275F_model_H.pdb
+    # (220 atom lines instead of ~20; every OTHER residue, e.g. 135, appears
+    # exactly once as expected). Root cause not pinned down (pdbfixer
+    # template-matching on a modelled, non-deposited residue is the leading
+    # guess), but the fix is robust regardless of cause: keep only the FIRST
+    # occurrence of each atom name per residue. This silently inflated the
+    # mutant cluster to 2196 basis functions (vs. 977 on the WT side) and is
+    # almost certainly why that run took >24h instead of finishing in the
+    # same ballpark as the WT side.
+    for key in groups:
+        seen, deduped = set(), []
+        for a in groups[key]:
+            if a["name"] in seen:
+                continue
+            seen.add(a["name"])
+            deduped.append(a)
+        if len(deduped) != len(groups[key]):
+            print(f"[cluster] NOTE: deduplicated {key} from {len(groups[key])} to "
+                  f"{len(deduped)} atoms (duplicate atom names found)")
+        groups[key] = deduped
+
     missing = [k for k in REGION_RESIDUES if k not in groups]
     if missing:
         sys.exit(f"region residues not found: {missing}")

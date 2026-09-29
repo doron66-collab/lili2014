@@ -301,30 +301,63 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     return energies, s_max, stop_reason
 
 
-# S_max is a bipartite entanglement entropy, and the maximum ANY bipartition
-# can show is bounded purely combinatorially by the smaller side's orbital
-# count k: S <= k*ln(4) (each spatial orbital has 4 local states -- empty,
-# up, down, doubly occupied). This ceiling is not a chemical quantity at
-# all, and it scales with active-space size -- found live 2026-09-29 when
-# NEGCTRL_BORING (a cluster built to contain no interesting chemistry, at
-# CAS(66,55)) crossed S_HARD anyway: the SAME absolute S_HARD=1.5 consumes
-# ~36% of this ceiling at the 6-orbital N2 pair S_HARD was calibrated
-# against, but only ~4% at NEGCTRL_BORING's 55 orbitals -- the identical
-# line is ~11x more permissive at the larger scale. k is taken as ncas // 2
-# (the balanced-cut approximation; the code does not currently track WHICH
-# cut position achieved S_max, only its value, so this is the same
-# approximation used to reproduce Claude Science's own numbers when this was
-# first measured). Reported as a diagnostic alongside S_max, not used to
-# change any classification decision here -- see classify()'s own comment
-# for why the trigger logic itself is being left alone for now (dissertation
-# §06.i's "minimal path" fix: report both signals plainly, downgrade the
-# CLAIM S_HARD supports, without re-running or re-deciding anything).
-def entanglement_capacity_pct(s_max, ncas):
+# S_max is a bipartite entanglement entropy. CORRECTED 2026-09-29 (Claude
+# Science, after reading the full dissertation): the naive ceiling S<=k*ln(4)
+# (k = smaller side's orbital count) ignores particle-number conservation and
+# is WRONG -- the real governing variable is FILLING (n_elec/(2*n_orb)), not
+# orbital count alone. The exact combinatorial ceiling for a bipartition into
+# a kL/kR orbital split is S <= ln(sum over (n_Lup,n_Ldown) sectors of
+# min(d_L, d_R)), where d_L/d_R are the electron-sector Hilbert-space
+# dimensions on each side (d = C(k,n_up)*C(k,n_down)) -- summed only over
+# sectors consistent with the fixed total (nelec_alpha, nelec_beta). This
+# REVERSES the previous naive-formula reading for the two cases that matter
+# most: R175H (CAS(120,65), S_max=1.31) was 3.0% of the naive ceiling --
+# below NEGCTRL_BORING's 4.1%, read as noise. Under the exact formula R175H
+# is 8.2% -- ABOVE NEGCTRL_BORING's 4.2%: the first positive biological
+# signal in the project, not noise (R175H has far FEWER orbitals than
+# NEGCTRL_BORING but is far more densely FILLED -- 92.3% vs 60% -- which the
+# naive k-only formula could not see). Uses log-space (lgamma) throughout so
+# it never overflows float on the largest active spaces (CAS(338,235)).
+# Reported as a diagnostic alongside S_max, not used to change any
+# classification decision here -- see classify()'s own comment for why the
+# trigger logic itself is being left alone for now (dissertation §06.i's
+# "minimal path" fix: report both signals plainly, downgrade the CLAIM
+# S_HARD supports, without re-running or re-deciding anything).
+def _log_comb(n, k):
+    if k < 0 or k > n:
+        return None
+    return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
+
+
+def entanglement_capacity_pct(s_max, ncas, nelecas=None, spin=0):
     if s_max is None or not ncas:
         return None
-    k = max(ncas // 2, 1)
-    capacity = k * math.log(4)
-    return 100.0 * s_max / capacity
+    if nelecas is None:
+        # Fallback for callers that don't have electron counts on hand: the
+        # old naive k*ln4 ceiling, clearly WRONG (see comment above) but
+        # better than nothing and never silently claimed as the exact one.
+        k = max(ncas // 2, 1)
+        return 100.0 * s_max / (k * math.log(4))
+
+    nelec_alpha = (nelecas + spin) // 2
+    nelec_beta = (nelecas - spin) // 2
+    kL = ncas // 2
+    kR = ncas - kL
+    log_terms = []
+    for n_l_up in range(max(0, nelec_alpha - kR), min(kL, nelec_alpha) + 1):
+        for n_l_dn in range(max(0, nelec_beta - kR), min(kL, nelec_beta) + 1):
+            n_r_up = nelec_alpha - n_l_up
+            n_r_dn = nelec_beta - n_l_dn
+            if not (0 <= n_r_up <= kR and 0 <= n_r_dn <= kR):
+                continue
+            log_d_l = _log_comb(kL, n_l_up) + _log_comb(kL, n_l_dn)
+            log_d_r = _log_comb(kR, n_r_up) + _log_comb(kR, n_r_dn)
+            log_terms.append(min(log_d_l, log_d_r))
+    if not log_terms:
+        return None
+    m = max(log_terms)
+    log_capacity = m + math.log(sum(math.exp(t - m) for t in log_terms))
+    return 100.0 * s_max / log_capacity
 
 
 # METHODOLOGICAL LIMITATION, recorded rather than fixed here: this test is
@@ -958,11 +991,12 @@ def main():
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
     # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
-    cap_pct = entanglement_capacity_pct(s_max, args.ncas)
+    cap_pct = entanglement_capacity_pct(s_max, args.ncas, args.nelecas, args.spin)
     if cap_pct is not None:
-        print(f"  ({cap_pct:.1f}% of this active space's own entanglement capacity, "
-              f"S_max/({max(args.ncas // 2, 1)}*ln4) — size-normalised diagnostic, "
-              f"does not change the classification below; see S_HARD's own comment)")
+        print(f"  ({cap_pct:.1f}% of this active space's own exact combinatorial "
+              f"entanglement capacity (filling-aware, not orbital-count-only) — "
+              f"size-normalised diagnostic, does not change the classification "
+              f"below; see S_HARD's own comment)")
     # PROVISIONAL only when the sweep was cut short by the TIME budget — a convergence
     # early-stop is the opposite (the answer is final, we just skipped redundant high M).
     time_budget_hit = (stop_reason == "time_budget")
@@ -996,7 +1030,7 @@ def main():
         "ncas": args.ncas, "nelecas": args.nelecas,
         "e_casscf": cas["e_casscf"],
         "dmrg_energies": energies, "s_max": s_max,
-        "s_max_capacity_pct": entanglement_capacity_pct(s_max, args.ncas),
+        "s_max_capacity_pct": entanglement_capacity_pct(s_max, args.ncas, args.nelecas, args.spin),
         "bqp_class": cls, "class_rationale": rationale,
         "time_budget_hit": time_budget_hit, "orbital_optimization_converged": orbital_converged,
         "bond_dims_requested": bond_dims,
