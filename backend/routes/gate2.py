@@ -19,16 +19,27 @@ SPECIFIC quantity for actual drug design — a covalent activation barrier
 researcher makes for a specific promising target, not a step every screened
 mutation passes through.
 
-STATUS: three of the five categories now have a real consumer.
-structural_stabilizer_local_comparison's own "oven" (POST
-/stabilizer/compare, below) computes the wild-type/mutant energy
-difference the category asks for, from two already-classified DMRG
-records, but only after this module's own missing_requirements() check
-passes for that target. metal_redox_center's own "oven" (POST
-/redox/compare, below) computes the energy gap between two candidate
-spin-state DMRG records the same way. catalytic_loss_of_function needs no
-new calculator at all (GET /catalytic/{target}, below): its own quantity
-is exactly what a normal Rung 3 (DMRG/SHCI) classification of the
+STATUS: three of the five current categories have a real consumer. (A
+sixth, original category — structural_stabilizer_local_comparison — was
+RETIRED 2026-09-29, not merely disabled; see the retirement note above
+stabilizer_list_retired() below. Its raw wild-type/mutant energy difference
+turned out to answer a thermodynamic question orthogonal to the one this
+classifier exists to answer, and — separately, for every real point
+mutation except the one isomeric pair among the 20 canonical amino acids
+— to be dominated by atom-composition arithmetic five-plus orders of
+magnitude past the signal. local_tractability_shift replaces it: a
+classification-shift comparison, composition-robust by construction.)
+local_tractability_shift's own "oven" (POST /tractability_shift/compare,
+below) reports the classification shift between two already-classified
+DMRG records (wild-type site, mutant site), but only after this module's
+own missing_requirements() check passes for that target. metal_redox_
+center's own "oven" (POST /redox/compare, below) computes the energy gap
+between two candidate spin-state DMRG records — a valid raw energy
+comparison here, since the two states are isoelectronic by construction
+(same atoms, same charge, only spin differs), unlike the retired
+category's composition-changing substitution. catalytic_loss_of_function
+needs no new calculator at all (GET /catalytic/{target}, below): its own
+quantity is exactly what a normal Rung 3 (DMRG/SHCI) classification of the
 wild-type site already produces, so that endpoint only looks up and
 labels an existing classification rather than computing anything new. The
 remaining two categories (covalent_reactive_cysteine,
@@ -102,15 +113,29 @@ MECHANISM_CATEGORIES = {
         example="DNMT3A R882 — included as a sample-expansion target "
                 "precisely because Gate 2 is weak here, not strong",
     ),
-    "structural_stabilizer_local_comparison": dict(
-        question="Has the local electronic environment around the mutation "
-                 "changed enough to matter for a stabilizer strategy?",
-        quantity="local energy difference between wild-type and mutant "
-                 "clusters at the same site, same method, same active space",
-        state_pair=("wild-type cluster", "mutant cluster"),
+    "local_tractability_shift": dict(
+        question="Does the mutation change the LOCAL QUANTUM-TRACTABILITY "
+                 "verdict of the site (A/B/C, S_max), not its energy?",
+        quantity="the classification shift between two independently-"
+                 "computed Rung 3 (DMRG/SHCI) judgments — wild-type site "
+                 "vs. mutant site, each on its own active space",
+        state_pair=("wild-type site classification", "mutant site "
+                    "classification"),
         flags=["needs_protonation_signoff"],
-        example="TP53 C275F stabilizer question — narrower and more "
-                "defensible than a general druggability claim",
+        example="TP53 C275F: replaces the retired "
+                "structural_stabilizer_local_comparison category (see "
+                "RUN_GUIDE.md and dissertation §08) — a raw energy "
+                "difference between wild-type and mutant clusters is a "
+                "THERMODYNAMIC quantity, orthogonal to the ELECTRONIC-"
+                "STRUCTURE question (multireference character, DMRG "
+                "convergence) this classifier actually answers, and for "
+                "every real point mutation except Leu<->Ile it is also "
+                "dominated by atom-composition arithmetic five-plus orders "
+                "of magnitude past the 1.6 mHa signal (confirmed on "
+                "TP53 C275F: measured +166 Ha, predicted +169.4 Ha from "
+                "composition alone). Comparing classifications instead of "
+                "energies is composition-robust because each judgment is "
+                "computed within its own system — nothing needs to cancel.",
     ),
     "catalytic_loss_of_function": dict(
         question="Has catalysis been lost by disrupting local bonding at the "
@@ -379,60 +404,79 @@ async def dispatch_custom_compound(payload: dict = Body(...),
                 "hint": "run backend/migrations to create table hpc_dispatch"}
 
 
-# Fields that BOTH sides of a structural_stabilizer_local_comparison must
-# share exactly — "same method, same active space" is the category's own
-# stated requirement (MECHANISM_CATEGORIES above), not a suggestion. A
-# mismatch here means the two DMRG records describe different computational
-# setups, so their energy difference conflates "wild-type vs mutant" with
-# "different basis/AVAS/active-space" and answers neither question cleanly —
-# found live 2026-09-12 while checking whether a WT comparison run already
-# existed for TP53_C275F: two REAL DMRG records for the SAME mutant key
-# turned out to use different cluster radii (CAS(48,28) vs CAS(42,25)),
-# which is exactly the apples-to-oranges failure mode this guards against.
-_STABILIZER_MATCH_FIELDS = ("basis", "avas", "avas_threshold", "charge", "spin",
-                            "ncas", "nelecas")
+# RETIRED 2026-09-29 — structural_stabilizer_local_comparison and its
+# `/stabilizer/compare` calculator have been REMOVED, not merely disabled.
+# A second, independent chemistry review (Claude Science) was asked two
+# direct questions after the endpoint sat disabled for a week: (1) is there
+# a legitimate, buildable correction, and (2) should the category be
+# retired or kept inert. Its answer, verified independently and worth
+# recording here rather than only in the dissertation:
+#
+#   A composition-matched "double difference" correction DOES exist and is
+#   cheap (four single-point calculations instead of two, exact cancellation
+#   because it is literally the same substitution counted twice with
+#   opposite sign — not the isodesmic scheme already shown unreliable in
+#   both magnitude and sign). But building it would still answer the WRONG
+#   QUESTION: local energetic stability is a THERMODYNAMIC quantity: which
+#   state is lower in energy. Classical tractability — the question this
+#   whole classifier exists to answer — is an ELECTRONIC-STRUCTURE question:
+#   multireference character, DMRG convergence, entanglement. The two are
+#   orthogonal; a site can be thermodynamically boring and electronically
+#   hard to converge, or the reverse. No wild-type/mutant energy difference,
+#   correctly computed or not, was ever capable of deciding tractability.
+#
+#   An inert-but-present endpoint was rejected too, on governance grounds:
+#   "a plausible-looking number was available, and nothing forced anyone to
+#   check what it rested on" is the literal description of how the original
+#   C275F result got retracted. A disabled 409 stub is the same shape of
+#   risk with the danger only deferred to whoever re-enables it later
+#   without re-deriving this reasoning. Removing the capability to produce
+#   the invalid number is the actual governance action; a comment saying
+#   not to is not.
+#
+# Historical record is kept, not deleted: TP53 C275F's real, verified
+# Cys→Phe measurement (ΔE ≈ +166 Ha, matching a composition-only prediction
+# of +169.4 Ha to within 2%) is preserved below as the read-only paradigm
+# case for how a mismatched-question calculator can look almost right and
+# still be wrong — a governance finding worth citing (dissertation §08),
+# not a quiet deletion from a changelog. Category retirement itself is the
+# artifact this dissertation was already arguing a governed classifier
+# should be able to do: invalidate its own taxonomy, on chemistry, in the
+# open.
+@router.get("/stabilizer/list")
+async def stabilizer_list_retired(limit: int = 50):
+    """Read-only historical record of the retired structural_stabilizer_
+    local_comparison calculator's real runs (TP53 C275F's ΔE≈+166 Ha case
+    among them). No POST endpoint exists any more — see the retirement note
+    above for why this was removed rather than left disabled."""
+    sb = get_supabase()
+    if not sb:
+        return {"comparisons": [], "db": "not_configured", "retired": True}
+    try:
+        res = (sb.table("stabilizer_comparisons").select("*")
+                 .order("created_at", desc=True).limit(limit).execute())
+        return {"comparisons": res.data or [], "retired": True,
+                "note": "structural_stabilizer_local_comparison is retired — this lists its "
+                        "historical runs only. See local_tractability_shift for its replacement."}
+    except Exception as e:
+        return {"comparisons": [], "error": str(e), "retired": True}
 
 
-@router.post("/stabilizer/compare")
-async def stabilizer_compare(payload: dict = Body(...), authorization: str | None = Header(None)):
-    """The 'oven' for the structural_stabilizer_local_comparison category:
-    takes two ALREADY-CLASSIFIED DMRG records (one wild-type, one mutant) and
-    computes their energy difference — but ONLY after (1) a Gate 2 record for
-    this target is on file in that category with every required field signed
-    off, and (2) the two records are verified apples-to-apples on every field
-    that defines the computational setup (see _STABILIZER_MATCH_FIELDS).
-    Neither check is a formality: (1) is what makes this a documented chemist
-    decision rather than a script someone ran once, and (2) is what stops a
-    difference between two DIFFERENT setups from being reported as if it were
-    the wild-type/mutant answer. Does not run anything new — both DMRG
-    records must already exist (via the normal Rung 3 --geometry pipeline).
-    The result is sealed (LEON's generic seal — tamper-evident, not the full
-    P1-P9 physics-consistency check that schema needs a JW circuit for) and
-    stored in stabilizer_comparisons, not just returned once and forgotten."""
-    # DISABLED 2026-09-23 — same STRUCTURALLY_UNRESOLVED-style refusal pattern
-    # as Gate 1's own block (a checkbox the user could still click reads as
-    # tacit endorsement regardless of what a tooltip elsewhere says). Found
-    # live: the raw energy difference this endpoint computes is not a
-    # chemically meaningful quantity whenever the two clusters differ in
-    # elemental composition — true of essentially every real point mutation.
-    # A real, verified C275F mutant measured ΔE ≈ +166 Ha, fully explained by
-    # atomic-composition arithmetic alone (a Cys→Phe swap's atomic
-    # Hartree-Fock reference energies predict ≈+171 Ha), with no local-
-    # stability signal surviving above that noise floor. _STABILIZER_MATCH_FIELDS
-    # above verifies the two records share the same computational SETUP; it
-    # was never designed to (and cannot) verify that the comparison itself is
-    # physically meaningful. See RUN_GUIDE.md's "isodesmic-correction
-    # direction" note for the unvalidated approach being explored instead —
-    # re-enable this endpoint only once that (or an equivalent correction) is
-    # built in and chemist-signed-off, not by deleting this block.
-    raise HTTPException(
-        409,
-        "structural_stabilizer_local_comparison is disabled pending a fix: raw ΔE between "
-        "wild-type and mutant clusters is not chemically meaningful for any substitution that "
-        "changes elemental composition (found 2026-09-23 on TP53_C275F — see RUN_GUIDE.md and "
-        "the dissertation §08 for the full finding). No number this endpoint could return right "
-        "now would be valid.",
-    )
+@router.post("/tractability_shift/compare")
+async def tractability_shift_compare(payload: dict = Body(...),
+                                     authorization: str | None = Header(None)):
+    """The 'oven' for local_tractability_shift, structural_stabilizer_local_
+    comparison's replacement: takes two ALREADY-CLASSIFIED Rung 3 records
+    (wild-type site, mutant site) and reports the CLASSIFICATION shift
+    between them — not an energy difference. Composition-robust by
+    construction: each side's bqp_class/S_max was computed entirely within
+    its own system, on its own active space, so nothing needs to cancel and
+    no apples-to-apples check on basis/AVAS/charge/spin is required (or
+    meaningful) the way it was for the retired energy comparison. The two
+    active spaces are expected to differ in size (the AO composition
+    changes with the amino-acid identity at the site — round 1's own
+    finding) and are reported explicitly for that reason; S_max is NEVER
+    compared directly between the two rows, only each side's own class."""
     uid = _uid_from_auth(authorization)
     payload = payload or {}
     target = payload.get("target")
@@ -450,17 +494,17 @@ async def stabilizer_compare(payload: dict = Body(...), authorization: str | Non
         raise HTTPException(409, f"no Gate 2 record for target '{target}' — categorise and "
                                   f"sign off before comparing anything")
     gate2_row = gate2_res.data[0]
-    if gate2_row.get("category") != "structural_stabilizer_local_comparison":
+    if gate2_row.get("category") != "local_tractability_shift":
         raise HTTPException(409, f"target '{target}' is categorised as "
                                   f"'{gate2_row.get('category')}', not "
-                                  f"structural_stabilizer_local_comparison — this tool only "
-                                  f"answers that category's question")
+                                  f"local_tractability_shift — this tool only answers that "
+                                  f"category's question")
     missing = _missing_requirements(gate2_row)
     if missing:
         raise HTTPException(409, f"Gate 2 record for '{target}' is incomplete, cannot proceed: "
                                   f"{missing}")
 
-    cols = "id, key, dmrg_energies, basis, avas, avas_threshold, charge, spin, ncas, nelecas"
+    cols = "id, key, bqp_class, s_max, dmrg_energies, basis, avas, avas_threshold, charge, spin, ncas, nelecas"
     wt_res = sb.table("dmrg_classifications").select(cols).eq("id", str(wt_id)).execute()
     mut_res = sb.table("dmrg_classifications").select(cols).eq("id", str(mut_id)).execute()
     if not wt_res.data:
@@ -468,36 +512,35 @@ async def stabilizer_compare(payload: dict = Body(...), authorization: str | Non
     if not mut_res.data:
         raise HTTPException(404, f"mutant_dmrg_id {mut_id} not found")
     wt, mut = wt_res.data[0], mut_res.data[0]
-
-    mismatches = [f"{f}: WT={wt.get(f)!r} vs mutant={mut.get(f)!r}"
-                  for f in _STABILIZER_MATCH_FIELDS if wt.get(f) != mut.get(f)]
-    if mismatches:
-        raise HTTPException(409, "apples-to-oranges — these two records do not share the same "
-                                  "computational setup, so their difference is not a valid "
-                                  f"wild-type/mutant comparison: {mismatches}")
-
-    wt_energies, mut_energies = wt.get("dmrg_energies") or [], mut.get("dmrg_energies") or []
-    if not wt_energies or not mut_energies:
-        raise HTTPException(409, "one or both records have no dmrg_energies to compare")
-    e_wt, e_mut = wt_energies[-1][1], mut_energies[-1][1]
-    delta_ha = e_mut - e_wt
+    if not wt.get("bqp_class") or not mut.get("bqp_class"):
+        raise HTTPException(409, "one or both records have no bqp_class to compare")
 
     record = {
         "id": str(uuid.uuid4()), "created_at": datetime.now(timezone.utc).isoformat(),
         "target": target, "wt_dmrg_id": wt_id, "mutant_dmrg_id": mut_id,
-        "e_wt_ha": e_wt, "e_mutant_ha": e_mut,
-        "delta_e_ha": delta_ha, "delta_e_mha": round(delta_ha * 1000.0, 4),
-        "shared_setup": {f: wt.get(f) for f in _STABILIZER_MATCH_FIELDS},
+        "wt_class": wt.get("bqp_class"), "mutant_class": mut.get("bqp_class"),
+        "wt_s_max": wt.get("s_max"), "mutant_s_max": mut.get("s_max"),
+        "wt_active_space": {"basis": wt.get("basis"), "avas": wt.get("avas"),
+                             "ncas": wt.get("ncas"), "nelecas": wt.get("nelecas"),
+                             "charge": wt.get("charge"), "spin": wt.get("spin")},
+        "mutant_active_space": {"basis": mut.get("basis"), "avas": mut.get("avas"),
+                                 "ncas": mut.get("ncas"), "nelecas": mut.get("nelecas"),
+                                 "charge": mut.get("charge"), "spin": mut.get("spin")},
+        "shift": f"{wt.get('bqp_class')} -> {mut.get('bqp_class')}",
         "requested_by": uid,
-        "note": "Local energy difference (mutant - WT) at a matched active space — the "
-                "quantity structural_stabilizer_local_comparison asks for. Not yet a "
-                "chemical/biological conclusion on its own (see POC_DISCLAIMER discipline).",
+        "note": "Classification shift between independently-computed wild-type and mutant "
+                "site judgments — the two active spaces generally differ in size (AO "
+                "composition tracks the amino acid identity) and S_max is not comparable "
+                "directly across them; only each side's own class is. Not yet a chemical/"
+                "biological conclusion on its own (see POC_DISCLAIMER discipline). Negative "
+                "controls are required on both sides before this shift is read as caused "
+                "by the mutation rather than by active-space-selection noise.",
     }
     record["seal"] = leon.build_generic_seal(record, exclude={"seal"})
     try:
-        sb.table("stabilizer_comparisons").insert(record).execute()
+        sb.table("tractability_shift_comparisons").insert(record).execute()
     except Exception as e:
-        logging.error("stabilizer_comparisons insert failed: %s", e)
+        logging.error("tractability_shift_comparisons insert failed: %s", e)
         record["stored"] = False
         record["store_error"] = str(e)
         return {"compared": True, **record}
@@ -505,19 +548,15 @@ async def stabilizer_compare(payload: dict = Body(...), authorization: str | Non
     return {"compared": True, "stored": True, **record}
 
 
-@router.get("/stabilizer/list")
-async def stabilizer_list(limit: int = 50):
-    """Every saved structural_stabilizer_local_comparison result, newest first —
-    the read side of the 'oven' above. Each record's own seal is re-verifiable
-    on demand (recompute leon.build_generic_seal over every field except
-    "seal" and compare) exactly like any other LEON-sealed record, but that
-    re-check is not run automatically here — this is a listing endpoint, not
-    a verify endpoint."""
+@router.get("/tractability_shift/list")
+async def tractability_shift_list(limit: int = 50):
+    """Every saved local_tractability_shift result, newest first — the read
+    side of the 'oven' above."""
     sb = get_supabase()
     if not sb:
         return {"comparisons": [], "db": "not_configured"}
     try:
-        res = (sb.table("stabilizer_comparisons").select("*")
+        res = (sb.table("tractability_shift_comparisons").select("*")
                  .order("created_at", desc=True).limit(limit).execute())
         return {"comparisons": res.data or []}
     except Exception as e:

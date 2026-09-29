@@ -1327,7 +1327,7 @@
         <option value="covalent_reactive_cysteine">covalent_reactive_cysteine</option>
         <option value="metal_redox_center">metal_redox_center</option>
         <option value="protein_interface_disruption">protein_interface_disruption</option>
-        <option value="structural_stabilizer_local_comparison">structural_stabilizer_local_comparison</option>
+        <option value="local_tractability_shift">local_tractability_shift</option>
         <option value="catalytic_loss_of_function">catalytic_loss_of_function</option>
       </select>
       <label style="color:var(--gray);cursor:pointer"><input type="checkbox" id="g2-metal"> metal present</label>
@@ -1368,24 +1368,32 @@
       <div id="g2-custom-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
     </div>
 
-    <!-- ── Stabilizer Comparison — the first real "oven" for a Gate 2
-         category (structural_stabilizer_local_comparison): takes two
-         already-classified DMRG records (wild-type + mutant) and computes
-         their local ΔE, but only after the apples-to-apples check on
-         basis/AVAS/charge/spin/ncas/nelecas passes and a Gate 2 sign-off for
-         the target is complete. See backend/routes/gate2.py's
-         stabilizer_compare for what it does and does not guarantee. ── -->
-    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(239,68,68,0.5);border-radius:8px;background:rgba(239,68,68,0.06)">
-      <div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:2px">Stabilizer Comparison — DISABLED <span class="info-i" data-tip="Disabled 2026-09-23: raw ΔE between wild-type and mutant clusters is not chemically meaningful for any substitution that changes elemental composition (found on TP53_C275F — a real, verified Cys→Phe mutant measured ΔE≈+166 Ha, fully explained by atomic-composition arithmetic alone, no local-stability signal above that noise floor). See RUN_GUIDE.md's isodesmic-correction note and the dissertation §08 for the full finding. The backend endpoint refuses (409) unconditionally until a validated correction is built in and chemist-signed-off.">i</span></div>
-      <div style="font-size:10px;color:var(--gray);margin-bottom:8px">Blocked pending a fix — not a temporary glitch. A checkbox you could still click would read as tacit endorsement of a number that is not currently valid for any real point mutation.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;opacity:0.45">
-        <input id="g2-stab-target" placeholder="Target key (e.g. TP53_C275F)" disabled style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-        <input id="g2-stab-wt" placeholder="Wild-type DMRG record ID" disabled style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-        <input id="g2-stab-mut" placeholder="Mutant DMRG record ID" disabled style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
-        <button disabled title="Disabled — see the notice above" style="background:rgba(120,120,120,0.15);color:var(--gray);border:1px solid rgba(120,120,120,0.4);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:not-allowed">🧮 Compute ΔE</button>
-      </div>
-      <div id="g2-stab-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
+    <!-- ── Stabilizer Comparison — RETIRED 2026-09-29 (not merely disabled).
+         Replaced by Local Tractability Shift, below. History kept read-only
+         for the C275F paradigm case (ΔE≈+166 Ha). See backend/routes/
+         gate2.py's retirement note above stabilizer_list_retired. ── -->
+    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(120,120,120,0.4);border-radius:8px;background:rgba(120,120,120,0.05)">
+      <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:2px">Stabilizer Comparison — RETIRED <span class="info-i" data-tip="Retired (not just disabled) 2026-09-29: raw ΔE between wild-type and mutant clusters answers a thermodynamic question orthogonal to classical tractability, and separately is dominated by atom-composition arithmetic for every real point mutation. Replaced by Local Tractability Shift below. The POST endpoint no longer exists — only this read-only history remains, including the TP53_C275F case (ΔE≈+166 Ha) that led to the retirement. See RUN_GUIDE.md and dissertation §08.">i</span></div>
+      <div style="font-size:10px;color:var(--gray);margin-bottom:8px">History only — no new comparisons can be computed here. Use Local Tractability Shift instead.</div>
       <div id="gate2-stabilizer-list" class="table-scroll" style="margin-top:10px"></div>
+    </div>
+
+    <!-- ── Local Tractability Shift — structural_stabilizer_local_comparison's
+         replacement: takes two already-classified Rung 3 records (wild-type
+         site, mutant site) and reports the CLASSIFICATION shift between
+         them (not an energy difference) — composition-robust by
+         construction, since each side is judged entirely within its own
+         system. See backend/routes/gate2.py's tractability_shift_compare. ── -->
+    <div style="margin-top:16px;padding:12px;border:1px dashed rgba(168,139,58,0.5);border-radius:8px;background:rgba(168,139,58,0.06)">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:2px">Local Tractability Shift <span class="info-i" data-tip="Reports the classification shift (e.g. Class C -> Class B) between an independently-computed wild-type site judgment and mutant site judgment. Composition-robust: each side's bqp_class/S_max is computed entirely within its own active space, so nothing needs to cancel. The two active spaces will generally differ in size — reported explicitly, never compared directly. Negative controls required on both sides before reading a shift as caused by the mutation.">i</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px">
+        <input id="g2-tshift-target" placeholder="Target key (e.g. TP53_C275F)" style="width:170px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-tshift-wt" placeholder="Wild-type DMRG record ID" style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <input id="g2-tshift-mut" placeholder="Mutant DMRG record ID" style="width:230px;background:rgba(255,255,255,0.05);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px">
+        <button onclick="dispatchTractabilityShift(this)" title="Report the classification shift between the two records" style="background:rgba(168,139,58,0.15);color:var(--gold);border:1px solid rgba(168,139,58,0.6);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">🔀 Compute Shift</button>
+      </div>
+      <div id="g2-tshift-msg" style="margin-top:6px;font-size:11px;color:var(--gray)"></div>
+      <div id="gate2-tshift-list" class="table-scroll" style="margin-top:10px"></div>
     </div>
 
     <!-- ── Redox (spin-gap) Comparison — the second real "oven" for a Gate 2
@@ -2310,9 +2318,9 @@
     };
     window.solangeLoadGate2();
 
-    // ── Stabilizer comparisons — read side of Gate 2's first real "oven"
-    // (structural_stabilizer_local_comparison). Each row is a sealed,
-    // already-computed ΔE; this only lists them, it never computes anything.
+    // ── Stabilizer comparisons — RETIRED, history only. GET /stabilizer/list
+    // still exists (read-only) so the real runs that led to the retirement
+    // (TP53 C275F's ΔE≈+166 Ha case) stay visible; no POST endpoint exists.
     var stabBox = document.getElementById('gate2-stabilizer-list');
     var stabPaint = function(html){
       if (!stabBox) return;
@@ -2358,6 +2366,44 @@
       });
     };
     window.solangeLoadStabilizer();
+
+    // ── Local Tractability Shift — read side of Gate 2's replacement "oven"
+    // for the retired stabilizer comparison. Each row is a sealed,
+    // already-computed CLASSIFICATION shift; this only lists them.
+    var tshiftBox = document.getElementById('gate2-tshift-list');
+    var tshiftPaint = function(html){
+      if (!tshiftBox) return;
+      if (tshiftBox.__lastHtml === html) return;
+      tshiftBox.__lastHtml = html; tshiftBox.innerHTML = html;
+    };
+    window.solangeLoadTractabilityShift = function(silent){
+      if (!tshiftBox) return;
+      if (!silent) tshiftPaint('<div style="color:var(--gray);font-size:11px">Loading…</div>');
+      fetch(API+'/api/gate2/tractability_shift/list').then(function(r){return r.json();}).then(function(d){
+        var rows = (d && d.comparisons) || [];
+        if (!rows.length) {
+          tshiftPaint('<div style="color:var(--gray);font-size:11px">No tractability shifts computed yet.</div>');
+          return;
+        }
+        var hh = '<table style="width:100%;min-width:960px;border-collapse:collapse;table-layout:fixed"><tr>'+
+          '<th style="'+TH+';width:130px">Target</th><th style="'+TH+';width:110px">Shift</th>'+
+          '<th style="'+TH+';width:90px">WT S_max</th><th style="'+TH+';width:100px">Mutant S_max</th>'+
+          '<th style="'+TH+';width:120px">When</th><th style="'+TH+';width:100px">By</th></tr>';
+        rows.forEach(function(x){
+          hh += '<tr><td style="'+C+';font-weight:600">'+(x.target||'—')+'</td>'+
+                '<td style="'+C+';font-weight:700;color:var(--gold)">'+(x.shift||'—')+'</td>'+
+                '<td style="'+C+'">'+(x.wt_s_max!=null?x.wt_s_max:'—')+'</td>'+
+                '<td style="'+C+'">'+(x.mutant_s_max!=null?x.mutant_s_max:'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+'</td>'+
+                '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.requested_by?String(x.requested_by).slice(0,8):'—')+'</td></tr>';
+        });
+        tshiftPaint(hh+'</table>'+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Shift = wild-type class → mutant class, each computed independently on its own active space (sizes generally differ — S_max is not comparable directly across the two rows). Not a chemical/biological conclusion on its own without negative controls — see POC_DISCLAIMER.</div>');
+      }).catch(function(){
+        tshiftPaint('<div style="color:var(--gray);font-size:11px">Tractability shifts unavailable (backend unreachable).</div>');
+      });
+    };
+    window.solangeLoadTractabilityShift();
 
     // ── Redox (spin-gap) comparisons — read side of Gate 2's second real
     // "oven" (metal_redox_center). Each row is a sealed, already-computed
@@ -6225,18 +6271,18 @@ async function dispatchCustomCompound(btn) {
   }
 }
 
-// Runs Gate 2's first real "oven" (structural_stabilizer_local_comparison):
-// POST /api/gate2/stabilizer/compare. Both IDs come from the DMRG A/B/C
-// table above (Rung 3), not typed from anywhere else. Requires a complete
-// Gate 2 sign-off for the target AND that the two records share the same
-// computational setup — either failure returns a specific reason, not a
-// silent no-op.
-async function dispatchStabilizerCompare(btn) {
+// Runs Gate 2's replacement "oven" for the retired structural_stabilizer_
+// local_comparison: POST /api/gate2/tractability_shift/compare. Reports a
+// CLASSIFICATION shift (Class C -> Class B, say) between two already-
+// classified Rung 3 records, not an energy difference — see the retirement
+// note in backend/routes/gate2.py for why. Both IDs come from the DMRG
+// A/B/C table above (Rung 3), not typed from anywhere else.
+async function dispatchTractabilityShift(btn) {
   const val = id => (document.getElementById(id) || {}).value || '';
-  const target = val('g2-stab-target').trim();
-  const wtId = val('g2-stab-wt').trim();
-  const mutId = val('g2-stab-mut').trim();
-  const msg = document.getElementById('g2-stab-msg');
+  const target = val('g2-tshift-target').trim();
+  const wtId = val('g2-tshift-wt').trim();
+  const mutId = val('g2-tshift-mut').trim();
+  const msg = document.getElementById('g2-tshift-msg');
   const setMsg = h => { if (msg) msg.innerHTML = h; };
   if (!target || !wtId || !mutId) {
     setMsg('<span style="color:#f87171">Target key, wild-type ID, and mutant ID are all required.</span>');
@@ -6247,9 +6293,9 @@ async function dispatchStabilizerCompare(btn) {
   if (!session?.access_token) { alert('Please log in first.'); return; }
   const orig = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'computing…'; }
-  setMsg('checking Gate 2 + apples-to-apples, then computing…');
+  setMsg('checking Gate 2, then reporting the shift…');
   try {
-    const res = await fetch(`${API}/api/gate2/stabilizer/compare`, {
+    const res = await fetch(`${API}/api/gate2/tractability_shift/compare`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ target, wt_dmrg_id: wtId, mutant_dmrg_id: mutId }),
@@ -6259,8 +6305,8 @@ async function dispatchStabilizerCompare(btn) {
       setMsg('<span style="color:#f87171">Refused: ' + (out.detail || out.error || 'unknown error') + '</span>');
       return;
     }
-    setMsg('<span style="color:var(--green)">✓ ΔE = ' + out.delta_e_mha + ' mHa (mutant − WT), saved.</span>');
-    if (typeof window.solangeLoadStabilizer === 'function') window.solangeLoadStabilizer();
+    setMsg('<span style="color:var(--green)">✓ Shift = ' + out.shift + ', saved.</span>');
+    if (typeof window.solangeLoadTractabilityShift === 'function') window.solangeLoadTractabilityShift();
   } catch (e) {
     setMsg('<span style="color:#f87171">Failed: ' + e.message + '</span>');
   } finally {
@@ -6268,7 +6314,7 @@ async function dispatchStabilizerCompare(btn) {
   }
 }
 
-// POST /api/gate2/redox/compare. Same discipline as dispatchStabilizerCompare
+// POST /api/gate2/redox/compare. Same discipline as dispatchTractabilityShift
 // above, but for two SPIN-STATE DMRG records of the same site (metal_redox_
 // center) rather than a wild-type/mutant pair — the two records must match on
 // everything except spin, and spin must actually differ between them.

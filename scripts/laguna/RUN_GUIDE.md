@@ -402,7 +402,7 @@ create table if not exists public.custom_compounds (
 );
 ```
 
-### 2i. Gate 2's first real "oven" — structural_stabilizer_local_comparison
+### 2i. structural_stabilizer_local_comparison — RETIRED 2026-09-29, replaced by local_tractability_shift (see below)
 
 `POST /api/gate2/stabilizer/compare` is the first mechanism-category
 calculator to actually consume a Gate 2 sign-off (the other four categories
@@ -517,8 +517,53 @@ for the two amino acids tried, and did not resolve this either — see git
 history for that attempt). **Not claimed:** that this line of work should
 continue as manual one-off checks — any further attempt needs a properly
 scoped, chemist-reviewed effort, not another quick script.
-**`structural_stabilizer_local_comparison` stays disabled; no further ad
-hoc validation attempts are planned.**
+**Update, 2026-09-29 — this scoped, chemist-reviewed effort happened, and the
+verdict is retirement, not a fix.** A second, independent chemistry review
+(Claude Science) was asked directly: is there a buildable correction, and
+should the category be kept or retired. Its answer, verified independently:
+a composition-matched "double difference" correction does exist and is cheap
+(four single-point calculations instead of two, exact cancellation — not
+another isodesmic scheme), but building it would still answer the wrong
+question. Local energetic stability is a THERMODYNAMIC quantity (which state
+is lower in energy); classical tractability is an ELECTRONIC-STRUCTURE
+question (multireference character, DMRG convergence) — orthogonal to it. No
+wild-type/mutant energy difference was ever capable of deciding tractability,
+correctly computed or not. Separately, a composition-only prediction (atomic
+Hartree-Fock reference energies, no structure at all) reproduced the real
+measured C275F ΔE to within 2% (+169.4 Ha predicted vs. +166 Ha measured),
+confirming the atom-count-dominance diagnosis quantitatively. Leu<->Ile is
+the only isomeric substitution among the 20 canonical amino acids (verified
+independently) and does not occur in this project's real mutation list —
+worth naming, but it is the weaker reason: even a perfectly isomeric pair
+would only fix the "wrong answer" (invalid ΔE), not the "wrong question"
+(thermodynamics standing in for tractability).
+
+`structural_stabilizer_local_comparison` and `POST /stabilizer/compare` are
+**removed from `backend/routes/gate2.py`**, not left disabled — an inert-
+but-present endpoint was rejected on governance grounds: "a plausible-
+looking number was available, and nothing forced anyone to check what it
+rested on" is the literal description of how the original C275F result got
+retracted, and a disabled 409 stub is the same shape of risk, deferred to
+whoever re-enables it later without re-deriving this reasoning. Historical
+runs (the real C275F ΔE≈+166 Ha case) remain readable via the unchanged
+`GET /stabilizer/list` route — kept as the paradigm case for how a
+mismatched-question calculator can look almost right and still be wrong
+(dissertation §08), not deleted from the record.
+
+**Replacement: `local_tractability_shift`** (`POST
+/tractability_shift/compare`, `GET /tractability_shift/list`) asks the
+question this category should have asked from the start: does the mutation
+shift the site's classification (e.g. Class C → Class B), not its energy.
+Composition-robust by construction — each side's bqp_class/S_max is computed
+entirely within its own active space, so nothing needs to cancel and no
+apples-to-apples setup check is required. Two things every result from it
+must carry: (1) the two active spaces will generally differ in size (AO
+composition tracks the amino-acid identity — round 1's own finding), so
+S_max is reported for both sides but never compared directly between them,
+only each side's own class; (2) negative controls are required on both sides
+before a shift is read as caused by the mutation rather than by active-
+space-selection noise. Wired into the Orchestration tab's Gate 2 panel
+alongside Redox/Spin-Gap Comparison and the Catalytic status lookup.
 
 ### 2j. Gate 2 chemistry pipeline — verified active-space construction
 
