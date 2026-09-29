@@ -520,6 +520,102 @@ scoped, chemist-reviewed effort, not another quick script.
 **`structural_stabilizer_local_comparison` stays disabled; no further ad
 hoc validation attempts are planned.**
 
+### 2j. Gate 2 chemistry pipeline — verified active-space construction
+
+A second, independent chemist ("Claude Science", a separate sandboxed tool
+with no Python execution or general internet access) proposes a target's
+active-space chemistry — which real structure to use, region, AVAS AO set,
+charge, spin — and this repo's scripts execute and verify it, because
+Claude Science's own sandbox cannot run pyscf/pdbfixer or reach RCSB/EBI at
+all. This division of labor is deliberate, not a workaround: the chemistry
+judgment (which mechanism category, which AO set, which spin states to
+compare) stays with a dedicated chemistry-review tool; the execution and
+the structure-level verification stay in this repo, where DP1 ("verify,
+don't trust", §06.iv) is enforced in code, not taken on faith from either
+side.
+
+**Files** (`scripts/laguna/`):
+- `mmcif_verify.py` — the verification gate itself. Reads a real mmCIF's
+  `_atom_site`, `_struct_ref_seq_dif`, and SIFTS UniProt mapping directly,
+  and adjudicates whether a stated mutation is actually present at the
+  mapped position — `verify_sifts()`'s `require_span`/`min_construct_len`
+  arguments additionally catch a mutation that is genuinely present but in
+  a fragment too small to carry the surrounding domain (a real case found
+  2026-09-28: six PDB entries carrying TP53 R175H turned out to be 9-residue
+  MHC-bound neoantigen peptides, not p53 at all — verdict
+  `MUTANT_CONFIRMED_FRAGMENT_ONLY`). This is the direct fix for the root
+  cause of the retracted C275F stabilizer result (§08): both its inputs
+  passed every record-consistency check and still carried the wild-type
+  residue, because nothing had ever read the coordinates themselves.
+- `run_gate2_avas.py` — the general TP53-mutation runner: gate (verify
+  mutation present) → protonate (pdbfixer) → extract QM cluster (radius +
+  peptide-bond capping) → AVAS/SCF, optionally swept across thresholds with
+  a single shared SCF (the original per-threshold-SCF version cost N full
+  SCF runs for an N-point sweep; not anymore). Used for TP53 Y220C, G245S,
+  R249S, R282W — all now have real, chemist-verified active-space sweeps
+  in place of the size-prior estimates `targets.json` still records as of
+  this writing (see the `_round2_search` provenance fields these targets
+  now carry once Claude Science's follow-up structure search returns).
+- `run_gate2_sdhb.py` — the same pipeline adapted for a metal-cluster site
+  (SDHB [2Fe-2S], centre S1) instead of a mutated residue: centres on the
+  cluster's own geometric centroid, reads the multi-atom cofactor (`FES`)
+  directly from the mmCIF (gemmi's cif→pdb conversion was found to silently
+  drop it), and runs paired spin states (S=0 antiferromagnetic vs. S=5
+  ferromagnetic, isoelectronic) for the `metal_redox_center` category.
+- `run_gate2_r175h.py` — R175H's wild-type Zn-site cluster on 2OCJ at a
+  fixed 7.2 Å region (the radius Claude Science verified two independent
+  ways: the Zn shell first closes there, and it is also where explicit
+  protonation gives a clean net charge). No real R175H mutant structure
+  exists in the PDB (confirmed by exhaustive search, §08) so only the
+  wild-type side is classified for now.
+- `run_gate2_c275f.py` — the anchor target, resumed after its original
+  result's retraction. No deposited structure carries C275F either
+  (exhaustive search, §08); this script runs against a **modelled** mutant
+  built with PyMOL's Mutagenesis wizard (Cys275→Phe, lowest-strain rotamer
+  explicitly chosen and both candidate rotamers' strain scores recorded)
+  on top of the same 2OCJ wild-type file — so the wild-type and modelled-
+  mutant sides use the identical, fixed residue list by construction (no
+  separate radius cut per side, which is what let charge mismatches slip
+  through for the other TP53 targets — see the open R3 item below), and
+  are confirmed isoelectronic (charge 0 on both sides). Every output this
+  script writes is labelled `is_modelled: true` on the mutant side; report
+  it as a model, not a deposited structure, in any dissertation text.
+
+**A real, repeated failure mode worth knowing before running these**:
+pdbfixer's `addMissingHydrogens()` does not know a given Cys is metal-bound,
+so it protonates it as an ordinary neutral thiol (`HG` present) rather than
+the thiolate (`-1`) the chemistry actually calls for once it is coordinating
+a Zn or Fe-S centre. This silently changes the net charge from what the
+chemistry spec expects (confirmed live for TP53 G245S and R175H both) —
+check for `HG`/`HG1` on any metal-coordinating Cys in the protonated PDB
+before trusting a charge, the same way `run_gate2_avas.py`'s and
+`run_gate2_r175h.py`'s `build_cluster()` already do, rather than assuming
+the formally-correct protonation state was applied.
+
+**Known open item (not yet fixed)**: for TP53 G245S/R249S/R282W, the
+wild-type (2OCJ) and mutant (7DHY/3D06/7B4F) sides are genuinely different
+PDB entries with different author-numbering for the same residues (e.g.
+the structural Zn is residue 501 in 2OCJ but 302 in 7DHY) — so "the same
+fixed residue list" (region_rule_R3) cannot be literal residue numbers
+across both files the way it is for C275F (same file, one residue changed).
+It needs a SIFTS-based UniProt-position mapping computed independently per
+structure. Not built yet; do not assume the wild-type/mutant charge
+comparison is valid for these three until it is.
+
+**Environment note**: these scripts need `pyscf`, `pdbfixer`, `openmm`,
+and `gemmi`; DMRG beyond AVAS additionally needs `block2` (the pip package
+name — the import is `pyblock2`, which is not itself a separate
+installable package, a genuinely confusing naming split worth remembering).
+Large active-space DMRG/SCF runs here have hit the same disk-scratch and
+memory-cgroup limits documented elsewhere in this guide — set `TMPDIR` to
+a real scratch filesystem before running, and avoid running more than one
+or two of these concurrently on a shared interactive node (several silent,
+traceback-free kills were traced to simultaneous large jobs exceeding a
+per-session memory cgroup, not the node's own free memory). Run with
+`python3 -u` (unbuffered) under `nohup` when launching a long one, or
+verbose progress sits in an unflushed buffer and never reaches the log
+file until the process exits.
+
 ### 2g. Gate 1 — structural resolvability, with an end-of-day promotion step
 
 A card at the very top of the Orchestration tab (before Rung 1) lets you look
