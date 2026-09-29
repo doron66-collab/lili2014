@@ -88,8 +88,7 @@ ever disagree again, the dissertation wins.)
   larger circuit width; directly answers RQ II]; (2) real P3/P4 provenance/telemetry at scale
   [strengthens the Part-11 claim §06.iii]; (3) a quantum-necessity demonstration via SqDRIFT,
   once a Class A candidate exists [upside/risky, no confirmed candidate as of 2026-08-15 —
-  DO NOT bet the thesis on tier 3]. Also: separate publication + BLAIS grant
-  strength.
+  DO NOT bet the thesis on tier 3]. Also: separate publication strength.
 
 ## LEON
 - **LEON** = Lineage-Evidence Orchestration & Notarization — the single notarization authority
@@ -209,14 +208,11 @@ ever disagree again, the dissertation wins.)
 - Feature branch: claude/code-access-clarification-ab1W8
 - Netlify and Render both watch: main
 
-## BLAIS 2026
-- Award range: $10,000–$25,000
-- Deadline: August 15, 2026
-- Submit to: Eusebio.Alvaro@cgu.edu
-- 100-word summary: locked
-- 1,500-word section: in progress
-- CGU strategic priorities addressed: Human Health & Flourishing, Data Analysis & Computational Mathematics
-- Undergraduate partner faculty: TBD (Prof. Shabtai working on it)
+## BLAIS 2026 — DROPPED (2026-09-29)
+- No longer relevant / off the table per Doron. Deadline (Aug 15, 2026) has passed with no
+  submission; do not resume the 1,500-word section or the undergraduate-partner-faculty
+  search, and do not reference BLAIS as a motivation for any other decision (e.g. the r3
+  access framing below used to cite it — that reference is now stale).
 
 ## CSS Variables (Assignment10_Prototype.html)
 - --white: #f1f5f9
