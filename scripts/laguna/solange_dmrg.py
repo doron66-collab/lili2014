@@ -36,6 +36,7 @@ On the tiny model compounds it demonstrates the diagnostic, not a full-site verd
 import argparse
 import hashlib
 import json
+import math
 import socket
 import subprocess
 import sys
@@ -298,6 +299,32 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     except Exception:
         s_max = None
     return energies, s_max, stop_reason
+
+
+# S_max is a bipartite entanglement entropy, and the maximum ANY bipartition
+# can show is bounded purely combinatorially by the smaller side's orbital
+# count k: S <= k*ln(4) (each spatial orbital has 4 local states -- empty,
+# up, down, doubly occupied). This ceiling is not a chemical quantity at
+# all, and it scales with active-space size -- found live 2026-09-29 when
+# NEGCTRL_BORING (a cluster built to contain no interesting chemistry, at
+# CAS(66,55)) crossed S_HARD anyway: the SAME absolute S_HARD=1.5 consumes
+# ~36% of this ceiling at the 6-orbital N2 pair S_HARD was calibrated
+# against, but only ~4% at NEGCTRL_BORING's 55 orbitals -- the identical
+# line is ~11x more permissive at the larger scale. k is taken as ncas // 2
+# (the balanced-cut approximation; the code does not currently track WHICH
+# cut position achieved S_max, only its value, so this is the same
+# approximation used to reproduce Claude Science's own numbers when this was
+# first measured). Reported as a diagnostic alongside S_max, not used to
+# change any classification decision here -- see classify()'s own comment
+# for why the trigger logic itself is being left alone for now (dissertation
+# §06.i's "minimal path" fix: report both signals plainly, downgrade the
+# CLAIM S_HARD supports, without re-running or re-deciding anything).
+def entanglement_capacity_pct(s_max, ncas):
+    if s_max is None or not ncas:
+        return None
+    k = max(ncas // 2, 1)
+    capacity = k * math.log(4)
+    return 100.0 * s_max / capacity
 
 
 # METHODOLOGICAL LIMITATION, recorded rather than fixed here: this test is
@@ -931,6 +958,11 @@ def main():
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
     # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
+    cap_pct = entanglement_capacity_pct(s_max, args.ncas)
+    if cap_pct is not None:
+        print(f"  ({cap_pct:.1f}% of this active space's own entanglement capacity, "
+              f"S_max/({max(args.ncas // 2, 1)}*ln4) — size-normalised diagnostic, "
+              f"does not change the classification below; see S_HARD's own comment)")
     # PROVISIONAL only when the sweep was cut short by the TIME budget — a convergence
     # early-stop is the opposite (the answer is final, we just skipped redundant high M).
     time_budget_hit = (stop_reason == "time_budget")
@@ -964,6 +996,7 @@ def main():
         "ncas": args.ncas, "nelecas": args.nelecas,
         "e_casscf": cas["e_casscf"],
         "dmrg_energies": energies, "s_max": s_max,
+        "s_max_capacity_pct": entanglement_capacity_pct(s_max, args.ncas),
         "bqp_class": cls, "class_rationale": rationale,
         "time_budget_hit": time_budget_hit, "orbital_optimization_converged": orbital_converged,
         "bond_dims_requested": bond_dims,
