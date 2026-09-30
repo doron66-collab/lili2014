@@ -187,7 +187,7 @@ class OrbitalTimeBudgetExceeded(Exception):
 
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
              n_threads=4, max_minutes=None, early_stop=True,
-             stack_mem_gb=DEFAULT_STACK_MEM_GB):
+             stack_mem_gb=DEFAULT_STACK_MEM_GB, n_sweeps=10):
     """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max.
 
     HPC-ticket-aware: prints live per-M timing (so `tail -f` shows real progress,
@@ -270,7 +270,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
             stop_reason = "time_budget"
             break
         t0 = time.time()
-        e = drv.dmrg(mpo, ket, n_sweeps=10, bond_dims=[M],
+        e = drv.dmrg(mpo, ket, n_sweeps=n_sweeps, bond_dims=[M],
                      noises=[1e-5, 1e-6, 0], thrds=[1e-9] * 3, iprint=0)
         dt = time.time() - t0
         energies.append((M, float(e)))
@@ -867,6 +867,15 @@ def main():
                          "since larger M cannot change the verdict)")
     ap.add_argument("--bond-dims", default="250,500,1000,2000",
                     help="comma-separated increasing bond dimensions")
+    ap.add_argument("--n-sweeps", type=int, default=10,
+                    help="DMRG sweeps per bond dimension (was hardcoded to 10; the project's "
+                         "own calibration notes this default is itself uncalibrated, and that "
+                         "n_sweeps=2 is a validated FAST TRIAGE screen, not a measurement -- see "
+                         "the skill's classifier-parameters.md. Raise this (e.g. 20-30) for a "
+                         "~48-orbital active space starting from a random MPS, where 10 sweeps "
+                         "may not reach convergence and an unconverged run can look exactly like "
+                         "the R175H cold-start artifact (large ΔE that is initialization noise, "
+                         "not chemistry).")
     ap.add_argument("--out", default="./out")
     ap.add_argument("--verbose", type=int, default=0)
     ap.add_argument("--stack-mem-gb", type=float, default=DEFAULT_STACK_MEM_GB,
@@ -1051,7 +1060,7 @@ def main():
                                scratch=args.scratch, n_threads=args.threads,
                                max_minutes=ladder_max_minutes,
                                early_stop=not args.no_early_stop,
-                               stack_mem_gb=args.stack_mem_gb)
+                               stack_mem_gb=args.stack_mem_gb, n_sweeps=args.n_sweeps)
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
     # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
