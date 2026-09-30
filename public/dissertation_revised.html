@@ -692,6 +692,16 @@
     align-items: baseline;
   }
 
+  /* Same 1fr-grid-min-content trap as .contribution: a long unbroken DOI/URL
+     in a reference entry has no natural break point, so it forced the grid
+     column (and the whole page) wider than the viewport instead of wrapping.
+     min-width: 0 lets the column shrink; overflow-wrap lets the URL text
+     itself break when it has to. */
+  .references .ref > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .references .ref:last-child { border-bottom: none; }
 
   .references .ref-num {
@@ -840,6 +850,7 @@
     padding: 0.1em 0.4em;
     border-radius: 2px;
     color: var(--quantum);
+    overflow-wrap: break-word;
   }
 
   /* Nav dots (left side) */
@@ -1155,7 +1166,7 @@
 
     <!-- ========== DEDICATION ========== -->
     <section class="doc-section" id="dedication" aria-label="Dedication">
-      <div class="pullquote" style="font-size:1.05rem;white-space:nowrap">
+      <div class="pullquote" style="font-size:1.05rem">
         In memory of my mother, <strong>Solange</strong>, and my father, <strong>Leon</strong> — seven months apart.<br>
         This platform bears her name: <strong>SOLANGE</strong> — the reason this dissertation exists.<br>
         The guardian of this work's integrity: <strong>LEON</strong> — re-verifying every result before it may be trusted.
@@ -2202,6 +2213,7 @@
       <h3>Enterprise Architecture &amp; the Classical–Quantum Continuum</h3>
       <p>The Open Group (2022); Lankhorst (2017). <strong>Scope note, corrected 2026-09-29 (Claude Science):</strong> the paragraphs below use TOGAF and ArchiMate for their <em>vocabulary</em> — a disciplined decomposition of a complex socio-technical system into four architecture domains, and the <em>Architecture Development Method</em>'s (ADM) framing of architecture as a governed, iterative <em>migration</em> rather than a static blueprint. This is not a claim that a formal TOGAF engagement was carried out: this dissertation does not produce the ADM's own deliverables (a gap analysis between baseline and target architectures, architecture contracts, a phased implementation roadmap) or an ArchiMate model, and the phrase "enterprise architecture in the formal sense" used in an earlier draft of this section is retracted as unsupported by anything actually produced here. TOGAF's four-domain decomposition and the ADM's migration framing remain a useful conceptual frame for describing SOLANGE's evolution from a classical proxy to quantum hardware; the paragraphs below should be read on that basis, not as formal EA artifacts.</p>
 
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>TOGAF Domain</th><th>Framework Definition</th><th>SOLANGE Instantiation</th><th>Provenance</th></tr>
@@ -2213,6 +2225,7 @@
           <tr><td>Technology</td><td>Hardware, networks, and the platform infrastructure beneath everything above.</td><td>The classical→quantum bridge itself: academic HPC (NSF ACCESS-class allocations) on one side, IBM Heron r3 on the other.</td><td>P3 · P4</td></tr>
         </tbody>
       </table>
+      </div>
 
       <p>The ADM frames Phase 3A → 3B as a single governed turn of the architecture cycle. A scientific subtlety is load-bearing here: the intermediate step targets a local binding site of roughly 24 active electrons (48 qubits) as its scientific ceiling — the precise scale at which both exact classical diagonalisation (~18e, where the determinant count turns combinatorial) and full state-vector simulation (~4.5 PB) collapse. Operationally the run executes at ~20e/40q (~17.6 TB, within multi-node HPC reach on NSF ACCESS / USC CARC). In either case this is <em>not</em> classical chemistry: it is the variational quantum algorithm executed on a classical HPC <em>simulator</em> of the quantum circuit. The architectural objective — demonstrating that the governed pipeline scales to meaningful quantum-circuit width — is fully achieved at 40 qubits (see §8, Table 8.1 for the memory-scaling rationale). The provenance layer (P1–P9) functions, in TOGAF's vocabulary, analogously to its <em>Architecture Governance</em> phase, rendering each iteration auditable — again a framing borrowed for its vocabulary, not a claim that a formal TOGAF governance process was instantiated. The contribution of this dissertation is located precisely at the intersection of three otherwise-mature fields — classical HPC, quantum computation, and computational oncology — where no prior system has operated under a unified, provenance-complete architecture.</p>
 
