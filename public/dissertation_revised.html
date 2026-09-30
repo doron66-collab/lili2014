@@ -1582,7 +1582,7 @@
             <td>~48</td>
             <td>NSCLC, melanoma, pancreatic</td>
             <td>~15–20%</td>
-            <td>TCGA, PDB 2A5E; <a href="#ref-63">[63]</a><a href="#ref-64">[64]</a></td>
+            <td>TCGA, PDB 2A5E; <a href="#ref-65">[65]</a><a href="#ref-66">[66]</a></td>
           </tr>
           <tr>
             <td><strong>STK11</strong></td>
@@ -2067,17 +2067,17 @@
 
       <p>This advantage does not translate uniformly across application domains. Drug-discovery workloads — particularly the simulation of mutation-specific electronic structure across libraries of candidate ligands and conformational variants — are not characterized by a single deep circuit, but by a high volume of moderate-depth circuits executed across a broad parameter space. <strong>SqDRIFT — the algorithm anchoring this dissertation's empirical claim — is a sample-based quantum diagonalization method: the quantum processor samples the high-weight electronic configurations that span the relevant subspace, and a classical processor diagonalizes the Hamiltonian projected onto those samples. Reaching a converged energy requires a large number of independent sampling circuits and shots, so its time-to-solution is determined by the product of per-circuit execution time × sample count.</strong> This is the canonical throughput-bound regime: aggregate throughput, not per-circuit depth, is the binding metric. Under this regime, the nanosecond gate times of superconducting hardware confer a decisive practical advantage despite the shorter coherence window per circuit.</p>
 
-      <p>A March 2026 <em>Nature</em> report from Quantinuum on its Helios processor provides a concrete, citable data point for this throughput argument <a href="#ref-56">[56]</a>. Helios is a 98-qubit trapped-ion QCCD device using <sup>137</sup>Ba<sup>+</sup> hyperfine qubits with all-to-all connectivity, achieving single-qubit infidelity of 2.5×10⁻⁵, two-qubit gate infidelity of 7.9×10⁻⁴ (99.92% fidelity), and SPAM infidelity of 3.3×10⁻⁴ — fidelities that substantially exceed those reported for IBM Heron r3, and sufficient to demonstrate random circuit sampling beyond classical simulability. These figures confirm, rather than undermine, the coherence-versus-throughput distinction drawn above: the same report measures approximately <strong>55 ms of wall-clock time per depth-1 entangling layer across the full 98-qubit register</strong>. A SqDRIFT sampling run, whose cost scales with the product of per-circuit execution time and sample count rather than with single-shot fidelity, would accumulate this per-layer latency across the thousands of sampling circuit instances the method requires. At Heron r3's nanosecond-scale gate times, the equivalent sampling budget completes in a small fraction of the time implied by Helios's millisecond-scale layer latency, even though Helios's per-gate error rates are lower. The Quantinuum result therefore strengthens rather than threatens the case made here: it is direct experimental confirmation that high coherence and high throughput are independent axes of merit, and that workload class — not platform reputation — determines which axis dominates.</p>
+      <p>A March 2026 <em>Nature</em> report from Quantinuum on its Helios processor provides a concrete, citable data point for this throughput argument <a href="#ref-58">[58]</a>. Helios is a 98-qubit trapped-ion QCCD device using <sup>137</sup>Ba<sup>+</sup> hyperfine qubits with all-to-all connectivity, achieving single-qubit infidelity of 2.5×10⁻⁵, two-qubit gate infidelity of 7.9×10⁻⁴ (99.92% fidelity), and SPAM infidelity of 3.3×10⁻⁴ — fidelities that substantially exceed those reported for IBM Heron r3, and sufficient to demonstrate random circuit sampling beyond classical simulability. These figures confirm, rather than undermine, the coherence-versus-throughput distinction drawn above: the same report measures approximately <strong>55 ms of wall-clock time per depth-1 entangling layer across the full 98-qubit register</strong>. A SqDRIFT sampling run, whose cost scales with the product of per-circuit execution time and sample count rather than with single-shot fidelity, would accumulate this per-layer latency across the thousands of sampling circuit instances the method requires. At Heron r3's nanosecond-scale gate times, the equivalent sampling budget completes in a small fraction of the time implied by Helios's millisecond-scale layer latency, even though Helios's per-gate error rates are lower. The Quantinuum result therefore strengthens rather than threatens the case made here: it is direct experimental confirmation that high coherence and high throughput are independent axes of merit, and that workload class — not platform reputation — determines which axis dominates.</p>
 
       <p>The architectural choice of IBM Heron r3 as the hardware substrate for this dissertation's QC·AI·HPC pipeline therefore reflects a <em>workload-aligned optimization</em>, not a claim of categorical superiority. <em>Quantinuum's logical-qubit demonstration does not weaken the modality argument made in §1.4; it sharpens its scope.</em> Trapped-ion platforms remain well-suited to applications demanding maximal circuit depth per execution — fault-tolerance research, logical-qubit benchmarking, and certain classes of long-time-evolution simulation — domains this dissertation explicitly does not target. Drug discovery is throughput-dominated, and superconducting hardware is presently the modality whose operational profile aligns with that demand. The choice of the <em>r3</em> revision specifically is a fidelity choice rather than a capacity one: r3 carries the same 156-qubit heavy-hex layout as r2, but delivers IBM's best Heron coherence to date (~350&nbsp;µs T2) with improved two-qubit gate and readout fidelity (IBM Quantum, 2025–2026 [58, 59]). Because C275F's active site — 24–56 qubits across the AVAS-tested range (§1.2.1) — already fits well within r2's qubit count, the binding-relevant constraint is not <em>more qubits</em> but <em>lower error</em> — the reduced gate/readout error of r3 is what narrows the error-mitigation burden required to approach chemical accuracy at this scale.</p>
 
       <h4 id="sec-1-4-3">1.4.3 · Microsoft–Quantinuum Fault-Tolerant Milestone</h4>
-      <p>A preceding and complementary milestone to the Helios results discussed above was published by Microsoft and Quantinuum in <em>Nature</em> under the title <em>"Improved quantum processor logical error rates via correction and detection"</em> <a href="#ref-55">[55]</a>. Running on Quantinuum's H2 trapped-ion processor with Microsoft's qubit-virtualization software stack, the joint team demonstrated an <strong>800-fold reduction in logical error rate</strong> relative to the physical qubit baseline — the largest recorded gap between physical and logical error rates reported in the peer-reviewed literature at the time. The system executed <strong>14,000 individual circuit instances without a single observed error</strong> and scaled from 4 to 12 highly reliable logical qubits using active syndrome extraction with real-time classical co-processor correction, without disturbing the quantum data during error diagnosis.</p>
+      <p>A preceding and complementary milestone to the Helios results discussed above was published by Microsoft and Quantinuum in <em>Nature</em> under the title <em>"Improved quantum processor logical error rates via correction and detection"</em> <a href="#ref-57">[57]</a>. Running on Quantinuum's H2 trapped-ion processor with Microsoft's qubit-virtualization software stack, the joint team demonstrated an <strong>800-fold reduction in logical error rate</strong> relative to the physical qubit baseline — the largest recorded gap between physical and logical error rates reported in the peer-reviewed literature at the time. The system executed <strong>14,000 individual circuit instances without a single observed error</strong> and scaled from 4 to 12 highly reliable logical qubits using active syndrome extraction with real-time classical co-processor correction, without disturbing the quantum data during error diagnosis.</p>
 
       <p>The significance for this dissertation is threefold. First, it constitutes independent peer-reviewed validation that the field has moved past the NISQ era into what Microsoft terms "resilient quantum computing" — the regime in which logical qubits outperform physical qubits, the foundational requirement for fault-tolerant quantum chemistry. Second, it demonstrates that the QEC machinery required for Phase 3B of the SOLANGE pipeline (error mitigation on IBM Heron r3, escalating to full fault-tolerance as hardware matures) is not a distant theoretical aspiration but an experimentally demonstrated trajectory. Third, the end-to-end chemistry simulation paired with AI and HPC supercomputers in the same demonstration is structurally identical to the QC·AI·HPC orchestration architecture defended in §06 — confirming the architectural pattern independently. <em>This milestone does not change the hardware choice: Microsoft's qubit-virtualization stack runs on Quantinuum's trapped-ion hardware, not on IBM's superconducting backend, and the throughput argument of §1.4.2 continues to apply. It does, however, materially strengthen the scientific timeline argument for Phase 3B feasibility.</em></p>
 
       <h4 id="sec-1-4-4">1.4.4 · Neutral-Atom Landscape (Infleqtion)</h4>
-      <p>The neutral-atom modality reached a commercial-maturity milestone on <strong>February 17, 2026</strong>, when <strong>Infleqtion</strong> (formerly ColdQuanta) became the first neutral-atom quantum company to list publicly, trading on the NYSE under the ticker INFQ following a business combination with Churchill Capital Corp X. The listing raised over $550 million in gross proceeds, and Infleqtion's systems are already deployed with the U.S. Department of War, NASA, and the U.K. government, alongside a joint demonstration with Nvidia of a materials-science application using logical qubits <a href="#ref-57">[57]</a>. This commercial trajectory does not, on its own, alter the modality argument made in §1.4; it raises the question of whether the "Emerging" ratings assigned to neutral atoms in the C4-C6 rows of the comparison table still hold, and the answer requires separating two distinct claims that are easy to conflate.</p>
+      <p>The neutral-atom modality reached a commercial-maturity milestone on <strong>February 17, 2026</strong>, when <strong>Infleqtion</strong> (formerly ColdQuanta) became the first neutral-atom quantum company to list publicly, trading on the NYSE under the ticker INFQ following a business combination with Churchill Capital Corp X. The listing raised over $550 million in gross proceeds, and Infleqtion's systems are already deployed with the U.S. Department of War, NASA, and the U.K. government, alongside a joint demonstration with Nvidia of a materials-science application using logical qubits <a href="#ref-59">[59]</a>. This commercial trajectory does not, on its own, alter the modality argument made in §1.4; it raises the question of whether the "Emerging" ratings assigned to neutral atoms in the C4-C6 rows of the comparison table still hold, and the answer requires separating two distinct claims that are easy to conflate.</p>
 
       <p>The first claim is scale. Neutral-atom arrays, built from optically trapped alkali atoms with no fabrication-induced variation between qubits, scale favorably in qubit count: arrays exceeding several thousand trapped atoms have been demonstrated, and Infleqtion's own roadmap targets 100 logical qubits by 2028 on its Sqale platform. Google's public framing of its own neutral-atom research program captures this precisely: superconducting processors are easier to scale in the time dimension (circuit depth), while neutral atoms are easier to scale in the space dimension (qubit count). This is the basis for the "Strong" C1 rating neutral atoms already carry in the §1.4 table, and Infleqtion's commercial momentum is consistent with it.</p>
 
@@ -2275,9 +2275,9 @@
 
         <div style="margin:32px 0 28px 0; padding:24px 28px; background:rgba(6,182,212,0.06); border-left:3px solid var(--teal); border-radius:6px;">
           <h4 style="margin:0 0 14px 0; font-size:1em; color:var(--teal); letter-spacing:0.03em;">The Transitional Window: Situating SqDRIFT and Heron r3 Within IBM's Fault-Tolerant Roadmap</h4>
-          <p style="margin:0 0 12px 0;">The selection of IBM Heron r3 as the quantum hardware substrate and SqDRIFT as the molecular simulation algorithm reflects a deliberate positioning within a well-defined and time-bounded technological window. IBM's publicly disclosed roadmap — supported by a $10+ billion capital commitment and a $1 billion CHIPS Act award — establishes a clear architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction — a more qubit-efficient alternative to the surface-code architectures <a href="#ref-36">[36]</a> that had defined the field's earlier fault-tolerance roadmaps. The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and Starling (2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing 100 million quantum gates <a href="#ref-70">[70]</a>.</p>
-          <p style="margin:0 0 12px 0;">This roadmap does not diminish the contribution of the present work — it contextualizes and justifies it. Heron r3, as the superconducting processor generation this dissertation's QPU runs actually executed on, and SqDRIFT, as a leading NISQ-era sample-based quantum diagonalization protocol whose stochastic state sampling inherits qDRIFT's formally bounded error scaling, represent the state of the art during precisely the window in which clinically relevant quantum molecular simulation first becomes computationally tractable — a window this dissertation scopes to the time of writing: IBM previewed a newer, non-Heron square-lattice architecture (Nighthawk) before this dissertation's submission <a href="#ref-71">[71]</a>, and the empirical claims here are grounded in the real Heron r2/r3 runs executed (§7.4), not a claim that Heron remains IBM's newest hardware. IBM's own 2026 demonstration (IBM Research; arXiv:2603.08696) applied SqDRIFT on 100 qubits to a 32-electron active space of C₁₃Cl₂ — a benchmark that for the first time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach of available hardware.</p>
-          <p style="margin:0 0 12px 0;">IBM's own strategic moves reinforce this trajectory. In July 2026, IBM announced the acquisition of HRL Laboratories — formerly a joint research entity of Boeing and General Motors — establishing a formal two-track qubit roadmap: the existing <strong>superconducting qubit</strong> line (Heron r3 → Kookaburra → Starling → Blue Jay), which SOLANGE Phase 3B directly targets, and a new <strong>silicon-spin qubit</strong> track (HRL expertise, paired with the Anderon quantum wafer foundry established by IBM earlier in 2026 with U.S. Department of Commerce support) aimed at the fault-tolerant regime beyond the current NISQ ceiling. SOLANGE's Phase 3B target — C275F at 24–56 qubits (measured range, criterion-dependent) — sits squarely on the superconducting track, comfortably within Heron r3's 156-qubit capacity (§1.2). KEAP1 G333C (32–74 qubits, measured) and STK11 D194N (20–62 qubits, measured) — both DMRG-classified Class B — also sit within reach of the superconducting track; an earlier size-prior estimate (300+ qubits for both) had placed them in the fault-tolerant window formally assigned to IBM's silicon-spin trajectory (~2030+), but the real AVAS measurement supersedes that estimate. IBM's own acquisition resembles, in TOGAF's vocabulary, an ADM-style architectural migration — and constitutes independent industry validation that the NISQ-to-fault-tolerant transition this dissertation anticipates is a recognised engineering trajectory, not a speculative one <a href="#ref-61">[61]</a><a href="#ref-62">[62]</a>.</p>
+          <p style="margin:0 0 12px 0;">The selection of IBM Heron r3 as the quantum hardware substrate and SqDRIFT as the molecular simulation algorithm reflects a deliberate positioning within a well-defined and time-bounded technological window. IBM's publicly disclosed roadmap — supported by a $10+ billion capital commitment and a $1 billion CHIPS Act award — establishes a clear architectural trajectory away from noisy intermediate-scale quantum (NISQ) devices toward fault-tolerant systems based on quantum low-density parity check (qLDPC) error correction — a more qubit-efficient alternative to the surface-code architectures <a href="#ref-38">[38]</a> that had defined the field's earlier fault-tolerance roadmaps. The milestones on this trajectory are specific: the Kookaburra processor (2026) introduces modular quantum memory, Cockatoo (2027) entangles multi-chip configurations, and Starling (2029) delivers the first large-scale fault-tolerant system at 200 logical qubits executing 100 million quantum gates <a href="#ref-72">[72]</a>.</p>
+          <p style="margin:0 0 12px 0;">This roadmap does not diminish the contribution of the present work — it contextualizes and justifies it. Heron r3, as the superconducting processor generation this dissertation's QPU runs actually executed on, and SqDRIFT, as a leading NISQ-era sample-based quantum diagonalization protocol whose stochastic state sampling inherits qDRIFT's formally bounded error scaling, represent the state of the art during precisely the window in which clinically relevant quantum molecular simulation first becomes computationally tractable — a window this dissertation scopes to the time of writing: IBM previewed a newer, non-Heron square-lattice architecture (Nighthawk) before this dissertation's submission <a href="#ref-73">[73]</a>, and the empirical claims here are grounded in the real Heron r2/r3 runs executed (§7.4), not a claim that Heron remains IBM's newest hardware. IBM's own 2026 demonstration (IBM Research; arXiv:2603.08696) applied SqDRIFT on 100 qubits to a 32-electron active space of C₁₃Cl₂ — a benchmark that for the first time brings the active-space requirements of NSCLC tumor-suppressor mutations within reach of available hardware.</p>
+          <p style="margin:0 0 12px 0;">IBM's own strategic moves reinforce this trajectory. In July 2026, IBM announced the acquisition of HRL Laboratories — formerly a joint research entity of Boeing and General Motors — establishing a formal two-track qubit roadmap: the existing <strong>superconducting qubit</strong> line (Heron r3 → Kookaburra → Starling → Blue Jay), which SOLANGE Phase 3B directly targets, and a new <strong>silicon-spin qubit</strong> track (HRL expertise, paired with the Anderon quantum wafer foundry established by IBM earlier in 2026 with U.S. Department of Commerce support) aimed at the fault-tolerant regime beyond the current NISQ ceiling. SOLANGE's Phase 3B target — C275F at 24–56 qubits (measured range, criterion-dependent) — sits squarely on the superconducting track, comfortably within Heron r3's 156-qubit capacity (§1.2). KEAP1 G333C (32–74 qubits, measured) and STK11 D194N (20–62 qubits, measured) — both DMRG-classified Class B — also sit within reach of the superconducting track; an earlier size-prior estimate (300+ qubits for both) had placed them in the fault-tolerant window formally assigned to IBM's silicon-spin trajectory (~2030+), but the real AVAS measurement supersedes that estimate. IBM's own acquisition resembles, in TOGAF's vocabulary, an ADM-style architectural migration — and constitutes independent industry validation that the NISQ-to-fault-tolerant transition this dissertation anticipates is a recognised engineering trajectory, not a speculative one <a href="#ref-63">[63]</a><a href="#ref-64">[64]</a>.</p>
           <p style="margin:0 0 12px 0;">The significance of this window extends beyond the chemistry. The transition to fault-tolerant quantum computing will not resolve — and in fact will intensify — the information systems challenges that constitute the primary contribution of this dissertation. As IBM scales toward Starling (2029) and the Blue Jay quantum-centric supercomputer (2,000 logical qubits, 2033), targeting drug discovery as an explicit commercial vertical, the regulatory reconstruction problem becomes more acute, not less. Probabilistic, learned quantum outputs will be generated at greater scale and complexity, yet no established framework exists for governing their audit trails, ensuring reproducibility, or satisfying FDA 21 CFR Part 11 requirements in a clinical submission context. The pipeline architecture, P1–P9 provenance schema, and bifurcation-aware orchestration developed in this dissertation are designed precisely for this trajectory: they establish the IS governance substrate that fault-tolerant quantum drug discovery workflows will require, built and validated during the window in which the underlying quantum computation first becomes feasible.</p>
           <p style="margin:0; font-style:italic; font-weight:600;">The present work therefore occupies a strategically necessary position: it is neither premature nor transitional. It is foundational.</p>
         </div>
@@ -2468,7 +2468,7 @@
             <p>This is not a framing applied to the results after the fact; it is the rule the classifier executes. The DMRG rung reads S<sub>max</sub> directly off the converged matrix product state, together with whether DMRG reached chemical accuracy within a practical bond dimension against a discarded-weight extrapolation. <strong>The operational criterion — does classical computation, at a practical bond dimension, actually reach chemical accuracy — is what decides Class A versus B, and S<sub>HARD</sub> = 1.5 (sited between N&#8322; at equilibrium, S<sub>max</sub> = 0.42, and stretched N&#8322;, S<sub>max</sub> = 2.86) is a conservative, explicitly uncalibrated-past-that-pair guard, not an independently derived physical boundary — the classifier's own source comment already says so ("calibrated, not derived").</strong> A finding below (§06.i, following Table 6.1) shows concretely why that guard cannot be applied as an absolute number across active spaces of very different size, and downgrades it further, to a diagnostic reported alongside the classification rather than a criterion that decides it on its own. A target below the exact-classical wall is returned Class C on the ground that exact diagonalisation already suffices; above that wall, a target that converges at practical <em>M</em> with low entanglement falls in Class B, and one whose S<sub>max</sub> exceeds the threshold &mdash; so that the bond dimension demanded at the full site grows beyond reach &mdash; falls in Class A, subject to that finding's caveat. Electron count enters only in the first of those three tests, and there only as the boundary of exact diagonalisation, whose cost genuinely is combinatorial in the size of the space. The Computational Decision Gateway (&sect;06.ii) accordingly accepts a measured entanglement value as evidence and declines to classify on size alone, and its scope gate requires a measurement to cover at least 90% of a target's active site before it counts at all &mdash; an entropy measured over a fraction of a site says nothing about whether S<sub>max</sub> saturates across the whole of it. No full-coverage measurement yet exists for C275F. Its Class B designation therefore records the present state of the evidence, and is revisable in either direction by a measurement that does cover the site: an S<sub>max</sub> that saturates would argue it toward the classically sufficient regime, one that keeps climbing would argue it to quantum-necessary.</p>
             <p>The framework is designed as a reusable classification tool applicable beyond the four anchor mutations. Eleven genes (TP53, KEAP1, CDKN2A, STK11, NF1, RB1, SMARCA4, RBM10, ARID1A, SETD2, U2AF1) collectively account for an estimated <strong>1.1–1.3 million unique NSCLC patients annually</strong> carrying at least one non-druggable mutation among them — the epidemiological case for scale, and the largest unaddressed population in computational oncology within the quantum feasibility window. That population estimate is a gene-level burden figure, not a count of verified computable targets: applying the classification template itself — real point mutation, structure resolving the exact residue, size past the classical wall, not already druggable (§01, Figure 1.2) — to all eleven genes found that nine specific point mutations currently satisfy every criterion (Table 1b), NF1/RB1/RBM10 have no qualifying candidate at all, and several other candidates (KEAP1 R320Q, STK11 F354L, SMARCA4, CDKN2A's demonstrated deletion, ARID2/KEAP1 LOF frameshifts) fail on a specific, checked ground. The template is reusable; its output on this specific gene list is nine verified targets, not fifteen.</p>
 
-            <p><strong>The single-method asymmetry, and a first cross-method check.</strong> A Class B verdict and a Class A verdict do not carry the same evidentiary weight from a single classical method, and the asymmetry is logical rather than methodological. Class B asserts that classical computation suffices, and one method reaching chemical accuracy is sufficient evidence for that claim — DMRG succeeding proves a classical path exists. Class A asserts that classical computation does <em>not</em> suffice, which is a claim about classical methods as a class, of which DMRG is one member; a single method's failure to converge is evidence against that method, not against the class. This is stated in the classifier's own source comments as "DMRG-specific evidence, not a cross-method exclusion," and the present dissertation now reports the first instance in which that gap was closed by measurement rather than left as a caveat. A Selected-CI implementation (SHCI <a href="#ref-66">[66]</a><a href="#ref-67">[67]</a>, via the Dice solver) — a method whose failure mode is determinant-sparsity growth rather than DMRG's bond-dimension growth across a one-dimensional chain — was built from source and run against the identical active-space Hamiltonian used by the DMRG rung on a real test cluster (DNMT3A p.Arg882, CAS(60,33)). The two methods agreed to 0.198 mHa, inside the 1.6 mHa chemical-accuracy bar. This is confirmatory rather than novel with respect to that specific target's own classification — it was deliberately chosen as a methodologically weak case (§08) rather than a candidate suspected of Class A — but it establishes, for the first time in this line of work, that the classifier's DMRG-only evidence base can be reproduced by an independent method with a different failure mechanism, on the same footing. Following this result, the cross-check was promoted from a validation exercise into a standing policy: the classifier now dispatches DMRG and SHCI together as a mandatory pair rather than treating SHCI as an optional second opinion, so that no target reaches a Class A/B/C verdict on a single method's evidence alone.</p>
+            <p><strong>The single-method asymmetry, and a first cross-method check.</strong> A Class B verdict and a Class A verdict do not carry the same evidentiary weight from a single classical method, and the asymmetry is logical rather than methodological. Class B asserts that classical computation suffices, and one method reaching chemical accuracy is sufficient evidence for that claim — DMRG succeeding proves a classical path exists. Class A asserts that classical computation does <em>not</em> suffice, which is a claim about classical methods as a class, of which DMRG is one member; a single method's failure to converge is evidence against that method, not against the class. This is stated in the classifier's own source comments as "DMRG-specific evidence, not a cross-method exclusion," and the present dissertation now reports the first instance in which that gap was closed by measurement rather than left as a caveat. A Selected-CI implementation (SHCI <a href="#ref-68">[68]</a><a href="#ref-69">[69]</a>, via the Dice solver) — a method whose failure mode is determinant-sparsity growth rather than DMRG's bond-dimension growth across a one-dimensional chain — was built from source and run against the identical active-space Hamiltonian used by the DMRG rung on a real test cluster (DNMT3A p.Arg882, CAS(60,33)). The two methods agreed to 0.198 mHa, inside the 1.6 mHa chemical-accuracy bar. This is confirmatory rather than novel with respect to that specific target's own classification — it was deliberately chosen as a methodologically weak case (§08) rather than a candidate suspected of Class A — but it establishes, for the first time in this line of work, that the classifier's DMRG-only evidence base can be reproduced by an independent method with a different failure mechanism, on the same footing. Following this result, the cross-check was promoted from a validation exercise into a standing policy: the classifier now dispatches DMRG and SHCI together as a mandatory pair rather than treating SHCI as an optional second opinion, so that no target reaches a Class A/B/C verdict on a single method's evidence alone.</p>
 
             <p><strong>Extending the check to a Class A target, and a methodological finding it produced.</strong> The outstanding test named above — running the cross-check against a target the classifier itself flags Class A, rather than one chosen for methodological weakness — was subsequently carried out on a declared proxy compound modeling a [2Fe–2S] cluster site (CAS(46,32)). Both methods independently returned Class A: DMRG measured S<sub>max</sub> = 3.37, well past the classification threshold, and SHCI's own convergence-only criterion (§ this classifier's source) likewise did not settle within a practical resource budget. The two methods' raw energies, however, differed by 95.5 mHa — an order of magnitude past the 1.6 mHa chemical-accuracy bar that governs the routine agreement check — which a first reading treated as a contradiction between the methods ("DMRG says A, SHCI says A, but they disagree"). That reading conflated two distinct signals that this dissertation's own classifier had, until this point, computed but not separated in its output: <em>energy agreement</em>, whether the two methods' raw energies match to chemical accuracy, and <em>class agreement</em>, whether the two methods reached the same A/B/C verdict. The two are not the same claim, and the case at hand shows exactly why: two methods that have each correctly failed to converge — which is precisely what a Class A verdict asserts of both — have no principled reason to land on the same wrong energy, so an energy mismatch between them is expected corroboration of a shared Class A finding, not evidence against it. The classifier was corrected to compute and surface <code>class_agreement</code> as a field distinct from the existing energy-based <code>agreement</code> check, computed server-side against the referenced record's own stored class rather than accepted from either submitting script (the same verify-don't-trust discipline as the rest of the provenance chain, §06.iii) — closing a real classification-display defect the earlier single-method-only framing above had not yet exposed a case sharp enough to surface. This is offered as a general methodological caution for any dual-solver classical-tractability check, not one specific to this platform: chemical-accuracy energy agreement is a meaningful cross-check only among <em>converged</em> results, and applying it unconditionally to a pair of methods that may both be reporting non-convergence risks manufacturing a false disagreement out of what is, in fact, agreement on the harder and more informative claim.</p>
 
@@ -3119,7 +3119,7 @@
       <p>This framing positions the governed QC·AI·HPC orchestration architecture not as an isolated computational exercise, but as the <strong>critical first step in a clinically meaningful and scientifically grounded drug discovery pipeline</strong> targeting currently non-druggable TP53 mutations in lung cancer.</p>
 
       <h3>Future Research Directions</h3>
-      <p>The molecular-level simulations enabled by this dissertation's SqDRIFT+VQE pipeline are positioned to inform a second clinical question that lies beyond the dissertation's scope: <strong>NGS-informed radiotherapy decision support</strong>. The non-druggable mutations targeted here — TP53, KEAP1, CDKN2A, STK11 — are the same mutations most frequently implicated in radioresistance literature, and the quantum-derived mechanistic features they expose (DNA damage repair dynamics, oxidative-stress response via the NRF2 pathway disrupted by KEAP1 mutations, apoptotic signaling) are precisely the features current radiogenomic models lack. The signal is measurable in contemporary clinical cohorts: in a stage III NSCLC cohort treated with definitive chemoradiation and consolidative durvalumab, tumor mutational burden was the covariate significantly associated with 24-month local-regional failure and progression-free survival <a href="#ref-65">[65]</a> — the class of clinical endpoint the radiogenomic layer would predict. Bridging quantum-simulated mutation effects into radiotherapy planning — extending prior efforts such as the Genomic-Adjusted Radiation Dose (GARD) framework (Scott et al., 2017) — is a defensible post-doctoral research program that this dissertation enables but does not undertake. The dissertation builds the molecular-simulation infrastructure; the radiotherapy decision-support layer, with its independent regulatory pathway and prospective-validation requirements, is reserved for future work.</p>
+      <p>The molecular-level simulations enabled by this dissertation's SqDRIFT+VQE pipeline are positioned to inform a second clinical question that lies beyond the dissertation's scope: <strong>NGS-informed radiotherapy decision support</strong>. The non-druggable mutations targeted here — TP53, KEAP1, CDKN2A, STK11 — are the same mutations most frequently implicated in radioresistance literature, and the quantum-derived mechanistic features they expose (DNA damage repair dynamics, oxidative-stress response via the NRF2 pathway disrupted by KEAP1 mutations, apoptotic signaling) are precisely the features current radiogenomic models lack. The signal is measurable in contemporary clinical cohorts: in a stage III NSCLC cohort treated with definitive chemoradiation and consolidative durvalumab, tumor mutational burden was the covariate significantly associated with 24-month local-regional failure and progression-free survival <a href="#ref-67">[67]</a> — the class of clinical endpoint the radiogenomic layer would predict. Bridging quantum-simulated mutation effects into radiotherapy planning — extending prior efforts such as the Genomic-Adjusted Radiation Dose (GARD) framework (Scott et al., 2017) — is a defensible post-doctoral research program that this dissertation enables but does not undertake. The dissertation builds the molecular-simulation infrastructure; the radiotherapy decision-support layer, with its independent regulatory pathway and prospective-validation requirements, is reserved for future work.</p>
 
       <h3>From Governed Pipeline to Chemist-Operable Instrument</h3>
       <p>The three claims of this dissertation (§06) are about the <em>orchestration architecture</em> — that a fermionic-simulation pipeline can be routed, notarized, and access-controlled across organizational and hardware boundaries while remaining auditable under an FDA Part 11 reinterpretation. Every claim is demonstrated end to end in the deployed prototype (§07) and is independent of any specific chemical result the pipeline happens to compute. Making that same prototype <em>operable by an industrial computational chemist against a real binding site</em> — rather than against the CAS(2e,2o)/STO-3G proxy compounds used throughout Phase 3A to exercise the architecture (§07, §08) — is a separate body of work, and this dissertation is explicit about which side of that line each remaining gap falls on.</p>
@@ -3337,50 +3337,58 @@
         </div>
         <div class="ref">
           <span class="ref-num">07</span>
-          <span>FDA (2003). 21 CFR Part 11: Electronic records; electronic signatures — guidance for industry. U.S. Food and Drug Administration.</span>
+          <span>Chandra, L., Seidel, S., &amp; Gregor, S. (2015). Prescriptive knowledge in IS research: Conceptualizing design principles in terms of materiality, action, and boundary conditions. <em>Proceedings of the 48th Hawaii International Conference on System Sciences</em>, 4039–4048.</span>
         </div>
         <div class="ref">
           <span class="ref-num">08</span>
-          <span>Gregor, S., &amp; Hevner, A. R. (2013). Positioning and presenting design science research for maximum impact. <em>MIS Quarterly</em>, 37(2), 337–355.</span>
+          <span>FDA (2003). 21 CFR Part 11: Electronic records; electronic signatures — guidance for industry. U.S. Food and Drug Administration.</span>
         </div>
         <div class="ref">
           <span class="ref-num">09</span>
-          <span>Hevner, A. R., March, S. T., Park, J., &amp; Ram, S. (2004). Design science in information systems research. <em>MIS Quarterly</em>, 28(1), 75–105.</span>
+          <span>Gregor, S., &amp; Hevner, A. R. (2013). Positioning and presenting design science research for maximum impact. <em>MIS Quarterly</em>, 37(2), 337–355.</span>
         </div>
         <div class="ref">
           <span class="ref-num">10</span>
-          <span>Joerger, A. C., &amp; Fersht, A. R. (2016). The p53 pathway: Origins, inactivation in cancer, and emerging therapeutic approaches. <em>Annual Review of Biochemistry</em>, 85, 375–404.</span>
+          <span>Gregor, S., Chandra Kruse, L., &amp; Seidel, S. (2020). Research perspectives: The anatomy of a design principle. <em>Journal of the Association for Information Systems</em>, 21(6), 1622–1652.</span>
         </div>
         <div class="ref">
           <span class="ref-num">11</span>
-          <span>McClean, J. R. et al. (2016). The theory of variational hybrid quantum-classical algorithms. <em>New Journal of Physics</em>, 18(2), 023023.</span>
+          <span>Hevner, A. R., March, S. T., Park, J., &amp; Ram, S. (2004). Design science in information systems research. <em>MIS Quarterly</em>, 28(1), 75–105.</span>
         </div>
         <div class="ref">
           <span class="ref-num">12</span>
-          <span>Peffers, K., Tuunanen, T., Rothenberger, M. A., &amp; Chatterjee, S. (2007). A design science research methodology for information systems research. <em>Journal of Management Information Systems</em>, 24(3), 45–77.</span>
+          <span>Joerger, A. C., &amp; Fersht, A. R. (2016). The p53 pathway: Origins, inactivation in cancer, and emerging therapeutic approaches. <em>Annual Review of Biochemistry</em>, 85, 375–404.</span>
         </div>
         <div class="ref">
           <span class="ref-num">13</span>
-          <span>Peruzzo, A. et al. (2014). A variational eigenvalue solver on a photonic chip. <em>Nature Communications</em>, 5, 4213.</span>
+          <span>McClean, J. R. et al. (2016). The theory of variational hybrid quantum-classical algorithms. <em>New Journal of Physics</em>, 18(2), 023023.</span>
         </div>
         <div class="ref">
           <span class="ref-num">14</span>
-          <span>Santagati, R. et al. (2024). Drug design on quantum computers. <em>Nature Physics</em>, 20, 549–557.</span>
+          <span>Peffers, K., Tuunanen, T., Rothenberger, M. A., &amp; Chatterjee, S. (2007). A design science research methodology for information systems research. <em>Journal of Management Information Systems</em>, 24(3), 45–77.</span>
         </div>
         <div class="ref">
           <span class="ref-num">15</span>
-          <span>Sarkar, I. N. (2010). Biomedical informatics and translational medicine. <em>Journal of Translational Medicine</em>, 8, 22.</span>
+          <span>Peruzzo, A. et al. (2014). A variational eigenvalue solver on a photonic chip. <em>Nature Communications</em>, 5, 4213.</span>
         </div>
         <div class="ref">
           <span class="ref-num">16</span>
-          <span>Scott, J. G., Berglund, A., Schell, M. J., Mihaylov, I., Fulp, W. J., Yue, B., Welsh, E., Caudell, J. J., Ahmed, K., Strom, T. S., Mellon, E., Venkat, P., Johnstone, P., Foekens, J., Lee, J., Moros, E., Dalton, W. S., Eschrich, S. A., McLeod, H., Harrison, L. B., &amp; Torres-Roca, J. F. (2017). A genome-based model for adjusting radiotherapy dose (GARD): A retrospective, cohort-based study. <em>The Lancet Oncology</em>, 18(2), 202–211.</span>
+          <span>Santagati, R. et al. (2024). Drug design on quantum computers. <em>Nature Physics</em>, 20, 549–557.</span>
         </div>
         <div class="ref">
           <span class="ref-num">17</span>
-          <span>Venable, J., Pries-Heje, J., &amp; Baskerville, R. (2016). FEDS: A framework for evaluation in design science research. <em>European Journal of Information Systems</em>, 25(1), 77–89.</span>
+          <span>Sarkar, I. N. (2010). Biomedical informatics and translational medicine. <em>Journal of Translational Medicine</em>, 8, 22.</span>
         </div>
         <div class="ref">
           <span class="ref-num">18</span>
+          <span>Scott, J. G., Berglund, A., Schell, M. J., Mihaylov, I., Fulp, W. J., Yue, B., Welsh, E., Caudell, J. J., Ahmed, K., Strom, T. S., Mellon, E., Venkat, P., Johnstone, P., Foekens, J., Lee, J., Moros, E., Dalton, W. S., Eschrich, S. A., McLeod, H., Harrison, L. B., &amp; Torres-Roca, J. F. (2017). A genome-based model for adjusting radiotherapy dose (GARD): A retrospective, cohort-based study. <em>The Lancet Oncology</em>, 18(2), 202–211.</span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">19</span>
+          <span>Venable, J., Pries-Heje, J., &amp; Baskerville, R. (2016). FEDS: A framework for evaluation in design science research. <em>European Journal of Information Systems</em>, 25(1), 77–89.</span>
+        </div>
+        <div class="ref">
+          <span class="ref-num">20</span>
           <span>Yin, R. K. (2014). <em>Case study research: Design and methods</em> (5th ed.). Sage Publications.</span>
         </div>
       </div>
@@ -3389,23 +3397,23 @@
 
       <div class="references">
         <div class="ref">
-          <span class="ref-num">19</span>
+          <span class="ref-num">21</span>
           <span>Tate, J. G. et al. (2019). COSMIC: The Catalogue of Somatic Mutations in Cancer. <em>Nucleic Acids Research</em>, 47(D1), D941–D947. <a href="https://cancer.sanger.ac.uk/cosmic" target="_blank" rel="noopener">cancer.sanger.ac.uk/cosmic</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">20</span>
+          <span class="ref-num">22</span>
           <span>Bouaoun, L. et al. (2016). TP53 Variations in Human Cancers: New Lessons from the IARC TP53 Database and Genomics Data. <em>Human Mutation</em>, 37(9), 865–876. <a href="https://tp53.isb-cgc.org" target="_blank" rel="noopener">tp53.isb-cgc.org</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">21</span>
+          <span class="ref-num">23</span>
           <span>The Cancer Genome Atlas Research Network (2014). Comprehensive molecular profiling of lung adenocarcinoma. <em>Nature</em>, 511, 543–550. Data portal: <a href="https://portal.gdc.cancer.gov" target="_blank" rel="noopener">portal.gdc.cancer.gov</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">22</span>
+          <span class="ref-num">24</span>
           <span>Bray, F. et al. (2024). Global cancer statistics 2022: GLOBOCAN estimates of incidence and mortality worldwide for 36 cancers in 185 countries. <em>CA: A Cancer Journal for Clinicians</em>, 74(3), 229–263.</span>
         </div>
         <div class="ref">
-          <span class="ref-num">23</span>
+          <span class="ref-num">25</span>
           <span>Joerger, A. C., &amp; Fersht, A. R. (2007). Structural biology of the tumor suppressor p53 and cancer-associated mutants. <em>Advances in Cancer Research</em>, 97, 1–23. <em>(Cited in Tables 1–2 for TP53 structural mutant classification: R175H, R282W.)</em></span>
         </div>
       </div>
@@ -3414,39 +3422,39 @@
 
       <div class="references">
         <div class="ref">
-          <span class="ref-num">24</span>
+          <span class="ref-num">26</span>
           <span>Drury, K. (2026, April 26). <em>Nvidia just announced a major quantum computing development</em>. The Motley Fool. <a href="https://www.fool.com/investing/2026/04/26/nvidia-just-announced-a-major-quantum-computing-de/" target="_blank" rel="noopener">fool.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">25</span>
+          <span class="ref-num">27</span>
           <span>FDA, Health Canada, &amp; MHRA (2021). <em>Good Machine Learning Practice for medical device development: Guiding principles</em>. U.S. Food and Drug Administration.</span>
         </div>
         <div class="ref">
-          <span class="ref-num">26</span>
+          <span class="ref-num">28</span>
           <span>IBM (2026, March 5). <em>IBM and university researchers create a never-before-seen molecule and prove its exotic nature with quantum computing</em>. IBM Newsroom. <a href="https://newsroom.ibm.com/2026-03-05-ibm-and-university-researchers-create-a-never-before-seen-molecule-and-prove-its-exotic-nature-with-quantum-computing" target="_blank" rel="noopener">newsroom.ibm.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">27</span>
+          <span class="ref-num">29</span>
           <span>NVIDIA (2025, October 28). <em>NVIDIA introduces NVQLink — connecting quantum and GPU computing for 17 quantum builders and nine scientific labs</em>. NVIDIA Newsroom. <a href="https://nvidianews.nvidia.com/news/nvidia-nvqlink-quantum-gpu-computing" target="_blank" rel="noopener">nvidianews.nvidia.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">28</span>
+          <span class="ref-num">30</span>
           <span>NVIDIA (2026, April 14). <em>NVIDIA launches Ising, the world's first open AI models to accelerate the path to useful quantum computers</em>. NVIDIA Newsroom. <a href="https://nvidianews.nvidia.com/news/nvidia-launches-ising-the-worlds-first-open-ai-models-to-accelerate-the-path-to-useful-quantum-computers" target="_blank" rel="noopener">nvidianews.nvidia.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">29</span>
+          <span class="ref-num">31</span>
           <span>Quantinuum (n.d.). <em>Quantinuum–NVIDIA partnership: ADAPT-GQE applied to imipramine</em>. Quantinuum corporate blog. <a href="https://www.quantinuum.com/blog/quantinuum-nvidia-partnership" target="_blank" rel="noopener">quantinuum.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">30</span>
+          <span class="ref-num">32</span>
           <span>The Quantum Insider (2025, June 9). <em>IonQ speeds quantum-accelerated drug-development application in partnership with AstraZeneca, AWS, and Nvidia</em>. <a href="https://thequantuminsider.com/2025/06/09/ionq-speeds-quantum-accelerated-drug-development-application-in-partnership-with-astrazeneca-aws-and-nvidia/" target="_blank" rel="noopener">thequantuminsider.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">31</span>
+          <span class="ref-num">33</span>
           <span>Swayne, M. (2026, March 26). <em>Quantinuum researchers demonstrate quantum computations with dozens of protected logical qubits</em>. The Quantum Insider. <a href="https://thequantuminsider.com/2026/03/10/quantinuum-researchers-demonstrates-quantum-computations-with-dozens-of-protected-logical-qubits/" target="_blank" rel="noopener">thequantuminsider.com</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">32</span>
+          <span class="ref-num">34</span>
           <span>Quantum Computing Report (2026, March 26). <em>Cleveland Clinic and IBM implement quantum workflow for protein simulation</em>. Quantum Computing Report. <a href="https://quantumcomputingreport.com/cleveland-clinic-and-ibm-implement-quantum-workflow-for-protein-simulation/" target="_blank" rel="noopener">quantumcomputingreport.com</a></span>
         </div>
       </div>
@@ -3455,159 +3463,159 @@
 
       <div class="references">
         <div class="ref">
-          <span class="ref-num">33</span>
+          <span class="ref-num">35</span>
           <span>Alexeev, Y. et al. (2024). Quantum-centric supercomputing for materials science: A perspective on challenges and future directions. <em>Future Generation Computer Systems</em>, 160, 666–710. <a href="https://doi.org/10.1016/j.future.2024.04.060" target="_blank" rel="noopener">doi:10.1016/j.future.2024.04.060</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">34</span>
+          <span class="ref-num">36</span>
           <span>Campbell, E. (2019). Random compiler for fast Hamiltonian simulation. <em>Physical Review Letters</em>, 123(7), 070503. <a href="https://doi.org/10.1103/PhysRevLett.123.070503" target="_blank" rel="noopener">doi:10.1103/PhysRevLett.123.070503</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">35</span>
+          <span class="ref-num">37</span>
           <span>Feynman, R. P. (1982). Simulating physics with computers. <em>International Journal of Theoretical Physics</em>, 21(6/7), 467–488. <a href="https://doi.org/10.1007/BF02650179" target="_blank" rel="noopener">doi:10.1007/BF02650179</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">36</span>
+          <span class="ref-num">38</span>
           <span>Fowler, A. G., Mariantoni, M., Martinis, J. M., &amp; Cleland, A. N. (2012). Surface codes: Towards practical large-scale quantum computation. <em>Physical Review A</em>, 86(3), 032324. <a href="https://doi.org/10.1103/PhysRevA.86.032324" target="_blank" rel="noopener">doi:10.1103/PhysRevA.86.032324</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">37</span>
+          <span class="ref-num">39</span>
           <span>Helgaker, T., Jørgensen, P., &amp; Olsen, J. (2000). <em>Molecular Electronic-Structure Theory</em>. John Wiley &amp; Sons. <a href="https://doi.org/10.1002/9781119019572" target="_blank" rel="noopener">doi:10.1002/9781119019572</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">38</span>
+          <span class="ref-num">40</span>
           <span>Kandala, A. et al. (2017). Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets. <em>Nature</em>, 549(7671), 242–246. <a href="https://doi.org/10.1038/nature23879" target="_blank" rel="noopener">doi:10.1038/nature23879</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">39</span>
+          <span class="ref-num">41</span>
           <span>Kiss, O., Grossi, M., &amp; Roggero, A. (2023). Importance sampling for stochastic quantum simulations. <em>Quantum</em>, 7, 977. <a href="https://doi.org/10.22331/q-2023-04-13-977" target="_blank" rel="noopener">doi:10.22331/q-2023-04-13-977</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">40</span>
+          <span class="ref-num">42</span>
           <span>Lankhorst, M. (2017). <em>Enterprise Architecture at Work: Modelling, Communication and Analysis</em> (4th ed.). Springer. <a href="https://doi.org/10.1007/978-3-662-53933-0" target="_blank" rel="noopener">doi:10.1007/978-3-662-53933-0</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">41</span>
+          <span class="ref-num">43</span>
           <span>Levine, B. G., Durden, A. S., Esch, M. P., Liang, F., &amp; Shu, Y. (2021). CAS without SCF—Why to use CASCI and where to get the orbitals. <em>The Journal of Chemical Physics</em>, 154(9), 090902. <a href="https://doi.org/10.1063/5.0042147" target="_blank" rel="noopener">doi:10.1063/5.0042147</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">42</span>
+          <span class="ref-num">44</span>
           <span>Lloyd, S. (1996). Universal quantum simulators. <em>Science</em>, 273(5278), 1073–1078. <a href="https://doi.org/10.1126/science.273.5278.1073" target="_blank" rel="noopener">doi:10.1126/science.273.5278.1073</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">43</span>
+          <span class="ref-num">45</span>
           <span>McArdle, S., Endo, S., Aspuru-Guzik, A., Benjamin, S. C., &amp; Yuan, X. (2020). Quantum computational chemistry. <em>Reviews of Modern Physics</em>, 92(1), 015003. <a href="https://doi.org/10.1103/RevModPhys.92.015003" target="_blank" rel="noopener">doi:10.1103/RevModPhys.92.015003</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">44</span>
+          <span class="ref-num">46</span>
           <span>The Open Group (2022). <em>ArchiMate 3.2 Specification</em> (Document No. C226). The Open Group.</span>
         </div>
         <div class="ref">
-          <span class="ref-num">45</span>
+          <span class="ref-num">47</span>
           <span>The Open Group (2022). <em>The TOGAF Standard, 10th Edition</em> (Architecture Development Method). The Open Group. ISBN 978-94-018-0859-0.</span>
         </div>
         <div class="ref">
-          <span class="ref-num">46</span>
+          <span class="ref-num">48</span>
           <span>Pierantoni, G., Kiss, T., Bolotov, A. et al. (2023). Toward a reference architecture based science gateway framework with embedded e-learning support. <em>Concurrency and Computation: Practice and Experience</em>, 35(18), e6872. <a href="https://doi.org/10.1002/cpe.6872" target="_blank" rel="noopener">doi:10.1002/cpe.6872</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">47</span>
+          <span class="ref-num">49</span>
           <span>Preskill, J. (2018). Quantum computing in the NISQ era and beyond. <em>Quantum</em>, 2, 79. <a href="https://doi.org/10.22331/q-2018-08-06-79" target="_blank" rel="noopener">doi:10.22331/q-2018-08-06-79</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">48</span>
+          <span class="ref-num">50</span>
           <span>Reiher, M., Wiebe, N., Svore, K. M., Wecker, D., &amp; Troyer, M. (2017). Elucidating reaction mechanisms on quantum computers. <em>Proceedings of the National Academy of Sciences</em>, 114(29), 7555–7560. <a href="https://doi.org/10.1073/pnas.1619152114" target="_blank" rel="noopener">doi:10.1073/pnas.1619152114</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">49</span>
+          <span class="ref-num">51</span>
           <span>Sandve, G. K., Nekrutenko, A., Taylor, J., &amp; Hovig, E. (2013). Ten simple rules for reproducible computational research. <em>PLOS Computational Biology</em>, 9(10), e1003285. <a href="https://doi.org/10.1371/journal.pcbi.1003285" target="_blank" rel="noopener">doi:10.1371/journal.pcbi.1003285</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">50</span>
+          <span class="ref-num">52</span>
           <span>Stodden, V. et al. (2016). Enhancing reproducibility for computational methods. <em>Science</em>, 354(6317), 1240–1241. <a href="https://doi.org/10.1126/science.aah6168" target="_blank" rel="noopener">doi:10.1126/science.aah6168</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">51</span>
+          <span class="ref-num">53</span>
           <span>Tilly, J. et al. (2022). The variational quantum eigensolver: A review of methods and best practices. <em>Physics Reports</em>, 986, 1–128. <a href="https://doi.org/10.1016/j.physrep.2022.08.003" target="_blank" rel="noopener">doi:10.1016/j.physrep.2022.08.003</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">52</span>
+          <span class="ref-num">54</span>
           <span>Wilkinson, M. D. et al. (2016). The FAIR Guiding Principles for scientific data management and stewardship. <em>Scientific Data</em>, 3, 160018. <a href="https://doi.org/10.1038/sdata.2016.18" target="_blank" rel="noopener">doi:10.1038/sdata.2016.18</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">53</span>
+          <span class="ref-num">55</span>
           <span>W3C (2013). <em>PROV-O: The PROV Ontology</em> (W3C Recommendation, 30 April 2013). World Wide Web Consortium. <a href="https://www.w3.org/TR/prov-o/" target="_blank" rel="noopener">w3.org/TR/prov-o</a></span>
         </div>
         <div class="ref">
-          <span class="ref-num">54</span>
+          <span class="ref-num">56</span>
           <span>Zachman, J. A. (1987). A framework for information systems architecture. <em>IBM Systems Journal</em>, 26(3), 276–292. <a href="https://doi.org/10.1147/sj.263.0276" target="_blank" rel="noopener">doi:10.1147/sj.263.0276</a></span>
         </div>
         <div class="ref" id="ref-54">
-          <span class="ref-num">55</span>
+          <span class="ref-num">57</span>
           <span>da Silva, M. P., et al. (2024). Demonstration of logical qubits and repeated error correction with better-than-physical error rates. <em>Nature</em>, 638, 920–926. <a href="https://doi.org/10.1038/s41586-024-08005-8" target="_blank" rel="noopener">doi:10.1038/s41586-024-08005-8</a> — Microsoft &amp; Quantinuum: 800× logical error reduction, 12 logical qubits, 14,000 circuits without error on Quantinuum H2 trapped-ion processor.</span>
         </div>
         <div class="ref" id="ref-55">
-          <span class="ref-num">56</span>
+          <span class="ref-num">58</span>
           <span>Ransford, A., et al. (Quantinuum, in collaboration with Sandia National Laboratories) (2026). Helios: a 98-qubit trapped-ion quantum processor with high-fidelity all-to-all connectivity. <em>Nature</em>. <a href="https://doi.org/10.1038/s41586-026-10676-4" target="_blank" rel="noopener">doi:10.1038/s41586-026-10676-4</a> — 98 physical qubits (<sup>137</sup>Ba<sup>+</sup>), 99.92% two-qubit gate fidelity, random-circuit-sampling quantum advantage; ~55 ms per depth-1 layer (throughput data point for §1.4.2).</span>
         </div>
         <div class="ref" id="ref-56">
-          <span class="ref-num">57</span>
+          <span class="ref-num">59</span>
           <span>Infleqtion, Inc. (2026, February 17). <em>Infleqtion and Churchill Capital Corp X complete business combination</em> [Press release]. Investor Relations. <a href="https://ir.infleqtion.com/news-events/press-releases/detail/166/infleqtion-and-churchill-capital-corp-x-complete-business-combination" target="_blank" rel="noopener">ir.infleqtion.com</a> — First neutral-atom quantum company to list publicly (NYSE: INFQ; ~$551M gross proceeds via business combination with Churchill Capital Corp X); systems deployed with the U.S. Department of War, NASA, DARPA, and the U.S. Department of Energy, and the U.K. National Quantum Computing Centre; NVIDIA joint logical-qubit materials-science demonstration (Anderson Impurity Model); roadmap target of 100+ logical qubits by 2028 on the Sqale platform.</span>
         </div>
         <div class="ref" id="ref-57">
-          <span class="ref-num">58</span>
+          <span class="ref-num">60</span>
           <span>Lee, S., Lee, J., Zhai, H., Tong, Y., Dalzell, A. M., Kumar, A., Helms, P., Gray, J., Cui, Z.-H., Liu, W., Kastoryano, M., Babbush, R., Preskill, J., Reichman, D. R., Campbell, E. T., Valeev, E. F., Lin, L., &amp; Chan, G. K.-L. (2023). Evaluating the evidence for exponential quantum advantage in ground-state quantum chemistry. <em>Nature Communications</em>, 14(1), 1952. <a href="https://doi.org/10.1038/s41467-023-37587-6" target="_blank" rel="noopener">doi:10.1038/s41467-023-37587-6</a> — Cited in §1.2 as the counter-argument the BQP-relevance framing is explicitly delimited against: evidence for exponential quantum advantage across chemical space has not been established in the general case.</span>
         </div>
         <div class="ref" id="ref-58">
-          <span class="ref-num">59</span>
+          <span class="ref-num">61</span>
           <span>IBM Quantum. (2026). <em>Processor types</em>. IBM Quantum Documentation. <a href="https://quantum.cloud.ibm.com/docs/en/guides/processor-types" target="_blank" rel="noopener">quantum.cloud.ibm.com/docs/en/guides/processor-types</a> — Heron r3: 156-qubit heavy-hex QPU; used to substantiate the r3 fidelity/coherence characterisation in §1.4.</span>
         </div>
         <div class="ref" id="ref-59">
-          <span class="ref-num">60</span>
+          <span class="ref-num">62</span>
           <span>IBM Quantum. (2026, January 5). <em>Nighthawk and the latest Heron are now available</em>. IBM Quantum product updates. <a href="https://quantum.cloud.ibm.com/announcements/en/product-updates/2026-01-05-nighthawk" target="_blank" rel="noopener">quantum.cloud.ibm.com/announcements/en/product-updates/2026-01-05-nighthawk</a> — Release of Heron r3 (ibm_pittsburgh), ~350&nbsp;µs T2 and improved gate/readout fidelity; source for the r3-vs-r2 fidelity argument in §1.4.</span>
         </div>
         <div class="ref" id="ref-60">
-          <span class="ref-num">61</span>
+          <span class="ref-num">63</span>
           <span>IBM (2026, July 23). <em>IBM to acquire HRL Laboratories to power the future of quantum</em>. IBM Newsroom. <a href="https://newsroom.ibm.com/2026-07-23-ibm-to-acquire-hrl-laboratories-to-power-the-future-of-quantum" target="_blank" rel="noopener">newsroom.ibm.com</a> — IBM acquires HRL Laboratories (formerly owned by Boeing and General Motors), adding silicon-spin qubit expertise and quantum sensing capabilities alongside IBM's existing superconducting qubit roadmap; transaction expected to close Q3 2026. Establishes IBM's formal two-track qubit strategy: superconducting (Heron r3 → Starling → Blue Jay) + silicon-spin (HRL/Anderon foundry, fault-tolerant regime ~2030+).</span>
         </div>
         <div class="ref" id="ref-61">
-          <span class="ref-num">62</span>
+          <span class="ref-num">64</span>
           <span>Nellis, S. (2026, July 23). <em>IBM buys HRL Laboratories to shift to two-track quantum computing strategy</em>. Reuters. <a href="https://www.reuters.com/business/autos-transportation/ibm-buys-hrl-laboratories-shift-two-track-quantum-computing-strategy-2026-07-23/" target="_blank" rel="noopener">reuters.com</a> — Reports IBM acquisition of HRL Laboratories; confirms two-track strategy (superconducting + silicon-spin); notes Boeing and GM retain quantum application partnerships post-acquisition; references the Anderon quantum wafer foundry established by IBM in 2026 with U.S. Department of Commerce support.</span>
         </div>
         <div class="ref" id="ref-62">
-          <span class="ref-num">63</span>
+          <span class="ref-num">65</span>
           <span>Ross, J. S., Thummalapalli, R., Febres-Aldana, C. A., et al. (2026). Clinical significance of MTAP deletions and their overlap with concurrent oncogenic driver alterations including EGFR in NSCLC. <em>Journal of Thoracic Oncology</em>, 21(3), 103520. <a href="https://doi.org/10.1016/j.jtho.2025.11.010" target="_blank" rel="noopener">doi.org/10.1016/j.jtho.2025.11.010</a> — Across 4,926 NSCLC tumours profiled by MSK-IMPACT, 10% carried an MTAP deletion, which co-occurs with CDKN2A deletion; among stage-IV MTAP-deleted cases, 83% also carried an oncogenic driver (48% EGFR). Establishes the contemporary evidence base for CDKN2A-locus loss as a clinically consequential, indirectly addressable (synthetic-lethal, via MTA-cooperative PRMT5 inhibition) target rather than a directly druggable one — the pattern this dissertation's classification framework formalises. (PMID 41260457.)</span>
         </div>
         <div class="ref" id="ref-63">
-          <span class="ref-num">64</span>
+          <span class="ref-num">66</span>
           <span>Volta, F., La Monica, S., Leonetti, A., et al. (2023). Intrinsic resistance to osimertinib in EGFR-mutated NSCLC cell lines induced by alteration in cell-cycle regulators. <em>Targeted Oncology</em>, 18(6), 953–964. <a href="https://doi.org/10.1007/s11523-023-01005-0" target="_blank" rel="noopener">doi.org/10.1007/s11523-023-01005-0</a> — Reduced CDKN2A (p16) with elevated Cyclin D1 confers intrinsic osimertinib resistance via the CDK4/6–Rb axis in EGFR-mutant NSCLC cell lines. Empirical support for the CDK4/6-interface rationale recorded for CDKN2A in Table 1.</span>
         </div>
         <div class="ref" id="ref-64">
-          <span class="ref-num">65</span>
+          <span class="ref-num">67</span>
           <span>Lebow, E. S., Shepherd, A., Eichholz, J. E., et al. (2023). Analysis of tumor mutational burden, progression-free survival, and local-regional control in patients with locally advanced non-small cell lung cancer treated with chemoradiation and durvalumab. <em>JAMA Network Open</em>, 6(1), e2249591. <a href="https://doi.org/10.1001/jamanetworkopen.2022.49591" target="_blank" rel="noopener">doi.org/10.1001/jamanetworkopen.2022.49591</a> — In 81 patients, tumor mutational burden was the covariate significantly associated with 24-month local-regional failure and progression-free survival on multivariable analysis; KEAP1/NFE2L2-altered tumours showed higher local-regional failure rates but this was not the significant multivariate predictor. Contemporary evidence that mutation-burden signal in the mutation classes targeted here carries radiotherapy-response information, supporting the radiogenomic extension identified in §09 as future work.</span>
         </div>
         <div class="ref" id="ref-65">
-          <span class="ref-num">66</span>
+          <span class="ref-num">68</span>
           <span>Holmes, A. A., Tubman, N. M., &amp; Umrigar, C. J. (2016). Heat-Bath Configuration Interaction: An Efficient Selected Configuration Interaction Algorithm Inspired by Heat-Bath Sampling. <em>Journal of Chemical Theory and Computation</em>, 12(8), 3674–3680. <a href="https://doi.org/10.1021/acs.jctc.6b00407" target="_blank" rel="noopener">doi.org/10.1021/acs.jctc.6b00407</a> — Introduces the Heat-Bath Configuration Interaction (HCI) selection criterion underlying the Selected-CI family used as this dissertation's second, independent classical method (§06.i).</span>
         </div>
         <div class="ref" id="ref-66">
-          <span class="ref-num">67</span>
+          <span class="ref-num">69</span>
           <span>Sharma, S., Holmes, A. A., Jeanmairet, G., Alavi, A., &amp; Umrigar, C. J. (2017). Semistochastic Heat-Bath Configuration Interaction Method: Selected Configuration Interaction with Semistochastic Perturbation Theory. <em>Journal of Chemical Theory and Computation</em>, 13(4), 1595–1604. <a href="https://doi.org/10.1021/acs.jctc.6b01028" target="_blank" rel="noopener">doi.org/10.1021/acs.jctc.6b01028</a> — The SHCI method (implemented in the Dice solver, <a href="https://github.com/sanshar/Dice" target="_blank" rel="noopener">github.com/sanshar/Dice</a>) run against the DMRG rung's own active-space Hamiltonian in §06.i's cross-validation, agreeing to 0.198 mHa on a real test cluster — the failure mechanism this dissertation relies on being independent of DMRG's bond-dimension growth.</span>
         </div>
         <div class="ref" id="ref-67">
-          <span class="ref-num">68</span>
+          <span class="ref-num">70</span>
           <span>Yeniaras, E., &amp; Karimov, M. A. (2026). QCIVET: A quantum–classical pipeline integrity framework with contract-based subtype verification and hash-chained audit traces. <em>arXiv preprint</em>, arXiv:2605.13109. <a href="https://arxiv.org/abs/2605.13109" target="_blank" rel="noopener">arxiv.org/abs/2605.13109</a> — Related-work comparison for LEON's P8 seal (&sect;06.ii, &sect;03.6): both use a hash-chained audit trail, but QCIVET proves pipeline-stage correctness (syntactic + quantum-stage semantic integrity, diamond-norm soundness), whereas LEON proves 21 CFR Part 11 evidentiary integrity (who ran what, when, unaltered) — complementary, not overlapping, claims.</span>
         </div>
         <div class="ref" id="ref-68">
-          <span class="ref-num">69</span>
+          <span class="ref-num">71</span>
           <span>Vandermause, J. et al. (2026). What is a good use case for quantum computers? <em>arXiv preprint</em>, arXiv:2506.15426. <a href="https://arxiv.org/abs/2506.15426" target="_blank" rel="noopener">arxiv.org/abs/2506.15426</a> — Proposes the Identify–Transform–Benchmark–Show-Quantum-Advantage (ITBQ) framework for a priori use-case selection, using DMRG convergence as one classical benchmark among several. Cited in &sect;03.1 to distinguish that pre-project selection methodology from this dissertation's own contribution: a live, dual-method (DMRG + SHCI) classifier running inside a production pipeline with automatic agreement/disagreement reporting (&sect;06.i), which ITBQ does not describe.</span>
         </div>
         <div class="ref" id="ref-69">
-          <span class="ref-num">70</span>
+          <span class="ref-num">72</span>
           <span>IBM Quantum. (2025, June 10). <em>IBM lays out clear path to fault-tolerant quantum computing</em>. IBM Quantum Computing Blog. <a href="https://www.ibm.com/quantum/blog/large-scale-ftqc" target="_blank" rel="noopener">ibm.com/quantum/blog/large-scale-ftqc</a> — Source for the Kookaburra (2026)/Cockatoo (2027)/Starling (2029) milestone sequence and the qLDPC (bivariate bicycle code) error-correction approach cited in §1.4's fault-tolerant roadmap discussion; Starling is specified as 200 logical qubits executing 100 million quantum gates, with Blue Jay (2,000 logical qubits) named as the subsequent platform.</span>
         </div>
         <div class="ref" id="ref-70">
-          <span class="ref-num">71</span>
+          <span class="ref-num">73</span>
           <span>IBM Quantum. (2025, November 12). <em>Scaling for quantum advantage and beyond</em>. IBM Quantum Computing Blog (Quantum Developer Conference 2025). <a href="https://www.ibm.com/quantum/blog/qdc-2025" target="_blank" rel="noopener">ibm.com/quantum/blog/qdc-2025</a> — Announces IBM Quantum Nighthawk (a new square-lattice architecture, debuting as <code>ibm_miami</code> at 120 qubits) and Nighthawk's successor-track relationship to the Heron line; cited in §1.4 to scope the "current-generation" characterisation of Heron r3 to the time this dissertation's QPU runs were executed, given a newer non-Heron architecture had already been previewed by the time of writing.</span>
         </div>
       </div>
