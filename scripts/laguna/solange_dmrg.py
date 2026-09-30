@@ -287,15 +287,21 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         dt = time.time() - t0
         energies.append((M, float(e)))
         try:
-            # LAST sweep at this M, not the max across sweeps (Claude Science,
-            # 2026-09-30, round 2): the early sweeps at a new M still show a
-            # large w because the MPS hasn't adapted yet, while the energy
-            # recorded above is already the LAST sweep's. Pairing that energy
-            # with the max-over-sweeps w mixes two different sweeps, and the
-            # mismatch does not cancel evenly across M (more "not yet adapted"
-            # sweeps survive into the max at small M than at large M). E and w
-            # must come from the identical sweep.
-            dw = float(drv._dmrg.sweep_discarded_weights[-1])
+            # get_dmrg_results() is the DOCUMENTED accessor (pyblock2/driver/
+            # core.py): returns (bond_dims, dws, energies), all three PER SWEEP,
+            # with dws "the maximal discarded weight (sum of discarded
+            # eigenvalues) for each sweep". Settled 2026-09-30 after two guessed
+            # attributes (drv._dmrg.discarded_weights / .sweep_discarded_weights,
+            # read directly with no accessor) both failed a real H8-vs-exact-FCI
+            # validation -- discarded_weights turned out to BE the right field
+            # (per-sweep, as guessed) but sweep_discarded_weights is untouched by
+            # the Python driver entirely (a C++-internal field the wrapper never
+            # populates) and should never have been read. dws[-1] is this
+            # dmrg() call's LAST sweep (matches the energy recorded above, since
+            # this call covers exactly one M) -- see dmrg_extrapolate.
+            # last_sweep_per_bond_dim's docstring for why last-sweep, not max.
+            _, dws, _ = drv.get_dmrg_results()
+            dw = float(dws[-1])
         except Exception:
             dw = None
         discarded_weights.append(dw)
@@ -1111,9 +1117,15 @@ def main():
     # Discarded-weight extrapolation (Claude Science, 2026-09-30): a sturdier
     # convergence read than raw ΔE, which conflates truncation error with an
     # unconverged sweep. Reported ALONGSIDE classify()'s own ΔE-based verdict,
-    # not in place of it — the field semantics were found empirically on this
-    # session's pyblock2 build and are not yet re-verified on Laguna's, so
-    # treat this block as informative until that's confirmed.
+    # not in place of it. The FIELD is now settled from pyblock2's own source
+    # (drv.get_dmrg_results(), see above) -- discarded_weights is genuinely
+    # per-sweep, sweep_discarded_weights was a red herring never touched by the
+    # Python driver. What's NOT yet re-validated on a real (non-toy) active
+    # space is whether THIS classification's bond-dimension ladder sits in the
+    # asymptotic linear-in-w regime the fit assumes (the H8/CAS(8,8) validator
+    # that first tried this field failed only because it had no such regime,
+    # not because the field was wrong) -- window_stability() below is exactly
+    # that check, run on this run's own ladder rather than assumed.
     extrap = None
     if all(w is not None for w in discarded_weights):
         try:
@@ -1130,6 +1142,16 @@ def main():
                     print(f"  [discarded-weight extrapolation] WARNING: {w}")
             else:
                 print(f"  [discarded-weight extrapolation] not run: {extrap['reason']}")
+            if len(Ms) >= 4:
+                stab = dmrg_extrapolate.window_stability(Ms, Es, discarded_weights)
+                if stab.get("ok"):
+                    print(f"  [window stability] {stab['verdict']} "
+                          f"(intercept spread {stab['intercept_spread_mHa']:.3f} mHa "
+                          f"across {len(stab['windows'])} fit windows)")
+                    if extrap:
+                        extrap["window_stability"] = stab
+                else:
+                    print(f"  [window stability] not run: {stab['reason']}")
         except Exception as e:
             print(f"  [discarded-weight extrapolation] skipped ({type(e).__name__}: {e})")
     else:

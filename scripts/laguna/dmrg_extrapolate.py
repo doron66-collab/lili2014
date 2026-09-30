@@ -27,10 +27,6 @@ Nothing here depends on how w is obtained -- pass it in. Two routes, in order of
 preference: a numeric attribute on the driver (check help() on your installed
 pyblock2), or parse_block2_log() below, which reads the sweep output and always
 works.
-
-Origin: Claude Science (2026-09-30), reviewing solange_dmrg.py's convergence
-criterion after the CAS(64,48) active-space redesign. Committed as-is except for
-this provenance note; verified locally via its own --selftest before use.
 """
 import re
 import sys
@@ -85,6 +81,15 @@ def extrapolate(bond_dims, energies, discarded_weights,
     e_best = E[-1]
     resid = abs(e_best - e0)
     warn = []
+    if max(W) < 1e-12:
+        # Caught from a real failed validation: a field returning values at machine
+        # epsilon can still produce a high R^2 by coincidence, with a fitted slope of
+        # order 1e16 Ha per unit weight. A good fit on numerically absent truncation
+        # is an artifact, not evidence.
+        warn.append("largest discarded weight is %.2e -- truncation is numerically absent, "
+                    "so there is nothing to extrapolate against. Either the bond dimensions "
+                    "already span the exact MPS, or this field is not the discarded weight "
+                    "(a fitted slope far above ~1e2 Ha per unit weight is the tell)" % max(W))
     if decades < min_w_decades:
         warn.append("discarded weight spans only %.2f decades over the fitted points; "
                     "extend the bond-dimension ladder before trusting the intercept" % decades)
@@ -112,6 +117,66 @@ def extrapolate(bond_dims, energies, discarded_weights,
                         "NOT CONVERGED at this ladder" if not warn else
                         "INCONCLUSIVE: see warnings, do not classify on this fit"),
             "warnings": warn}
+
+
+def last_sweep_per_bond_dim(bond_dims, dws, energies, root=0):
+    """Reduce the three PER-SWEEP arrays from DMRGDriver.get_dmrg_results() to one
+    (M, E, w) triple per bond dimension, taking the LAST sweep at each M.
+
+    Settled against the block2 driver source (pyblock2/driver/core.py,
+    get_dmrg_results): all three arrays are per SWEEP, and dws is documented as
+    "the maximal discarded weight (sum of discarded eigenvalues) for each sweep".
+    The energies entries may each be a list (one per root), hence `root`.
+
+    Taking the last sweep at each M - rather than the maximum weight over the
+    sweeps at that M - is what keeps E and w on the same sweep. The early sweeps
+    after a bond-dimension increase carry a larger weight because the MPS has not
+    adapted yet; pairing that weight with the converged energy mixes two states.
+    """
+    def scalar(e):
+        try:
+            return float(e[root])
+        except (TypeError, IndexError):
+            return float(e)
+
+    n = min(len(bond_dims), len(dws), len(energies))
+    last = {}
+    for i in range(n):
+        last[int(bond_dims[i])] = (scalar(energies[i]), float(dws[i]))
+    out = sorted((m, e, w) for m, (e, w) in last.items())
+    return [m for m, _, _ in out], [e for _, e, _ in out], [w for _, _, w in out]
+
+
+def window_stability(bond_dims, energies, discarded_weights, chem_acc=CHEM_ACC_HA):
+    """Is the ladder actually in the asymptotic linear-in-w regime?
+
+    Extrapolation to w -> 0 is a LOCAL statement about the tail, not a global fit.
+    Fitting points where the MPS is still qualitatively wrong cannot be linear and
+    will return a confident, wrong intercept. The test: refit over progressively
+    shorter windows from the large-M end and see whether the intercept moves.
+    If dropping the smallest-M point shifts it by more than chemical accuracy, the
+    ladder has not reached the regime - extend it upward rather than trusting it.
+    """
+    rows, n = [], len(bond_dims)
+    for k in range(3, n + 1):
+        r = extrapolate(bond_dims, energies, discarded_weights, n_points=k,
+                        chem_acc=chem_acc)
+        if r.get("ok"):
+            rows.append({"n_points": k, "bond_dims": r["bond_dims_used"],
+                         "e_extrapolated_Ha": r["e_extrapolated_Ha"],
+                         "r2": r["r2"], "slope": r["slope_Ha_per_w"]})
+    if len(rows) < 2:
+        return {"ok": False, "reason": "need at least 4 bond dimensions to test stability"}
+    es = [r["e_extrapolated_Ha"] for r in rows]
+    spread = max(es) - min(es)
+    return {"ok": True, "windows": rows, "intercept_spread_Ha": spread,
+            "intercept_spread_mHa": spread * 1000.0,
+            "stable": spread < chem_acc,
+            "verdict": ("intercept is stable across fit windows; the tail is in the "
+                        "linear regime" if spread < chem_acc else
+                        "intercept moves by %.2f mHa across fit windows -- the ladder is "
+                        "NOT in the asymptotic regime; extend it to larger M rather than "
+                        "trusting any single fit" % (spread * 1000.0))}
 
 
 def parse_block2_log(path, dw_token=r'DW'):
@@ -161,6 +226,32 @@ def _selftest():
                      [5.0e-5, 4.0e-5, 3.0e-5])
     assert any('decades' in w for w in rn["warnings"]), rn
     print("selftest narrow ladder  : caught -> %s" % [w for w in rn["warnings"] if 'decades' in w][0][:88])
+
+    # per-sweep reduction: 3 sweeps at each of 3 bond dimensions, energies as
+    # one-element lists (the multi-root shape the driver documents)
+    bd = [16, 16, 16, 32, 32, 32, 64, 64, 64]
+    dw = [9e-4, 6e-4, 5e-4, 3e-4, 2e-4, 1.5e-4, 8e-5, 5e-5, 4e-5]
+    en = [[-1.10], [-1.12], [-1.1300], [-1.14], [-1.15], [-1.1550], [-1.158], [-1.159], [-1.1595]]
+    M, E, W = last_sweep_per_bond_dim(bd, dw, en)
+    assert M == [16, 32, 64] and W == [5e-4, 1.5e-4, 4e-5], (M, E, W)
+    assert E == [-1.13, -1.155, -1.1595], E
+    print("selftest per-sweep glue : reduced 9 sweeps -> M=%s, last-sweep w=%s" % (M, W))
+
+    # window stability: a ladder whose small-M end is outside the linear regime
+    Mq = [8, 16, 32, 64, 128, 256]
+    Wq = [2.0e-2, 4.0e-3, 8.0e-4, 1.6e-4, 3.2e-5, 6.4e-6]
+    # asymptotic part obeys E0 + 3*w; the two smallest M are pulled far off the line
+    Eq = [(-1.2000 + 3.0 * w) for w in Wq]
+    Eq[0] += 0.35
+    Eq[1] += 0.06
+    st = window_stability(Mq, Eq, Wq)
+    assert st["ok"] and not st["stable"], st
+    print("selftest window stability: spread %.2f mHa across windows -> not asymptotic (correct)"
+          % st["intercept_spread_mHa"])
+    st2 = window_stability(Mq[2:], Eq[2:], Wq[2:])
+    assert st2["ok"] and st2["stable"], st2
+    print("                          : dropping the two bad points -> stable (%.4f mHa)"
+          % st2["intercept_spread_mHa"])
 
 
 if __name__ == '__main__':
