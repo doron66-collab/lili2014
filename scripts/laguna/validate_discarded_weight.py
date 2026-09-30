@@ -23,8 +23,8 @@ History (2026-09-30, same day, three rounds):
            qualitatively wrong, M=32/64 are already numerically exact -- a fit
            across that gap cannot be linear by construction).
 
-This version fixes the TEST SYSTEM, not the field: a linear H14 chain (still
-r=1.8 A, STO-6G, CAS(14,14)) has a much larger exact bond dimension, so
+This version fixes the TEST SYSTEM, not the field: a linear H_{N_SITES} chain (N_SITES set above; still
+r=1.8 A, STO-6G) has a larger exact bond dimension than H8 did, so
 M=16..256 gives a real asymptotic window while FCI (dim = C(14,7)^2 ~ 1.18e7)
 is still a cheap, exact PySCF reference.
 
@@ -49,12 +49,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 BOND_DIMS = [16, 32, 64, 128, 256]
-N_SITES = 14
+N_SITES = 12
 BOND_LENGTH = 1.8
 BASIS = "sto-6g"
 
 
-def build_h14_fci():
+def build_hchain_fci():
     from pyscf import gto, scf, fci, ao2mo
     atoms = "\n".join(f"H 0 0 {i * BOND_LENGTH:.4f}" for i in range(N_SITES))
     mol = gto.M(atom=atoms, basis=BASIS, verbose=0)
@@ -63,11 +63,11 @@ def build_h14_fci():
     eri = ao2mo.kernel(mol, mf.mo_coeff)
     eri_full = ao2mo.restore(1, eri, mol.nao)
     na = mol.nelectron // 2
-    print(f"[h14] running exact FCI at CAS({mol.nelectron},{mol.nao}) -- "
+    print(f"[hchain] running exact FCI at CAS({mol.nelectron},{mol.nao}) -- "
           f"dim=C({mol.nao},{na})^2, this is the expensive-but-exact step, "
           f"give it a few minutes...", flush=True)
     e_fci, _ = fci.direct_spin1.FCI().kernel(h1e, eri, mol.nao, (na, na), ecore=mf.energy_nuc())
-    print(f"[h14] E_scf={mf.e_tot:.8f}  E_fci={e_fci:.8f}  CAS({mol.nelectron},{mol.nao})",
+    print(f"[hchain] E_scf={mf.e_tot:.8f}  E_fci={e_fci:.8f}  CAS({mol.nelectron},{mol.nao})",
           flush=True)
     return h1e, eri_full, mf.energy_nuc(), mol.nao, mol.nelectron, e_fci
 
@@ -109,7 +109,7 @@ def run_ladder(h1e, eri_full, ecore, ncas, nelec):
 
 
 def main():
-    h1e, eri_full, ecore, ncas, nelec, e_fci = build_h14_fci()
+    h1e, eri_full, ecore, ncas, nelec, e_fci = build_hchain_fci()
     energies, weights = run_ladder(h1e, eri_full, ecore, ncas, nelec)
 
     import dmrg_extrapolate as dex
