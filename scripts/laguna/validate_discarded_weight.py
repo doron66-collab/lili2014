@@ -60,7 +60,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-BOND_DIMS = [3, 4, 6, 8, 12]
+BOND_DIMS = [4, 6, 8, 12, 16]
 N_SITES = 12
 BOND_LENGTH = 1.4
 BASIS = "sto-6g"
