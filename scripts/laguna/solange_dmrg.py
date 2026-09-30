@@ -412,7 +412,9 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                              max_cycle_macro=20, dmrg_scf=False, dmrg_scf_maxm=500,
                              dmrg_scf_scratch="./tmp_dmrgscf_orb", n_threads=4,
                              orbital_deadline=None, stack_mem_gb=None, casci=False,
-                             avas_threshold=0.2, load_orbitals=None):
+                             avas_threshold=0.2, load_orbitals=None,
+                             ncas_override=None, nelecas_override=None,
+                             skip_precondition=False):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
     shaped like run_casscf's output. The CLUSTER itself (which residues/atoms/metal,
@@ -501,7 +503,25 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     if density_fit:
         mf = mf.density_fit(auxbasis=df_auxbasis)
     mf = mf.run()
-    ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")], threshold=avas_threshold)
+    # ncas_override/nelecas_override (2026-09-30): when the orbitals being loaded
+    # did NOT come from this function's own avas.avas(mf, ..., threshold=...) call
+    # -- e.g. avas_by_count.py's explicit (n_occ, n_vir) selection, built because
+    # AVAS's single threshold is a broken cut across the occupied/virtual sigma
+    # distributions (see avas_by_count.py's docstring) -- calling avas.avas() here
+    # anyway would silently compute a DIFFERENT (ncas, nelec) than the loaded
+    # mo_coeff's actual shape, and CASCI would either crash on a shape mismatch or,
+    # worse, run on the wrong active-space size against orbitals for a different
+    # one. Skip AVAS entirely in that case; the caller is asserting these exact
+    # numbers match the file.
+    if ncas_override is not None and nelecas_override is not None:
+        ncas, nelec = ncas_override, nelecas_override
+        mo = None
+        print(f"  --ncas/--nelecas given with --load-orbitals: trusting the caller's "
+              f"CAS({nelec},{ncas}) instead of re-deriving it from AVAS's own threshold "
+              f"sweep (this run's orbitals were selected by count, not by AVAS threshold "
+              f"-- see avas_by_count.py).", flush=True)
+    else:
+        ncas, nelec, mo = avas.avas(mf, [s.strip() for s in avas_aos.split(",")], threshold=avas_threshold)
     # --load-orbitals: substitute a PREVIOUSLY-computed mo_coeff (saved by an
     # earlier run of this same script, --scratch/mo_coeff_final.npy) for AVAS's
     # own raw output, and skip the optimization loop entirely — added to let a
@@ -509,7 +529,9 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # orbitals a truncated run already spent real compute reaching, instead of
     # redoing the whole (multi-hour) orbital-optimization phase from scratch.
     # AVAS still runs above (cheap) so ncas/nelec are the SAME deterministic
-    # values the original run used — only the orbitals themselves are replaced.
+    # values the original run used — only the orbitals themselves are replaced —
+    # UNLESS ncas_override/nelecas_override were given (see above), in which case
+    # AVAS was skipped entirely and ncas/nelec are the caller's asserted values.
     # This is NOT the "casci" flag's meaning below (AVAS's own untouched
     # output, trivially "converged" since nothing was attempted): these
     # orbitals came from a run that was ALREADY mid-optimization when it was
@@ -530,6 +552,28 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                      " *** LARGE for CASSCF/FCI (>16 active orbitals is often impractical "
                      "— consider narrowing --avas, or pass --dmrg-scf) ***")
     print(f"  AVAS selected active space: CAS({nelec},{ncas}){size_note}", flush=True)
+    # Blocking precondition (2026-09-30): refuse to spend CASSCF/DMRG-SCF compute
+    # on an active space whose verdict is already determined by its dimensions
+    # alone. TP53_C275F cluster76 ran CAS(76,38) — occ=38, vir=0, exactly one
+    # Slater determinant — to conclusion (~20 min DMRG-SCF each side) before
+    # anyone checked that S_max=0.0 was mathematically guaranteed, not measured.
+    # check_active_space.py's rules (R1 zero virtuals / R2 virtual fraction floor
+    # / R3 entropy ceiling below S_HARD / R4 exactly-diagonalisable) are exactly
+    # the check that data already on hand (ncas, nelecas) would have caught in
+    # under a second. --skip-precondition exists only for a deliberately-C-class
+    # active space (e.g. a demo/calibration run) where the "verdict is moot, not
+    # missing" — do not use it to push past R1/R3 on a real classification run.
+    if not skip_precondition:
+        sys.path.insert(0, str(_HERE.parent))
+        import check_active_space as cas_check
+        _p = argparse.Namespace(s_hard=S_HARD, min_vir_frac=15.0, fci_floor=1e9, fci_ceiling=1e40)
+        _fails = cas_check.report(nelec, ncas, _p)
+        if _fails:
+            sys.exit(f"\n*** REFUSING to run CASSCF/DMRG-SCF on CAS({nelec},{ncas}): "
+                     f"{'; '.join(_fails)}. This run's classification is determined "
+                     f"before it starts. Redesign the active space (see avas_by_count.py), "
+                     f"or pass --skip-precondition if this is intentionally a boundary/"
+                     f"calibration case, not a classification being reported. ***")
     from pyscf import mcscf
     # one_shot: structurally the SAME single-diagonalization path as --casci
     # (a CASCI object, no macro-iteration loop) — --load-orbitals forces it too,
@@ -853,6 +897,14 @@ def main():
                          "is exceeded, and return/save whatever completed so far — for "
                          "fixed-walltime HPC allocations (e.g. a 2-hour ticket) where getting "
                          "killed mid-sweep would lose everything.")
+    ap.add_argument("--skip-precondition", action="store_true",
+                    help="skip check_active_space.py's blocking precondition (R1 zero virtuals, "
+                         "R2 virtual-fraction floor, R3 entropy ceiling below S_HARD, R4 exactly-"
+                         "diagonalisable). Added 2026-09-30 after TP53_C275F cluster76 CAS(76,38) "
+                         "ran to a S_max=0.0 conclusion that was mathematically guaranteed by its "
+                         "occ/vir dimensions before the run started. Use this ONLY for a "
+                         "deliberate boundary/calibration case where the verdict being moot is "
+                         "the point, not to push past a failing check on a run meant to classify.")
     ap.add_argument("--submit", nargs="?", const="https://qcaihpc-simulation-api.onrender.com",
                     help="POST the sealed classification to SOLANGE so it's LEON-notarized and "
                          "stored immediately — safe even if this Laguna session later becomes "
@@ -889,7 +941,10 @@ def main():
                                        dmrg_scf_scratch=args.dmrg_scf_scratch, n_threads=args.threads,
                                        orbital_deadline=orbital_deadline, stack_mem_gb=args.stack_mem_gb,
                                        casci=args.casci, avas_threshold=args.avas_threshold,
-                                       load_orbitals=args.load_orbitals)
+                                       load_orbitals=args.load_orbitals,
+                                       ncas_override=args.ncas if args.load_orbitals else None,
+                                       nelecas_override=args.nelecas if args.load_orbitals else None,
+                                       skip_precondition=args.skip_precondition)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
         if cas.get("orbital_optimization_truncated"):
@@ -925,6 +980,15 @@ def main():
         from solange_hpc import run_casscf
         print(f"SOLANGE DMRG classifier · {args.key} · {args.compound}/{args.basis} "
               f"· CAS({args.nelecas},{args.ncas})")
+        if not args.skip_precondition:
+            sys.path.insert(0, str(_HERE.parent))
+            import check_active_space as cas_check
+            _p = argparse.Namespace(s_hard=S_HARD, min_vir_frac=15.0, fci_floor=1e9, fci_ceiling=1e40)
+            _fails = cas_check.report(args.nelecas, args.ncas, _p)
+            if _fails:
+                sys.exit(f"\n*** REFUSING to run CASSCF/DMRG-SCF on CAS({args.nelecas},{args.ncas}): "
+                         f"{'; '.join(_fails)}. Pass --skip-precondition only if this is a "
+                         f"deliberate boundary/calibration case, not a classification run. ***")
         # Same split as the --geometry branch above, and for the same reason: this
         # branch had NO orbital-phase time guard at all until a live --compound run
         # (ARID2_LOF, CAS(16,16)) ground past macro-iteration 170 with the energy
