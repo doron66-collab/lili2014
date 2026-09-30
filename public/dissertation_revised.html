@@ -2304,6 +2304,21 @@
       <h3>Phase 4 · Triangulated DSR Evaluation Architecture</h3>
       <p>The artifact is evaluated through four independent evidence sources, following the FEDS framework (Venable et al., 2016) for DSR evaluation strategy. Each layer addresses a different validity threat; together they triangulate to produce a defensible aggregate judgment that no single source could supply alone.</p>
 
+      <p><strong>Evaluation strategy, stated explicitly (added 2026-09-30, Claude Science methodological review).</strong> FEDS names four evaluation strategies — <em>Quick &amp; Simple</em>, <em>Human Risk &amp; Effectiveness</em>, <em>Technical Risk &amp; Efficacy</em>, and <em>Purely Technical</em> — chosen according to where the artifact's dominant risk sits. An earlier draft cited FEDS without naming which strategy the four layers below actually implement, leaving the small Layer-3 expert panel (n=4&ndash;6) looking like a scaled-down substitute for a larger field study rather than a deliberate choice. This dissertation's dominant risk is <strong>technical, not human-social</strong>: the open question is whether the governed pipeline's provenance and audit-trail guarantees hold under real execution and across trust boundaries (§06.ii&ndash;§06.iii) — not whether end users will adopt the interface, which is not this dissertation's claim. The strategy is therefore <strong>Technical Risk &amp; Efficacy</strong>, under which artificial, technically-rigorous evaluation with a small expert panel providing domain-grounded stakeholder judgment is the recommended design, not a compromise forced by resource limits. Naming the strategy also fixes where each layer sits on FEDS's own two axes:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>What it evaluates</th><th>Formative &harr; summative</th><th>Artificial &harr; naturalistic</th></tr></thead>
+          <tbody>
+            <tr><td>1 — Automated technical harness</td><td>Artifact performance against pre-registered acceptance thresholds</td><td>Formative &rarr; summative (thresholds fixed before results, but findings feed immediate fixes before Layer 3)</td><td>Artificial (synthetic test cases, no real stakeholder)</td></tr>
+            <tr><td>2 — Comparative benchmarking</td><td>Positioning against existing classical/commercial baselines</td><td>Summative (a fixed comparison, run once and reported)</td><td>Artificial (controlled reference tasks, not a real deployment)</td></tr>
+            <tr><td>3 — Expert panel</td><td>Domain-expert stakeholder judgment on utility, novelty, rigor, feasibility</td><td>Summative (a final judgment against pre-registered criteria)</td><td>Naturalistic (real domain experts, their own professional judgment)</td></tr>
+            <tr><td>4 — Case-based walkthrough</td><td>A realistic use scenario traced end-to-end</td><td>Formative (surfaces gaps and rough edges ahead of any final claim)</td><td>Naturalistic (a real, if narrated, case rather than a synthetic benchmark)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.85em;color:var(--muted)">Read as a diagram: Layer 1 sits at (artificial, formative&rarr;summative), Layer 2 at (artificial, summative), Layer 3 at (naturalistic, summative), Layer 4 at (naturalistic, formative) — the four layers occupy three of the four quadrants FEDS defines, deliberately, so no single quadrant carries the whole evaluation's weight.</p>
+
       <h4>Layer 1 · Technical Evaluation (Artifact Performance — No Human Subjects)</h4>
       <p>Objective measurement of the artifact itself, executed via an automated test harness with pre-registered acceptance thresholds.</p>
       <div class="table-wrap">
