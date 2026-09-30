@@ -23,12 +23,24 @@ History (2026-09-30, same day, three rounds):
            qualitatively wrong, M=32/64 are already numerically exact -- a fit
            across that gap cannot be linear by construction).
 
-This version fixes the TEST SYSTEM, not the field: a linear H_{N_SITES} chain (N_SITES set above; still
-r=1.8 A, STO-6G) has a larger exact bond dimension than H8 did, so
-M=16..256 gives a real asymptotic window while FCI (dim = C(14,7)^2 ~ 1.18e7)
-is still a cheap, exact PySCF reference.
+Round 4 (this version): the round-3 run (H12, r=1.8 A -- stretched, near
+dissociation) FAILED too, but for a THIRD different reason: the discarded
+weight it reached was ~1e-2, three to four orders of magnitude above where the
+linear E~=E0+c*w relation actually holds (published extrapolations work at
+w~1e-5 to 1e-7). The (E-E_FCI)/w ratio drifted 10x across the ladder
+(17.2 -> 14.4 -> 10.3 -> 5.9 -> 1.7) -- direct evidence the fit was never in
+the asymptotic regime at any M tried, confirmed independently of R^2 or the
+window-stability spread. Lesson: H8 was too EASY (no window at all -- already
+exact by M=32); H12 at 1.8A was too HARD (never reaches the window even at
+M=256, since 256 is only 6.2% of the exact 4096-dimensional cut). The
+parameter that matters is not orbital count but correlation STRENGTH -- fixed
+here by shortening the bond length to r=1.4 A (still stretched relative to
+equilibrium ~0.74 A, but far short of dissociation), which should let w reach
+1e-6 at a modest M. dmrg_extrapolate.extrapolate() also gained a MAX_W_LINEAR
+(1e-3) ceiling from this failure, verified to reproduce the H12/1.8A run's own
+R^2=0.906 and reject it.
 
-Acceptance criteria (five now -- window stability added):
+Acceptance criteria (five -- window stability added in round 3):
   1. w > 0 and monotonically DEcreasing as M increases
   2. E(M) - E_FCI > 0 and monotonically decreasing as M increases
   3. linear fit of E against w: positive slope, R^2 > 0.99
@@ -48,9 +60,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-BOND_DIMS = [16, 32, 64, 128, 256]
+BOND_DIMS = [12, 16, 24, 32, 48]
 N_SITES = 12
-BOND_LENGTH = 1.8
+BOND_LENGTH = 1.4
 BASIS = "sto-6g"
 
 

@@ -32,6 +32,7 @@ import re
 import sys
 
 CHEM_ACC_HA = 0.0016          # 1 kcal/mol, the bar used throughout this project
+MAX_W_LINEAR = 1e-3           # ceiling on the discarded weight for the linear-in-w regime
 
 
 def _ols(x, y):
@@ -81,6 +82,16 @@ def extrapolate(bond_dims, energies, discarded_weights,
     e_best = E[-1]
     resid = abs(e_best - e0)
     warn = []
+    if max(W) > MAX_W_LINEAR:
+        # Caught from a real failed validation on a stretched H12 chain, where the
+        # largest weight was 1.8e-2. The relation E ~= E0 + c*w is a LEADING-ORDER
+        # statement; it needs w small. Published extrapolations work at w ~ 1e-5 to
+        # 1e-7. At the percent level the higher-order terms dominate and the fitted
+        # intercept is meaningless however good the R^2 looks.
+        warn.append("largest discarded weight is %.2e, above the %.0e ceiling for the "
+                    "linear regime -- the ladder has not reached the regime the method "
+                    "assumes. Raise the bond dimensions, or move to a system where this "
+                    "weight is reachable, rather than fitting here" % (max(W), MAX_W_LINEAR))
     if max(W) < 1e-12:
         # Caught from a real failed validation: a field returning values at machine
         # epsilon can still produce a high R^2 by coincidence, with a fitted slope of
