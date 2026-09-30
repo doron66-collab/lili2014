@@ -2667,19 +2667,87 @@
 
       <h4>Five Design Principles (DP1–DP5)</h4>
       <p>Each principle is stated as generalizable design knowledge, paired with its concrete mechanism in SOLANGE and the reasoning that justifies it. The principles are deliberately artifact-independent: a different platform in a different scientific domain could satisfy all five without sharing a line of SOLANGE's code.</p>
+      <p style="font-size:0.86rem; color:var(--muted); line-height:1.6;"><strong>Reformatted 2026-09-30 (Claude Science methodological review).</strong> An earlier draft stated each principle as name + slogan + mechanism + rationale — three or four of the seven components the design-principles literature specifies (Chandra, Seidel, &amp; Gregor, 2015; Gregor, Chandra Kruse, &amp; Seidel, 2020: aim, actor, user/beneficiary, mechanism, enactor, rationale, boundary condition). Missing systematically: <em>for whom</em> the principle acts (always implicitly "the system"), and <em>boundary condition</em> — when the principle does <em>not</em> hold, stated for none of the five. Boundary conditions are not a formality here: they are where this dissertation's own heaviest disclosed limitations (§08) become part of the design theory rather than sitting outside it as an apology. Each principle below is restated in full.</p>
+
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr><th>#</th><th>Design principle</th><th>Mechanism in SOLANGE (instantiation)</th><th>Grounding / rationale</th></tr>
-          </thead>
+          <thead><tr><th colspan="2">DP1 — Verify, don't trust</th></tr></thead>
           <tbody>
-            <tr><td><strong>DP1</strong></td><td><em>Verify, don't trust.</em> A result crossing a trust boundary is an unverified claim until reproducible cryptographic proof re-establishes its integrity — never trusted on the strength of its origin.</td><td><strong>LEON</strong> recomputes the P8 seal and re-checks physics-consistency at ingestion and again on demand; failing records are rejected, not stored (§06.ii).</td><td>Applies the zero-trust security stance to scientific provenance; makes the P1–P9 chain self-enforcing rather than declarative.</td></tr>
-            <tr><td><strong>DP2</strong></td><td><em>Cross a security boundary without weakening it.</em> Where a resource sits behind interactive 2FA with no inbound path, control is inverted so the platform never reaches in and stores no credential outside the boundary.</td><td>Pull-based dispatch: a bounded agent inside the authenticated session polls an <em>outbound</em> queue, executes, and returns results — <em>queued→claimed→executed→returned</em> (§06.ii).</td><td>Adapts the self-hosted-runner / queue-worker pattern to governed HPC; preserves the human 2FA that gates the session.</td></tr>
-            <tr><td><strong>DP3</strong></td><td><em>Provenance is a first-class, execution-time artifact.</em> Audit records are emitted at the moment device state is recoverable, never reconstructed afterward.</td><td>The nine-element P1–P9 record is produced during execution and sealed at source; calibration epoch and error budget are captured in-band (§06.iii).</td><td>Retrospective provenance is non-physical for probabilistic quantum runs; governance must live in the orchestration, not be bolted onto outputs.</td></tr>
-            <tr><td><strong>DP4</strong></td><td><em>Governance is workload-agnostic.</em> The orchestration and notarization layers are indifferent to the scientific payload they carry.</td><td>The CASSCF/VQE chemistry is one interchangeable workload; the dispatch, provenance, and LEON layers make no assumption about it and would carry any heavy compute unchanged.</td><td>This is what makes the contribution an <em>Information Systems</em> one rather than a computational-chemistry one — the governed pattern transfers beyond the biology.</td></tr><tr><td><strong>DP5</strong></td><td><em>A result&rsquo;s standing is bounded by its weakest input, and the bound travels with the result.</em> A system that computes correctly may still report misleadingly, because correctness and standing are different properties. Every value therefore carries a grade derived from its inputs &mdash; never asserted by whoever produced it &mdash; and that grade accompanies the value into every surface it reaches.</td><td>Evidence grades (<code>demonstration_only</code> / <code>template_conformant</code> / <code>reference_exemplar</code>) are computed from the inputs themselves and cannot be self-declared; the Decision Gateway caps a recommendation&rsquo;s confidence at the provenance of whichever input decided the route, and reports the uncapped value alongside so the gap is visible; a measurement is authoritative only for the active space it actually covered; and the qualification is emitted into the interface, the CSV and JSON exports, and the API payload from one canonical definition, so it cannot be separated from the numbers by a screenshot or a download.</td><td>Derived from failures observed in this artifact rather than proposed in the abstract. A correlation energy computed over a two-electron model compound was rendered as a property of a forty-four-electron protein site; because model compounds are shared across genes, four targets displayed the identical value and read as independent corroboration of one another. A DMRG run over a six-electron fragment reclassified the anchor target it had never characterised. An expansion-gene target with no curated classification and no DMRG measurement was assigned Class A or B from electron count alone, indistinguishable downstream from a measured verdict &mdash; corrected 2026-08-30 in both the dispatch path and its independent client-side counterpart, so an unmeasured target now returns unclassified rather than a size guess. Each was a correct calculation, or a defensible default, reported without its scope. The generalizable claim is that in any pipeline where cheap proxies stand in for expensive systems &mdash; which is to say most computational science &mdash; scope must be enforced structurally, because it will not survive being left to the reader.</td></tr>
+            <tr><td><strong>Aim</strong></td><td>Achieve trustworthy provenance for a result that crosses a trust boundary, without relying on the identity of the boundary it crossed.</td></tr>
+            <tr><td><strong>For</strong></td><td>A platform that accepts computed results from agents or processes it does not itself run to completion.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform provider (here, LEON as the platform's notarization authority).</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Any downstream consumer of a stored result — a researcher, an auditor, or another automated stage of the pipeline — who needs to know the result was not altered after it was produced.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>LEON recomputes the P8 seal (digest + Ed25519 signature) and re-checks physics-consistency, both at ingestion and again on demand; a record that fails either check is rejected, not stored (§06.ii).</td></tr>
+            <tr><td><strong>Enactor</strong></td><td>LEON itself, automatically, on every notarization and re-verification event — never a manual review step.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>A result's origin (which stage, which submitter) cannot itself prove the result's integrity — anyone who can write to the store could have tampered with it. Only reproducible cryptographic proof, re-derived independently of the claim, closes that gap.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>DP1 verifies <em>integrity and lineage</em>, not <em>scientific validity</em> — a record that is genuinely unaltered and internally consistent can still be scientifically wrong (that failure mode is DP5's, not DP1's; §06 iv below). It also does not by itself establish non-repudiation for records sealed before the Ed25519 signature was introduced (2026-09-29) — those carry a valid integrity digest but not an actor-bound signature.</td></tr>
           </tbody>
         </table>
-      
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">DP2 — Cross a security boundary without weakening it</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aim</strong></td><td>Achieve verified execution on a resource without holding access credentials outside the trust boundary that protects it.</td></tr>
+            <tr><td><strong>For</strong></td><td>A scientific platform that must run compute on a resource sitting behind interactive multi-factor authentication with no inbound network path.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform provider.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>The researcher, whose 2FA-gated session is the only credential ever in play, and who never has to trust the platform with a stored password or token.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>Control inversion: a permission-bounded agent running inside the researcher's own authenticated session pulls work from an outbound queue, executes it, and returns a signed result — <em>queued&rarr;claimed&rarr;executed&rarr;returned</em> — rather than the platform reaching in to dispatch work (§06.ii).</td></tr>
+            <tr><td><strong>Enactor</strong></td><td>The researcher, who initiates and keeps the session alive; the agent acts only within that live session.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>The security posture forbids push dispatch into an interactively-gated resource, and no stored credential can itself answer an interactive MFA challenge — inversion is the only pattern that respects both constraints at once.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Does not apply once a resource permits a non-interactive service identity — DP2 is specifically the pattern for resources that do not. It trades away availability for that guarantee: no work executes while no agent session is live, which is an accepted cost, not an oversight (§08).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">DP3 — Provenance is a first-class, execution-time artifact</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aim</strong></td><td>Achieve a provenance record whose fidelity matches what only execution-time capture can provide, for outputs whose generating state cannot be recovered afterward.</td></tr>
+            <tr><td><strong>For</strong></td><td>Any orchestration layer producing results from a process whose internal state (device calibration, error budget) is transient.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform provider.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Auditors and regulators relying on the §11.10(e) audit trail, and researchers who need to know a result's exact generating conditions, not an approximation of them.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>The nine-element P1–P9 record is emitted and sealed <em>during</em> execution, at the moment device state (calibration epoch, per-gate/readout error, T&#8321;/T&#8322;) is directly observable — never reconstructed from logs afterward (§06.iii).</td></tr>
+            <tr><td><strong>Enactor</strong></td><td>The orchestration layer itself, automatically, as a side-effect of execution — not a human annotation step after the run completes.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>For probabilistic quantum hardware, the calibration state a result depended on cannot be recovered after the fact even in principle — unlike a classical Monte Carlo run, whose seed can be replayed. Retrospective reconstruction here is not merely inconvenient; the case for it does not exist (this is the argument this dissertation states as its strongest, non-chemical contribution — §06.iii).</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Does not apply with the same force to a purely classical, deterministic sub-step, where post-hoc reconstruction genuinely is possible — DP3 is applied there too, for schema uniformity, but its rationale is strongest exactly where reconstruction is physically impossible, not merely inconvenient. DP3 also does not itself provide non-repudiation (that is DP1's P8 signature) or address Subpart C electronic-signature requirements, which remain explicitly out of scope (§08).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">DP4 — Governance is workload-agnostic</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aim</strong></td><td>Achieve a governance layer (dispatch, provenance, notarization) that generalizes across scientific payloads without redesign.</td></tr>
+            <tr><td><strong>For</strong></td><td>Any team wanting to reuse this platform's orchestration and provenance machinery for a scientific computation other than quantum chemistry.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform architect.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Future adopters of the pattern in a different scientific domain — the transfer this dissertation claims but has not yet demonstrated (§06.iv's own evaluation table marks this "future work," not "done").</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>The CASSCF/VQE chemistry is treated as one interchangeable workload; the dispatch, provenance, and LEON layers make no assumption about what that workload computes and would carry any comparably-shaped heavy computation unchanged.</td></tr>
+            <tr><td><strong>Enactor</strong></td><td>No runtime actor — this is a structural property of the architecture, verified by inspection (the governance code contains no chemistry-specific branching) rather than enacted per-run.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>Coupling governance mechanics to domain semantics would collapse the Information Systems contribution into a chemistry-specific tool, undermining the transferability claim §06.iv exists to make.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Does not apply to the <em>interpretation</em> of results — what counts as chemically "converged" or "valid" stays domain-specific even though the governance wrapper around it does not. DP4 is a claim about the governance layer's design, not a claim that any workload can be dropped in with zero integration work.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">DP5 — A result's standing is bounded by its weakest input, and the bound travels with the result</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aim</strong></td><td>Achieve a reported value whose apparent evidentiary weight never exceeds what its own inputs actually support.</td></tr>
+            <tr><td><strong>For</strong></td><td>Any pipeline where cheap proxies stand in for expensive systems — which is to say most computational science, not only this platform.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform provider.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Anyone reading a displayed number, a classification verdict, or a recommendation — without requiring them to independently reconstruct what stands behind it.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>Evidence grades (<code>demonstration_only</code> / <code>template_conformant</code> / <code>reference_exemplar</code>) computed from the inputs themselves, never self-declared by whoever produced the run; the Decision Gateway caps a recommendation's confidence at the provenance of whichever input decided the route while still reporting the uncapped value alongside; a measurement counts as authoritative only for the active space it actually covered (the &ge;90%-of-site scope gate); and the qualification is emitted from one canonical definition into every surface a number can reach — interface, CSV/JSON export, API payload — so it cannot be separated from the number by a screenshot or a download.</td></tr>
+            <tr><td><strong>Enactor</strong></td><td><code>evidence.py</code> and the Gateway's provenance ceiling and scope gate, automatically, at the moment a value is computed or rendered — not a labeling step a human can skip.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>Derived from failures observed in this artifact, not proposed in the abstract (four are catalogued below): a system that computes correctly can still report misleadingly, because correctness and standing are different properties, and nothing about correct arithmetic marks where a demonstration ends and a claim about the real target begins.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Does not retroactively grade records stored before the grading mechanism existed (a migration gap, not a design one). Does not itself validate scientific correctness — a correctly-graded <code>demonstration_only</code> value can still be a wrong calculation; DP5 bounds evidentiary <em>standing</em>, not correctness. And it does not extend past this platform's own three-tier evidence vocabulary to a general theory of evidence grading, which is explicitly narrower than DP5's own generalizable claim (below) might suggest at a glance.</td></tr>
+          </tbody>
+        </table>
+      </div>
       <p><strong>On DP5 and the standing of this platform's own numbers.</strong> DP5 is
       the principle this artifact had the most occasion to learn, and it is stated here
       with the failures that produced it rather than as an abstraction. SOLANGE computes
