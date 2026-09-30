@@ -2093,7 +2093,7 @@
       <div class="section-number">§ 02 <span class="dash"></span> Research Questions</div>
       <h2 class="section-title">Two Questions.</h2>
 
-      <p style="font-size:0.85em;color:var(--muted)"><strong>Restructured 2026-09-29 (Claude Science methodological review; Doron Cohen, decision).</strong> An earlier draft posed four questions with no explicit mapping to this dissertation's contributions (§06) — a structural gap a DSR methodologist would find in minutes (the string "RQ" appeared nowhere in 42,000 words). The former RQ II ("does the pipeline execute a VQE workflow correctly end-to-end") was a validation question, not a research question in its own right — a "yes" answer adds no design knowledge beyond what RQ I already claims — so it is merged into RQ I below as the evidentiary standard RQ I is answered against, rather than standing alone. The former RQ IV (stakeholder communication) was never connected to any contribution in §06 and is dropped rather than left orphaned; it remains a legitimate direction for future work; not asking it here is a scoping decision, not a claim that it is unimportant. See the RQ→Contribution→Evidence table opening §06 for what each remaining question maps to, including two contributions (the DMRG/SHCI classification framework, §06.i; the DP1–DP5 design principles, §06.iv) that this restructuring deliberately leaves without a dedicated question of their own — a known, disclosed gap, not a silent one.</p>
+      <p style="font-size:0.85em;color:var(--muted)"><strong>Restructured 2026-09-29 (Claude Science methodological review; Doron Cohen, decision).</strong> An earlier draft posed four questions with no explicit mapping to this dissertation's contributions (§06) — a structural gap a DSR methodologist would find in minutes (the string "RQ" appeared nowhere in 42,000 words). The former RQ II ("does the pipeline execute a VQE workflow correctly end-to-end") was a validation question, not a research question in its own right — a "yes" answer adds no design knowledge beyond what RQ I already claims — so it is merged into RQ I below as the evidentiary standard RQ I is answered against, rather than standing alone. The former RQ IV (stakeholder communication) was never connected to any contribution in §06 and is dropped rather than left orphaned; it remains a legitimate direction for future work; not asking it here is a scoping decision, not a claim that it is unimportant. See the RQ→Contribution→Evidence table opening §06 for what each remaining question maps to, including two contributions (the DMRG/SHCI classification framework, §06.i; the DP1–DP7 design principles, §06.iv) that this restructuring deliberately leaves without a dedicated question of their own — a known, disclosed gap, not a silent one.</p>
 
       <div class="rq-grid">
         <div class="rq">
@@ -2461,7 +2461,7 @@
           </tr>
           <tr style="background:rgba(180,68,31,0.06)">
             <td><em>— no corresponding research question —</em></td>
-            <td>06.iv — DP1–DP5 transferable design principles</td>
+            <td>06.iv — DP1–DP7 transferable design principles</td>
             <td>Four design patterns instantiated in running code (zero-trust seal, control-inversion for interactive 2FA, evidence grading from input, coverage-gated authority)</td>
             <td>1, 4</td>
             <td>Demonstrated, same disclosed gap as above — this is this dissertation's most transferable Information-Systems knowledge, and it is the part §02 does not ask about.</td>
@@ -2698,9 +2698,9 @@
 
       <p><strong>Positioning the contribution type (Gregor &amp; Hevner, 2013), added 2026-09-30 (Claude Science methodological review).</strong> Gregor and Hevner's maturity matrix crosses solution maturity against problem maturity: a mature solution applied to a problem domain that is itself mature is <em>Routine Design</em>; the same mature solution applied to a domain that is new is <strong>Exaptation</strong>; a genuinely new solution to a mature problem is <em>Improvement</em>; a new solution to a new problem is <em>Invention</em>. This dissertation's own prose, unpositioned, drifts toward Invention language — "the first," "no published work" — which is the hardest claim in the matrix to defend and falls to a single prior-art citation. The accurate position is Exaptation: every mechanism this dissertation combines is independently well established — zero-trust access control, the self-hosted-runner/queue-worker pattern for crossing an interactive-auth boundary (DP2), hash-based provenance chains (§3.6's QCIVET comparison), and FDA 21 CFR Part 11 records controls — and none of it is offered here as a new technique. What is new is the problem domain the combination is applied to: governing <em>probabilistic, quantum-derived</em> scientific output under a records-compliance standard written for deterministic instruments. That transfer is not trivial, and this dissertation's own evidence for why is exactly the material already in §06.i–§06.iii: §11.10(a)'s literal reconstruction test cannot be satisfied by a probabilistic measurement in the same sense it is by a deterministic one (§06.iii), and post-hoc provenance reconstruction is not merely inconvenient but physically impossible for calibration-epoch-dependent quantum output (§06.ii) — a genuine domain difference, not a rhetorical one. Exaptation, correctly argued with that evidence, is a defensible claim that a single counter-example cannot collapse; "the first," left as this document's dominant register, is a claim that one does.</p>
 
-      <p><strong>Contribution level (Gregor &amp; Hevner, 2013).</strong> Of their three levels — Level 1, a situated instantiation; Level 2, an emerging design theory (constructs, methods, models, and design principles); Level 3, a mature, well-tested design theory — this dissertation claims Level 1 for SOLANGE itself (stated already, above) and explicitly claims <strong>Level 2</strong> for DP1–DP5 below: they are stated artifact-independently, each with a named mechanism and rationale, as the transferable knowledge this work contributes beyond its own running code. Level 3 is not claimed and is not appropriate at this stage — DP1–DP5 have not yet been tested against an independent instantiation in a second domain (§06.iv's own evaluation table already records this as future work), which is precisely what would be required to advance from an emerging to a mature design theory.</p>
+      <p><strong>Contribution level (Gregor &amp; Hevner, 2013).</strong> Of their three levels — Level 1, a situated instantiation; Level 2, an emerging design theory (constructs, methods, models, and design principles); Level 3, a mature, well-tested design theory — this dissertation claims Level 1 for SOLANGE itself (stated already, above) and explicitly claims <strong>Level 2</strong> for DP1–DP7 below: they are stated artifact-independently, each with a named mechanism and rationale, as the transferable knowledge this work contributes beyond its own running code. Level 3 is not claimed and is not appropriate at this stage — DP1–DP7 have not yet been tested against an independent instantiation in a second domain (§06.iv's own evaluation table already records this as future work), which is precisely what would be required to advance from an emerging to a mature design theory.</p>
 
-      <h4>Five Design Principles (DP1–DP5)</h4>
+      <h4>Seven Design Principles (DP1–DP7)</h4>
       <p>Each principle is stated as generalizable design knowledge, paired with its concrete mechanism in SOLANGE and the reasoning that justifies it. The principles are deliberately artifact-independent: a different platform in a different scientific domain could satisfy all five without sharing a line of SOLANGE's code.</p>
       <p style="font-size:0.86rem; color:var(--muted); line-height:1.6;"><strong>Reformatted 2026-09-30 (Claude Science methodological review).</strong> An earlier draft stated each principle as name + slogan + mechanism + rationale — three or four of the seven components the design-principles literature specifies (Chandra, Seidel, &amp; Gregor, 2015; Gregor, Chandra Kruse, &amp; Seidel, 2020: aim, actor, user/beneficiary, mechanism, enactor, rationale, boundary condition). Missing systematically: <em>for whom</em> the principle acts (always implicitly "the system"), and <em>boundary condition</em> — when the principle does <em>not</em> hold, stated for none of the five. Boundary conditions are not a formality here: they are where this dissertation's own heaviest disclosed limitations (§08) become part of the design theory rather than sitting outside it as an apology. Each principle below is restated in full.</p>
 
@@ -2715,7 +2715,7 @@
             <tr><td><strong>Mechanism</strong></td><td>LEON recomputes the P8 seal (digest + Ed25519 signature) and re-checks physics-consistency, both at ingestion and again on demand; a record that fails either check is rejected, not stored (§06.ii).</td></tr>
             <tr><td><strong>Enactor</strong></td><td>LEON itself, automatically, on every notarization and re-verification event — never a manual review step.</td></tr>
             <tr><td><strong>Rationale</strong></td><td>A result's origin (which stage, which submitter) cannot itself prove the result's integrity — anyone who can write to the store could have tampered with it. Only reproducible cryptographic proof, re-derived independently of the claim, closes that gap.</td></tr>
-            <tr><td><strong>Boundary condition</strong></td><td>DP1 verifies <em>integrity and lineage</em>, not <em>scientific validity</em> — a record that is genuinely unaltered and internally consistent can still be scientifically wrong (that failure mode is DP5's, not DP1's; §06 iv below). It also does not by itself establish non-repudiation for records sealed before the Ed25519 signature was introduced (2026-09-29) — those carry a valid integrity digest but not an actor-bound signature.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>DP1 verifies <em>integrity and lineage</em>, not <em>scientific validity</em> — a record that is genuinely unaltered and internally consistent can still be scientifically wrong (that failure mode is DP5-DP7's, not DP1's; §06 iv below). It also does not by itself establish non-repudiation for records sealed before the Ed25519 signature was introduced (2026-09-29) — those carry a valid integrity digest but not an actor-bound signature.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2768,18 +2768,52 @@
         </table>
       </div>
 
+      <p style="font-size:0.86rem; color:var(--muted); line-height:1.6;"><strong>Split into three, 2026-09-30 (Claude Science methodological review).</strong> The single DP5 below previously bundled three distinguishable claims — what a value's evidentiary grade is, how far a downstream recommendation may lean on it, and what a measurement's own coverage entitles it to decide — under one name, each with its own failure case among the four catalogued below. Splitting them is not relabeling: DP6 and DP7 below have their own boundary conditions that DP5's did not carry, and articulating three principles in the design-theory schema (as done for DP1&ndash;DP4 above) is worth more, on a Level-2 contribution's own terms, than one principle covering three mechanisms in prose.</p>
+
       <div class="table-wrap">
         <table>
-          <thead><tr><th colspan="2">DP5 — A result's standing is bounded by its weakest input, and the bound travels with the result</th></tr></thead>
+          <thead><tr><th colspan="2">DP5 — An evidence grade is derived from inputs, never self-declared</th></tr></thead>
           <tbody>
             <tr><td><strong>Aim</strong></td><td>Achieve a reported value whose apparent evidentiary weight never exceeds what its own inputs actually support.</td></tr>
             <tr><td><strong>For</strong></td><td>Any pipeline where cheap proxies stand in for expensive systems — which is to say most computational science, not only this platform.</td></tr>
             <tr><td><strong>Actor / implementer</strong></td><td>The platform provider.</td></tr>
-            <tr><td><strong>User / beneficiary</strong></td><td>Anyone reading a displayed number, a classification verdict, or a recommendation — without requiring them to independently reconstruct what stands behind it.</td></tr>
-            <tr><td><strong>Mechanism</strong></td><td>Evidence grades (<code>demonstration_only</code> / <code>template_conformant</code> / <code>reference_exemplar</code>) computed from the inputs themselves, never self-declared by whoever produced the run; the Decision Gateway caps a recommendation's confidence at the provenance of whichever input decided the route while still reporting the uncapped value alongside; a measurement counts as authoritative only for the active space it actually covered (the &ge;90%-of-site scope gate); and the qualification is emitted from one canonical definition into every surface a number can reach — interface, CSV/JSON export, API payload — so it cannot be separated from the number by a screenshot or a download.</td></tr>
-            <tr><td><strong>Enactor</strong></td><td><code>evidence.py</code> and the Gateway's provenance ceiling and scope gate, automatically, at the moment a value is computed or rendered — not a labeling step a human can skip.</td></tr>
-            <tr><td><strong>Rationale</strong></td><td>Derived from failures observed in this artifact, not proposed in the abstract (four are catalogued below): a system that computes correctly can still report misleadingly, because correctness and standing are different properties, and nothing about correct arithmetic marks where a demonstration ends and a claim about the real target begins.</td></tr>
-            <tr><td><strong>Boundary condition</strong></td><td>Does not retroactively grade records stored before the grading mechanism existed (a migration gap, not a design one). Does not itself validate scientific correctness — a correctly-graded <code>demonstration_only</code> value can still be a wrong calculation; DP5 bounds evidentiary <em>standing</em>, not correctness. And it does not extend past this platform's own three-tier evidence vocabulary to a general theory of evidence grading, which is explicitly narrower than DP5's own generalizable claim (below) might suggest at a glance.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Anyone reading a displayed number without requiring them to independently reconstruct what stands behind it.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>Evidence grades (<code>demonstration_only</code> / <code>template_conformant</code> / <code>reference_exemplar</code>) computed from the inputs themselves, never self-declared by whoever produced the run; the qualification is emitted from one canonical definition into every surface a number can reach — interface, CSV/JSON export, API payload — so it cannot be separated from the number by a screenshot or a download.</td></tr>
+            <tr><td><strong>Enactor</strong></td><td><code>evidence.py</code>, automatically, at the moment a value is computed or rendered — not a labeling step a human can skip.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>Failure case 1, below: a correlation energy computed over two electrons of a model compound shared across genes was displayed beneath four unrelated targets' classifications, reading as four independent measurements agreeing rather than one calculation rendered four times — because nothing at the display layer distinguished "this is what the proxy shows" from "this is what the target shows."</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Does not retroactively grade records stored before the grading mechanism existed (a migration gap, not a design one). Does not itself validate scientific correctness — a correctly-graded <code>demonstration_only</code> value can still be a wrong calculation; DP5 bounds evidentiary <em>standing</em>, not correctness.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">DP6 — A recommendation's confidence is capped by its weakest input's provenance</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aim</strong></td><td>Prevent a downstream recommendation or inherited classification from carrying more confidence than the provenance actually behind it supports.</td></tr>
+            <tr><td><strong>For</strong></td><td>Any decision-support layer that routes, ranks, or classifies based on an upstream input of uneven or unstated quality.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform provider.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Decision-makers relying on a Gateway recommendation or a target's carried-over classification, who need to know when that confidence is inherited rather than freshly earned.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>The Decision Gateway caps a recommendation's confidence at the provenance of whichever input decided the route, while still reporting the uncapped value alongside so the gap stays visible; a curated classification reasoned for one specific mutant is not silently propagated to a different variant of the same gene whose premise it does not share.</td></tr>
+            <tr><td><strong>Enactor</strong></td><td>The Gateway's provenance ceiling, automatically, at recommendation time.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>Failure cases 3 and 4, below: a gene-level classification reasoned for one structural mutant was inherited by a splice variant that did not share its premise; and a target reaching neither a curated classification nor a DMRG measurement was assigned Class A or B from a raw electron-count threshold, in both the server dispatch path and an independently-written client-side copy of the same shortcut — corrected 2026-08-30 in both places at once, so an unmeasured target now returns unclassified rather than a guessed one.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Does not apply when every input to a decision is independently verified — no ceiling is needed then. Applies most visibly to size-proxy priors standing in for a real measurement, which is exactly the case both failure cases above were.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">DP7 — Authority is limited to what a measurement actually covered</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aim</strong></td><td>Prevent a partial measurement from settling a claim beyond the scope it actually measured.</td></tr>
+            <tr><td><strong>For</strong></td><td>Any classifier whose measurement can, in principle, cover only a fraction of the system it is asked to judge.</td></tr>
+            <tr><td><strong>Actor / implementer</strong></td><td>The platform provider.</td></tr>
+            <tr><td><strong>User / beneficiary</strong></td><td>Anyone reading a classification verdict as final rather than as a prior awaiting full-coverage confirmation.</td></tr>
+            <tr><td><strong>Mechanism</strong></td><td>A measurement counts as authoritative only for the active space it actually covered — the Gateway's scope gate requires &ge;90% of a target's site before a class is treated as settled rather than as a prior still open to revision.</td></tr>
+            <tr><td><strong>Enactor</strong></td><td>The Gateway's scope gate, automatically, at classification time.</td></tr>
+            <tr><td><strong>Rationale</strong></td><td>Failure case 2, below: a DMRG classification run over a six-electron fragment was allowed to reclassify a forty-four-electron target it had never characterised, silently promoting an infrastructure test into a scientific verdict.</td></tr>
+            <tr><td><strong>Boundary condition</strong></td><td>Once a full-coverage measurement exists, it settles the class rather than merely informing a prior. The 90%-of-site figure itself is a policy choice, stated as such, not a value derived from first principles.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2812,16 +2846,16 @@
             <tr><td>A compromised or buggy agent submitting a fabricated result</td><td>Controls the returned payload of one job</td><td>P8 seal (digest + Ed25519 signature) plus the physics-consistency check (§06.ii, §06.iii)</td><td>Yes</td></tr>
             <tr><td>An operator editing a stored record after the fact</td><td>Write access to the datastore</td><td>Query-time hash re-verification (weak on its own — §4.6/Quality Attribute Scenario 2 above); hash-chained audit trail makes any edit detectable by construction (§06.iii, 2026-09-29 upgrade)</td><td>Yes</td></tr>
             <tr><td>An external party attempting to reach the compute cluster directly</td><td>Network access</td><td>DP2 — no inbound path exists to reach in from outside the researcher's own authenticated session</td><td>Yes</td></tr>
-            <tr style="background:rgba(180,68,31,0.06)"><td><strong>An honest, authorized researcher submitting a computationally valid but scientifically out-of-scope result</strong></td><td>Legitimate access, good-faith intent, correct arithmetic within a mis-scoped calculation</td><td><strong>DP5</strong>, the Gate 2 structural-verification gates, the coverage-gated authority scope check, input-derived evidence grading (all above)</td><td><strong>No</strong></td></tr>
+            <tr style="background:rgba(180,68,31,0.06)"><td><strong>An honest, authorized researcher submitting a computationally valid but scientifically out-of-scope result</strong></td><td>Legitimate access, good-faith intent, correct arithmetic within a mis-scoped calculation</td><td><strong>DP5–DP7</strong>, the Gate 2 structural-verification gates (all above)</td><td><strong>No</strong></td></tr>
           </tbody>
         </table>
       </div>
 
-      <p><strong>The fourth row is this section's actual contribution, and its evidence is already fully written elsewhere in this dissertation — as a bug log, not as a threat-class finding.</strong> Every provenance and zero-trust framework surveyed for this dissertation assumes a malicious adversary or an accidental data-transmission fault. Neither category describes what DP5's four catalogued failures (and, mid-preparation of this section, a fifth: §01/§06.i's PyMOL-modelled C275F mutant residue mis-registered 8.03&nbsp;&Aring; from its own anchor position, internally clean geometry, caught only by an explicit backbone-drift check added after the fact) actually are: a correlation energy computed correctly over the wrong-scale system and displayed as if it characterized the real one; a fragment-scale DMRG run reclassifying a target it never covered; an unmeasured target silently defaulting to a size-based class; and a structurally well-formed residue placed at the wrong site entirely. In every case, access was legitimate, intent was good, and the arithmetic performed was correct — the failure was <em>scope</em>, not malice or corruption. <strong>Naming this as a fourth adversary class — the honest-but-mistaken operator — reframes these from a list of bugs fixed during preparation into a conceptual finding</strong>: existing provenance frameworks structurally cannot catch this failure mode, because they verify that a record is unaltered and correctly computed, neither of which this failure mode violates. DP5 and Gate 2 exist because "unaltered and correctly computed" is not the same claim as "in scope and applicable," and no cryptographic seal distinguishes the two.</p>
+      <p><strong>The fourth row is this section's actual contribution, and its evidence is already fully written elsewhere in this dissertation — as a bug log, not as a threat-class finding.</strong> Every provenance and zero-trust framework surveyed for this dissertation assumes a malicious adversary or an accidental data-transmission fault. Neither category describes what DP5–DP7's four catalogued failures (and, mid-preparation of this section, a fifth: §01/§06.i's PyMOL-modelled C275F mutant residue mis-registered 8.03&nbsp;&Aring; from its own anchor position, internally clean geometry, caught only by an explicit backbone-drift check added after the fact) actually are: a correlation energy computed correctly over the wrong-scale system and displayed as if it characterized the real one; a fragment-scale DMRG run reclassifying a target it never covered; an unmeasured target silently defaulting to a size-based class; and a structurally well-formed residue placed at the wrong site entirely. In every case, access was legitimate, intent was good, and the arithmetic performed was correct — the failure was <em>scope</em>, not malice or corruption. <strong>Naming this as a fourth adversary class — the honest-but-mistaken operator — reframes these from a list of bugs fixed during preparation into a conceptual finding</strong>: existing provenance frameworks structurally cannot catch this failure mode, because they verify that a record is unaltered and correctly computed, neither of which this failure mode violates. DP5–DP7 and Gate 2 exist because "unaltered and correctly computed" is not the same claim as "in scope and applicable," and no cryptographic seal distinguishes the two.</p>
 
-      <p><strong>On DP5 and the standing of this platform's own numbers.</strong> DP5 is
-      the principle this artifact had the most occasion to learn, and it is stated here
-      with the failures that produced it rather than as an abstraction. SOLANGE computes
+      <p><strong>On DP5–DP7 and the standing of this platform's own numbers.</strong> These are
+      the principles this artifact had the most occasion to learn, and they are stated here
+      with the failures that produced them rather than as an abstraction. SOLANGE computes
       real quantities over stand-in systems: a CAS(2e,2o)/STO-3G calculation on toluene
       where a phenylalanine sidechain belongs, on methanethiol where a cysteine does.
       Those are correct calculations of what they describe &mdash; two electrons of a model
@@ -2831,21 +2865,21 @@
       is true of the target</em> is the entire distance between a demonstration and a
       claim, and nothing about the arithmetic marks where that line falls.</p>
 
-      <p>Four observed failures fixed the principle's shape. A correlation energy computed
+      <p>Four observed failures fixed these principles' shape, numbered here as the tables above reference them. <strong>(1)</strong> A correlation energy computed
       over two electrons of a shared model compound was displayed beneath each target's
       classification; because those compounds are reused across genes, four unrelated
       targets showed an identical value and read as independent corroboration of one
       another &mdash; one calculation rendered four times, presenting as four measurements
-      agreeing. A DMRG classification run over a six-electron fragment was allowed to
+      agreeing (DP5). <strong>(2)</strong> A DMRG classification run over a six-electron fragment was allowed to
       reclassify a forty-four-electron target it had never characterised, silently
-      promoting an infrastructure test into a scientific verdict. A curated
+      promoting an infrastructure test into a scientific verdict (DP7). <strong>(3)</strong> A curated
       gene-level classification, reasoned for one specific structural mutant, was
-      inherited by a splice variant of the same gene whose premise it does not share.
-      And a target reaching neither a curated classification nor a DMRG measurement
+      inherited by a splice variant of the same gene whose premise it does not share (DP6).
+      <strong>(4)</strong> And a target reaching neither a curated classification nor a DMRG measurement
       was assigned Class A or B from a raw electron-count threshold &mdash; present in
       both the server-side dispatch path and an independently written client-side
       copy of the same shortcut, so the failure recurred in two places built at
-      different times without either being aware of the other. In each case the
+      different times without either being aware of the other (DP6). In each case the
       computation, where one existed, was sound and the reporting was not; the fourth
       case had no computation behind it at all, which the reporting did not distinguish
       either. This last failure is also the one instance in this list corrected within
@@ -2869,7 +2903,7 @@
       the vocabulary and the discipline, which are what would transfer to a platform sharing
       none of this code.</p>
 
-      <p><em>Applied to this dissertation's own results, DP5 is unambiguous.</em> No target in
+      <p><em>Applied to this dissertation's own results, DP5–DP7 are unambiguous.</em> No target in
       this platform is presently validated to a standard supporting a chemical or biological
       finding, and every artifact the system emits says so in the payload rather than in a
       footnote. What has been independently established is narrower and is stated as such:
@@ -2913,7 +2947,7 @@
             <tr><td>Correctness / integrity</td><td><strong>✓ demonstrated</strong></td><td>Independent verification gates (cluster-side FCI vs CASSCF, Jordan-Wigner diagonalization, server-side seal + consistency re-check); no hard-coded results; monotonic energies across CAS sizes.</td></tr>
             <tr><td>Comparison against baselines</td><td>◑ partial</td><td>Positioning argued qualitatively (table above); head-to-head evaluation against a push-based and an unsigned-provenance baseline is pending.</td></tr>
             <tr><td>Utility with stakeholders</td><td>✗ pending</td><td>DSR Phase 4: structured evaluation with domain researchers and a regulatory-informed reviewer; OSF-preregistered acceptance criteria.</td></tr>
-            <tr><td>Generalization</td><td>◑ partial</td><td>Principles DP1–DP5 stated artifact-independently; a second-domain / second-workload instantiation to evidence transfer is designated future work.</td></tr>
+            <tr><td>Generalization</td><td>◑ partial</td><td>Principles DP1–DP7 stated artifact-independently; a second-domain / second-workload instantiation to evidence transfer is designated future work.</td></tr>
             <tr><td>Theoretical grounding</td><td><strong>✓</strong></td><td>Design Science Research paradigm (Hevner et al., 2004; Gregor &amp; Hevner, 2013); provenance and zero-trust literatures.</td></tr>
           </tbody>
         </table>
