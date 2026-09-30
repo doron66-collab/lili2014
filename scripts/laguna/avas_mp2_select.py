@@ -116,6 +116,21 @@ def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
     mo_occ_new[:nocc_total] = 2.0
     mf2.mo_occ = mo_occ_new
     frozen = list(range(0, ncore + n_discarded_occ)) + list(range(ncore + n_discarded_occ + ncas0, nmo))
+    # Printed BEFORE the MP2 call (not after, as a first version of this had it) --
+    # if get_nocc()'s own `assert nocc > 0` fires, this is the only place the
+    # actual counts get seen at all, instead of a bare AssertionError.
+    n_occ_active_unfrozen = sum(1 for i in range(ncore + n_discarded_occ, ncore + n_discarded_occ + ncas0_occ)
+                                if i not in frozen)
+    print(f"[avas-mp2] diagnostic before MP2: nmo={nmo} nocc_total={nocc_total} ncore={ncore} "
+          f"ncas0={ncas0} ncas0_occ={ncas0_occ} ncas0_vir={ncas0_vir} "
+          f"n_discarded_occ={n_discarded_occ} len(frozen)={len(frozen)} "
+          f"unfrozen_active_occ={n_occ_active_unfrozen}", flush=True)
+    if n_occ_active_unfrozen <= 0:
+        sys.exit(f"[avas-mp2] REFUSING: the active occupied block has {n_occ_active_unfrozen} "
+                 f"unfrozen orbitals after the freeze list -- MP2 cannot run. This means "
+                 f"ncas0_occ={ncas0_occ} itself is <= 0 (AVAS at threshold={site_threshold} "
+                 f"selected no occupied orbitals for this AO set) or n_discarded_occ is "
+                 f"negative/wrong. Check the numbers printed above before re-running.")
     pt = mp.MP2(mf2, frozen=frozen).density_fit().run()
     dm1 = pt.make_rdm1()
 
