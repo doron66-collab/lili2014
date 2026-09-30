@@ -5,9 +5,27 @@ No deposited PDB entry carries C275F (Claude Science round 2: exhaustive
 4-channel search of 325 entities, sensitivity-checked -- see
 active_space_spec.json's TP53_C275F.round2_search). This is the modelled-
 mutant path the project's own README always said would eventually be
-needed, built here with PyMOL's Mutagenesis wizard on 2OCJ chain A residue
-275 (Cys->Phe), lowest-strain rotamer selected explicitly (strain 56.23 vs.
-82.03 for the alternative -- both scores recorded, not just the choice).
+needed, built with PyMOL's Mutagenesis wizard on 2OCJ chain A residue 275
+(Cys->Phe).
+
+MODEL CORRECTED 2026-09-30 (v1 -> v2, Claude Science + independent check).
+The first model (2OCJ_C275F_model.pdb, "lowest-strain rotamer" 56.23 vs.
+82.03) made the mutant AVAS run's SCF fail to converge. Root cause was NOT
+a bad rotamer: the entire PHE275 residue had been placed 8.03 A from
+CYS275's actual deposited CB position (SER240, checked as a fixed
+reference point, sat at drift=0.00 A -- the rest of the structure was
+untouched, only residue 275 was mis-registered). Signature of a dedup/
+mutagenesis-indexing defect, not a strained side chain. The replacement
+(2OCJ_C275F_model_v2.pdb) rebuilds an ideal Phe ring on the deposited
+N/CA/CB of CYS275 and picks chi1=-162 deg, chi2=+71 deg (inside the Lovell
+"trans" rotamer well -- a populated rotamer, not an ad hoc fit) via a full
+65,341-pose chi1 x chi2 clash scan against all 486 chain-A heavy atoms
+within 16 A. Independently verified here (not just trusted): CYS275's
+N/CA/C/O/CB read directly from struct/2OCJ.pdb match v2's PHE275
+N/CA/C/O/CB to 3 decimal places. The acceptable rotamer window at this
+site is only 0.54% of the full chi1 x chi2 space (14/2592 coarse poses) --
+worth stating as the measured steric cost of this mutation, not just that
+a solution exists.
 
 THIS IS A MODEL, NOT A DEPOSITED STRUCTURE. Report it as such everywhere
 downstream -- this is exactly the category of thing the retracted first
@@ -18,8 +36,8 @@ weaker-but-honest evidentiary status than a deposited structure).
 R3 (same fixed residue list on both sides) is satisfied by construction:
 the "mutant" file is 2OCJ itself with only residue 275 changed, so the
 SAME REGION_RESIDUES list below applies verbatim to both the wild-type
-(struct/2OCJ.pdb) and the modelled mutant (struct/2OCJ_C275F_model.pdb) --
-not re-derived per side.
+(struct/2OCJ.pdb) and the modelled mutant (struct/2OCJ_C275F_model_v2.pdb)
+-- not re-derived per side.
 
 Usage
 -----
@@ -44,7 +62,7 @@ REGION_RESIDUES = {
 }
 SIDECHAIN_Q = {"ARG": 1, "LYS": 1, "ASP": -1, "GLU": -1}
 EXPECTED_NET_CHARGE = 0   # Arg273(+1) + Asp281(-1); no metal, no thiolate here
-FILES = {"wt": "struct/2OCJ.pdb", "mutant": "struct/2OCJ_C275F_model.pdb"}
+FILES = {"wt": "struct/2OCJ.pdb", "mutant": "struct/2OCJ_C275F_model_v2.pdb"}
 
 
 def check_residue_275(pdb_path, expect):
@@ -199,9 +217,10 @@ def main():
     if not os.path.exists(src):
         sys.exit(f"{src} not found -- expected in the working directory")
     if a.side == "mutant":
-        print("*** THIS IS A MODELLED MUTANT (PyMOL Mutagenesis wizard, lowest-strain "
-              "rotamer, strain=56.23 vs 82.03 for the alternative), NOT a deposited "
-              "structure. Report it as such. ***")
+        print("*** THIS IS A MODELLED MUTANT (v2, corrected 2026-09-30: ideal Phe ring "
+              "on the deposited N/CA/CB of CYS275, chi1=-162 chi2=+71, inside the Lovell "
+              "trans rotamer well, max vdW overlap 0.309 A against all chain-A heavy "
+              "atoms within 16 A), NOT a deposited structure. Report it as such. ***")
     check_residue_275(src, "CYS" if a.side == "wt" else "PHE")
 
     ph_pdb = protonate(src, a.ph)
