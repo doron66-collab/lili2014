@@ -234,7 +234,17 @@ def main():
     print(f"[cluster] wrote {xyz}")
 
     mf = build_mf(xyz, charge, 0, basis=a.basis)
-    results = [avas_at_threshold(mf, "S 3p, N 2p, O 2p", th)
+    # AO set corrected 2026-09-30 (Claude Science, reviewing the CAS(64,48) plan):
+    # "S 3p, N 2p, O 2p" alone is not symmetric between WT and mutant. CYS275's
+    # side chain (WT) has SG -- sulfur, a target atom. PHE275's side chain
+    # (mutant) is pure carbon (CB/CG/CD1/CD2/CE1/CE2/CZ, the phenyl ring) -- no
+    # S/N/O at all, so with this AO set the mutant active space is driven only
+    # by backbone N/O and is BLIND to the mutated side chain itself, while the
+    # WT space is anchored on the Cys thiolate. Adding "C 2p" restores symmetry:
+    # both the phenyl ring (mutant) and the thiolate (WT) are covered by the
+    # same criterion. This is the same class of finding as "only one sulfur
+    # within 5A of C275 and the mutation deletes it" from an earlier session.
+    results = [avas_at_threshold(mf, "C 2p, N 2p, O 2p, S 3p", th)
                for th in [float(x) for x in a.sweep.split(",")]]
     out = f"tp53_c275f_{a.side}_avas.json"
     json.dump(dict(side=a.side, source=src, is_modelled=(a.side == "mutant"),

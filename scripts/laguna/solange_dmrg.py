@@ -258,6 +258,18 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     Path(scratch).mkdir(parents=True, exist_ok=True)
     meta_path.write_text(json.dumps({"ncas": ncas, "nelecas": nelecas}))
     energies = []
+    # discarded_weights: best-effort capture of block2's per-M truncation error,
+    # for dmrg_extrapolate.py's E(w)->w=0 fit (Claude Science, 2026-09-30) — a
+    # sturdier convergence test than raw ΔE between bond dims, which conflates
+    # truncation error with an unconverged sweep (the R175H cold-start
+    # artifact). The exact attribute (drv._dmrg.discarded_weights vs.
+    # .sweep_discarded_weights) was found empirically on Laguna's pyblock2
+    # build via a tiny probe, NOT from documentation — see that probe's
+    # findings before trusting which one this reads. Wrapped in try/except,
+    # matching s_max's own defensive style below: this is instrumentation, and
+    # its absence must never fail a run that would otherwise report a valid
+    # energy/S_max.
+    discarded_weights = []
     stop_reason = "completed"            # completed | converged | time_budget
     t_start = time.time()
     for M in bond_dims:
@@ -274,6 +286,11 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
                      noises=[1e-5, 1e-6, 0], thrds=[1e-9] * 3, iprint=0)
         dt = time.time() - t0
         energies.append((M, float(e)))
+        try:
+            dw = float(max(drv._dmrg.sweep_discarded_weights))
+        except Exception:
+            dw = None
+        discarded_weights.append(dw)
         # stdout (not stderr) so the agent's live-progress streamer reliably captures
         # each "DMRG M=" line and surfaces it as a bond-dimension stage note.
         print(f"  DMRG M={M:5d}  E={float(e):.8f} Ha  [{dt:.1f}s this M, "
@@ -298,7 +315,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         s_max = float(np.max(drv.get_bipartite_entanglement(ket)))
     except Exception:
         s_max = None
-    return energies, s_max, stop_reason
+    return energies, s_max, stop_reason, discarded_weights
 
 
 # S_max is a bipartite entanglement entropy. CORRECTED 2026-09-29 (Claude
@@ -673,12 +690,26 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     # "converged" via casci's normal convention would misreport exactly the
     # PROVISIONAL status this script's own orbital_optimization_converged flag
     # exists to catch (see the 2026-09-21/22 fixes elsewhere in this file).
+    # external_orbitals: --load-orbitals used together with ncas_override/
+    # nelecas_override (avas_by_count.py / avas_mp2_select.py's output) — a
+    # DELIBERATELY built, fixed active space, not a truncated run's leftover
+    # state. Conflating the two mislabels the record: Claude Science caught
+    # this live 2026-09-30 reviewing the CAS(64,48) plan — "orbitals are
+    # externally supplied" got reported as "NOT converged — loaded from a
+    # prior truncated run", which is wrong provenance (the computation is
+    # right, the record of WHY is not — exactly DP5's territory). Treated the
+    # same way --casci's own orbitals are: nothing was asked to optimize, so
+    # there is nothing to have failed to converge.
+    external_orbitals = bool(load_orbitals) and ncas_override is not None and nelecas_override is not None
     try:
         e_casscf = mc.kernel(mo)[0]
-        casscf_converged = False if load_orbitals else (True if casci else bool(mc.converged))
+        casscf_converged = (True if (casci or external_orbitals) else
+                            False if load_orbitals else bool(mc.converged))
         conv_note = ("converged" if casscf_converged else
                      "NOT converged — loaded from a prior truncated run" if load_orbitals else
                      f"did NOT converge — hit max_cycle_macro={max_cycle_macro} first")
+        if external_orbitals:
+            conv_note = "orbitals externally supplied (fixed active-space selection) — optimization not applicable"
     except OrbitalTimeBudgetExceeded as exc:
         truncated = True
         casscf_converged = False
@@ -689,7 +720,8 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         truncated_mo = exc.mo   # likewise: mc.mo_coeff is stale (pre-optimization)
         conv_note = (f"STOPPED at the orbital time budget after macro-iteration {exc.imacro} "
                      f"— orbitals are usable but NOT converged")
-    one_shot_label = ("CASCI (externally-loaded orbitals)" if load_orbitals else
+    one_shot_label = ("CASCI (externally supplied, fixed active-space orbitals)" if external_orbitals else
+                       "CASCI (externally-loaded orbitals)" if load_orbitals else
                        "CASCI (fixed AVAS orbitals)" if casci else "CASSCF")
     print(f"  {one_shot_label} {conv_note} · E={e_casscf:.8f}", flush=True)
     # Explicit mo_coeff=truncated_mo when cut short — see OrbitalTimeBudgetExceeded's
@@ -726,7 +758,11 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
             "orbital_optimization_truncated": bool(truncated),
             "orbital_optimization_converged": bool(casscf_converged),
             "orbital_optimization_method": (
-                (f"CASCI, externally-loaded orbitals from {load_orbitals} (NOT re-optimized or "
+                (f"CASCI, externally supplied fixed active-space orbitals from {load_orbitals} "
+                 f"(deliberately built, e.g. avas_by_count.py/avas_mp2_select.py — optimization "
+                 f"not applicable, not a truncated-run artifact) + " +
+                 (f"DMRG solve (block2)" if dmrg_scf else "exact FCI solve") if external_orbitals else
+                 f"CASCI, externally-loaded orbitals from {load_orbitals} (NOT re-optimized or "
                  f"re-verified as converged — inherited from a prior truncated run) + " +
                  (f"DMRG solve (block2)" if dmrg_scf else "exact FCI solve") if load_orbitals else
                  "CASCI, fixed AVAS orbitals (no optimization) + " +
@@ -1055,7 +1091,7 @@ def main():
     ladder_max_minutes = (
         max(0.0, args.max_minutes - (time.time() - script_start) / 60.0)
         if args.max_minutes is not None else None)
-    energies, s_max, stop_reason = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
+    energies, s_max, stop_reason, discarded_weights = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
                                args.ncas, args.nelecas, bond_dims,
                                scratch=args.scratch, n_threads=args.threads,
                                max_minutes=ladder_max_minutes,
@@ -1064,6 +1100,33 @@ def main():
     # (per-M timing is already printed live inside run_dmrg, as each M finishes —
     # so a `tail -f` on a background run shows real progress, not a single dump at exit.)
     print(f"max bipartite entanglement S_max = {s_max}")
+    # Discarded-weight extrapolation (Claude Science, 2026-09-30): a sturdier
+    # convergence read than raw ΔE, which conflates truncation error with an
+    # unconverged sweep. Reported ALONGSIDE classify()'s own ΔE-based verdict,
+    # not in place of it — the field semantics were found empirically on this
+    # session's pyblock2 build and are not yet re-verified on Laguna's, so
+    # treat this block as informative until that's confirmed.
+    extrap = None
+    if all(w is not None for w in discarded_weights):
+        try:
+            import dmrg_extrapolate
+            Ms = [m for m, _ in energies]
+            Es = [e for _, e in energies]
+            extrap = dmrg_extrapolate.extrapolate(Ms, Es, discarded_weights)
+            if extrap.get("ok"):
+                print(f"  [discarded-weight extrapolation] {extrap['verdict']} "
+                      f"(residual {extrap['residual_mHa']:.3f} mHa vs chemical accuracy "
+                      f"{extrap['chem_acc_Ha']*1000:.1f} mHa, R²={extrap['r2']:.4f}, "
+                      f"w spans {extrap['w_decades']:.2f} decades)")
+                for w in extrap.get("warnings", []):
+                    print(f"  [discarded-weight extrapolation] WARNING: {w}")
+            else:
+                print(f"  [discarded-weight extrapolation] not run: {extrap['reason']}")
+        except Exception as e:
+            print(f"  [discarded-weight extrapolation] skipped ({type(e).__name__}: {e})")
+    else:
+        print("  [discarded-weight extrapolation] skipped — discarded weight unavailable "
+              "for one or more bond dimensions on this pyblock2 build")
     cap_pct = entanglement_capacity_pct(s_max, args.ncas, args.nelecas, args.spin)
     if cap_pct is not None:
         print(f"  ({cap_pct:.1f}% of this active space's own exact combinatorial "
@@ -1103,6 +1166,8 @@ def main():
         "ncas": args.ncas, "nelecas": args.nelecas,
         "e_casscf": cas["e_casscf"],
         "dmrg_energies": energies, "s_max": s_max,
+        "discarded_weights": discarded_weights,
+        "discarded_weight_extrapolation": extrap,
         "s_max_capacity_pct": entanglement_capacity_pct(s_max, args.ncas, args.nelecas, args.spin),
         "bqp_class": cls, "class_rationale": rationale,
         "time_budget_hit": time_budget_hit, "orbital_optimization_converged": orbital_converged,
