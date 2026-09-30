@@ -249,7 +249,18 @@ def main():
         return
 
     ph_pdb = protonate(a.ph)
-    atoms = read_pdb(ph_pdb) + read_zn_from_cif(PDB_ID, CHAIN, "501")
+    # DEDUP: found live 2026-09-30 -- pdbfixer's protonated output still carries
+    # the ORIGINAL ZN501 atom (removeHeterogens() is deliberately not called, see
+    # protonate()'s own comment), so appending read_zn_from_cif()'s independently-
+    # verified copy unconditionally produced two ZN atoms at the identical
+    # position (0.0 A apart) -- an infinite nuclear-repulsion term that surfaced
+    # downstream as pyscf's "Ill geometry" error, not as a duplicate-atom message.
+    # Same root pattern as the PHE275 dedup fix in run_gate2_c275f.py: strip any
+    # ZN at this chain/residue from the pdbfixer output first, so the verified
+    # cif-read copy is the only one that survives.
+    pdb_atoms = [a2 for a2 in read_pdb(ph_pdb)
+                 if not (a2["ch"] == CHAIN and a2["seq"] == "501" and a2["comp"] == "ZN")]
+    atoms = pdb_atoms + read_zn_from_cif(PDB_ID, CHAIN, "501")
     groups, caps, charge = build_cluster(atoms)
     n_heavy = sum(1 for k in groups for a in groups[k] if a["elem"] != "H")
     print(f"[cluster] {len(groups)} residues, {n_heavy} heavy atoms, {len(caps)} capping H, "
