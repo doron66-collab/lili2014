@@ -577,6 +577,17 @@
     align-items: start;
   }
 
+  /* A 1fr grid track's automatic minimum size is its content's min-content
+     width, not 0 -- so a wide table inside this column (e.g. the DP1-DP7
+     principle tables) silently forced the WHOLE page wider than the
+     viewport instead of scrolling inside its own .table-wrap. min-width: 0
+     lets the column actually shrink to the container's real width, so
+     overflow -- if any remains -- is handled by .table-wrap's own
+     overflow-x: auto, not by blowing out the page. */
+  .contribution > div {
+    min-width: 0;
+  }
+
   .contribution:first-child { border-top: 1px solid var(--rule); }
 
   .contribution-num {
@@ -601,10 +612,24 @@
   }
 
   table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
+  }
+
+  /* Genuinely wide, many-short-column comparison tables: let them scroll
+     horizontally inside .table-wrap on narrow screens instead of squeezing
+     every column into illegibility. NOT applied to ordinary tables (2-column
+     label+prose layouts, short data tables) which should keep wrapping text
+     at 100% width as before. */
+  table.wide-compare {
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+  }
+  table.wide-compare th, table.wide-compare td {
+    white-space: normal;
+    min-width: 6.5rem;
   }
 
   th {
