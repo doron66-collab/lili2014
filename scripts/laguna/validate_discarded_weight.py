@@ -27,9 +27,25 @@ Acceptance criteria, ALL four required for a candidate field to pass:
 
 Usage: python validate_discarded_weight.py
 """
+import os
 import sys
 
-CANDIDATE_FIELDS = ["discarded_weights", "sweep_discarded_weights"]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Widened from the original 2 candidates after the first real run (2026-09-30):
+# discarded_weights[-1] (last BOND of the last sweep) was non-monotonic with M,
+# and sweep_discarded_weights[-1] (last SWEEP) collapsed to numerical noise
+# (1e-18 to 1e-33) at every M regardless of how bad the energy still was --
+# consistent with the noise schedule annealing to exactly 0 on the final sweep
+# at each M, which can drive the LAST sweep's own discarded weight to spurious
+# near-zero even when M itself is nowhere near converged. Two more candidates
+# added to test that diagnosis directly rather than assert it: the MAX over
+# bonds in the last sweep (discarded_weights is per-bond; the worst bond, not
+# the last one, is the honest truncation indicator), and the SECOND-to-last
+# sweep's discarded weight (before the final noise=0 sweep, if noise annealing
+# is really what is masking it).
+CANDIDATE_FIELDS = ["discarded_weights_last_bond", "discarded_weights_max_bond",
+                    "sweep_discarded_weights_last", "sweep_discarded_weights_prelast"]
 BOND_DIMS = [4, 8, 16, 32, 64]
 
 
@@ -63,14 +79,18 @@ def run_ladder(h1e, eri_full, ecore, ncas, nelec):
         e = float(drv.dmrg(mpo, ket, n_sweeps=12, bond_dims=[M],
                            noises=[1e-4, 1e-5, 1e-6, 0], thrds=[1e-10] * 4, iprint=0))
         energies.append(e)
+        dw_raw = list(drv._dmrg.discarded_weights)
+        sdw_raw = list(drv._dmrg.sweep_discarded_weights)
+        print(f"  M={M:4d}  E={e:.8f} Ha  discarded_weights(all bonds)={dw_raw}")
+        print(f"           sweep_discarded_weights(all sweeps)={sdw_raw}")
+        vals = {
+            "discarded_weights_last_bond": dw_raw[-1] if dw_raw else None,
+            "discarded_weights_max_bond": max(dw_raw) if dw_raw else None,
+            "sweep_discarded_weights_last": sdw_raw[-1] if sdw_raw else None,
+            "sweep_discarded_weights_prelast": sdw_raw[-2] if len(sdw_raw) >= 2 else None,
+        }
         for field in CANDIDATE_FIELDS:
-            try:
-                val = getattr(drv._dmrg, field)
-                per_field[field].append(float(val[-1]))
-            except Exception as exc:
-                per_field[field].append(None)
-        print(f"  M={M:4d}  E={e:.8f} Ha  " +
-              "  ".join(f"{f}={per_field[f][-1]}" for f in CANDIDATE_FIELDS))
+            per_field[field].append(vals[field])
     return energies, per_field
 
 
@@ -131,12 +151,9 @@ def main():
         print("-" * 72)
 
     print("=" * 72)
-    if len(passed) == 1:
-        print(f"VERDICT: use `{passed[0]}` (the last element per bond dimension) "
-              f"as the discarded weight in solange_dmrg.py's run_dmrg().")
-    elif len(passed) > 1:
-        print(f"VERDICT: {passed} both pass — prefer 'sweep_discarded_weights' "
-              f"(per-sweep semantics match what the extrapolation needs directly).")
+    if len(passed) >= 1:
+        print(f"VERDICT: use `{passed[0]}` as the discarded weight in "
+              f"solange_dmrg.py's run_dmrg(). {'(others that also passed: ' + str(passed[1:]) + ')' if len(passed) > 1 else ''}")
     else:
         print("VERDICT: NEITHER candidate field passed. Do not wire either into "
               "run_dmrg() — fall back to dmrg_extrapolate.parse_block2_log() "
