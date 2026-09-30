@@ -103,7 +103,17 @@ def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
     nocc_total = numpy.count_nonzero(mf.mo_occ)
     nmo = mf.mo_coeff.shape[1]
 
-    av = avas.AVAS(mf, aolabels, threshold=site_threshold, ncore=ncore)
+    # avas.AVAS/mol.search_ao_label want a LIST of labels, not a comma-joined
+    # string -- verified locally: mol.search_ao_label('C 2p, N 2p') returns []
+    # (no match at all) while mol.search_ao_label(['C 2p', 'N 2p']) matches
+    # correctly. This is exactly why ncas0 came back 0 on the real cluster
+    # (178 atoms, "C 2p, N 2p, O 2p, S 3p" passed as one string): AVAS silently
+    # found zero target orbitals and never raised, since an empty AO list is
+    # not itself an error to avas.avas. _site_projector already split the
+    # string correctly; this call did not, and the two need to search the
+    # SAME set of AOs for the score-consistency check above to mean anything.
+    aos = [s.strip() for s in aolabels.split(",")] if isinstance(aolabels, str) else aolabels
+    av = avas.AVAS(mf, aos, threshold=site_threshold, ncore=ncore)
     ncas0, nelec0, mo0 = av.kernel()
     ncas0_occ = nelec0 // 2
     ncas0_vir = ncas0 - ncas0_occ
