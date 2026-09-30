@@ -287,7 +287,15 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         dt = time.time() - t0
         energies.append((M, float(e)))
         try:
-            dw = float(max(drv._dmrg.sweep_discarded_weights))
+            # LAST sweep at this M, not the max across sweeps (Claude Science,
+            # 2026-09-30, round 2): the early sweeps at a new M still show a
+            # large w because the MPS hasn't adapted yet, while the energy
+            # recorded above is already the LAST sweep's. Pairing that energy
+            # with the max-over-sweeps w mixes two different sweeps, and the
+            # mismatch does not cancel evenly across M (more "not yet adapted"
+            # sweeps survive into the max at small M than at large M). E and w
+            # must come from the identical sweep.
+            dw = float(drv._dmrg.sweep_discarded_weights[-1])
         except Exception:
             dw = None
         discarded_weights.append(dw)
