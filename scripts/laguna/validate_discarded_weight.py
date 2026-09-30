@@ -60,27 +60,52 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-BOND_DIMS = [12, 16, 24, 32, 48]
+BOND_DIMS = [3, 4, 6, 8, 12]
 N_SITES = 12
 BOND_LENGTH = 1.4
 BASIS = "sto-6g"
 
 
 def build_hchain_fci():
-    from pyscf import gto, scf, fci, ao2mo
+    """Builds the system in LOWDIN-LOCALIZED orbitals, not canonical RHF ones.
+
+    Round 6 (Claude Science, confirmed by a real two-point probe -- see
+    probe_local_basis.py): canonical RHF orbitals are delocalized (Bloch-like)
+    across the WHOLE chain, the textbook worst case for DMRG -- every MPS site
+    touches every atom, so w decays as a slow power law (M^-0.66, confirmed on
+    round 5's data) instead of the near-exponential decay DMRG assumes. Lowdin-
+    orthogonalized AOs are local (one per H atom, already ordered along the
+    chain) and gave w(M=48)=4.2e-9 in the two-point probe -- five orders of
+    magnitude past this module's own 1e-5 target -- confirming the diagnosis.
+    CAS(12,12) in this 12-function minimal basis is the FULL space, so the
+    energy is exactly basis-rotation-invariant: using the local basis changes
+    only the convergence rate, not the exact answer (still -6.14022239 Ha).
+    """
+    import numpy
+    from pyscf import gto, scf, fci, mcscf, ao2mo
     atoms = "\n".join(f"H 0 0 {i * BOND_LENGTH:.4f}" for i in range(N_SITES))
     mol = gto.M(atom=atoms, basis=BASIS, verbose=0)
     mf = scf.RHF(mol).run()
-    h1e = mf.mo_coeff.T @ mf.get_hcore() @ mf.mo_coeff
-    eri = ao2mo.kernel(mol, mf.mo_coeff)
-    eri_full = ao2mo.restore(1, eri, mol.nao)
+
+    S = mol.intor("int1e_ovlp")
+    w_, v = numpy.linalg.eigh(S)
+    C_loc = v @ numpy.diag(w_ ** -0.5) @ v.T
+
     na = mol.nelectron // 2
     print(f"[hchain] running exact FCI at CAS({mol.nelectron},{mol.nao}) -- "
           f"dim=C({mol.nao},{na})^2, this is the expensive-but-exact step, "
           f"give it a few minutes...", flush=True)
-    e_fci, _ = fci.direct_spin1.FCI().kernel(h1e, eri, mol.nao, (na, na), ecore=mf.energy_nuc())
-    print(f"[hchain] E_scf={mf.e_tot:.8f}  E_fci={e_fci:.8f}  CAS({mol.nelectron},{mol.nao})",
-          flush=True)
+    h1e_can = mf.mo_coeff.T @ mf.get_hcore() @ mf.mo_coeff
+    eri_can = ao2mo.kernel(mol, mf.mo_coeff)
+    e_fci, _ = fci.direct_spin1.FCI().kernel(h1e_can, eri_can, mol.nao, (na, na),
+                                             ecore=mf.energy_nuc())
+    e_check = mcscf.CASCI(mf, mol.nao, mol.nelectron).kernel(C_loc)[0]
+    print(f"[hchain] E_scf={mf.e_tot:.8f}  E_fci={e_fci:.8f}  "
+          f"E_local_basis_check={e_check:.8f}  CAS({mol.nelectron},{mol.nao})", flush=True)
+    assert abs(e_fci - e_check) < 1e-6, "local-basis energy does not match FCI -- do not proceed"
+
+    h1e = C_loc.T @ mf.get_hcore() @ C_loc
+    eri_full = ao2mo.restore(1, ao2mo.kernel(mol, C_loc), mol.nao)
     return h1e, eri_full, mf.energy_nuc(), mol.nao, mol.nelectron, e_fci
 
 
