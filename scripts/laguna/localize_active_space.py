@@ -110,12 +110,64 @@ def localize_split(mf, mo, active_start_col, n_occ, n_vir, init_guess=None):
     return mo_out
 
 
-def verify_energy_invariance(mf, mo_before, mo_after, ncas, nelec, tol=1e-6):
-    """Re-run the SAME check this module's docstring claims was verified on N2:
-    CASCI on this exact cluster's active space must agree before/after
-    localization to numerical precision. Run every time, not just once in
-    development -- this is what makes the invariance a checked fact for THIS
-    cluster, not an inherited assumption from the N2 test case."""
+def verify_subspace_invariance(mf, mo_before, mo_after, active_start_col, n_occ, n_vir, tol=1e-8):
+    """Proves energy invariance WITHOUT running CASCI/FCI at all -- by direct
+    linear algebra on the active-block coefficients.
+
+    CASCI energy depends only on the SUBSPACE spanned by the active orbitals
+    (plus the unchanged core/frozen orbitals), not on which orthonormal basis
+    is used to express that subspace. If the rotation found by PipekMezey is a
+    genuine unitary rotation WITHIN each block, the before/after active blocks
+    span the identical subspace -- which is exactly: M = C_before^T . S . C_after
+    is an orthogonal matrix (M^T M = I), given C_before is already orthonormal
+    under S (true here: build_mo() assembles mo from eigh() output, confirmed
+    orthonormal to float precision whenever this has been checked).
+
+    Found the hard way (2026-10-01): the previous version of this check ran
+    mcscf.CASCI(...).kernel() -- exact FCI -- to confirm this. That is fine on
+    N2 CAS(8,7) (FCI dim ~900) but CAS(36,34), the real target's selected
+    space, has FCI dim ~4.86e18: the CI vector alone would need ~39 exabytes.
+    Two real Laguna processes were killed after 20+ minutes attempting this
+    before the problem was diagnosed -- discovered from a job that should have
+    failed instantly with MemoryError but didn't even register as resource use
+    in `top`, meaning it was likely still inside pyscf's FCI vector-size setup
+    without ever getting to allocate the array. This check replaces that: it
+    is exact (not approximate), and its cost is a handful of (nao x n_active)
+    matrix multiplications -- independent of CAS size entirely, so it scales
+    to any active space this pipeline will ever select.
+    """
+    s = mf.mol.intor_symmetric('int1e_ovlp')
+    lo_, hi = active_start_col, active_start_col + n_occ + n_vir
+    c_before, c_after = mo_before[:, lo_:hi], mo_after[:, lo_:hi]
+    m = c_before.T.dot(s).dot(c_after)
+    dev = numpy.max(numpy.abs(m.T.dot(m) - numpy.eye(m.shape[0])))
+    print(f"[localize] subspace-invariance check (no FCI needed): active block "
+          f"[{lo_}:{hi}] ({n_occ+n_vir} orbitals) -- max|M^T M - I| = {dev:.2e} (tol {tol:.0e})",
+          flush=True)
+    if dev > tol:
+        sys.exit(f"[localize] REFUSING: the localized active block does not span the SAME "
+                 f"subspace as the original ({dev:.2e} > {tol:.0e}) -- this should be "
+                 f"numerically impossible for a split (occ-among-occ, vir-among-vir) rotation. "
+                 f"Check that active_start_col/n_occ/n_vir match the ACTUAL active block "
+                 f"boundaries before trusting anything downstream.")
+    return dev
+
+
+def verify_energy_invariance(mf, mo_before, mo_after, ncas, nelec, tol=1e-6, fci_dim_ceiling=10**7):
+    """Optional EXTRA confirmation via actual CASCI/FCI energy, kept for small
+    active spaces only (where it is cheap and was the original N2 validation
+    method) -- see verify_subspace_invariance() for the check that scales to
+    any size and is now the one that actually runs unconditionally.
+    """
+    from math import comb
+    nelec_a = nelec_b = nelec // 2
+    fci_dim = comb(ncas, nelec_a) * comb(ncas, nelec_b)
+    if fci_dim > fci_dim_ceiling:
+        print(f"[localize] skipping CASCI/FCI energy cross-check: FCI dim={fci_dim:.2e} exceeds "
+              f"the {fci_dim_ceiling:.0e} tractability ceiling for this bonus check (not a "
+              f"precondition -- verify_subspace_invariance() above is the one that must pass)",
+              flush=True)
+        return None
     from pyscf import mcscf
     e_before = mcscf.CASCI(mf, ncas, nelec).kernel(mo_before)[0]
     e_after = mcscf.CASCI(mf, ncas, nelec).kernel(mo_after)[0]
@@ -124,10 +176,7 @@ def verify_energy_invariance(mf, mo_before, mo_after, ncas, nelec, tol=1e-6):
           f"E_after={e_after:.10f}  |gap|={gap:.2e} Ha (tol {tol:.0e})", flush=True)
     if gap > tol:
         sys.exit(f"[localize] REFUSING: localization changed the CASCI energy by {gap:.2e} Ha, "
-                 f"above tolerance {tol:.0e}. This should be numerically impossible for a "
-                 f"split (occ-among-occ, vir-among-vir) rotation -- check that "
-                 f"active_start_col/n_occ/n_vir match the ACTUAL active block boundaries "
-                 f"before trusting anything downstream.")
+                 f"above tolerance {tol:.0e}.")
     return e_before, e_after, gap
 
 
@@ -158,12 +207,16 @@ def main():
 
     mo_loc = localize_split(mf, mo, meta["active_start_col"], meta["n_occ"], meta["n_vir"],
                             init_guess=a.init_guess)
-    e_before, e_after, gap = verify_energy_invariance(mf, mo, mo_loc, ncas, nelec)
+    subspace_dev = verify_subspace_invariance(mf, mo, mo_loc, meta["active_start_col"],
+                                              meta["n_occ"], meta["n_vir"])
+    fci_check = verify_energy_invariance(mf, mo, mo_loc, ncas, nelec)
 
     numpy.save(a.out + "_mo.npy", mo_loc)
     out_meta = dict(meta)
     out_meta.update(localized=True, localization_method="split Pipek-Mezey (occ/occ, vir/vir)",
-                    energy_invariance_check_Ha=gap, source_json=a.json, source_mo=a.mo)
+                    subspace_invariance_check=subspace_dev,
+                    energy_invariance_check_Ha=(fci_check[2] if fci_check else None),
+                    source_json=a.json, source_mo=a.mo)
     with open(a.out + ".json", "w") as fh:
         json.dump(out_meta, fh, indent=1)
     print(f"[localize] wrote {a.out}_mo.npy and {a.out}.json "
