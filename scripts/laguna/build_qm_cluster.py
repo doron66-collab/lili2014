@@ -360,18 +360,43 @@ def cap_dangling_bonds(selected):
     return caps
 
 
-def write_xyz(selected, caps, out_path, include_hetero=True, comment=""):
+def write_xyz(selected, caps, out_path, include_hetero=True, comment="", atom_map_out=None):
+    """Writes the plain .xyz (element + coords only -- what every downstream QM
+    script expects) and, if atom_map_out is given, a sidecar JSON recording
+    which residue each row came from, 0-indexed to match the xyz row order.
+
+    Without this sidecar, the atom-residue identity that `selected` carries
+    right here is thrown away the moment write_xyz returns: avas_mp2_select.py
+    and solange_dmrg.py only ever see a bare element/xyz list, so a question
+    like "are PHE275's ring pi/pi* orbitals actually inside the chosen active
+    space" cannot be answered after the fact without re-deriving this mapping
+    from the original PDB -- which only works if the exact same --target/
+    --chain/--resi/--radius are used again, since atom order is deterministic
+    but not otherwise recoverable from the .xyz file alone. Capping hydrogens
+    are recorded with resname "CAP" (they belong to no real residue).
+    """
     rows = []
-    for ats in selected.values():
+    atom_residues = []
+    for key, ats in selected.items():
+        chain, resseq, icode = key
         for a in ats:
             if a["record"] == "HETATM" and not include_hetero:
                 continue
             rows.append((a["element"], a["xyz"]))
-    rows.extend(caps)
+            atom_residues.append({"chain": chain, "resseq": resseq, "icode": icode,
+                                  "resname": a["resname"], "atom_name": a.get("name", "")})
+    for element, xyz in caps:
+        rows.append((element, xyz))
+        atom_residues.append({"chain": None, "resseq": None, "icode": None,
+                              "resname": "CAP", "atom_name": "H"})
     with open(out_path, "w") as f:
         f.write(f"{len(rows)}\n{comment}\n")
         for element, xyz in rows:
             f.write(f"{element:<3s} {xyz[0]:12.6f} {xyz[1]:12.6f} {xyz[2]:12.6f}\n")
+    if atom_map_out:
+        with open(atom_map_out, "w") as f:
+            json.dump({"xyz": out_path, "atom_residues": atom_residues}, f, indent=1)
+        print(f"wrote {atom_map_out} (atom index -> residue, 0-indexed, matches {out_path} row order)")
     return rows
 
 
@@ -406,6 +431,11 @@ def main():
     ap.add_argument("--radius", type=float, default=6.0, help="selection radius in Angstrom (default 6.0)")
     ap.add_argument("--no-hetero", action="store_true", help="exclude HETATM records (waters, ions, ligands) from the output")
     ap.add_argument("--out", required=True, help="output .xyz path")
+    ap.add_argument("--atom-map-out", default=None,
+                    help="also write a sidecar JSON mapping each .xyz row (0-indexed) to its "
+                         "source residue (chain/resseq/resname/atom name) -- needed to answer "
+                         "any later question of the form 'is residue N's orbital in the active "
+                         "space', which the bare .xyz cannot answer on its own")
     args = ap.parse_args()
 
     # Resolve the structure source before anything else touches args.pdb.
@@ -439,7 +469,8 @@ def main():
     comment = (f"QM cluster: {args.pdb} center=({args.chain or ''}{args.resi or ''}"
                f"{args.hetero or ''}) radius={args.radius}A residues={len(selected)} "
                f"heavy_atoms={n_heavy} caps={len(caps)}")
-    rows = write_xyz(selected, caps, args.out, include_hetero=not args.no_hetero, comment=comment)
+    rows = write_xyz(selected, caps, args.out, include_hetero=not args.no_hetero, comment=comment,
+                      atom_map_out=args.atom_map_out)
 
     print(f"selected {len(selected)} residues, {n_heavy} heavy atoms, {len(caps)} capping H")
     print(f"wrote {args.out}")
