@@ -89,28 +89,49 @@ def scan_cuts(x, min_q=MIN_Q, window=DEFAULT_WINDOW, k_min=1, k_max=None):
 
 
 def common_cuts(x_a, x_b, tol=1, min_q=MIN_Q, window=DEFAULT_WINDOW, k_max=None):
-    """Ranks that are a real gap on BOTH sides of the comparison.
+    """Ranks usable as ONE shared cut for both sides of the comparison.
 
-    tol allows the two sides to place the gap one rank apart, which is normal:
-    the mutation changes the orbitals, so the spectra are not identical.
-    Returns the common ranks with the WORSE of the two qualities, best first --
-    a cut is only as principled as its weaker side.
+    tol only widens the SEARCH: the mutation moves the spectrum, so a gap at
+    rank 17 on one side and rank 18 on the other is the same chemical feature
+    and both ranks become candidates. But the run uses a single k on both sides
+    -- R5 requires identical (nelecas, ncas) -- so every candidate k is then
+    scored by q evaluated AT THAT SAME k on BOTH sides.
+
+    This matters, and an earlier version of this function got it wrong. If A has
+    its gap at 17 (q = 6.4) and B at 18 (q = 21.4), reporting min(6.4, 21.4) =
+    6.4 for the shared cut k = 17 is not the quality of that cut: on side B,
+    k = 17 is one rank short of B's gap, so the number that governs is q_B(17),
+    which was never computed. A cut is only as principled as its weaker side
+    AT THE RANK ACTUALLY USED.
+
+    Returns candidates best-first on q_shared_min, each carrying q at the shared
+    k for both sides and, for reference, where each side's own gap sits.
     """
     A = {d["k"]: d for d in scan_cuts(x_a, min_q, window, k_max=k_max)}
     B = {d["k"]: d for d in scan_cuts(x_b, min_q, window, k_max=k_max)}
-    out = []
-    for ka, da in A.items():
-        for kb, db in B.items():
+    cand = set()
+    for ka in A:
+        for kb in B:
             if abs(ka - kb) <= tol:
-                out.append({"k": ka, "k_other_side": kb,
-                            "q_a": da["q"], "q_b": db["q"],
-                            "q_min": min(da["q"], db["q"]),
-                            "gap_a": da["gap"], "gap_b": db["gap"]})
-    best = {}
-    for d in out:
-        if d["k"] not in best or d["q_min"] > best[d["k"]]["q_min"]:
-            best[d["k"]] = d
-    return sorted(best.values(), key=lambda d: -d["q_min"])
+                cand.add(ka)
+                cand.add(kb)
+
+    out = []
+    for k in sorted(cand):
+        qa = cut_quality(x_a, k, window)
+        qb = cut_quality(x_b, k, window)
+        if qa is None or qb is None:
+            continue
+        out.append({"k": k,
+                    "q_a_at_k": qa, "q_b_at_k": qb,
+                    "q_shared_min": min(qa, qb),
+                    "on_own_gap_a": k in A, "on_own_gap_b": k in B,
+                    "q_a_own_gap": A[k]["q"] if k in A else None,
+                    "q_b_own_gap": B[k]["q"] if k in B else None,
+                    "both_clear_at_k": qa >= min_q and qb >= min_q,
+                    # kept for backwards compatibility with earlier callers
+                    "q_min": min(qa, qb)})
+    return sorted(out, key=lambda d: -d["q_shared_min"])
 
 
 def select_space(occ_wt, vir_wt, occ_mut, vir_mut,
@@ -131,20 +152,24 @@ def select_space(occ_wt, vir_wt, occ_mut, vir_mut,
     cv = common_cuts(vir_wt, vir_mut, min_q=min_q, window=window)
 
     cands = []
-    for do in (co or [{"k": None, "q_min": None}]):
-        for dv in (cv or [{"k": None, "q_min": None}]):
+    for do in co:
+        for dv in cv:
             n_occ, n_vir = do["k"], dv["k"]
-            if n_occ is None or n_vir is None:
-                continue
             tot = n_occ + n_vir
             frac = n_vir / tot
             dim = math.comb(tot, n_occ) ** 2
+            # every q here is evaluated at the SHARED rank on both sides
+            q_worst = min(do["q_shared_min"], dv["q_shared_min"])
             ok = (frac >= min_vir_frac and dim >= min_det
-                  and (max_total is None or tot <= max_total))
+                  and (max_total is None or tot <= max_total)
+                  and do["both_clear_at_k"] and dv["both_clear_at_k"])
             cands.append({"n_occ": n_occ, "n_vir": n_vir, "n_elec": 2 * n_occ,
                           "total": tot, "vir_frac": frac, "fci_dim": dim,
-                          "q_occ": do["q_min"], "q_vir": dv["q_min"],
-                          "q_worst": min(do["q_min"], dv["q_min"]),
+                          "q_occ_wt": do["q_a_at_k"], "q_occ_mut": do["q_b_at_k"],
+                          "q_vir_wt": dv["q_a_at_k"], "q_vir_mut": dv["q_b_at_k"],
+                          "q_occ": do["q_shared_min"], "q_vir": dv["q_shared_min"],
+                          "q_worst": q_worst,
+                          "both_sides_clear": do["both_clear_at_k"] and dv["both_clear_at_k"],
                           "admissible": ok})
     adm = [c for c in cands if c["admissible"]]
     best = max(adm, key=lambda c: c["q_worst"]) if adm else None
