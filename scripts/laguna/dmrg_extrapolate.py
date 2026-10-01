@@ -73,22 +73,30 @@ def decay_law(bond_dims, discarded_weights, w_target=1e-5, m_feasible=M_FEASIBLE
     This is a property of the ORBITAL BASIS AND ORDERING, not of the molecule, and
     it is the cheapest diagnostic available because it needs no reference energy.
 
-    A gapped system whose orbitals are localised and ordered along their coupling
-    gives w falling near-exponentially in M, because the Schmidt spectrum at every
-    cut decays geometrically. The same system in delocalised (canonical) orbitals
-    gives a power law: every orbital is spread over every centre, so every cut of
-    the orbital list carries roughly the same entanglement and truncation buys
-    little per unit of M. The discriminator is therefore which of
+    Two forms are fitted,
 
         log w = a + b*M        (exponential)
         log w = a + b*log M    (power law)
 
-    fits better, and what bond dimension each implies for w_target.
+    but the VERDICT is taken from the implied bond dimension, not from which form
+    wins. Measured on the same molecule, geometry and active space in two orbital
+    bases, H12/STO-6G at r = 1.4 A, CAS(12,12):
 
-    Settled on the project's own data: linear H12/STO-6G at r=1.4 A in CANONICAL
-    orbitals, M = 12..48, gave R^2 = 0.941 for the power law against 0.823 for the
-    exponential, with an implied M = 7.8e5 to reach w = 1e-5. The same system in
-    Loewdin-orthogonalised (localised) AOs converged on M = 6..24.
+        canonical  M = 12..48 : power law, exponent -0.663, R^2 0.941
+                                -> M ~ 7.8e5 for w = 1e-5        UNUSABLE
+        localised  M = 6..24  : power law, exponent -4.710, R^2 0.992
+                                -> M ~ 16 for w = 1e-5           CONVERGED
+
+    So the functional form does not separate the two cases -- both are power laws.
+    The exponent does, by a factor of 7.1, and the bond dimension it implies does
+    by a factor of 5e4. An earlier version of this function keyed on the form and
+    would have been right by accident; it now keys on m_required.
+
+    For reference, on the same pair of runs the quantities that did NOT separate
+    them were the R^2 of the E-against-w fit (0.941 failing, 0.992 succeeding --
+    both high) and the constancy of c = E_err/w (spread 1.45x in the FAILING run
+    against 2.51x in the succeeding one, i.e. the wrong way round). The ones that
+    did were the largest w on the ladder, the decades of w spanned, and this.
 
     Returns a dict; 'basis_suspect' True means fix the orbitals, not the ladder.
     """
@@ -114,7 +122,13 @@ def decay_law(bond_dims, discarded_weights, w_target=1e-5, m_feasible=M_FEASIBLE
 
     form = "power" if r2P > r2E else "exponential"
     m_req = m_pow if form == "power" else m_exp
-    suspect = (form == "power") and (m_req > m_feasible)
+    # Keyed on the IMPLIED BOND DIMENSION, not on the functional form. Settled on
+    # the project's own two runs of the same molecule and active space: BOTH are
+    # better fit by a power law (R^2 0.992 localised, 0.941 canonical), so the
+    # form does not discriminate. What discriminates is the exponent -- -4.71
+    # localised against -0.663 canonical, 7.1x steeper -- and therefore the bond
+    # dimension each implies: M ~ 16 against M ~ 7.8e5 for w = 1e-5.
+    suspect = m_req > m_feasible
 
     return {"ok": True,
             "bond_dims": M,
@@ -348,6 +362,7 @@ def parse_block2_log(path, dw_token=r'DW'):
 
 
 def _selftest():
+    import math
     # synthetic series obeying E = E0 + c*w exactly
     E0_true, c_true = -5333.128000, 4.75
     W = [1.0e-3, 3.0e-4, 1.0e-4, 3.0e-5]
@@ -399,6 +414,24 @@ def _selftest():
     assert st2["ok"] and st2["stable"], st2
     print("                          : dropping the two bad points -> stable (%.4f mHa)"
           % st2["intercept_spread_mHa"])
+
+    # regression test for the form-keyed basis_suspect bug: an earlier version
+    # only flagged a power-law decay with an infeasible M, so a decay that
+    # happens to fit "exponential" slightly better but is still hopelessly slow
+    # (an unrealistically small negative rate) would have slipped through
+    # unflagged. basis_suspect must key on m_required alone.
+    Mr = [20, 40, 80, 160, 320]
+    # rate chosen so the exponential fit wins (by construction, log w is exactly
+    # linear in M) yet the rate is so shallow that w=1e-5 needs M far past
+    # M_FEASIBLE -- the case the old `form == "power"` guard would have missed.
+    rate = -0.0005
+    Wr = [math.exp(rate * m) for m in Mr]
+    d = decay_law(Mr, Wr)
+    assert d["ok"] and d["form"] == "exponential", d
+    assert d["basis_suspect"], ("form-keyed bug regressed: 'exponential' fit with "
+                                "infeasible M was not flagged -- %r" % d)
+    print("selftest decay_law guard: slow-exponential case (M_required=%.3g) still "
+          "flagged basis_suspect -- the form-keyed bug does not regress" % d["m_required"])
 
 
 if __name__ == '__main__':
