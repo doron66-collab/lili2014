@@ -273,6 +273,14 @@ def main():
                          "running -- raise it if you still see 'Insufficient memory for "
                          "holding t2 incore'")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--spectrum-out", default=None,
+                    help="also write {\"occupied\": [...], \"virtual\": [...]} with the FULL, "
+                         "full-precision occ_dev/vir_dev spectra for the whole AVAS pool (not "
+                         "just the selected subset, and not rounded for terminal printing) -- "
+                         "feed this to check_active_space.py's --spectrum-json for cut_quality.py's "
+                         "R7 check. Rounding to 4 decimals (what the terminal log shows) changes "
+                         "q meaningfully when gaps are as small as 1e-4, so compute cut quality "
+                         "from this file, never from printed output.")
     a = ap.parse_args()
 
     sys.path.insert(0, __file__.rsplit("/", 1)[0] if "/" in __file__ else ".")
@@ -289,6 +297,18 @@ def main():
     ncas, nelec = n_occ + n_vir, 2 * n_occ
     print(f"[avas-mp2] FINAL selection: CAS({nelec},{ncas})  n_occ={n_occ} n_vir={n_vir} "
           f"({100*n_vir/ncas:.1f}% virtual)")
+
+    if a.spectrum_out:
+        # Full pool, full precision, sorted most-correlated-first -- exactly the
+        # shape cut_quality.py/check_active_space.py's R7 expect. occ_dev is
+        # ALREADY the hole occupation (2 - n), not the occupation itself (see
+        # two_criterion_select's own comment) -- do not re-derive it here.
+        spectrum = dict(occupied=sorted(result['occ_dev'], reverse=True),
+                        virtual=sorted(result['vir_dev'], reverse=True))
+        with open(a.spectrum_out, "w") as fh:
+            json.dump(spectrum, fh)
+        print(f"[avas-mp2] wrote {a.spectrum_out} (full pool: {len(spectrum['occupied'])} occ, "
+              f"{len(spectrum['virtual'])} vir, full precision)")
 
     mo = build_mo(mf, result)
     out = dict(xyz=a.xyz, charge=a.charge, spin=a.spin, basis=a.basis, ao_set=a.ao_set,

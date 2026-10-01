@@ -18,21 +18,17 @@ inside it, check that it can hold any. Four ways it cannot:
                                         Class A is unreachable whatever the chemistry
   R4  FCI dimension below the floor  -> the space is exactly diagonalisable; run FCI and
                                         get the exact answer instead of a DMRG estimate
+  R7  the boundary was imposed, not measured (see cut_quality.py) -- a cut inside a flat
+                                        continuum of the selection spectrum needs a
+                                        sensitivity ladder before its verdict is trusted
 
 Every threshold is a declared parameter, printed with the verdict.
-
-Origin: written by Claude Science (2026-09-30) after the TP53_C275F CAS(76,38)
-WT/mutant run -- occ=38, vir=0, S_max=0.0 was a mathematical certainty (the AVAS
-threshold that was computationally tractable for DMRG-SCF happened to also carry
-zero virtual orbitals). The check that would have caught this before the run took
-hours of Laguna compute: occ = nelecas/2, vir = ncas - occ, both derivable from the
-AVAS JSON that already existed. This script generalizes that check to four rules
-and is meant to sit alongside the >=90% site-coverage gate, run before
-solange_dmrg.py / solange_shci.py rather than after.
 
 Usage
   check_active_space.py --nelecas 76 --ncas 38
   check_active_space.py --avas-json wt_avas.json --compare-json mutant_avas.json
+  check_active_space.py --avas-json wt.json --compare-json mut.json \
+      --spectrum-json wt_spectrum.json --compare-spectrum-json mut_spectrum.json
 """
 import argparse, json, math, sys
 from math import comb, log
@@ -151,6 +147,16 @@ def main():
     p.add_argument('--min-vir-frac', type=float, default=15.0, help='percent')
     p.add_argument('--fci-floor', type=float, default=1e9)
     p.add_argument('--fci-ceiling', type=float, default=1e40)
+    p.add_argument('--spectrum-json', help='{"occupied": [...], "virtual": [...]} -- the '
+                   'selection diagnostic for every orbital in the POOL, each list sorted '
+                   'most-correlated first. For MP2 natural orbitals the occupied list is '
+                   'the HOLE occupations 2-n, not the occupations.')
+    p.add_argument('--compare-spectrum-json', help='the same for the other side of the pair')
+    p.add_argument('--min-q', type=float, default=3.0,
+                   help='cut-quality floor: gap at the cut over the local median spacing')
+    p.add_argument('--sensitivity-verified', action='store_true',
+                   help='assert that the +-2 orbital ladder has been run and the verdict was '
+                        'identical across it. Records an override; do not pass it unprovoked.')
     a = p.parse_args()
 
     if a.avas_json:
@@ -176,6 +182,56 @@ def main():
         print("  [R6] note  a RAW energy difference between a wild-type and a mutant cluster is")
         print("             dominated by the atomic-composition change of the substitution and is")
         print("             not a stability measurement. Only Leu/Ile cancels exactly.")
+
+    # ---- R7: was the boundary of this space measured, or imposed? ----------------
+    if a.spectrum_json:
+        import json as _json, os as _os
+        # this interpreter may run with a safe path, so sys.path[0] is not the
+        # script directory; put the sibling module within reach explicitly
+        _here = _os.path.dirname(_os.path.abspath(__file__))
+        if _here not in sys.path:
+            sys.path.insert(0, _here)
+        try:
+            import cut_quality as _cq
+        except ImportError:
+            print("  [R7] skip  cut_quality.py not importable; cannot judge the cut")
+            _cq = None
+        if _cq is not None:
+            n_occ, n_vir = ne // 2, no - ne // 2
+            sides = [("A", a.spectrum_json)]
+            if a.compare_spectrum_json:
+                sides.append(("B", a.compare_spectrum_json))
+            qs = []
+            for tag, path in sides:
+                sp = _json.load(open(path))
+                qo = _cq.cut_quality(sp["occupied"], n_occ)
+                qv = _cq.cut_quality(sp["virtual"], n_vir)
+                qs += [qo, qv]
+                for blk, k, q in (("occ", n_occ, qo), ("vir", n_vir, qv)):
+                    txt = "n/a (pool too small to judge)" if q is None else "%.2f" % q
+                    flag = "ok   " if (q is not None and q >= a.min_q) else "LOW  "
+                    print("  [R7] %s %s:%s cut at %d -> q = %s" % (flag, tag, blk, k, txt))
+            weak = [q for q in qs if q is None or q < a.min_q]
+            if weak:
+                plan = _cq.sensitivity_plan(n_occ, n_vir,
+                                            min([q for q in qs[0::2] if q is not None] or [None]),
+                                            min([q for q in qs[1::2] if q is not None] or [None]),
+                                            min_q=a.min_q)
+                print("             %d of %d cuts sit inside a continuum: the boundary was set by a"
+                      % (len(weak), len(qs)))
+                print("             parameter, not by the spectrum. That is permitted ONLY with the")
+                print("             sensitivity ladder, because a cut in a flat region is harmless")
+                print("             exactly when the orbitals either side of it are equivalent --")
+                print("             which is testable, not arguable. Required runs, beside this one:")
+                for cfg in plan["required_runs"]:
+                    print("                CAS(%d,%d)  n_occ=%d n_vir=%d"
+                          % (2 * cfg["n_occ"], cfg["n_occ"] + cfg["n_vir"],
+                             cfg["n_occ"], cfg["n_vir"]))
+                if a.sensitivity_verified:
+                    print("             --sensitivity-verified given: override RECORDED, verdict may")
+                    print("             be reported together with the ladder it was stable across.")
+                else:
+                    fails.append('R7 cut inside a continuum and no sensitivity ladder recorded')
 
     print("=" * 74)
     if fails:
