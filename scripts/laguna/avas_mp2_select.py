@@ -92,7 +92,8 @@ def _site_projector(mf, aolabels, minao='minao', ncore=0):
 
 def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
                           site_score_floor=0.05, total_active=None,
-                          min_vir_frac=0.20, max_vir_frac=0.55, ncore=0):
+                          min_vir_frac=0.20, max_vir_frac=0.55, ncore=0,
+                          mp2_max_memory=128000):
     """Returns a dict with the diagnostic spectra and the selected (n_occ, n_vir)
     orbital-index lists (indices into the assembled active-pool coordinate
     space -- caller reassembles mo_coeff from these, see build_mo()).
@@ -121,6 +122,18 @@ def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
 
     # --- MP2 within the AVAS(site_threshold) active pool only (everything else frozen)
     mf2 = mf.copy()
+    # pyscf's MP2 checks t2's size (nocc^2 * nvir^2 doubles) against mp.max_memory
+    # BEFORE running, not against the machine's real RAM -- inherited from mf's
+    # own max_memory, which build_mf() never raises past pyscf's conservative
+    # default (~4000 MB). Hit live on the real C275F cluster: AVAS(0.1) selected
+    # occ=241/vir=139, so t2 alone is 241^2*139^2*8 bytes =~ 9.0 GB, well past
+    # the default -- "Insufficient memory for holding t2 incore" even though
+    # Laguna's largemem nodes have far more RAM than that. with_t2=False is NOT
+    # the fix: DFMP2.make_rdm1() asserts self.t2 is not None (checked directly
+    # in the installed pyscf source), so the 1-RDM this function needs requires
+    # t2 to actually be held. Raise the ceiling instead of avoiding the array.
+    mf2.max_memory = mp2_max_memory
+    mf2.mol.max_memory = mp2_max_memory
     mf2.mo_coeff = mo0
     mo_occ_new = numpy.zeros(nmo)
     mo_occ_new[:nocc_total] = 2.0
@@ -252,6 +265,13 @@ def main():
                          "passing both criteria and let the caller decide")
     ap.add_argument("--min-vir-frac", type=float, default=0.20)
     ap.add_argument("--max-vir-frac", type=float, default=0.55)
+    ap.add_argument("--mp2-max-memory", type=int, default=128000,
+                    help="MB passed as the MP2 object's max_memory (default 128000 -- pyscf's "
+                         "own default ~4000 MB is sized for a laptop; the MP2 t2 amplitude "
+                         "tensor for a few hundred active orbitals easily needs several GB, "
+                         "and pyscf checks THIS ceiling, not the machine's real RAM, before "
+                         "running -- raise it if you still see 'Insufficient memory for "
+                         "holding t2 incore'")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
@@ -263,7 +283,8 @@ def main():
                                    occ_dev_cutoff=a.occ_dev_cutoff,
                                    site_score_floor=a.site_score_floor,
                                    total_active=a.total_active,
-                                   min_vir_frac=a.min_vir_frac, max_vir_frac=a.max_vir_frac)
+                                   min_vir_frac=a.min_vir_frac, max_vir_frac=a.max_vir_frac,
+                                   mp2_max_memory=a.mp2_max_memory)
     n_occ, n_vir = len(result['sel_occ']), len(result['sel_vir'])
     ncas, nelec = n_occ + n_vir, 2 * n_occ
     print(f"[avas-mp2] FINAL selection: CAS({nelec},{ncas})  n_occ={n_occ} n_vir={n_vir} "
