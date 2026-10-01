@@ -273,6 +273,10 @@ def main():
     out = dict(xyz=a.xyz, charge=a.charge, spin=a.spin, basis=a.basis, ao_set=a.ao_set,
                site_threshold=a.site_threshold, occ_dev_cutoff=a.occ_dev_cutoff,
                site_score_floor=a.site_score_floor,
+               # column where the active block starts in the saved _mo.npy (occ-then-
+               # vir, n_occ+n_vir columns wide) -- needed by localize_active_space.py
+               # to split-localize exactly the active occ/vir blocks and nothing else.
+               active_start_col=int(result['lo']),
                n_occ=n_occ, n_vir=n_vir, ncas=int(ncas), nelecas=int(nelec),
                qubits=int(2 * ncas), e_scf=float(mf.e_tot), scf_converged=bool(mf.converged),
                selected_occ_deviations=[result['occ_dev'][i] for i in result['sel_occ']],

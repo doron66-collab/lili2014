@@ -31,8 +31,24 @@ works.
 import re
 import sys
 
-CHEM_ACC_HA = 0.0016          # 1 kcal/mol, the bar used throughout this project
-MAX_W_LINEAR = 1e-3           # ceiling on the discarded weight for the linear-in-w regime
+CHEM_ACC_HA = 0.0016
+MAX_W_LINEAR = 1e-3   # ceiling on the discarded weight for the linear-in-w regime          # 1 kcal/mol, the bar used throughout this project
+
+# Below this weight there is nothing left to extrapolate and nothing needs
+# extrapolating: c * w is already far under chemical accuracy for any physical c.
+# The right output then is the computed energy with c*w as a bound, NOT a failed fit.
+W_CONVERGED = 1e-8
+
+# Conservative upper bound on the proportionality constant c in E ~= E_0 + c*w,
+# used only to turn a small w into an error bar without relying on the fit.
+# Measured on localised H12/STO-6G at r=1.4 A: c ~= 8.45 Ha per unit weight.
+# 100 is a deliberate order-of-magnitude margin over that.
+C_BOUND_HA_PER_W = 100.0
+
+# Largest bond dimension it is worth planning a production run around, for an
+# active space of a few tens of orbitals. Used only to decide whether a fitted
+# decay law can ever reach the linear regime.
+M_FEASIBLE = 4000
 
 
 def _ols(x, y):
@@ -48,6 +64,82 @@ def _ols(x, y):
     ss_res = sum((yi - (icept + slope * xi)) ** 2 for xi, yi in zip(x, y))
     r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
     return icept, slope, r2
+
+
+def decay_law(bond_dims, discarded_weights, w_target=1e-5, m_feasible=M_FEASIBLE):
+    """How does the discarded weight fall with bond dimension, and can the ladder
+    ever reach the linear regime?
+
+    This is a property of the ORBITAL BASIS AND ORDERING, not of the molecule, and
+    it is the cheapest diagnostic available because it needs no reference energy.
+
+    A gapped system whose orbitals are localised and ordered along their coupling
+    gives w falling near-exponentially in M, because the Schmidt spectrum at every
+    cut decays geometrically. The same system in delocalised (canonical) orbitals
+    gives a power law: every orbital is spread over every centre, so every cut of
+    the orbital list carries roughly the same entanglement and truncation buys
+    little per unit of M. The discriminator is therefore which of
+
+        log w = a + b*M        (exponential)
+        log w = a + b*log M    (power law)
+
+    fits better, and what bond dimension each implies for w_target.
+
+    Settled on the project's own data: linear H12/STO-6G at r=1.4 A in CANONICAL
+    orbitals, M = 12..48, gave R^2 = 0.941 for the power law against 0.823 for the
+    exponential, with an implied M = 7.8e5 to reach w = 1e-5. The same system in
+    Loewdin-orthogonalised (localised) AOs converged on M = 6..24.
+
+    Returns a dict; 'basis_suspect' True means fix the orbitals, not the ladder.
+    """
+    import math
+    pts = sorted((int(m), float(w)) for m, w in zip(bond_dims, discarded_weights)
+                 if w is not None and w > 0)
+    if len(pts) < 3:
+        return {"ok": False, "reason": "need at least 3 positive weights, got %d" % len(pts)}
+    M = [p[0] for p in pts]
+    lw = [math.log(p[1]) for p in pts]
+
+    aE, bE, r2E = _ols(M, lw)
+    aP, bP, r2P = _ols([math.log(m) for m in M], lw)
+    if bE is None or bP is None:
+        return {"ok": False, "reason": "bond dimensions or weights are degenerate"}
+
+    lt = math.log(w_target)
+    m_exp = (lt - aE) / bE if bE < 0 else float("inf")
+    try:
+        m_pow = math.exp((lt - aP) / bP) if bP < 0 else float("inf")
+    except OverflowError:
+        m_pow = float("inf")
+
+    form = "power" if r2P > r2E else "exponential"
+    m_req = m_pow if form == "power" else m_exp
+    suspect = (form == "power") and (m_req > m_feasible)
+
+    return {"ok": True,
+            "bond_dims": M,
+            "w": [p[1] for p in pts],
+            "w_decades": math.log10(pts[0][1] / pts[-1][1]),
+            "form": form,
+            "r2_exponential": r2E, "r2_power": r2P, "r2_margin": r2P - r2E,
+            "exp_rate_per_M": bE, "power_exponent": bP,
+            "w_target": w_target,
+            "m_required": m_req,
+            "m_feasible": m_feasible,
+            "basis_suspect": suspect,
+            "note": ("the weight falls as M^%.3f, a power law; reaching w = %.0e would need "
+                     "M ~ %.2g against a feasible ceiling of %d. No bond-dimension ladder fixes "
+                     "this. The orbitals are delocalised: localise inside the active space "
+                     "(split Pipek-Mezey, occupied among occupied and virtual among virtual, "
+                     "which leaves the energy in the space exactly invariant) and reorder on "
+                     "the exchange matrix, then re-probe."
+                     % (bP, w_target, m_req, m_feasible)) if suspect else
+                    ("the weight falls as exp(%.4f*M); w = %.0e is reached by M ~ %.0f, which is "
+                     "within reach. The basis and ordering are adequate."
+                     % (bE, w_target, m_exp)) if form == "exponential" else
+                    ("the weight falls as M^%.3f, a power law, but w = %.0e is still reached by "
+                     "M ~ %.2g. Usable, though localising the orbitals would shorten the ladder."
+                     % (bP, w_target, m_req))}
 
 
 def extrapolate(bond_dims, energies, discarded_weights,
@@ -66,6 +158,41 @@ def extrapolate(bond_dims, energies, discarded_weights,
         return {"ok": False, "reason": "need at least 3 bond dimensions, got %d" % len(pts)}
     if any(w is None or w <= 0 for _, _, w in pts):
         return {"ok": False, "reason": "non-positive or missing discarded weight in the series"}
+
+    import math
+    w_all = [w for _, _, w in pts]
+    if max(w_all) < W_CONVERGED:
+        # Not a failure, and not the same thing as the machine-epsilon artifact
+        # below. If the largest weight on the whole ladder is already this small,
+        # c*w is orders of magnitude under chemical accuracy for any physical c,
+        # so the computed energy IS the answer and the honest output is a bound,
+        # not an intercept. This is the expected case for a weakly correlated
+        # closed-shell cluster: the risk there is too little truncation, not too
+        # much. The one thing still worth checking is that the field really is a
+        # discarded weight, and the tell for that is a non-physical slope.
+        _, s_chk, _ = _ols(w_all, [e for _, e, _ in pts])
+        bound = C_BOUND_HA_PER_W * max(w_all)
+        w_ch = (math.log10(max(w_all) / min(w_all))
+                if min(w_all) > 0 and max(w_all) > min(w_all) else 0.0)
+        suspect_field = s_chk is not None and abs(s_chk) > 1e4
+        return {"ok": True, "already_converged": True, "converged": True,
+                "fitted_points": 0, "bond_dims_used": [p[0] for p in pts],
+                "w_min": min(w_all), "w_max": max(w_all), "w_decades": w_ch,
+                "e_best_computed_Ha": pts[-1][1], "bond_dim_best": pts[-1][0],
+                "e_extrapolated_Ha": None, "slope_Ha_per_w": s_chk, "r2": None,
+                "truncation_bound_Ha": bound, "truncation_bound_mHa": bound * 1000.0,
+                "chem_acc_Ha": chem_acc,
+                "verdict": ("CONVERGED WITHOUT EXTRAPOLATION: largest discarded weight on the "
+                            "ladder is %.2e, so the truncation error is bounded by %.2e Ha "
+                            "(c <= %.0f Ha per unit weight), %.0fx under chemical accuracy. "
+                            "Report the computed energy at M = %d with this bound; an "
+                            "extrapolation here would be fitting numerical noise."
+                            % (max(w_all), bound, C_BOUND_HA_PER_W,
+                               chem_acc / bound if bound > 0 else float('inf'), pts[-1][0])),
+                "warnings": ([] if not suspect_field else
+                             ["fitted slope is %.3e Ha per unit weight, far above the physical "
+                              "range of order 1e0-1e2; the quantity passed in is probably not a "
+                              "discarded weight" % s_chk])}
 
     k = n_points or min(4, len(pts))
     use = pts[-k:]
@@ -114,8 +241,17 @@ def extrapolate(bond_dims, energies, discarded_weights,
         warn.append("energies are not monotonically decreasing with increasing M -- a variational "
                     "method cannot do that at fixed sweep convergence; suspect an unconverged sweep")
 
+    # Basis-and-ordering guard. Fitted on the WHOLE ladder, not the fitted window,
+    # because the decay law is what tells you whether a longer ladder would help
+    # at all. A power-law decay means it would not.
+    decay = decay_law([p[0] for p in pts], [p[2] for p in pts])
+    if decay.get("ok") and decay["basis_suspect"]:
+        warn.append("the discarded weight decays as a POWER LAW in the bond dimension "
+                    "(R^2 %.3f against %.3f for exponential); %s"
+                    % (decay["r2_power"], decay["r2_exponential"], decay["note"]))
+
     converged = (resid < chem_acc) and not warn
-    return {"ok": True,
+    return {"ok": True, "already_converged": False, "decay": decay,
             "fitted_points": k, "bond_dims_used": M,
             "w_min": min(W), "w_max": max(W), "w_decades": decades,
             "e_extrapolated_Ha": e0, "slope_Ha_per_w": slope, "r2": r2,
