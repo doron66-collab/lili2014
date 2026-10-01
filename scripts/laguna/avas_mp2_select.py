@@ -93,7 +93,7 @@ def _site_projector(mf, aolabels, minao='minao', ncore=0):
 def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
                           site_score_floor=0.05, total_active=None,
                           min_vir_frac=0.20, max_vir_frac=0.55, ncore=0,
-                          mp2_max_memory=128000):
+                          mp2_max_memory=128000, force_n_occ=None, force_n_vir=None):
     """Returns a dict with the diagnostic spectra and the selected (n_occ, n_vir)
     orbital-index lists (indices into the assembled active-pool coordinate
     space -- caller reassembles mo_coeff from these, see build_mo()).
@@ -202,7 +202,29 @@ def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
     print(f"[avas-mp2] pass both criteria: {len(cand_occ)} occ, {len(cand_vir)} vir "
           f"(occ_dev_cutoff={occ_dev_cutoff}, site_score_floor={site_score_floor})")
 
-    if total_active is not None:
+    if force_n_occ is not None or force_n_vir is not None:
+        # Bypass the occ_dev_cutoff/site_score_floor/total_active machinery
+        # entirely: take the top-N orbitals by correlation rank (occ_dev /
+        # vir_dev descending) straight from the FULL AVAS pool, exactly the
+        # ranks cut_quality.select_space() reasons about when it reads the
+        # --spectrum-out file (which is this same occ_dev/vir_dev, sorted
+        # descending, over the WHOLE pool -- not the "passes both criteria"
+        # subset). Using the site-score/deviation floors here would select a
+        # DIFFERENT, smaller candidate pool than the one the gap was measured
+        # on, silently reintroducing the same "cut inside a continuum"
+        # failure cut_quality.py exists to catch -- one layer higher.
+        if force_n_occ is None or force_n_vir is None:
+            sys.exit("[avas-mp2] REFUSING: --force-n-occ and --force-n-vir must both be given "
+                     "together (a spectrum-measured cut fixes both block sizes at once).")
+        if not (0 < force_n_occ <= len(occ_dev)) or not (0 < force_n_vir <= len(vir_dev)):
+            sys.exit(f"[avas-mp2] REFUSING: --force-n-occ={force_n_occ} / --force-n-vir={force_n_vir} "
+                     f"out of range for pool sizes occ={len(occ_dev)} vir={len(vir_dev)}.")
+        sel_occ = sorted(order_o[:force_n_occ].tolist())
+        sel_vir = sorted(order_v[:force_n_vir].tolist())
+        print(f"[avas-mp2] FORCED selection (spectrum-measured, bypassing occ_dev_cutoff/"
+              f"site_score_floor/total_active): n_occ={force_n_occ} n_vir={force_n_vir} "
+              f"ranked purely by occ_dev/vir_dev over the full pool")
+    elif total_active is not None:
         # rank each pool by occ_dev/vir_dev (correlation strength) among those that
         # passed both criteria, then fill toward total_active within the declared
         # virtual-fraction band rather than a pre-fixed split.
@@ -263,6 +285,14 @@ def main():
                     help="if given, pick the best (n_occ,n_vir) summing to this within "
                          "--min-vir-frac/--max-vir-frac; otherwise report every orbital "
                          "passing both criteria and let the caller decide")
+    ap.add_argument("--force-n-occ", type=int, default=None,
+                    help="bypass occ_dev_cutoff/site_score_floor/total_active entirely and take "
+                         "exactly this many occupied orbitals, ranked by occ_dev over the FULL "
+                         "pool -- use this to realize a size cut_quality.select_space() already "
+                         "found and verified against the --spectrum-out file, not to pick a new "
+                         "size. Must be given together with --force-n-vir.")
+    ap.add_argument("--force-n-vir", type=int, default=None,
+                    help="counterpart to --force-n-occ for the virtual block.")
     ap.add_argument("--min-vir-frac", type=float, default=0.20)
     ap.add_argument("--max-vir-frac", type=float, default=0.55)
     ap.add_argument("--mp2-max-memory", type=int, default=128000,
@@ -292,7 +322,8 @@ def main():
                                    site_score_floor=a.site_score_floor,
                                    total_active=a.total_active,
                                    min_vir_frac=a.min_vir_frac, max_vir_frac=a.max_vir_frac,
-                                   mp2_max_memory=a.mp2_max_memory)
+                                   mp2_max_memory=a.mp2_max_memory,
+                                   force_n_occ=a.force_n_occ, force_n_vir=a.force_n_vir)
     n_occ, n_vir = len(result['sel_occ']), len(result['sel_vir'])
     ncas, nelec = n_occ + n_vir, 2 * n_occ
     print(f"[avas-mp2] FINAL selection: CAS({nelec},{ncas})  n_occ={n_occ} n_vir={n_vir} "
