@@ -147,7 +147,11 @@ def main():
 
     sys.path.insert(0, __file__.rsplit("/", 1)[0] if "/" in __file__ else ".")
     from run_gate2_avas import build_mf
-    mf = build_mf(meta["xyz"], meta["charge"], meta["spin"], basis=meta["basis"])
+    # Reuses the SCF chkfile avas_mp2_select.py wrote (if --chkfile was passed to it)
+    # so this call's SCF converges in ~1-2 cycles instead of from scratch -- see
+    # build_mf()'s chkfile docstring in run_gate2_avas.py.
+    mf = build_mf(meta["xyz"], meta["charge"], meta["spin"], basis=meta["basis"],
+                  chkfile=meta.get("chkfile"))
 
     mo = numpy.load(a.mo)
     ncas, nelec = meta["n_occ"] + meta["n_vir"], 2 * meta["n_occ"]

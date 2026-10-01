@@ -302,6 +302,12 @@ def main():
                          "and pyscf checks THIS ceiling, not the machine's real RAM, before "
                          "running -- raise it if you still see 'Insufficient memory for "
                          "holding t2 incore'")
+    ap.add_argument("--chkfile", default=None,
+                    help="pyscf SCF checkpoint path -- if it already exists, seeds (not skips) "
+                         "SCF from it so a repeat run on the same cluster converges in ~1-2 "
+                         "cycles instead of from scratch; if it doesn't exist yet, this run "
+                         "creates it for a later localize_active_space.py/solange_dmrg.py call "
+                         "on the SAME geometry/charge/spin/basis to reuse")
     ap.add_argument("--out", required=True)
     ap.add_argument("--spectrum-out", default=None,
                     help="also write {\"occupied\": [...], \"virtual\": [...]} with the FULL, "
@@ -316,7 +322,7 @@ def main():
     sys.path.insert(0, __file__.rsplit("/", 1)[0] if "/" in __file__ else ".")
     from run_gate2_avas import build_mf
 
-    mf = build_mf(a.xyz, a.charge, a.spin, basis=a.basis)
+    mf = build_mf(a.xyz, a.charge, a.spin, basis=a.basis, chkfile=a.chkfile)
     result = two_criterion_select(mf, a.ao_set, site_threshold=a.site_threshold,
                                    occ_dev_cutoff=a.occ_dev_cutoff,
                                    site_score_floor=a.site_score_floor,
@@ -344,7 +350,7 @@ def main():
     mo = build_mo(mf, result)
     out = dict(xyz=a.xyz, charge=a.charge, spin=a.spin, basis=a.basis, ao_set=a.ao_set,
                site_threshold=a.site_threshold, occ_dev_cutoff=a.occ_dev_cutoff,
-               site_score_floor=a.site_score_floor,
+               site_score_floor=a.site_score_floor, chkfile=a.chkfile,
                # column where the active block starts in the saved _mo.npy (occ-then-
                # vir, n_occ+n_vir columns wide) -- needed by localize_active_space.py
                # to split-localize exactly the active occ/vir blocks and nothing else.

@@ -238,7 +238,23 @@ def write_xyz(inside, groups, caps, path, comment=""):
 # The original run_avas() reran SCF from scratch for every threshold in a
 # --sweep, so an N-point sweep cost N full SCF runs for no reason. Split so
 # a sweep runs SCF exactly once and reuses the converged mf object.
-def build_mf(xyz, charge, spin, basis="6-31g"):
+#
+# chkfile (2026-10-01, Claude Science's sign-off on CAS(36,35)/(36,34)): every
+# caller of build_mf() -- avas_mp2_select.py, localize_active_space.py, and
+# solange_dmrg.py's --load-orbitals path -- independently reruns the full
+# density-fitted SCF on the same ~1000-function cluster from scratch (the
+# 30-45 min cost on Laguna), even when nothing about the molecule changed and
+# only the ORBITALS differ downstream (a different active-space cut, a
+# localized vs canonical rotation). That wall-clock is exactly what Science's
+# canonical-vs-localized three-point probe plan assumes is paid ONCE. Passing
+# --chkfile lets pyscf's own mechanism (mf.chkfile + init_guess='chkfile')
+# seed SCF from the previously converged density on a repeat call: this still
+# runs and checks mf.converged for real (never trusts a stored result without
+# re-verifying it), it just converges in ~1-2 cycles instead of from scratch
+# when the geometry/charge/spin/basis are unchanged -- the only case this is
+# used for.
+def build_mf(xyz, charge, spin, basis="6-31g", chkfile=None):
+    import os
     from pyscf import gto, scf
     lines = [l.strip() for l in open(xyz).read().splitlines()[2:] if l.strip()]
     mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin,
@@ -246,6 +262,12 @@ def build_mf(xyz, charge, spin, basis="6-31g"):
     print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, "
           f"charge={charge} spin={spin}")
     mf = (scf.RHF(mol) if spin == 0 else scf.ROHF(mol)).density_fit()
+    if chkfile:
+        mf.chkfile = chkfile
+        if os.path.exists(chkfile):
+            mf.init_guess = 'chkfile'
+            print(f"[avas] seeding SCF from existing chkfile {chkfile} "
+                  f"(still converges and verifies mf.converged -- not trusted blindly)")
     mf.kernel()
     if not mf.converged:
         print("*** SCF did NOT converge -- any active space below is provisional")
