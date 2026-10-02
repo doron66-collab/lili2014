@@ -100,6 +100,69 @@ def compare(fp_a, fp_b, rtol=1e-10):
     }
 
 
+def check_embedding(e_casci, e_scf, ncore=None, nelectron=None, nelecas=None,
+                    max_correlation_ha=5.0):
+    """Two gates on an active-space calculation, both of them arithmetic.
+
+    1. THE VARIATIONAL BOUND. An active space built by rotations confined within
+       the occupied block and within the virtual block still contains the HF
+       determinant, so
+
+           E_CASCI <= E_SCF,  strictly.
+
+       An energy ABOVE the SCF reference is not an inaccuracy; it means the
+       calculation is not on the molecule you think. Caught on a real run that
+       spent a day being diagnosed as physics: E_CASCI = -4709.968 against
+       E_SCF = -5333.125, i.e. +623 Ha above the reference, because the active
+       columns were sliced at the wrong offset. One comparison would have ended
+       it in seconds, so it is a gate and not a habit.
+
+       The upper limit on recovered correlation is a second, looser gate: a few
+       tens of orbitals cannot recover many Hartrees, so an energy FAR below the
+       reference is equally suspect.
+
+    2. THE CORE-ELECTRON COUNT. ncore is not a free parameter:
+
+           ncore = (nelectron - nelecas) / 2
+
+       Pass nelectron and nelecas and this is checked. If a layout offset into a
+       non-standard orbital array happens to differ from ncore, those are two
+       different quantities and must not share one variable -- the offset says
+       WHERE the active columns sit, ncore says HOW MANY ELECTRONS are frozen.
+    """
+    fails, notes = [], []
+    d = e_casci - e_scf
+    if d > 0:
+        fails.append("E_CASCI = %.8f is %.3f Ha ABOVE E_SCF = %.8f. The HF determinant "
+                     "lies inside any split-rotated active space, so this is "
+                     "variationally impossible: the active space is not the one you "
+                     "think it is. Check the column offset of the active block and the "
+                     "core electron count before anything else." % (e_casci, d, e_scf))
+    elif -d > max_correlation_ha:
+        fails.append("E_CASCI = %.8f is %.3f Ha BELOW E_SCF = %.8f. A few tens of active "
+                     "orbitals cannot recover that much correlation; suspect a wrong "
+                     "core energy or a double-counted core." % (e_casci, -d, e_scf))
+    else:
+        notes.append("variational bound holds: %.3f mHa of correlation recovered "
+                     "below the SCF reference" % (-d * 1000))
+
+    if None not in (nelectron, nelecas):
+        implied = (nelectron - nelecas) / 2.0
+        if ncore is not None and abs(ncore - implied) > 1e-9:
+            fails.append("ncore = %s but (nelectron - nelecas)/2 = %.1f. ncore is "
+                         "arithmetic, not a choice; %s implies nelectron = %d, not %d."
+                         % (ncore, implied, ncore, 2 * ncore + nelecas, nelectron))
+        else:
+            notes.append("core electron count consistent: ncore = %.0f for "
+                         "nelectron = %d, nelecas = %d" % (implied, nelectron, nelecas))
+
+    return {"ok": not fails, "e_casci": e_casci, "e_scf": e_scf,
+            "correlation_ha": -d, "correlation_mha": -d * 1000,
+            "failures": fails, "notes": notes,
+            "verdict": ("EMBEDDING REFUSED -- do not interpret this run"
+                        if fails else "embedding consistent")}
+
+
 def _selftest():
     import numpy as np
     rng = np.random.default_rng(7)
@@ -125,6 +188,20 @@ def _selftest():
     print("selftest identical input     : integrals_differ =", same["integrals_differ"])
     print("selftest on-site ratio       : %.4f (localisation indicator)"
           % r["onsite_coulomb_ratio_b_over_a"])
+
+    # the real failed run: CASCI above the SCF reference, and an ncore that
+    # implies the wrong electron count
+    bad = check_embedding(-4709.96816542, -5333.12509348636,
+                          ncore=106, nelectron=694, nelecas=36)
+    assert not bad["ok"] and len(bad["failures"]) == 2, bad
+    print("selftest real failed run     : REFUSED on %d gates" % len(bad["failures"]))
+    for f in bad["failures"]:
+        print("   -", f[:96] + "...")
+    good = check_embedding(-5333.32509348636, -5333.12509348636,
+                           ncore=329, nelectron=694, nelecas=36)
+    assert good["ok"], good
+    print("selftest plausible run       : %s (%.1f mHa correlation)"
+          % (good["verdict"], good["correlation_mha"]))
 
 
 if __name__ == "__main__":

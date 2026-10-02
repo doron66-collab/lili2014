@@ -765,6 +765,29 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                        "CASCI (externally-loaded orbitals)" if load_orbitals else
                        "CASCI (fixed AVAS orbitals)" if casci else "CASSCF")
     print(f"  {one_shot_label} {conv_note} · E={e_casscf:.8f}", flush=True)
+    # Mandatory embedding gate (2026-10-02, Claude Science): a split (occ-among-
+    # occ, vir-among-vir) active space always CONTAINS the HF determinant, so
+    # E_CASCI/E_CASSCF must be <= E_SCF -- strictly. An energy ABOVE the SCF
+    # reference means the active-space columns were sliced at the wrong offset,
+    # not that the calculation is merely inaccurate. Caught live on this exact
+    # target: E_CASCI = -4709.968 against E_SCF = -5333.125, +623 Ha above the
+    # reference, traced to --active-start-col not matching pyscf's own
+    # ncore=(mol.nelectron-nelecas)//2 arithmetic -- a comparison this cheap
+    # would have ended that investigation in seconds instead of a day. Runs
+    # unconditionally, not just for --load-orbitals, since the same failure
+    # shape (active columns not where the energy bookkeeping assumes) is not
+    # specific to that path.
+    import basis_check as _bc
+    _embed = _bc.check_embedding(e_casscf, float(mf.e_tot), ncore=mc.ncore,
+                                 nelectron=mf.mol.nelectron, nelecas=nelec)
+    for _n in _embed["notes"]:
+        print(f"  [embedding] {_n}", flush=True)
+    if not _embed["ok"]:
+        for _f in _embed["failures"]:
+            print(f"  [embedding] FAIL: {_f}", flush=True)
+        sys.exit(f"\n*** REFUSING: embedding check failed on CAS({nelec},{ncas}) -- "
+                 f"{_embed['verdict']}. Do not interpret this run; fix the active-space "
+                 f"column offset / ncore before re-running. ***")
     # Explicit mo_coeff=truncated_mo when cut short — see OrbitalTimeBudgetExceeded's
     # docstring; None (the normal-completion case) is identical to omitting the
     # argument, since get_h1eff/get_h2eff both default to self.mo_coeff when None.

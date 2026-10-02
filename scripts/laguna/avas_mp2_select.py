@@ -261,12 +261,55 @@ def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
 
 
 def build_mo(mf, result):
-    """Assemble the full mo_coeff with the active block replaced by the
-    selected MP2 natural orbitals (occ-then-vir), everything else unchanged."""
+    """Assemble the FULL-WIDTH mo_coeff (same column count as mo0/nmo -- nothing
+    dropped) with the active block holding only the SELECTED natural orbitals,
+    and every AVAS-pool candidate that correlation-ranking did NOT select kept
+    as an ordinary core (if occupied) or virtual (if virtual) column instead of
+    being discarded.
+
+    Found the hard way (2026-10-02): the previous version kept only the
+    selected columns -- numpy.hstack((mo0[:, :lo], no_occ_ao[sel_occ],
+    no_vir_ao[sel_vir], mo0[:, hi_vir:])) -- silently shrinking a 977-column
+    system to 631. That breaks pyscf's own bookkeeping: CASCI/CASSCF compute
+    ncore = (mol.nelectron - nelecas) // 2 from the MOLECULE's real electron
+    count (694 here), not from whatever this function decided to keep, so
+    get_h1eff/get_h2eff sliced mo_coeff[:, 329:363] against a 631-column array
+    whose real active columns sat at 106:140 -- entirely the wrong orbitals,
+    caught only via a variational-bound check (E_CASCI came out 623 Ha ABOVE
+    E_SCF, impossible for a split-rotated active space that still contains the
+    HF determinant). The 223 unselected occupied candidates and 123 unselected
+    virtual candidates are REAL molecular orbitals of this system; dropping
+    them silently changes the implied electron count, it does not shrink the
+    problem.
+
+    Returns (mo, ncore) -- ncore is the ACTUAL number of core columns in the
+    returned array (lo + unselected-occ count), which the caller must record
+    (as active_start_col) and the caller downstream must pass to pyscf AS
+    ncore, not treat as a free offset. The split (occ-among-occ, vir-among-vir)
+    rotation keeps the HF determinant exactly invariant regardless of where the
+    unselected pool columns are placed within the core/virtual groups, so their
+    internal order does not matter -- only the group (core vs. virtual) does.
+    """
     mo0, lo, hi_occ, hi_vir = result['mo0'], result['lo'], result['hi_occ'], result['hi_vir']
-    no_occ_ao = mo0[:, lo:hi_occ].dot(result['occ_no_u'])[:, result['sel_occ']]
-    no_vir_ao = mo0[:, hi_occ:hi_vir].dot(result['vir_no_u'])[:, result['sel_vir']]
-    return numpy.hstack((mo0[:, :lo], no_occ_ao, no_vir_ao, mo0[:, hi_vir:]))
+    occ_no_u, vir_no_u = result['occ_no_u'], result['vir_no_u']
+    sel_occ, sel_vir = set(result['sel_occ']), set(result['sel_vir'])
+
+    no_occ_ao_full = mo0[:, lo:hi_occ].dot(occ_no_u)      # whole AVAS-pool occ block, NO basis
+    no_vir_ao_full = mo0[:, hi_occ:hi_vir].dot(vir_no_u)  # whole AVAS-pool vir block, NO basis
+
+    unsel_occ = [i for i in range(no_occ_ao_full.shape[1]) if i not in sel_occ]
+    unsel_vir = [i for i in range(no_vir_ao_full.shape[1]) if i not in sel_vir]
+    sel_occ_sorted = sorted(sel_occ)
+    sel_vir_sorted = sorted(sel_vir)
+
+    core_block = numpy.hstack((mo0[:, :lo], no_occ_ao_full[:, unsel_occ]))
+    active_block = numpy.hstack((no_occ_ao_full[:, sel_occ_sorted], no_vir_ao_full[:, sel_vir_sorted]))
+    virt_block = numpy.hstack((no_vir_ao_full[:, unsel_vir], mo0[:, hi_vir:]))
+
+    mo_full = numpy.hstack((core_block, active_block, virt_block))
+    ncore = core_block.shape[1]
+    assert mo_full.shape[1] == mo0.shape[1], (mo_full.shape, mo0.shape)
+    return mo_full, ncore
 
 
 def main():
@@ -347,14 +390,27 @@ def main():
         print(f"[avas-mp2] wrote {a.spectrum_out} (full pool: {len(spectrum['occupied'])} occ, "
               f"{len(spectrum['virtual'])} vir, full precision)")
 
-    mo = build_mo(mf, result)
+    mo, ncore = build_mo(mf, result)
+    nelectron = mf.mol.nelectron
+    expected_ncore = (nelectron - nelec) // 2
+    if ncore != expected_ncore:
+        sys.exit(f"[avas-mp2] REFUSING: build_mo() returned ncore={ncore} but "
+                 f"(nelectron - nelecas)//2 = {expected_ncore} (nelectron={nelectron}, "
+                 f"nelecas={nelec}). ncore is arithmetic, not a choice -- this mismatch means "
+                 f"mo_full is not full-width, or some AVAS-pool orbital was counted twice or "
+                 f"dropped. Fix build_mo() before trusting this file's active_start_col.")
+    print(f"[avas-mp2] ncore={ncore} (== (nelectron-nelecas)//2={expected_ncore}, verified) "
+          f"active columns [{ncore}:{ncore+ncas}]")
     out = dict(xyz=a.xyz, charge=a.charge, spin=a.spin, basis=a.basis, ao_set=a.ao_set,
                site_threshold=a.site_threshold, occ_dev_cutoff=a.occ_dev_cutoff,
                site_score_floor=a.site_score_floor, chkfile=a.chkfile,
-               # column where the active block starts in the saved _mo.npy (occ-then-
-               # vir, n_occ+n_vir columns wide) -- needed by localize_active_space.py
-               # to split-localize exactly the active occ/vir blocks and nothing else.
-               active_start_col=int(result['lo']),
+               # column where the active block starts in the saved _mo.npy -- this IS
+               # pyscf's ncore (verified == (nelectron-nelecas)//2 above), needed by
+               # localize_active_space.py to split-localize exactly the active occ/vir
+               # blocks, and by solange_dmrg.py's --active-start-col to tell CASCI/CASSCF
+               # where the active columns sit (its default ncore formula is only valid
+               # for a full-width, standard-order mo_coeff).
+               active_start_col=int(ncore),
                n_occ=n_occ, n_vir=n_vir, ncas=int(ncas), nelecas=int(nelec),
                qubits=int(2 * ncas), e_scf=float(mf.e_tot), scf_converged=bool(mf.converged),
                selected_occ_deviations=[result['occ_dev'][i] for i in result['sel_occ']],
