@@ -34,9 +34,18 @@ mo_loc = np.load(MO_LOCALIZED)
 print("mo diff (full matrix):", np.max(np.abs(mo_can - mo_loc)))
 
 
+ACTIVE_START_COL = 106  # from tp53_c275f_wt_cas34_measured.json's active_start_col -- see
+# check_rotation_no_solver.py's comment: pyscf's default ncore assumes the
+# active space sits immediately below the Fermi level, which avas_mp2_select.py's
+# output does NOT follow. Without this, get_h1eff/get_h2eff silently read the
+# wrong 34 columns (confirmed: default ncore=329 here lands in the untouched
+# virtual-beyond-AVAS-pool block, not the real active columns 106:140).
+
+
 def get_fp(mo, label, canonicalization):
     from dmrgscf_block2 import Block2FCISolver
     mc = mcscf.CASCI(mf, NCAS, NELEC)
+    mc.ncore = ACTIVE_START_COL
     mc.canonicalization = canonicalization
     # CAS(36,34) has FCI dim 4.86e18 -- pyscf's DEFAULT fcisolver is exact FCI,
     # which is exactly the impossible allocation that killed two earlier jobs.

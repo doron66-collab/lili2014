@@ -32,7 +32,19 @@ mo_can = np.load(MO_CANONICAL)
 mo_loc = np.load(MO_LOCALIZED)
 print("mo diff (full matrix):", np.max(np.abs(mo_can - mo_loc)))
 
+# CRITICAL: pyscf's default ncore=(mol.nelectron-NELEC)//2 assumes the active
+# space sits immediately below the Fermi level. avas_mp2_select.py's build_mo()
+# does NOT follow that convention -- it places the active block at whatever
+# column AVAS's pool happened to start (ACTIVE_START_COL below, from the
+# selection JSON) and drops every non-selected pool candidate. Found live: a
+# first version of this script without this line reported IDENTICAL integrals
+# for genuinely different orbital files, because the default ncore=329 landed
+# entirely inside the untouched virtual-beyond-AVAS-pool block (columns
+# 140:631 here), nowhere near the real active columns (106:140).
+ACTIVE_START_COL = 106  # from tp53_c275f_wt_cas34_measured.json's active_start_col
 mc = mcscf.CASCI(mf, NCAS, NELEC)
+mc.ncore = ACTIVE_START_COL
+print(f"pyscf default ncore would have been {(mf.mol.nelectron - NELEC)//2} -- using {ACTIVE_START_COL}")
 
 h1_can, ecore_can = mc.get_h1eff(mo_can)
 h2_can = ao2mo.restore(1, mc.get_h2eff(mo_can), NCAS)

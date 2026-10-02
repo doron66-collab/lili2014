@@ -445,6 +445,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
                              orbital_deadline=None, stack_mem_gb=None, casci=False,
                              avas_threshold=0.2, load_orbitals=None,
                              ncas_override=None, nelecas_override=None,
+                             ncore_override=None,
                              skip_precondition=False):
     """Chemist-in-the-loop entry: given a QM-cluster geometry (xyz) and the target
     atomic orbitals, AVAS selects the active space automatically. Returns a dict
@@ -632,6 +633,32 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         mc = mcscf.CASCI(mf, ncas, nelec)
     else:
         mc = mcscf.CASSCF(mf, ncas, nelec)
+    if ncore_override is not None:
+        # pyscf's default ncore = (mol.nelectron - nelecas) // 2 assumes the
+        # active space sits immediately below the Fermi level (the standard
+        # "top N occupied, bottom M virtual" convention) -- true for AVAS's
+        # own raw output and for a prior solange_dmrg.py run's mo_coeff_final,
+        # but FALSE for avas_mp2_select.py's output: its build_mo() places the
+        # active block at an arbitrary column (active_start_col in its JSON),
+        # after DROPPING every AVAS-pool candidate that correlation-ranking
+        # did not select -- the saved file is not "all MOs, standard order."
+        # Found live 2026-10-02 via a no-solver fingerprint check that showed
+        # IDENTICAL integrals for genuinely different (canonical vs. split-PM
+        # localized) orbital files on CAS(36,34): the default ncore=329 landed
+        # entirely inside the UNTOUCHED virtual-beyond-AVAS-pool block (columns
+        # 140:631), not the real active columns (106:140) -- so every prior
+        # --load-orbitals run paired with avas_mp2_select.py's output on this
+        # target computed on the WRONG 34 columns, not the chemist-selected,
+        # correlation-ranked active space at all. Must be set explicitly
+        # whenever the source is avas_mp2_select.py/avas_by_count.py, not left
+        # to the default formula.
+        print(f"  --ncore override: pyscf's default ncore would be "
+              f"{(mf.mol.nelectron - nelec) // 2} (standard HOMO-adjacent convention); "
+              f"using {ncore_override} instead (the real active_start_col from the "
+              f"orbital-selection JSON) -- these differ whenever the source is "
+              f"avas_mp2_select.py/avas_by_count.py, and using the wrong one silently "
+              f"runs on the wrong 34 columns.", flush=True)
+        mc.ncore = ncore_override
     if dmrg_scf:
         # Swap the orbital-optimization solver itself from FCI to DMRG (block2) —
         # see the dmrg_scf docstring above for why this, not just a bigger
@@ -885,6 +912,17 @@ def main():
                          "instead of redoing the whole (multi-hour) orbital-optimization phase — "
                          "found needed live 2026-09-22 after an OOM killed the DMRG ladder phase of "
                          "a run whose orbital phase alone had already taken ~14 hours.")
+    ap.add_argument("--active-start-col", type=int, default=None,
+                    help="--load-orbitals mode only, REQUIRED when the file came from "
+                         "avas_mp2_select.py/avas_by_count.py (its 'active_start_col' field): sets "
+                         "mc.ncore explicitly instead of pyscf's default ncore=(mol.nelectron-"
+                         "nelecas)//2, which assumes the active block sits immediately below the "
+                         "Fermi level. avas_mp2_select.py's build_mo() does NOT follow that "
+                         "convention -- it places the active columns wherever AVAS's pool happened "
+                         "to start and drops every non-selected pool candidate, so the default "
+                         "formula silently reads the WRONG 34 columns. Omit only when --load-orbitals "
+                         "points to a prior solange_dmrg.py run's own mo_coeff_final.npy, which IS in "
+                         "standard order.")
     ap.add_argument("--dmrg-scf", action="store_true",
                     help="use DMRG (block2) as CASSCF's own orbital-optimization solver, "
                          "instead of FCI — this is what actually lets --ncas grow past the "
@@ -1003,6 +1041,7 @@ def main():
                                        load_orbitals=args.load_orbitals,
                                        ncas_override=args.ncas if args.load_orbitals else None,
                                        nelecas_override=args.nelecas if args.load_orbitals else None,
+                                       ncore_override=args.active_start_col,
                                        skip_precondition=args.skip_precondition)
         args.ncas, args.nelecas = cas["ncas"], cas["nelecas"]
         print(f"AVAS selected active space: CAS({args.nelecas},{args.ncas})")
