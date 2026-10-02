@@ -35,8 +35,17 @@ print("mo diff (full matrix):", np.max(np.abs(mo_can - mo_loc)))
 
 
 def get_fp(mo, label, canonicalization):
+    from dmrgscf_block2 import Block2FCISolver
     mc = mcscf.CASCI(mf, NCAS, NELEC)
     mc.canonicalization = canonicalization
+    # CAS(36,34) has FCI dim 4.86e18 -- pyscf's DEFAULT fcisolver is exact FCI,
+    # which is exactly the impossible allocation that killed two earlier jobs.
+    # Must use the same Block2FCISolver --dmrg-scf uses in the real probe, or
+    # this call either crashes or never returns. maxM kept small (this is a
+    # fingerprint check, not an energy measurement) but still has to be a real
+    # DMRG solve, not the exact solver.
+    mc.fcisolver = Block2FCISolver(maxM=50, scratch=f"./tmp_fp_{label}",
+                                   n_threads=8, stack_mem_gb=8)
     e = mc.kernel(mo)[0]
     mo_changed = np.max(np.abs(mc.mo_coeff - mo))
     print(f"  {label} (canonicalization={canonicalization}): E={e:.8f}  "
