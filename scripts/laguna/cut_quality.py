@@ -56,35 +56,73 @@ def adjacent_gaps(x):
     return [x[i] - x[i + 1] for i in range(len(x) - 1)]
 
 
-def cut_quality(x, k, window=DEFAULT_WINDOW):
+RANGE_FLOOR = 0.01   # a gap below this fraction of the spectrum's range is noise
+
+
+def cut_quality(x, k, window=DEFAULT_WINDOW, range_floor=RANGE_FLOOR):
     """Quality of a cut that keeps the first k entries of the sorted list x.
 
     k is a COUNT, so the relevant gap is between index k-1 and index k.
-    Returns None when there is not enough spectrum around k to judge.
+    Returns None when the cut cannot be judged.
+
+    Two guards, the second added after this function was run on a real MP2
+    natural-orbital spectrum and got it wrong. In the saturated tail of the
+    occupied block the printed occupations repeat to the last digit, so the
+    local median spacing is exactly 0.0; the ratio then divided by zero, the
+    function returned inf, and gaps of 1e-4 in numerical noise OUTRANKED the
+    genuine cut at k = 18 (gap 0.0025, q = 5.0). A ratio alone cannot tell a
+    real gap from a rounding artifact, so the gap must also be a meaningful
+    fraction of the spectrum's own range before it is judged at all.
     """
     if not (1 <= k < len(x)):
         return None
     g = adjacent_gaps(x)
     i = k - 1                                  # the gap being used as the cut
+    span = max(x) - min(x)
+    if span <= 0 or g[i] < range_floor * span:
+        return 0.0                             # too small to be a cut, whatever the ratio
     lo, hi = max(0, i - window), min(len(g), i + window + 1)
     neighbours = [g[j] for j in range(lo, hi) if j != i]
     if not neighbours:
         return None
     scale = _median(neighbours)
     if scale is None or scale <= 0:
-        return float("inf") if g[i] > 0 else 0.0
+        # degenerate neighbourhood: the gap cleared the range floor above, so it
+        # is real, but no local scale exists to normalise against. Report it as
+        # large rather than infinite so it stays comparable and sortable.
+        return g[i] / (range_floor * span)
     return g[i] / scale
 
 
-def scan_cuts(x, min_q=MIN_Q, window=DEFAULT_WINDOW, k_min=1, k_max=None):
-    """Every rank whose cut quality clears min_q, best first."""
+MIN_VALUE_FRACTION = 0.25   # the last kept orbital must carry this much of the strongest
+
+
+def scan_cuts(x, min_q=MIN_Q, window=DEFAULT_WINDOW, k_min=1, k_max=None,
+              min_value_fraction=MIN_VALUE_FRACTION):
+    """Every rank whose cut quality clears min_q, best first.
+
+    min_value_fraction is a PHYSICAL floor on top of the statistical one, and it
+    exists because q alone picked the wrong cuts on a real spectrum. The deep
+    tail of an MP2 occupied block is full of orbitals whose deviation from 2 is
+    a thousandth -- essentially uncorrelated -- and a 1e-3 gap among them can
+    score a high ratio purely because its neighbours are even smaller. On the
+    real C275F occupied block, k = 159 and k = 163 scored q = 10 against the
+    genuine cut at k = 18 (q = 5.0), while keeping orbitals carrying 20% of the
+    strongest correlation. A cut that keeps orbitals that are barely correlated
+    is not an active-space candidate however clean its gap looks, so the last
+    kept value must be at least this fraction of the spectrum's maximum.
+    """
     k_max = k_max or len(x) - 1
+    vmax = max(x) if x else 0.0
     out = []
     for k in range(max(1, k_min), min(k_max, len(x) - 1) + 1):
+        if vmax > 0 and x[k - 1] < min_value_fraction * vmax:
+            continue
         q = cut_quality(x, k, window)
         if q is not None and q >= min_q:
             out.append({"k": k, "q": q, "gap": x[k - 1] - x[k],
-                        "last_kept": x[k - 1], "first_dropped": x[k]})
+                        "last_kept": x[k - 1], "first_dropped": x[k],
+                        "value_fraction": x[k - 1] / vmax if vmax > 0 else None})
     return sorted(out, key=lambda d: -d["q"])
 
 
