@@ -66,6 +66,93 @@ def _ols(x, y):
     return icept, slope, r2
 
 
+def sweep_convergence(bond_dims, energies, root=0, target_mha=0.1, tail=4):
+    """Are the sweeps converged at each fixed M? Reads the PER-SWEEP arrays you
+    already have, so it costs nothing to run after the fact.
+
+    This exists because a negative fitted slope in extrapolate() has TWO causes
+    that need OPPOSITE fixes, and the slope alone cannot tell them apart:
+
+      (a) too few sweeps  -- the energy at the larger M simply has not come down
+          yet. The per-sweep energy is still falling at the end of each M. Fix:
+          more sweeps, same M, cold start. The drift here predicts how many.
+
+      (b) different states -- the sweeps ARE flat at each M, but the optimiser
+          converged to different local minima at different M, so the across-M
+          sequence is non-monotonic between converged answers. More sweeps will
+          not help at all. Fix: warm-start each M from the previous one.
+
+    Pass the per-sweep bond_dims and energies straight from
+    DMRGDriver.get_dmrg_results() (energies entries may be lists over roots).
+
+    Returns per-M drift over the last `tail` sweeps, a geometric estimate of the
+    sweeps needed to reach target_mha, and a verdict naming which cause fits.
+    """
+    import math
+
+    def scalar(e):
+        try:
+            return float(e[root])
+        except (TypeError, IndexError):
+            return float(e)
+
+    n = min(len(bond_dims), len(energies))
+    by_m = {}
+    for i in range(n):
+        by_m.setdefault(int(bond_dims[i]), []).append(scalar(energies[i]))
+
+    rows, flat = [], True
+    for m in sorted(by_m):
+        es = by_m[m]
+        t = es[-tail:] if len(es) >= 2 else es
+        steps = [abs(t[j + 1] - t[j]) for j in range(len(t) - 1)]
+        drift = steps[-1] if steps else None
+        ratio = None
+        if len(steps) >= 2 and steps[-2] > 0:
+            ratio = steps[-1] / steps[-2]
+        need = None
+        if drift is not None and drift * 1000 > target_mha:
+            flat = False
+            if ratio is not None and 0 < ratio < 1:
+                need = math.ceil(math.log((target_mha / 1000) / drift) / math.log(ratio))
+            else:
+                need = -1          # not decaying: more sweeps are not converging
+        rows.append({"bond_dim": m, "n_sweeps": len(es),
+                     "last_energy": es[-1],
+                     "last_step_mha": None if drift is None else drift * 1000,
+                     "step_ratio": ratio,
+                     "converged_at_this_M": drift is not None and drift * 1000 <= target_mha,
+                     "extra_sweeps_needed": need})
+
+    e_last = [r["last_energy"] for r in rows]
+    monotone = e_last == sorted(e_last, reverse=True)
+    worst = max((r["extra_sweeps_needed"] or 0) for r in rows) if rows else 0
+
+    if flat and not monotone:
+        verdict = ("DIFFERENT STATES. The sweeps are flat at every M (drift under "
+                   "%.2f mHa) yet the energies are not monotone in M, so these are "
+                   "converged answers to different local minima. More sweeps will not "
+                   "help -- warm-start each bond dimension from the previous one."
+                   % target_mha)
+    elif not flat and worst < 0:
+        verdict = ("NOT CONVERGING. The per-sweep step is not shrinking geometrically "
+                   "at one or more bond dimensions, so more sweeps of the same kind "
+                   "will not land it. Suspect the noise schedule or a bad initial "
+                   "state rather than the sweep count.")
+    elif not flat:
+        verdict = ("TOO FEW SWEEPS. The per-sweep energy is still falling at the end "
+                   "of at least one bond dimension; about %d more sweeps there reaches "
+                   "%.2f mHa. Raise --n-sweeps at the SAME bond dimensions and cold "
+                   "start again -- do not change M in the same run." % (worst, target_mha))
+    else:
+        verdict = ("CONVERGED AT EACH M and monotone in M: the ladder is diagnostic, "
+                   "so a negative slope from extrapolate() would now be real and not "
+                   "a sweep artifact.")
+
+    return {"ok": True, "rows": rows, "all_flat": flat, "monotone_in_M": monotone,
+            "target_mha": target_mha, "extra_sweeps_needed": worst, "verdict": verdict}
+
+
 SMAX_BOND_FRACTION = 0.7   # above this fraction of ln(M), S_max is measuring M
 
 

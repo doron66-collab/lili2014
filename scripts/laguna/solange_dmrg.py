@@ -270,6 +270,17 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     # its absence must never fail a run that would otherwise report a valid
     # energy/S_max.
     discarded_weights = []
+    # Full per-sweep history, one entry per bond dimension, each holding ALL
+    # sweeps' energies/discarded-weights for that M (not just the last one).
+    # Added 2026-10-02 (Claude Science): a negative extrapolate() slope has two
+    # distinct causes needing OPPOSITE fixes -- too few sweeps at fixed M (more
+    # sweeps, same M, helps) vs. the optimizer landing in different local minima
+    # at different M (more sweeps do nothing; warm-start helps) -- and nothing
+    # short of the per-sweep trace within each M can tell them apart. Keeping
+    # only the last sweep's dw (as before) throws away exactly the data
+    # dmrg_extrapolate.sweep_convergence() needs to distinguish the two cases
+    # for free, after the fact, instead of guessing which re-run to try next.
+    sweep_history = {}
     stop_reason = "completed"            # completed | converged | time_budget
     t_start = time.time()
     for M in bond_dims:
@@ -300,8 +311,11 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
             # dmrg() call's LAST sweep (matches the energy recorded above, since
             # this call covers exactly one M) -- see dmrg_extrapolate.
             # last_sweep_per_bond_dim's docstring for why last-sweep, not max.
-            _, dws, _ = drv.get_dmrg_results()
+            _, dws, sweep_energies = drv.get_dmrg_results()
             dw = float(dws[-1])
+            sweep_history[M] = {"dws": [float(x) for x in dws],
+                                "energies": [float(x[0]) if hasattr(x, "__len__") else float(x)
+                                            for x in sweep_energies]}
         except Exception:
             dw = None
         discarded_weights.append(dw)
@@ -329,6 +343,14 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         s_max = float(np.max(drv.get_bipartite_entanglement(ket)))
     except Exception:
         s_max = None
+    if sweep_history:
+        hist_path = Path(scratch) / "sweep_history.json"
+        hist_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(hist_path, "w") as fh:
+            json.dump(sweep_history, fh)
+        print(f"  [sweep-history] wrote {hist_path} (per-sweep E/dw for every M on this "
+              f"ladder -- feed to dmrg_extrapolate.sweep_convergence() to diagnose a "
+              f"negative extrapolation slope without re-running)", flush=True)
     return energies, s_max, stop_reason, discarded_weights
 
 
