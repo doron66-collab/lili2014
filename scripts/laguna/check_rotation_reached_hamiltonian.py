@@ -44,8 +44,16 @@ def get_fp(mo, label, canonicalization):
     # this call either crashes or never returns. maxM kept small (this is a
     # fingerprint check, not an energy measurement) but still has to be a real
     # DMRG solve, not the exact solver.
-    mc.fcisolver = Block2FCISolver(maxM=50, scratch=f"./tmp_fp_{label}",
-                                   n_threads=8, stack_mem_gb=8)
+    # maxM=50 (tried first) failed Block2FCISolver's own RDM-vs-energy
+    # self-check (Delta=1.06e-2 Ha) on this CAS(36,34) -- confirmed via
+    # dmrgscf_block2.py --diagnose on an independent small system that
+    # _BLOCK2_TO_PYSCF_2PDM_AXES=(0,3,1,2) is still correct, so that was
+    # maxM=50 being too undertrained for reliable RDM extraction on a space
+    # this large, not an axis bug. maxM=250 already passed this exact check
+    # in the real probe run (validate() + the dmrg-scf solve itself both
+    # succeeded there) -- reuse that value here.
+    mc.fcisolver = Block2FCISolver(maxM=250, scratch=f"./tmp_fp_{label}",
+                                   n_threads=16, stack_mem_gb=16)
     e = mc.kernel(mo)[0]
     mo_changed = np.max(np.abs(mc.mo_coeff - mo))
     print(f"  {label} (canonicalization={canonicalization}): E={e:.8f}  "
