@@ -153,6 +153,86 @@ def sweep_convergence(bond_dims, energies, root=0, target_mha=0.1, tail=4):
             "target_mha": target_mha, "extra_sweeps_needed": worst, "verdict": verdict}
 
 
+C_PHYSICAL_MIN, C_PHYSICAL_MAX = 1.0, 100.0   # Ha per unit discarded weight
+
+
+def weight_explains_energy(bond_dims, energies, discarded_weights,
+                           c_min=C_PHYSICAL_MIN, c_max=C_PHYSICAL_MAX, root=0):
+    """Is the reported discarded weight large enough to ACCOUNT for the energy
+    error between rungs? If not, it is not an error measure and no fit on it
+    means anything -- whether or not it happens to be monotone.
+
+    This is strictly stronger than the monotonicity guard and needs no reference
+    energy. For each consecutive pair it forms
+
+        c = (E_small_M - E_large_M) / (w_small_M - w_large_M)
+
+    which must land in the physical range for the relation E ~= E_0 + c*w to be
+    describing anything. Measured on this project's own systems c sits between
+    2.38 and 10.26 Ha per unit weight.
+
+    WHY a converged small-M run reports a tiny weight. DMRG truncates the
+    reduced density matrix of the CURRENT variational MPS, not of the exact
+    state. Once the sweeps have converged at bond dimension M the MPS is
+    self-consistently truncated: its own density matrix is already essentially
+    rank M, so the eigenvalue tail beyond M is small -- even though the state is
+    far from exact. Raise the bond dimension and the MPS can suddenly represent
+    directions that were invisible before, the spectrum becomes richer, and the
+    tail being cut can be LARGER in absolute terms than it was at the smaller M.
+    That is why the weight can rise with M in the pre-asymptotic regime, and why
+    a non-monotone w there is a real phenomenon rather than a bookkeeping error.
+
+    The reported weight becomes a truncation-error estimate only once M is large
+    enough that the MPS density-matrix spectrum approximates the exact Schmidt
+    spectrum. This function tells you whether you are there yet.
+
+    Caught on the real C275F WT ladder: M = 4, 8, 16 gave c = -3385, +152 and
+    +10229 for the three pairings, i.e. 15x to 1000x outside the physical range,
+    while the energy moved 298 mHa against a reported weight of 4.7e-5 that
+    would account for 0.4 mHa.
+    """
+    def scalar(e):
+        try:
+            return float(e[root])
+        except (TypeError, IndexError):
+            return float(e)
+
+    pts = sorted((int(m), scalar(e), float(w))
+                 for m, e, w in zip(bond_dims, energies, discarded_weights))
+    if len(pts) < 2:
+        return {"ok": False, "reason": "need at least two bond dimensions"}
+
+    rows, in_range = [], []
+    for (m1, e1, w1), (m2, e2, w2) in zip(pts, pts[1:]):
+        dw = w1 - w2
+        c = (e1 - e2) / dw if dw != 0 else None
+        good = c is not None and c_min <= c <= c_max
+        in_range.append(good)
+        rows.append({"from_M": m1, "to_M": m2,
+                     "dE_mha": (e1 - e2) * 1000.0, "dw": dw,
+                     "c_implied": c,
+                     "factor_outside": (None if c is None else
+                                        max(abs(c) / c_max, c_min / abs(c)) if (abs(c) > c_max or abs(c) < c_min) else 1.0),
+                     "in_physical_range": good,
+                     "energy_the_weight_would_explain_mha":
+                         None if c is None else abs(dw) * 8.45 * 1000.0})
+
+    usable = all(in_range)
+    return {"ok": True, "rows": rows, "usable_as_error_measure": usable,
+            "c_physical_range": (c_min, c_max),
+            "verdict": ("the discarded weight accounts for the energy differences "
+                        "within the physical range of c, so it is a usable error "
+                        "coordinate on this ladder" if usable else
+                        "the discarded weight does NOT account for the energy error on "
+                        "%d of %d rungs: c lands outside %.0f-%.0f Ha per unit weight. "
+                        "At these bond dimensions w is the tail of the current MPS's own "
+                        "density matrix, not of the exact Schmidt spectrum, so no fit "
+                        "against it is meaningful -- monotone or otherwise. Climb the "
+                        "ladder and re-test; the smallest M at which every c falls in "
+                        "range is where the extrapolation regime begins."
+                        % (sum(1 for g in in_range if not g), len(in_range), c_min, c_max))}
+
+
 def same_state_across_M(no_occupations_by_bond_dim, tol=0.02):
     """The third failure mode: are the bond dimensions describing the SAME state?
 
