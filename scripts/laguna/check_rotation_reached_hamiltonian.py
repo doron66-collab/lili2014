@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""
+check_rotation_reached_hamiltonian.py -- did split-PM localization survive into
+the h1e/h2e handed to the DMRG solver, on the REAL CAS(36,34) target?
+
+No DMRG here at all -- just SCF (seeded from an existing --chkfile, so ~1-2
+cycles not 30-45 min) + one CASCI call per orbital file + basis_check's
+rotation-sensitive fingerprint. Minutes, decisive.
+
+Tests canonicalization=False explicitly (pyscf's CASCI default canonicalizes
+active orbitals post-solve, which is itself a rotation confined to
+occ-among-occ/vir-among-vir -- exactly the flat direction that could erase a
+prior localization). Reports fingerprints under BOTH settings so the comparison
+is not assumed, only verified.
+"""
+import sys
+import numpy as np
+from pyscf import mcscf, ao2mo
+
+sys.path.insert(0, __file__.rsplit("/", 1)[0] if "/" in __file__ else ".")
+from run_gate2_avas import build_mf
+import basis_check as bc
+
+XYZ = "tp53_c275f_wt_cluster.xyz"
+CHKFILE = "tp53_c275f_wt.chk"
+MO_CANONICAL = "tp53_c275f_wt_cas34_measured_mo.npy"
+MO_LOCALIZED = "tp53_c275f_wt_cas34_localized_mo.npy"
+NCAS, NELEC = 34, 36
+
+mf = build_mf(XYZ, 0, 0, basis="6-31g", chkfile=CHKFILE)
+
+mo_can = np.load(MO_CANONICAL)
+mo_loc = np.load(MO_LOCALIZED)
+print("mo diff (full matrix):", np.max(np.abs(mo_can - mo_loc)))
+
+
+def get_fp(mo, label, canonicalization):
+    mc = mcscf.CASCI(mf, NCAS, NELEC)
+    mc.canonicalization = canonicalization
+    e = mc.kernel(mo)[0]
+    mo_changed = np.max(np.abs(mc.mo_coeff - mo))
+    print(f"  {label} (canonicalization={canonicalization}): E={e:.8f}  "
+          f"|mo_coeff - input| = {mo_changed:.6e}")
+    h1e, ecore = mc.get_h1eff()
+    h2e = ao2mo.restore(1, mc.get_h2eff(), NCAS)
+    return bc.fingerprint(h1e, h2e, label)
+
+
+for canon in (True, False):
+    print(f"\n=== canonicalization={canon} ===")
+    fp_can = get_fp(mo_can, "canonical", canon)
+    fp_loc = get_fp(mo_loc, "localized", canon)
+    r = bc.compare(fp_can, fp_loc)
+    print("sum_onsite_coulomb: canonical=%.6f  localized=%.6f  ratio=%.4f"
+          % (fp_can["sum_onsite_coulomb"], fp_loc["sum_onsite_coulomb"],
+             r["onsite_coulomb_ratio_b_over_a"]))
+    print("VERDICT:", r["verdict"])

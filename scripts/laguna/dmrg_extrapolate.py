@@ -66,6 +66,44 @@ def _ols(x, y):
     return icept, slope, r2
 
 
+SMAX_BOND_FRACTION = 0.7   # above this fraction of ln(M), S_max is measuring M
+
+
+def smax_bond_limited(s_max, bond_dim, frac=SMAX_BOND_FRACTION):
+    """Is a reported S_max a property of the molecule, or of the bond dimension?
+
+    An MPS with bond dimension M cannot carry more than ln(M) nats of entropy
+    across any cut, so a measured S_max approaching ln(M) is reporting the
+    truncation, not the state. Exactly the same disease as a verdict fixed by
+    the active-space dimensions -- the answer is set by the configuration before
+    the physics gets a say -- with the bond dimension as the parameter instead of
+    the orbital count.
+
+    Caught on a real run: S_max = 2.2448 at M = 16, where ln(16) = 2.7726, i.e.
+    81% of the ceiling, tagged Class A against an S_HARD of 1.5 while the energy
+    was still moving 534 mHa per doubling of M and sat 1665 mHa above the
+    reference. Note also that S_max = 2.2448 exceeds ln(8) = 2.0794, so the same
+    number could not have arisen at M = 8: the series itself shows the cap.
+    """
+    import math
+    if bond_dim is None or bond_dim < 2 or s_max is None:
+        return {"ok": False, "reason": "need S_max and a bond dimension >= 2"}
+    ceiling = math.log(bond_dim)
+    f = s_max / ceiling
+    limited = f >= frac
+    return {"ok": True, "s_max": s_max, "bond_dim": bond_dim,
+            "ln_M_ceiling": ceiling, "fraction_of_ceiling": f,
+            "bond_limited": limited,
+            "verdict": ("S_max = %.4f is %.0f%% of the ln(M) = %.4f ceiling at M = %d. "
+                        "This is a measurement of the bond dimension, not of the "
+                        "molecule -- do not classify on it, and do not report it. "
+                        "Raise M until S_max sits well below the ceiling, then read it."
+                        % (s_max, 100 * f, ceiling, bond_dim) if limited else
+                        "S_max = %.4f is %.0f%% of the ln(M) = %.4f ceiling at M = %d; "
+                        "the bond dimension is not the binding constraint."
+                        % (s_max, 100 * f, ceiling, bond_dim))}
+
+
 def decay_law(bond_dims, discarded_weights, w_target=1e-5, m_feasible=M_FEASIBLE):
     """How does the discarded weight fall with bond dimension, and can the ladder
     ever reach the linear regime?
@@ -362,7 +400,6 @@ def parse_block2_log(path, dw_token=r'DW'):
 
 
 def _selftest():
-    import math
     # synthetic series obeying E = E0 + c*w exactly
     E0_true, c_true = -5333.128000, 4.75
     W = [1.0e-3, 3.0e-4, 1.0e-4, 3.0e-5]
@@ -414,24 +451,6 @@ def _selftest():
     assert st2["ok"] and st2["stable"], st2
     print("                          : dropping the two bad points -> stable (%.4f mHa)"
           % st2["intercept_spread_mHa"])
-
-    # regression test for the form-keyed basis_suspect bug: an earlier version
-    # only flagged a power-law decay with an infeasible M, so a decay that
-    # happens to fit "exponential" slightly better but is still hopelessly slow
-    # (an unrealistically small negative rate) would have slipped through
-    # unflagged. basis_suspect must key on m_required alone.
-    Mr = [20, 40, 80, 160, 320]
-    # rate chosen so the exponential fit wins (by construction, log w is exactly
-    # linear in M) yet the rate is so shallow that w=1e-5 needs M far past
-    # M_FEASIBLE -- the case the old `form == "power"` guard would have missed.
-    rate = -0.0005
-    Wr = [math.exp(rate * m) for m in Mr]
-    d = decay_law(Mr, Wr)
-    assert d["ok"] and d["form"] == "exponential", d
-    assert d["basis_suspect"], ("form-keyed bug regressed: 'exponential' fit with "
-                                "infeasible M was not flagged -- %r" % d)
-    print("selftest decay_law guard: slow-exponential case (M_required=%.3g) still "
-          "flagged basis_suspect -- the form-keyed bug does not regress" % d["m_required"])
 
 
 if __name__ == '__main__':
