@@ -153,6 +153,55 @@ def sweep_convergence(bond_dims, energies, root=0, target_mha=0.1, tail=4):
             "target_mha": target_mha, "extra_sweeps_needed": worst, "verdict": verdict}
 
 
+def same_state_across_M(no_occupations_by_bond_dim, tol=0.02):
+    """The third failure mode: are the bond dimensions describing the SAME state?
+
+    sweep_convergence() rules out two causes of a bad E-vs-w fit -- too few
+    sweeps, and different local minima of the sweep optimiser. A third remains
+    and neither of those tests sees it: an MPS at small M can be variationally
+    optimal while describing a state of different CHARACTER from the one at
+    large M -- a different dominant configuration, a different distribution of
+    occupation over the active orbitals. Under SU(2) the spin sector is fixed, so
+    spin cannot drift, but spatial character is not constrained.
+
+    When that happens E and w are not points on one curve and no extrapolation
+    between them is meaningful, however clean each individual run is.
+
+    The test is free, because natural-orbital occupations come straight from the
+    1-RDM each run already computes, and they are basis-independent: eigenvalues
+    of an operator, unchanged by any rotation within the active space. Pass
+    {M: [occupations]} sorted descending per M.
+    """
+    ms = sorted(no_occupations_by_bond_dim)
+    if len(ms) < 2:
+        return {"ok": False, "reason": "need occupations at two or more bond dimensions"}
+    ref = no_occupations_by_bond_dim[ms[-1]]            # the largest M is the reference
+    rows, worst = [], 0.0
+    for m in ms[:-1]:
+        v = no_occupations_by_bond_dim[m]
+        n = min(len(v), len(ref))
+        d = [abs(v[i] - ref[i]) for i in range(n)]
+        mx = max(d) if d else 0.0
+        worst = max(worst, mx)
+        rows.append({"bond_dim": m, "vs_bond_dim": ms[-1], "n_compared": n,
+                     "max_abs_difference": mx,
+                     "mean_abs_difference": sum(d) / n if n else None,
+                     "orbital_of_max": d.index(mx) + 1 if d else None,
+                     "same_state": mx <= tol})
+    return {"ok": True, "rows": rows, "max_abs_difference": worst, "tol": tol,
+            "same_state": worst <= tol,
+            "verdict": ("the natural-orbital occupations agree to %.4f across bond "
+                        "dimensions, so every rung describes the same state and the "
+                        "ladder is a single curve" % worst if worst <= tol else
+                        "the natural-orbital occupations differ by %.4f between bond "
+                        "dimensions (largest at active orbital %d), above the %.3f "
+                        "tolerance. The rungs are describing states of different "
+                        "character, so they are not points on one E(w) curve and no "
+                        "extrapolation between them is meaningful -- warm-start from "
+                        "the largest converged M so every rung refines ONE state"
+                        % (worst, rows[0]["orbital_of_max"] or 0, tol))}
+
+
 SMAX_BOND_FRACTION = 0.7   # above this fraction of ln(M), S_max is measuring M
 
 
@@ -379,6 +428,19 @@ def extrapolate(bond_dims, energies, discarded_weights,
     if E != sorted(E, reverse=True):
         warn.append("energies are not monotonically decreasing with increasing M -- a variational "
                     "method cannot do that at fixed sweep convergence; suspect an unconverged sweep")
+    if W != sorted(W, reverse=True):
+        # The guard that closes the loophole the energy-monotonicity check leaves.
+        # If E and w are BOTH strictly decreasing in M the paired set is comonotone,
+        # so Cov(E,w) > 0 and the fitted slope is positive NECESSARILY. A negative
+        # slope alongside monotone energies is therefore arithmetically impossible
+        # and means w is the array at fault, not the physics. Caught on a real run
+        # reporting clean sweeps, monotone energies, slope = -626 and R^2 = 0.047.
+        warn.append("discarded weights are NOT monotonically decreasing with increasing M: %s. "
+                    "A larger bond dimension cannot truncate more, so these weights are not "
+                    "paired with the energies they are being fitted against -- check that both "
+                    "come from the LAST sweep at each M (last_sweep_per_bond_dim), not from a "
+                    "max-over-sweeps reduction, and that the two arrays are not offset by one "
+                    "bond dimension" % (["%.3e" % x for x in W],))
 
     # Basis-and-ordering guard. Fitted on the WHOLE ladder, not the fitted window,
     # because the decay law is what tells you whether a longer ladder would help
