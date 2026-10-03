@@ -1412,7 +1412,15 @@ def main():
         "elapsed_s": elapsed_s,
         "method": "DMRG (block2, classical) convergence + entanglement diagnostic",
         "orbital_optimization_method": cas["orbital_optimization_method"],
-        "provenance_source": "HPC/Laguna (DMRG classifier)",
+        # Was hardcoded "HPC/Laguna" regardless of where this actually ran --
+        # harmless while every agent was this one Laguna account, but this
+        # module has no functional Laguna dependency (confirmed 2026-10-03
+        # while answering whether a chemist could point this at a different
+        # HPC cluster via the hpc_dispatch pull-queue architecture): a
+        # different agent/cluster would have silently misreported itself as
+        # Laguna. Derived from the real hostname instead, same source
+        # detect_hardware() already uses for the hardware column below.
+        "provenance_source": f"HPC/{socket.gethostname()} (DMRG classifier)",
         "hardware": detect_hardware(args.threads),
     }
     # Recorded ONLY for a real --geometry run (not --compound demo mode): these
