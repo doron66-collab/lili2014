@@ -91,6 +91,7 @@ def _site_projector(mf, aolabels, minao='minao', ncore=0):
 
 
 def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
+                          random_seed=None,
                           site_score_floor=0.05, total_active=None,
                           min_vir_frac=0.20, max_vir_frac=0.55, ncore=0,
                           mp2_max_memory=128000, force_n_occ=None, force_n_vir=None):
@@ -219,11 +220,28 @@ def two_criterion_select(mf, aolabels, site_threshold=0.1, occ_dev_cutoff=0.02,
         if not (0 < force_n_occ <= len(occ_dev)) or not (0 < force_n_vir <= len(vir_dev)):
             sys.exit(f"[avas-mp2] REFUSING: --force-n-occ={force_n_occ} / --force-n-vir={force_n_vir} "
                      f"out of range for pool sizes occ={len(occ_dev)} vir={len(vir_dev)}.")
-        sel_occ = sorted(order_o[:force_n_occ].tolist())
-        sel_vir = sorted(order_v[:force_n_vir].tolist())
-        print(f"[avas-mp2] FORCED selection (spectrum-measured, bypassing occ_dev_cutoff/"
-              f"site_score_floor/total_active): n_occ={force_n_occ} n_vir={force_n_vir} "
-              f"ranked purely by occ_dev/vir_dev over the full pool")
+        if random_seed is not None:
+            # Scramble control (Claude Science, 2026-10-03): isolate SELECTION
+            # pressure from SIZE/FILLING. Same pool, same force_n_occ/force_n_vir
+            # count, but drawn uniformly at random instead of ranked by occ_dev --
+            # if a random subset of this size from this same pool reproduces the
+            # ranked subset's S_max, site_score was never doing any discriminating
+            # work and the result is a property of (molecule, active-space size),
+            # not of the site. Sampling the FULL candidate index range (not just
+            # the "passes both criteria" subset), matching what the ranked branch
+            # draws from (order_o/order_v span the whole pool).
+            rng = numpy.random.default_rng(random_seed)
+            sel_occ = sorted(rng.choice(len(occ_dev), size=force_n_occ, replace=False).tolist())
+            sel_vir = sorted(rng.choice(len(vir_dev), size=force_n_vir, replace=False).tolist())
+            print(f"[avas-mp2] SCRAMBLE selection (seed={random_seed}): n_occ={force_n_occ} "
+                  f"n_vir={force_n_vir} drawn UNIFORMLY AT RANDOM from the full pool "
+                  f"(occ_dev/site_score ignored by construction)")
+        else:
+            sel_occ = sorted(order_o[:force_n_occ].tolist())
+            sel_vir = sorted(order_v[:force_n_vir].tolist())
+            print(f"[avas-mp2] FORCED selection (spectrum-measured, bypassing occ_dev_cutoff/"
+                  f"site_score_floor/total_active): n_occ={force_n_occ} n_vir={force_n_vir} "
+                  f"ranked purely by occ_dev/vir_dev over the full pool")
     elif total_active is not None:
         # rank each pool by occ_dev/vir_dev (correlation strength) among those that
         # passed both criteria, then fill toward total_active within the declared
@@ -336,6 +354,11 @@ def main():
                          "size. Must be given together with --force-n-vir.")
     ap.add_argument("--force-n-vir", type=int, default=None,
                     help="counterpart to --force-n-occ for the virtual block.")
+    ap.add_argument("--random-seed", type=int, default=None,
+                    help="scramble control: with --force-n-occ/--force-n-vir, draw that many "
+                         "orbitals UNIFORMLY AT RANDOM from the full pool instead of ranking by "
+                         "occ_dev/vir_dev -- isolates selection pressure (site_score) from pure "
+                         "size/filling.")
     ap.add_argument("--min-vir-frac", type=float, default=0.20)
     ap.add_argument("--max-vir-frac", type=float, default=0.55)
     ap.add_argument("--mp2-max-memory", type=int, default=128000,
@@ -372,7 +395,8 @@ def main():
                                    total_active=a.total_active,
                                    min_vir_frac=a.min_vir_frac, max_vir_frac=a.max_vir_frac,
                                    mp2_max_memory=a.mp2_max_memory,
-                                   force_n_occ=a.force_n_occ, force_n_vir=a.force_n_vir)
+                                   force_n_occ=a.force_n_occ, force_n_vir=a.force_n_vir,
+                                   random_seed=a.random_seed)
     n_occ, n_vir = len(result['sel_occ']), len(result['sel_vir'])
     ncas, nelec = n_occ + n_vir, 2 * n_occ
     print(f"[avas-mp2] FINAL selection: CAS({nelec},{ncas})  n_occ={n_occ} n_vir={n_vir} "
