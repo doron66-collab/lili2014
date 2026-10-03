@@ -126,7 +126,17 @@ def sweep_convergence(bond_dims, energies, root=0, target_mha=0.1, tail=4):
 
     e_last = [r["last_energy"] for r in rows]
     monotone = e_last == sorted(e_last, reverse=True)
-    worst = max((r["extra_sweeps_needed"] or 0) for r in rows) if rows else 0
+
+    # The -1 sentinel ("not decaying geometrically") must NOT be aggregated with
+    # max() alongside the 0s of converged rows: 0 > -1, so a single genuinely
+    # non-converging M is outvoted by every converged M and the NOT CONVERGING
+    # branch can never fire. Track the sentinel as its own set of bond dimensions,
+    # and let `worst` carry only real positive sweep counts so the "N more sweeps"
+    # message can never read "about 0 more sweeps".
+    not_decaying = [r["bond_dim"] for r in rows if r["extra_sweeps_needed"] == -1]
+    worst = max([r["extra_sweeps_needed"] for r in rows
+                 if isinstance(r["extra_sweeps_needed"], int)
+                 and r["extra_sweeps_needed"] > 0] or [0])
 
     if flat and not monotone:
         verdict = ("DIFFERENT STATES. The sweeps are flat at every M (drift under "
@@ -134,23 +144,43 @@ def sweep_convergence(bond_dims, energies, root=0, target_mha=0.1, tail=4):
                    "converged answers to different local minima. More sweeps will not "
                    "help -- warm-start each bond dimension from the previous one."
                    % target_mha)
-    elif not flat and worst < 0:
-        verdict = ("NOT CONVERGING. The per-sweep step is not shrinking geometrically "
-                   "at one or more bond dimensions, so more sweeps of the same kind "
-                   "will not land it. Suspect the noise schedule or a bad initial "
-                   "state rather than the sweep count.")
-    elif not flat:
+    elif not_decaying:
+        verdict = ("NOT CONVERGING at M=%s. The per-sweep step is not shrinking "
+                   "geometrically there, so more sweeps of the same kind will not land "
+                   "it. Suspect the noise schedule or a bad initial state rather than "
+                   "the sweep count. Any dE involving %s is NOT a usable ladder "
+                   "interval; dE between two converged M is still usable."
+                   % (", ".join(str(m) for m in not_decaying),
+                      "those bond dimensions" if len(not_decaying) > 1
+                      else "M=%d" % not_decaying[0]))
+    elif not flat and worst > 0:
         verdict = ("TOO FEW SWEEPS. The per-sweep energy is still falling at the end "
                    "of at least one bond dimension; about %d more sweeps there reaches "
                    "%.2f mHa. Raise --n-sweeps at the SAME bond dimensions and cold "
                    "start again -- do not change M in the same run." % (worst, target_mha))
+    elif not flat:
+        verdict = ("NOT FLAT BUT NO SWEEP ESTIMATE. At least one bond dimension is "
+                   "above the %.2f mHa drift target, yet no positive sweep count and no "
+                   "non-decay sentinel was produced. This combination should be "
+                   "unreachable -- treat it as a defect in this function, not as a "
+                   "result, and do not classify on it." % target_mha)
     else:
         verdict = ("CONVERGED AT EACH M and monotone in M: the ladder is diagnostic, "
                    "so a negative slope from extrapolate() would now be real and not "
                    "a sweep artifact.")
 
+    # A guard must never emit a verdict its own payload contradicts.
+    assert not (verdict.startswith("TOO FEW SWEEPS") and worst <= 0), \
+        "self-inconsistent verdict: TOO FEW SWEEPS with %r extra sweeps" % worst
+    assert not (verdict.startswith("NOT CONVERGING") and not not_decaying), \
+        "self-inconsistent verdict: NOT CONVERGING with no non-decaying M"
+
+    usable = [(a["bond_dim"], b["bond_dim"]) for a, b in zip(rows, rows[1:])
+              if a["converged_at_this_M"] and b["converged_at_this_M"]]
     return {"ok": True, "rows": rows, "all_flat": flat, "monotone_in_M": monotone,
-            "target_mha": target_mha, "extra_sweeps_needed": worst, "verdict": verdict}
+            "target_mha": target_mha, "extra_sweeps_needed": worst,
+            "not_decaying_at": not_decaying, "usable_intervals": usable,
+            "verdict": verdict}
 
 
 C_PHYSICAL_MIN, C_PHYSICAL_MAX = 1.0, 100.0   # Ha per unit discarded weight
@@ -680,6 +710,32 @@ def _selftest():
     assert st2["ok"] and st2["stable"], st2
     print("                          : dropping the two bad points -> stable (%.4f mHa)"
           % st2["intercept_spread_mHa"])
+
+    # --- regression: the -1 sentinel must survive aggregation with converged rows.
+    # Reproduces the real C275F corrected ladder: M=50/125/250 converged, M=75 not
+    # (its last per-sweep step GREW). Before the fix, max(0, -1, 0, 0) == 0 so the
+    # NOT CONVERGING branch could not fire and the output read "TOO FEW SWEEPS,
+    # about 0 more sweeps" -- a verdict its own payload contradicted.
+    def _hist(e_end, steps):            # per-sweep tail ending at e_end, walked backwards
+        es = [e_end]
+        for s in reversed(steps):
+            es.append(es[-1] + s)
+        return list(reversed(es))
+    bd_s, en_s = [], []
+    for m, e_end, steps in [(50,  -5333.36859418, [1.3e-5, 4.9e-6]),
+                            (75,  -5333.40505691, [3.18e-3, 1.715e-2]),   # ratio 5.39
+                            (125, -5333.41212161, [1.5e-6, 3.0e-7]),
+                            (250, -5333.42741252, [5.4e-6, 5.7e-6])]:
+        h = _hist(e_end, steps)
+        bd_s += [m] * len(h); en_s += h
+    sc = sweep_convergence(bd_s, en_s, target_mha=0.1)
+    assert sc["not_decaying_at"] == [75], sc["not_decaying_at"]
+    assert sc["verdict"].startswith("NOT CONVERGING"), sc["verdict"]
+    assert "about 0 more sweeps" not in sc["verdict"]
+    assert (125, 250) in sc["usable_intervals"], sc["usable_intervals"]
+    assert (50, 75) not in sc["usable_intervals"], sc["usable_intervals"]
+    print("selftest sentinel regression: NOT CONVERGING at M=%s survives aggregation; "
+          "usable intervals %s" % (sc["not_decaying_at"], sc["usable_intervals"]))
 
 
 if __name__ == '__main__':

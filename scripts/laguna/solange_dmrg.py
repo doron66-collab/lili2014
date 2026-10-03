@@ -458,8 +458,25 @@ def entanglement_capacity_pct(s_max, ncas, nelecas=None, spin=0):
 # to what it claims to be: DMRG-specific evidence, not a cross-method
 # exclusion. Treated as a genuinely open question, not one this platform
 # currently answers.
+# Fraction of PRACTICAL_M a ladder must reach before non-convergence alone is
+# allowed to support Class A (Claude Science, 2026-10-03, found live on the
+# corrected TP53_C275F ladder): S_max is an INTRINSIC property of the state —
+# true at any M once measured — but "DMRG hasn't converged yet" is a PROCEDURAL
+# fact about how far the ladder got, not about the molecule. The ladder that
+# triggered this stopped at M=250, 6.2% of PRACTICAL_M=2000... er, of this
+# project's own feasibility ceiling — "we haven't finished the classical
+# computation" is not evidence FOR quantum necessity, it is an open question.
+# OR-ing an intrinsic criterion with an incomplete procedural one let an
+# unfinished run report a positive (Class A) verdict, which is the wrong
+# direction to default an incomplete answer. This fraction is a judgment call,
+# not a derived number: chosen conservatively (DMRG should be well into its
+# practical range, not just past chemical-accuracy's own tiny multiple) and
+# open to revision with more calibration runs.
+NONCONVERGENCE_FEASIBILITY_FRACTION = 0.5
+
+
 def classify(active_electrons, energies, s_max):
-    """Map DMRG behaviour to an A/B/C class with an explicit rationale.
+    """Map DMRG behaviour to an A/B/C/INCONCLUSIVE class with an explicit rationale.
 
     Two signals:
       • ΔE across the last two bond dims — direct evidence DMRG has (not) converged
@@ -467,12 +484,21 @@ def classify(active_electrons, energies, s_max):
       • S_max (max bipartite entanglement) — predicts the bond dimension the FULL
         site needs (M ~ e^S). This is the leading indicator, since a small model
         space is always DMRG-exact yet still reveals the correlation strength.
+
+    INCONCLUSIVE (new, 2026-10-03): non-convergence alone, far short of this
+    project's own feasibility ceiling (PRACTICAL_M), must not produce Class A —
+    "quantum-necessary" is a claim about the molecule, and a ladder that simply
+    stopped early has not earned it. S_max > S_HARD still produces Class A at any
+    M, since that signal does not depend on how far the ladder climbed.
     """
     dE_final = abs(energies[-1][1] - energies[-2][1]) * 1000 if len(energies) >= 2 else None
+    m_reached = energies[-1][0] if energies else None
     converged = (dE_final is not None) and (dE_final < CHEM_ACC_MHA) \
-                and (energies[-1][0] <= PRACTICAL_M)
+                and (m_reached is not None) and (m_reached <= PRACTICAL_M)
     strong = (s_max is not None) and (s_max > S_HARD)
     smx = "n/a" if s_max is None else f"{s_max:.2f}"
+    near_feasibility_ceiling = (m_reached is not None) and \
+        (m_reached >= NONCONVERGENCE_FEASIBILITY_FRACTION * PRACTICAL_M)
 
     if active_electrons <= EXACT_WALL_E:
         return "C", (f"{active_electrons}e ≤ {EXACT_WALL_E}e exact-classical wall — "
@@ -482,14 +508,27 @@ def classify(active_electrons, energies, s_max):
         return "B", (f"DMRG reaches chemical accuracy at practical M={energies[-1][0]} "
                      f"(ΔE={dE_final:.2f} mHa) and entanglement is low (S_max={smx} < "
                      f"{S_HARD}) — classical (DMRG) delivers; quantum-advantaged, not necessary.")
-    reasons = []
     if strong:
-        reasons.append(f"S_max={smx} > {S_HARD} (strong correlation; DMRG bond dim ~e^S "
-                       f"blows up at the full {active_electrons}e site)")
+        return "A", (f"quantum-necessary — S_max={smx} > {S_HARD} (strong correlation; "
+                     f"DMRG bond dim ~e^S blows up at the full {active_electrons}e site).")
     if not converged:
-        reasons.append(f"DMRG not at chemical accuracy by practical M={energies[-1][0]} "
-                       f"(ΔE={'n/a' if dE_final is None else round(dE_final,2)} mHa)")
-    return "A", "quantum-necessary — " + "; ".join(reasons) + "."
+        return "INCONCLUSIVE", (
+            f"DMRG not at chemical accuracy by practical M={m_reached} (ΔE="
+            f"{'n/a' if dE_final is None else round(dE_final, 2)} mHa), and S_max={smx} "
+            f"is below {S_HARD} so entanglement alone does not support Class A. "
+            + (f"M={m_reached} is only {100*m_reached/PRACTICAL_M:.0f}% of this project's "
+               f"own feasibility ceiling (PRACTICAL_M={PRACTICAL_M}) — this is an unfinished "
+               f"classical computation, not evidence of quantum necessity. Climb the ladder "
+               f"before classifying."
+               if not near_feasibility_ceiling else
+               f"M={m_reached} is {100*m_reached/PRACTICAL_M:.0f}% of PRACTICAL_M="
+               f"{PRACTICAL_M} — close to this project's feasibility ceiling without "
+               f"converging; Class A is defensible but not yet declared automatically. "
+               f"Review before classifying."))
+    # Should be unreachable (converged-and-strong falls through to here only if
+    # converged but strong, i.e. chemical accuracy reached yet S_max > S_HARD --
+    # DMRG agrees with itself at a practical M while reporting high entanglement).
+    return "A", f"quantum-necessary — S_max={smx} > {S_HARD} despite DMRG convergence at M={m_reached}."
 
 
 def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
@@ -884,6 +923,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
         e_fci = fci.direct_spin1.FCI().kernel(h1e, h2e, ncas, (na, nelec - na), ecore=0.0)[0]
     return {"e_casscf": float(e_casscf), "ecore": float(ecore),
             "e_fci_active": None if e_fci is None else float(e_fci),
+            "e_scf": float(mf.e_tot), "ncore": int(mc.ncore), "nelectron": int(mf.mol.nelectron),
             "h1e": h1e, "h2e": h2e, "ncas": int(ncas), "nelecas": int(nelec),
             "mo_coeff": mo_used,
             "orbital_optimization_truncated": bool(truncated),
@@ -1309,6 +1349,38 @@ def main():
               f"not final: a different orbital solution could give a different S_max.")
 
     orbital_provisional = not orbital_converged and not cas.get("orbital_optimization_truncated")
+    # Mandatory preflight (Claude Science, 2026-10-03): the first run of this exact
+    # ladder emitted CLASS A with "[discarded-weight extrapolation] skipped
+    # (AttributeError: module 'dmrg_extrapolate' has no attribute 'extrapolate')"
+    # printed one line above its own verdict -- a guard module had been silently
+    # truncated to 0 bytes by a bad sync (ast.parse("") is valid syntax, so even a
+    # syntax check passes). The exception was caught, "skipped" was printed
+    # truthfully, and the verdict was emitted anyway with no convergence criterion
+    # behind it. require_guards() makes that failure mode structural: if any guard
+    # module cannot be imported, is zero bytes, or is missing a required symbol,
+    # no verdict may be emitted at all. classify_preflight() separately checks the
+    # LADDER itself against E_SCF -- the embedding gate above only ever validated
+    # the reference solve, not the points classify() is about to read -- which is
+    # exactly how seven ladder points sitting above E_SCF reached a verdict
+    # unchecked on an earlier run of this same target.
+    import guard_preflight
+    guard_preflight.require_guards()
+    if "e_scf" in cas and "ncore" in cas:
+        _pf = guard_preflight.classify_preflight(
+            cas["e_casscf"], cas["e_scf"], label=args.key,
+            ncore=cas["ncore"], nelectron=cas["nelectron"], nelecas=args.nelecas,
+            bond_dims=[m for m, _ in energies], energies=[e for _, e in energies],
+            discarded_weights=discarded_weights, s_max=s_max)
+        for _b in _pf["blocking"]:
+            print(f"  [preflight] BLOCKING: {_b}", flush=True)
+        if not _pf["may_emit_verdict"]:
+            sys.exit(f"\n*** REFUSING: classify_preflight found {len(_pf['blocking'])} blocking "
+                     f"finding(s) on {args.key} -- {_pf['verdict']}. No class may be emitted "
+                     f"from this run. ***")
+    else:
+        print("  [preflight] e_scf/ncore not recorded by this integrals path (--compound demo "
+              "mode) — classify_preflight's ladder-vs-E_SCF check skipped; the embedding gate "
+              "above still ran.", flush=True)
     cls, rationale = classify(args.nelecas, energies, s_max)
     print("-" * 68)
     provisional_tag = (' (PROVISIONAL — time budget hit)' if time_budget_hit
