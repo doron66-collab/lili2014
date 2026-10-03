@@ -36,6 +36,16 @@ sum_p (pp|pp) is the one with physical meaning: the on-site Coulomb repulsion
 summed over orbitals is large when electrons are confined to single centres and
 small when they are spread out. It is therefore both a validity check and a
 direct measure of how localised the basis actually is.
+
+check_orthonormality() (Claude Science, 2026-10-03): added after two SCF local
+minima ~2.9 mHa apart turned up for nominally the same cluster -- if an orbital
+file ever got assembled from columns belonging to two different SCF solutions
+(e.g. a stale .npy regenerated against the wrong chkfile), the active-space
+columns are no longer mutually orthonormal under the real AO overlap, and the
+error this introduces lands in exactly the mHa range S_HARD and chemical
+accuracy live in. C^T S C must equal the identity for a genuinely orthonormal
+MO coefficient matrix; anything else means the "orbitals" loaded are not a
+valid single-reference basis at all.
 """
 import json
 
@@ -161,6 +171,34 @@ def check_embedding(e_casci, e_scf, ncore=None, nelectron=None, nelecas=None,
             "failures": fails, "notes": notes,
             "verdict": ("EMBEDDING REFUSED -- do not interpret this run"
                         if fails else "embedding consistent")}
+
+
+def check_orthonormality(mo_coeff, ao_overlap, ncore=None, ncas=None, tol=1e-8):
+    """Are the loaded active-space columns actually orthonormal under the real
+    AO overlap -- i.e. are they a valid single-reference MO basis at all?
+
+    C^T S C must equal the identity matrix for a genuine MO coefficient matrix,
+    where S is the AO overlap (mol.intor('int1e_ovlp')). Any deviation beyond
+    numerical noise means the columns do not come from one consistent SCF
+    solution -- e.g. a file assembled (even partially) from two different SCF
+    runs, which this project has seen happen (~2.9 mHa apart, same geometry/
+    basis/charge/spin, different converged densities).
+
+    Pass ncore/ncas to check only the active block [ncore:ncore+ncas]; omit both
+    to check every column in mo_coeff.
+    """
+    import numpy as np
+    C = mo_coeff if (ncore is None or ncas is None) else mo_coeff[:, ncore:ncore + ncas]
+    M = C.T.dot(ao_overlap).dot(C)
+    dev = float(np.max(np.abs(M - np.eye(M.shape[0]))))
+    ok = dev <= tol
+    return {"ok": ok, "max_deviation": dev, "tol": tol, "n_columns": M.shape[0],
+            "verdict": ("orthonormal to %.2e (within tolerance %.0e): a valid "
+                        "single-reference basis" % (dev, tol) if ok else
+                        "NOT ORTHONORMAL -- max |C^T S C - I| = %.3e, above tolerance "
+                        "%.0e. These columns are not a consistent MO basis from one "
+                        "SCF solution; do not trust any energy computed from them "
+                        "until this is resolved." % (dev, tol))}
 
 
 def _selftest():
