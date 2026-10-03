@@ -383,7 +383,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         print(f"  [sweep-history] wrote {hist_path} (per-sweep E/dw for every M on this "
               f"ladder -- feed to dmrg_extrapolate.sweep_convergence() to diagnose a "
               f"negative extrapolation slope without re-running)", flush=True)
-    return energies, s_max, stop_reason, discarded_weights
+    return energies, s_max, stop_reason, discarded_weights, sweep_history
 
 
 # S_max is a bipartite entanglement entropy. CORRECTED 2026-09-29 (Claude
@@ -1274,7 +1274,8 @@ def main():
     ladder_max_minutes = (
         max(0.0, args.max_minutes - (time.time() - script_start) / 60.0)
         if args.max_minutes is not None else None)
-    energies, s_max, stop_reason, discarded_weights = run_dmrg(cas["h1e"], cas["h2e"], cas["ecore"],
+    energies, s_max, stop_reason, discarded_weights, sweep_history = run_dmrg(
+                               cas["h1e"], cas["h2e"], cas["ecore"],
                                args.ncas, args.nelecas, bond_dims,
                                scratch=args.scratch, n_threads=args.threads,
                                max_minutes=ladder_max_minutes,
@@ -1366,11 +1367,16 @@ def main():
     import guard_preflight
     guard_preflight.require_guards()
     if "e_scf" in cas and "ncore" in cas:
+        _sweep_bd, _sweep_e = [], []
+        for _m, _h in sweep_history.items():
+            for _e in _h["energies"]:
+                _sweep_bd.append(int(_m)); _sweep_e.append(_e)
         _pf = guard_preflight.classify_preflight(
             cas["e_casscf"], cas["e_scf"], label=args.key,
             ncore=cas["ncore"], nelectron=cas["nelectron"], nelecas=args.nelecas,
             bond_dims=[m for m, _ in energies], energies=[e for _, e in energies],
-            discarded_weights=discarded_weights, s_max=s_max)
+            discarded_weights=discarded_weights, s_max=s_max,
+            sweep_bond_dims=_sweep_bd or None, sweep_energies=_sweep_e or None)
         for _b in _pf["blocking"]:
             print(f"  [preflight] BLOCKING: {_b}", flush=True)
         if not _pf["may_emit_verdict"]:

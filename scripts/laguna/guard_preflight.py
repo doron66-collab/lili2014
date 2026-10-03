@@ -99,7 +99,8 @@ def require_guards(required=None, verbose=True):
 
 def classify_preflight(e_to_classify, e_scf, label="", ncore=None,
                        nelectron=None, nelecas=None, bond_dims=None,
-                       energies=None, discarded_weights=None, s_max=None):
+                       energies=None, discarded_weights=None, s_max=None,
+                       sweep_bond_dims=None, sweep_energies=None):
     """Run every applicable gate on the quantity that will ACTUALLY be classified.
 
     The gap this closes is specific and was not hypothetical: on the run above
@@ -111,6 +112,19 @@ def classify_preflight(e_to_classify, e_scf, label="", ncore=None,
 
     Pass the ladder you are about to read a verdict from, not the best run you
     have lying around.
+
+    bond_dims/energies here are ONE (M, E) pair per bond dimension -- the LAST
+    sweep's energy at each M -- because that is what weight_explains_energy()
+    and the per-point embedding check need. sweep_convergence() needs the
+    opposite shape (every sweep at every M, M repeated), so it is a DIFFERENT
+    gap in the same function if given the collapsed per-M data instead: with
+    one point per M there is no step between sweeps to measure, sweep_
+    convergence() trivially reports every M "flat", and a real non-convergence
+    like the real TP53_C275F M=75 (whose last-sweep step GREW, not shrank) is
+    invisible. Pass the real per-sweep arrays via sweep_bond_dims/sweep_energies
+    (straight from run_dmrg()'s own sweep_history, not energies/bond_dims) to
+    get the check it was built for; omitting them falls back to the collapsed
+    (uninformative but harmless) check rather than failing.
     """
     import basis_check
     import dmrg_extrapolate as dx
@@ -141,8 +155,34 @@ def classify_preflight(e_to_classify, e_scf, label="", ncore=None,
         report["weight_explains_energy"] = wee
         if wee.get("ok") and not wee["usable_as_error_measure"]:
             report["blocking"].append(wee["verdict"])
+
+    if sweep_bond_dims and sweep_energies:
+        sc = dx.sweep_convergence(sweep_bond_dims, sweep_energies)
+    elif bond_dims and energies:
+        # Fallback: one point per M. sweep_convergence() cannot see a within-M
+        # step with only one sample, so this trivially reports every M "flat" --
+        # informational only, never a substitute for the real per-sweep check.
         sc = dx.sweep_convergence(bond_dims, energies)
+    else:
+        sc = None
+    if sc is not None:
         report["sweep_note"] = sc.get("verdict")
+        report["sweep_convergence"] = sc
+        # The TWO most recent bond dimensions are what classify() actually reads
+        # its dE from -- a non-decaying M anywhere else in the ladder (like M=75
+        # when the interval actually used is (125, 250)) does not compromise the
+        # number being classified. Block only when the compromised M is one of
+        # the last two requested bond dimensions.
+        not_decaying = set(sc.get("not_decaying_at") or [])
+        if not_decaying and bond_dims:
+            tail = set(sorted(bond_dims)[-2:])
+            hit = not_decaying & tail
+            if hit:
+                report["blocking"].append(
+                    "the bond dimension(s) %s this verdict's own dE is computed from did not "
+                    "converge within their sweeps (sweep_convergence: %s) -- re-run with more "
+                    "sweeps at that M before trusting the dE this classification is based on."
+                    % (sorted(hit), sc["verdict"]))
 
     if s_max is not None and bond_dims:
         sb = dx.smax_bond_limited(s_max, max(bond_dims))
