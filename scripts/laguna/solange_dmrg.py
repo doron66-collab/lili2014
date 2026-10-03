@@ -187,7 +187,8 @@ class OrbitalTimeBudgetExceeded(Exception):
 
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
              n_threads=4, max_minutes=None, early_stop=True,
-             stack_mem_gb=DEFAULT_STACK_MEM_GB, n_sweeps=10):
+             stack_mem_gb=DEFAULT_STACK_MEM_GB, n_sweeps=10,
+             noises=None, tol=1e-7):
     """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max.
 
     HPC-ticket-aware: prints live per-M timing (so `tail -f` shows real progress,
@@ -197,11 +198,36 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     rather than being killed mid-sweep with nothing recorded. Reusing the same
     `scratch` directory across separate job submissions lets block2 resume the MPS
     from where a prior run left off instead of restarting from bond_dims[0].
+
+    noises/tol (Claude Science, 2026-10-02, found live on TP53_C275F_LADDER_32_256):
+    the previous hardcoded noises=[1e-5, 1e-6, 0] against n_sweeps=10, with tol never
+    passed (pyblock2 default 1e-8 Ha), combined into an UNDETECTED early-stop: block2
+    pads a short noises list by repeating its LAST entry for every remaining sweep
+    (confirmed against pyblock2/driver/core.py's own default, [1e-5]*5 + [0], which
+    is itself only 6 entries against n_sweeps=10 -- the library's own default only
+    makes sense if this is how it behaves), so every M ran 8 of its 10 sweeps at
+    EXACTLY ZERO noise -- the standard DMRG mechanism for escaping a bad local
+    minimum right after a bond-dimension increase, switched off almost immediately
+    after every increase. Verified on real sweep_history.json data: M=16 stopped at
+    9/10 sweeps (tol=1e-8 default + zero noise satisfied the convergence+zero-noise
+    exit condition one sweep early). The new default below keeps noise on through
+    sweep 14 (vs. sweep 2 before), so the same exit condition cannot fire before
+    sweep 15, and passes tol explicitly instead of relying on pyblock2's default.
     """
+    if noises is None:
+        noises = [1e-5] * 8 + [1e-6] * 6 + [0] * 6
     from pyblock2.driver.core import DMRGDriver, SymmetryTypes
     drv = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads,
                      stack_mem=int(stack_mem_gb * (1 << 30)))
     drv.initialize_system(n_sites=ncas, n_elec=nelecas, spin=0)
+    # Free sector confirmation (Claude Science, 2026-10-02): this single call sets
+    # the target (N, S) sector for BOTH the MPO built below and the random MPS
+    # get_random_mps() creates right after -- so they are in the same symmetry
+    # sector by construction, and a <ref|H_ladder|ref> expectation value between a
+    # differently-sectored pair would have failed outright rather than returned a
+    # number. Printed as a record, not as a test that can fail silently.
+    print(f"  [sector] DMRGDriver.initialize_system(n_sites={ncas}, n_elec={nelecas}, "
+          f"spin=0) -- target sector shared by this run's MPO and MPS", flush=True)
     mpo = drv.get_qc_mpo(h1e=h1e, g2e=h2e, ecore=ecore, iprint=0)
     # The module docstring above has claimed since this pipeline's early days that
     # reusing --scratch resumes a killed run instead of restarting the bond-dimension
@@ -294,7 +320,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
             break
         t0 = time.time()
         e = drv.dmrg(mpo, ket, n_sweeps=n_sweeps, bond_dims=[M],
-                     noises=[1e-5, 1e-6, 0], thrds=[1e-9] * 3, iprint=0)
+                     noises=noises, thrds=[1e-9] * 3, tol=tol, iprint=0)
         dt = time.time() - t0
         energies.append((M, float(e)))
         try:
@@ -321,8 +347,14 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
         discarded_weights.append(dw)
         # stdout (not stderr) so the agent's live-progress streamer reliably captures
         # each "DMRG M=" line and surfaces it as a bond-dimension stage note.
-        print(f"  DMRG M={M:5d}  E={float(e):.8f} Ha  [{dt:.1f}s this M, "
-              f"{(time.time()-t_start)/60:.1f}m total]", flush=True)
+        # n_done/n_sweeps printed explicitly (Claude Science, 2026-10-02): block2's
+        # own tol+zero-noise early-exit condition can stop a given M short with no
+        # other visible signal -- found live when M=16 (of this same ladder, before
+        # this fix) silently ran only 9 of its 10 requested sweeps. Without this
+        # count next to the energy, "converged" and "exited early" print identically.
+        n_done = len(sweep_history[M]["dws"]) if M in sweep_history else "?"
+        print(f"  DMRG M={M:5d}  E={float(e):.8f} Ha  [{n_done}/{n_sweeps} sweeps run, "
+              f"{dt:.1f}s this M, {(time.time()-t_start)/60:.1f}m total]", flush=True)
         # Early stop: once the energy stops improving by more than chemical accuracy
         # between consecutive bond dims, larger M cannot change the verdict — the
         # answer has converged. This is exactly classify()'s own convergence test,
@@ -557,6 +589,19 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     if density_fit:
         mf = mf.density_fit(auxbasis=df_auxbasis)
     mf = mf.run()
+    # Free provenance check (Claude Science, 2026-10-02): a 2.9 mHa discrepancy was
+    # found between this run's own E_SCF and an "E_wt" figure reported elsewhere for
+    # what was assumed to be the same cluster -- a gap 1.8x the project's own
+    # chemical-accuracy threshold, so it blocks any final classification even though
+    # it is 164x too small to explain the separate optimizer failure the embedding
+    # gate catches. Printed here, for free, instead of guessed at: which SCF energy
+    # this run actually is, and a cheap fingerprint of exactly what geometry/basis/
+    # charge/spin produced it, so a mismatch against another reported number is a
+    # hash comparison, not a re-run.
+    geom_bytes = mol.atom_coords().tobytes() + repr(mol._basis).encode()
+    print(f"  [provenance] E_SCF={mf.e_tot:.8f} Ha  converged={mf.converged}  "
+          f"natm={mol.natm}  basis={basis}  charge={charge}  spin={spin}  "
+          f"geom_sha256={hashlib.sha256(geom_bytes).hexdigest()[:16]}", flush=True)
     # ncas_override/nelecas_override (2026-09-30): when the orbitals being loaded
     # did NOT come from this function's own avas.avas(mf, ..., threshold=...) call
     # -- e.g. avas_by_count.py's explicit (n_occ, n_vir) selection, built because
