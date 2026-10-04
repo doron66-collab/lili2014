@@ -996,6 +996,95 @@
   })();
   </script>
 
+  <!-- S_max vs. Correlation Energy Recovered — complementary to the Tractability
+       Plane above, NOT a replacement: that chart's own N2-equilibrium-vs-stretched
+       pair already shows size alone doesn't determine difficulty; this one shows
+       the companion finding from the TP53 C275F negative-control round (2026-10-04):
+       S_max tracks how much correlation energy an active space recovers (an
+       EXTENSIVE quantity, scaling with active-space size/selection quality), not an
+       intrinsic hardness measure on its own. Five real, LEON-adjacent measurements,
+       all at the SAME matched bond dimension (M=125) so the comparison is not
+       itself confounded by the drift described in the WT-vs-mutant table's own
+       footnote above: the real site-selected CAS(36,34) space, three random
+       (scramble) subsets of its own AVAS candidate pool, and a chemistry-free
+       n-dodecane control of the identical size/basis/protocol. -->
+  <div class="card" style="margin-bottom:16px;margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+      <div class="card-title" style="margin-bottom:0"><span class="info-wrap"><span class="info-i">i</span><div class="footnote info-panel" id="corr-footnote"></div></span> S_max vs. Correlation Energy Recovered — Matched Bond Dimension (M=125)</div>
+    </div>
+    <div id="corr-chart"></div>
+  </div>
+  <script>
+  (function(){
+    // Real measurements, TP53 C275F CAS(36,34) round, all at M=125 — see
+    // scripts/laguna/ run logs (real_m125.json, scramble{1,2,3}_m125.json,
+    // alkane_m125.json) for provenance. Not fetched live: this is a closed,
+    // completed investigation's own numbers, not a growing table like the
+    // Tractability Plane's __dmrgRows feed.
+    var PTS = [
+      { label: 'real (site-selected)', ecorr: 290.0,  smax: 1.202460, color: 'var(--green)' },
+      { label: 'alkane (chemistry-free, same size)', ecorr: 152.192, smax: 0.514946, color: 'var(--amber)' },
+      { label: 'scramble seed 3', ecorr: 23.001, smax: 0.13791, color: 'var(--teal)' },
+      { label: 'scramble seed 1', ecorr: 1.344,  smax: 0.00657, color: 'var(--teal)' },
+      { label: 'scramble seed 2', ecorr: 0.890,  smax: 0.00428, color: 'var(--teal)' },
+    ];
+    var SLOPE = 4.97e-3; // S_max ≈ SLOPE * E_corr[mHa], fitted across these five points
+
+    var W = 900, H = 400, PAD_L = 64, PAD_R = 24, PAD_T = 24, PAD_B = 44;
+    var plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+    var X_MIN = 0.5, X_MAX = 500, Y_MIN = 0.002, Y_MAX = 3; // log-log
+
+    function xPix(v){ return PAD_L + (Math.log10(v) - Math.log10(X_MIN)) / (Math.log10(X_MAX) - Math.log10(X_MIN)) * plotW; }
+    function yPix(v){ return PAD_T + (Math.log10(Y_MAX) - Math.log10(v)) / (Math.log10(Y_MAX) - Math.log10(Y_MIN)) * plotH; }
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function render(){
+      var svg = [];
+      svg.push('<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;overflow:visible">');
+
+      // axes + log gridlines
+      svg.push('<line x1="' + PAD_L + '" y1="' + (H-PAD_B) + '" x2="' + (W-PAD_R) + '" y2="' + (H-PAD_B) + '" stroke="rgba(203,213,225,.35)"/>');
+      svg.push('<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (H-PAD_B) + '" stroke="rgba(203,213,225,.35)"/>');
+      [1,10,100].forEach(function(v){
+        svg.push('<line x1="' + xPix(v).toFixed(1) + '" y1="' + PAD_T + '" x2="' + xPix(v).toFixed(1) + '" y2="' + (H-PAD_B) + '" stroke="rgba(203,213,225,.12)"/>');
+        svg.push('<text x="' + xPix(v).toFixed(1) + '" y="' + (H-PAD_B+16) + '" fill="rgba(136,153,187,.7)" font-size="9" text-anchor="middle">' + v + '</text>');
+      });
+      [0.01, 0.1, 1].forEach(function(v){
+        svg.push('<line x1="' + PAD_L + '" y1="' + yPix(v).toFixed(1) + '" x2="' + (W-PAD_R) + '" y2="' + yPix(v).toFixed(1) + '" stroke="rgba(203,213,225,.12)"/>');
+        svg.push('<text x="' + (PAD_L-8) + '" y="' + (yPix(v)+3).toFixed(1) + '" fill="rgba(136,153,187,.7)" font-size="9" text-anchor="end">' + v + '</text>');
+      });
+      svg.push('<text x="' + (PAD_L+plotW/2).toFixed(1) + '" y="' + (H-8) + '" fill="var(--gray)" font-size="10.5" text-anchor="middle" font-weight="600">correlation energy recovered, E_corr (mHa, log scale)</text>');
+      svg.push('<text x="16" y="' + (PAD_T+plotH/2).toFixed(1) + '" fill="var(--gray)" font-size="10.5" text-anchor="middle" font-weight="600" transform="rotate(-90 16 ' + (PAD_T+plotH/2).toFixed(1) + ')">measured entanglement S_max (log scale)</text>');
+
+      // fitted reference line S_max = SLOPE * E_corr, log-log so it's straight
+      var lx1 = X_MIN, ly1 = SLOPE*lx1, lx2 = X_MAX, ly2 = SLOPE*lx2;
+      svg.push('<line x1="' + xPix(lx1).toFixed(1) + '" y1="' + yPix(ly1).toFixed(1) + '" x2="' + xPix(lx2).toFixed(1) + '" y2="' + yPix(ly2).toFixed(1)
+             + '" stroke="rgba(167,139,250,.65)" stroke-width="1.6" stroke-dasharray="5,4"/>');
+      svg.push('<text x="' + (xPix(60)).toFixed(1) + '" y="' + (yPix(SLOPE*60)-8).toFixed(1) + '" fill="#a78bfa" font-size="9.5" font-weight="700" text-anchor="middle">S_max &asymp; 4.97&times;10&#8315;&sup3; &middot; E_corr</text>');
+
+      PTS.forEach(function(p){
+        var mx = xPix(p.ecorr), my = yPix(p.smax);
+        svg.push('<g>');
+        svg.push('<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="6.5" fill="' + p.color + '" stroke="rgba(6,15,34,.8)" stroke-width="1">'
+               + '<title>' + esc(p.label) + ' — E_corr=' + p.ecorr + ' mHa, S_max=' + p.smax + ', ratio=' + (p.smax/p.ecorr).toExponential(2) + '. CAS(36,34), M=125, same basis/protocol throughout.</title></circle>');
+        svg.push('<text x="' + (mx+9).toFixed(1) + '" y="' + (my-8).toFixed(1) + '" fill="var(--white)" font-size="9" font-weight="600" paint-order="stroke" stroke="rgba(6,15,34,.85)" stroke-width="3">' + esc(p.label) + '</text>');
+        svg.push('</g>');
+      });
+
+      document.getElementById('corr-chart').innerHTML = svg.join('');
+
+      var fn = document.getElementById('corr-footnote');
+      if (fn) fn.innerHTML =
+          '<strong>What this shows.</strong> Five real measurements, all at the SAME bond dimension (M=125) on the TP53 C275F CAS(36,34) active space round (2026-10-04): the real site-selected space, three random (scramble) subsets of its own candidate pool, and a chemistry-free n-dodecane control forced into the identical active-space size. '
+        + 'The ratio S_max/E_corr holds within roughly 1.5&ndash;1.8&times; across a &gt;300&times; range in recovered correlation energy &mdash; consistent with both quantities scaling together in the perturbative (weak-correlation) regime.<br><br>'
+        + '<strong>What this means.</strong> S_max is, in large part, a proxy for how much correlation energy an active space recovers &mdash; an EXTENSIVE quantity that scales with active-space size and how well it was selected, not an intrinsic hardness measure on its own. A larger or better-selected active space reports a higher S_max for that reason alone, independent of whether the underlying physics is quantum-necessary in any sense. '
+        + 'This does not replace the Tractability Plane above (size alone still does not determine difficulty &mdash; see its own N&#8322; calibration pair) &mdash; it explains WHY a chemistry-free control of the right size can still show a non-trivial S_max, which is exactly what let the C275F negative-control round catch a false Class&nbsp;A reading. See the WT-vs-mutant table\'s own footnote for why matching M (not just active-space size) is required before any S_max comparison is meaningful.';
+    }
+
+    render();
+  })();
+  </script>
+
   <div style="text-align:center;margin-top:20px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
     <button onclick="window.open('https://solange-platform.bio/3d','_blank')" style="background:linear-gradient(135deg,#1a3a6e,#0d2244);color:#44ddff;border:1.5px solid #44ddff;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.5px;box-shadow:0 0 12px rgba(68,221,255,0.25)">
       ⬡ View 3D Simulations
@@ -2398,7 +2487,8 @@
                 '<td style="'+C+';font-size:10px;color:var(--gray)">'+(x.requested_by?String(x.requested_by).slice(0,8):'—')+'</td></tr>';
         });
         tshiftPaint(hh+'</table>'+
-          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Shift = wild-type class → mutant class, each computed independently on its own active space (sizes generally differ — S_max is not comparable directly across the two rows). Not a chemical/biological conclusion on its own without negative controls — see POC_DISCLAIMER.</div>');
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Shift = wild-type class → mutant class, each computed independently on its own active space (sizes generally differ — S_max is not comparable directly across the two rows). Not a chemical/biological conclusion on its own without negative controls — see POC_DISCLAIMER.'
+          + ' Bond dimension (M) must ALSO match before reading anything into an S_max difference between the two rows, not only active-space size: S_max converges toward its true value from BELOW as M increases, and recovered correlation energy typically converges faster — so the S_max/E_corr ratio itself drifts upward with M (TP53 C275F real-system measurement: ratio ≈4.1e-3 at M=125 vs the fuller range reported in the scaling-chart footnote below). Comparing two rows measured at different M can manufacture an apparent shift that is really just a bond-dimension mismatch.</div>');
       }).catch(function(){
         tshiftPaint('<div style="color:var(--gray);font-size:11px">Tractability shifts unavailable (backend unreachable).</div>');
       });
