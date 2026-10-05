@@ -53,12 +53,18 @@ sys.path.insert(0, str(_HERE.parents[2]))      # repo root, for generate_expansi
 CHEM_ACC_MHA = 1.6          # 1 kcal/mol
 # The bond dimension this pipeline is willing to spend. Not derived: a stated
 # commitment, and the value that gives "practical" its meaning everywhere below.
-# For scale, cost runs as M^3, so 2000 is 512x the M=250 the DMRG-SCF solver
-# uses by default, and roughly what a single node reaches in hours; the largest
-# published chemistry DMRG runs go to M=6000 on thousands of cores for weeks
-# (FeMoco, CAS(113,76)). Calibration on an N2 stretch series at CAS(10,16)
-# found the requirement in the 160-256 range, an order of magnitude under this
-# ceiling - so it is generous for small systems and untested against large ones.
+# Cost is NOT a fixed M^3 law - measured empirically on this project's own runs
+# at ~M^1.91, against Zhai et al. (2026)'s own measured ~D^3.05 on their FeMoco
+# benchmark (2026-10 correction: this project's largest published-chemistry
+# reference point, M=6000 on thousands of cores for weeks, CAS(113,76), traces
+# to Zhai & Chan (2021, JCTC) and Zhai et al. (2026) - NOT to Reiher et al.
+# (2017, PNAS), which is a quantum resource-estimation paper with no DMRG run
+# of its own and is cited elsewhere in this project for that, unrelated, claim.
+# 2000 is still a useful scale reference regardless of exponent: 512x the M=250
+# the DMRG-SCF solver uses by default, and roughly what a single node reaches
+# in hours. Calibration on an N2 stretch series at CAS(10,16) found the
+# requirement in the 160-256 range, an order of magnitude under this ceiling -
+# so it is generous for small systems and untested against large ones.
 # Raising it does not make a target classically tractable; it changes what this
 # pipeline is prepared to pay before it says so.
 PRACTICAL_M  = 2000
