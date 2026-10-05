@@ -2643,7 +2643,7 @@
                   <tr><td>3.5</td><td>Orbital chemistry</td><td>Selected orbitals localized on the mutation site, not generic correlation elsewhere — Mulliken population against the ring/group the mutation introduces</td><td>Conditional</td></tr>
                   <tr><td>4</td><td>DMRG</td><td>Warm start; ladder M = 250/500/1000(/2000); both triggers reported; corrected noise schedule and explicit tolerance; automatic governance gates (below)</td><td>Conditional</td></tr>
                   <tr><td>5</td><td>Negative control</td><td>A matched control run through the identical pipeline — radius-matched and size-matched (below)</td><td>Conditional</td></tr>
-                  <tr><td>6</td><td>Cross-validation</td><td>At least one independent method (SHCI, AFQMC) agrees</td><td>Conditional</td></tr>
+                  <tr><td>6</td><td>Cross-validation</td><td>An independent method agrees &mdash; SHCI is the method actually run against every target to date (Table 6.1); AFQMC (<code>ipie</code>) is installed and available as a third, mathematically independent leg but has not yet been wired to any target, since generic AFQMC drivers do not represent a non-contiguous AVAS space without hand-built Hamiltonian and trial-wavefunction construction</td><td>Conditional</td></tr>
                   <tr><td>7</td><td>Relative R</td><td>For large active spaces: R = &Delta;E(target)/&Delta;E(baseline) over the identical M&rarr;2M interval on both sides</td><td>Conditional</td></tr>
                 </tbody>
               </table>
