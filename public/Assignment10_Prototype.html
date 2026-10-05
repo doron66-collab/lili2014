@@ -3094,6 +3094,81 @@
     </div>
   </div>
 
+  <!-- ── Classical scale projection ───────────────────────────────────────── -->
+  <!-- This is extrapolation, not a measurement — one tier below everything else
+       on this screen, which reports only what was actually run. Kept honest by
+       (a) a single real anchor point (this project's own C275F mutant ladder,
+       not a vendor figure), (b) three disclosed, disagreeing scaling laws rather
+       than one default presented as settled, and (c) the same "ask for the rate,
+       never assume it" discipline as the quantum cost box above. See CLAUDE.md
+       evidence discipline / scripts/laguna/solange_dmrg.py PRACTICAL_M comment. -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+      <div style="font-size:13px;font-weight:700;color:var(--white);letter-spacing:.3px">Classical compute at larger bond dimension</div>
+      <span style="font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+                   color:var(--gold);background:rgba(232,160,32,0.12);
+                   border:1px solid rgba(232,160,32,0.4);border-radius:999px;padding:2px 9px"
+            title="Projected from one real, named calibration run under a chosen scaling law — not itself a measurement. Pick the law below to see how much the projection moves.">Extrapolated, not measured</span>
+    </div>
+    <p style="color:var(--gray);font-size:11px;margin:2px 0 12px;line-height:1.6">
+      Anchored to one real run &mdash; TP53 C275F mutant, CAS(36,34), this project's own HPC
+      allocation: M=500 took 1826.5s wall-clock. Everything below is that single point raised
+      to a chosen power &mdash; it is a projection, not a second measurement, and three
+      different, genuinely disagreeing exponents are offered rather than one presented as
+      settled (see note).
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px">
+      <div>
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Target bond dimension M</div>
+        <input id="exec-classical-m" type="number" step="50" min="500" value="2000"
+               oninput="window.solangeRenderClassical && window.solangeRenderClassical()"
+               style="width:100%;background:#020814;border:1px solid var(--border);border-radius:7px;
+                      padding:7px 10px;color:var(--white);font-size:15px;font-weight:700;box-sizing:border-box">
+      </div>
+      <div>
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Scaling law</div>
+        <select id="exec-classical-law" onchange="window.solangeRenderClassical && window.solangeRenderClassical()"
+               style="width:100%;background:#020814;border:1px solid var(--border);border-radius:7px;
+                      padding:7px 10px;color:var(--white);font-size:12.5px;font-weight:600;box-sizing:border-box">
+          <option value="fit">This ladder's own fit (time ~ M^2.21)</option>
+          <option value="project">Project-wide figure, reported elsewhere (time ~ M^1.91)</option>
+          <option value="zhai">Zhai et al. 2026 FeMoco benchmark, their exponent (time ~ M^3.05)</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Cores (this allocation)</div>
+        <input id="exec-classical-cores" type="number" step="1" min="1" value="8"
+               oninput="window.solangeRenderClassical && window.solangeRenderClassical()"
+               style="width:100%;background:#020814;border:1px solid var(--border);border-radius:7px;
+                      padding:7px 10px;color:var(--white);font-size:15px;font-weight:700;box-sizing:border-box">
+      </div>
+      <div>
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Your rate per core-hour</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:15px;color:var(--gray)">$</span>
+          <input id="exec-classical-rate" type="number" step="0.01" min="0" placeholder="0.00"
+                 oninput="window.solangeRenderClassical && window.solangeRenderClassical()"
+                 style="width:100%;background:#020814;border:1px solid var(--border);border-radius:7px;
+                        padding:7px 10px;color:var(--white);font-size:15px;font-weight:700;box-sizing:border-box">
+        </div>
+      </div>
+    </div>
+    <div id="exec-classical-out" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"></div>
+    <p style="color:var(--gray);font-size:9.5px;margin:12px 0 0;line-height:1.6;opacity:.8">
+      Core count for the 1826.5s anchor run was not itself logged; 8 reflects this project's
+      standard SLURM allocation (<code style="color:var(--gray)">--cpus-per-task=8</code>, USC
+      Laguna/CARC) and is editable. The three laws are shown because they genuinely disagree
+      &mdash; "M^2.21" is this specific three-point ladder (M=250/500/1000) fit by this
+      instrument; "M^1.91" was reported elsewhere in this project from different runs and has
+      not been independently re-derived this round; "M^3.05" is a published third party's own
+      exponent on their own hardware, applied here only as a hypothetical to this project's
+      anchor, never as their absolute time. Extrapolation beyond the calibrated range
+      (M=250&ndash;1000) is unvalidated by this instrument. Quantum-side cost (Heron r3 /
+      sqDRIFT) is not shown here &mdash; access is still in negotiation (CLAUDE.md), so no
+      number would be real.
+    </p>
+  </div>
+
   <!-- Declared gaps, as four short chips rather than a table of paragraphs. The
        point an executive needs is the LIST, not the essay behind each entry. -->
   <div class="card">
@@ -3672,6 +3747,78 @@ window.solangeRenderExec = function() {
   }
 };
 
+// ── Classical scale projection ────────────────────────────────────────────
+// Single real anchor (this project's own C275F mutant ladder, M=500 ->
+// 1826.5s wall-clock, scripts/laguna run logged 2026-10-04) raised to one of
+// three disclosed, disagreeing exponents. Deliberately NOT a prediction
+// presented as fact -- see the card's own footnote and the evidence-discipline
+// rule in CLAUDE.md against treating a proxy/extrapolation as a measured
+// target property. No network call: pure client-side arithmetic, so it can
+// render the moment the tab opens.
+window.solangeRenderClassical = function() {
+  const ANCHOR_M = 500;
+  const ANCHOR_SECONDS = 1826.5;
+  const LAWS = {
+    fit:     { exp: 2.21, label: "this ladder's own fit (M=250/500/1000)" },
+    project: { exp: 1.91, label: 'project-wide figure reported elsewhere, not re-derived this round' },
+    zhai:    { exp: 3.05, label: "Zhai et al. 2026's own FeMoco exponent, applied to this project's anchor" },
+  };
+  const mEl     = document.getElementById('exec-classical-m');
+  const lawEl   = document.getElementById('exec-classical-law');
+  const coresEl = document.getElementById('exec-classical-cores');
+  const rateEl  = document.getElementById('exec-classical-rate');
+  const out     = document.getElementById('exec-classical-out');
+  if (!mEl || !lawEl || !coresEl || !out) return;
+
+  const mTarget = parseFloat(mEl.value);
+  const law = LAWS[lawEl.value] || LAWS.fit;
+  const cores = parseFloat(coresEl.value);
+  const rate = parseFloat(rateEl.value);
+
+  if (!isFinite(mTarget) || mTarget <= 0 || !isFinite(cores) || cores <= 0) {
+    out.innerHTML = `<div style="color:var(--gray);font-size:11.5px">Enter a valid M and core count.</div>`;
+    return;
+  }
+
+  const seconds = ANCHOR_SECONDS * Math.pow(mTarget / ANCHOR_M, law.exp);
+  const hours = seconds / 3600;
+  const coreHours = hours * cores;
+  const weeks = hours / (24 * 7);
+  const beyondRange = mTarget > 1000;
+
+  let costBlock;
+  if (isFinite(rate) && rate > 0) {
+    costBlock = _execTile(
+      '$' + (coreHours * rate).toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2}),
+      'Projected cost',
+      `${coreHours.toFixed(0)} core-hours &times; $${rate.toFixed(2)}/core-hour &middot; rate supplied by you`,
+      'var(--gold)');
+  } else {
+    costBlock = _execTile('—', 'Projected cost',
+      `${coreHours.toFixed(0)} core-hours. Enter a rate to price it.`);
+  }
+
+  out.innerHTML =
+      _execTile(weeks >= 1 ? weeks.toFixed(1) + ' wk' : hours.toFixed(1) + ' hr',
+                'Projected wall-clock',
+                `M=${ANCHOR_M}&rarr;${mTarget} under ${law.label}`,
+                beyondRange ? 'var(--gold)' : 'var(--white)')
+    + _execTile(coreHours.toFixed(0), 'Core-hours',
+                `${cores} core(s) &times; ${hours.toFixed(1)} hr`)
+    + costBlock
+    + _execTile(law.exp.toFixed(2), 'Exponent used', law.label,
+                beyondRange ? 'var(--gold)' : 'var(--white)');
+
+  if (beyondRange) {
+    out.innerHTML += `<div style="grid-column:1/-1;font-size:10px;color:var(--gold);
+                       background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.3);
+                       border-radius:7px;padding:8px 10px;line-height:1.5">
+                       M=${mTarget} is beyond the calibrated range (M=250&ndash;1000) &mdash;
+                       this projection extrapolates past what this instrument has verified.
+                       </div>`;
+  }
+};
+
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -3689,7 +3836,10 @@ function show(id) {
   if (id === 's3') loadLiveResults();
   if (id === 's4') loadLeonAuditSummary();
   if (id === 's5') loadAdminView();
-  if (id === 's6') window.solangeLoadExec && window.solangeLoadExec();
+  if (id === 's6') {
+    window.solangeLoadExec && window.solangeLoadExec();
+    window.solangeRenderClassical && window.solangeRenderClassical();
+  }
 }
 
 // ── LEON audit headline — makes §06.iii's "immutable, append-only" claim ──
