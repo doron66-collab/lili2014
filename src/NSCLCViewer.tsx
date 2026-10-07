@@ -30,9 +30,16 @@ const MUT_INFO = [
     mech: 'CDK4/6 inhibition restores G1 checkpoint lost by p16 deletion + PARP1 synthetic lethality',
   },
   {
-    id: 'STK11', variant: 'LKB1 loss', drug: 'Ceralasertib', sub: '+ Durvalumab (ATR inhibitor)',
+    // STK11 D194N — the gene's only dissertation-verified point mutation
+    // (PDB 2WTK, residues 43-347 resolved, D194 sits centrally within that
+    // range; DMRG-measured Class B at 54e, S_max=0.82). Previously labeled
+    // the generic gene-level "LKB1 loss" here with no residue anchor — per
+    // this project's own rule, a gene whose mutations genuinely differ
+    // (which STK11's dissertation entry does, via D194N) should carry the
+    // specific mutation, not a size-proxy label, once a real anchor exists.
+    id: 'STK11', variant: 'D194N', drug: 'Ceralasertib', sub: '+ Durvalumab (ATR inhibitor)',
     phase: 'Phase III — LATIFY NCT05450692', color: 0xff3366,
-    mech: 'ATR inhibition targets replication stress created by LKB1 loss (sqDRIFT-modellable synthetic lethality)',
+    mech: 'D194 is the catalytic Asp of the kinase DFG motif; D194N abolishes catalytic activity entirely. ATR inhibition targets the resulting replication stress (sqDRIFT-modellable synthetic lethality) — not the kinase site itself, which has no mutation-specific drug.',
   },
   {
     // TP53 C275F — structural β-sandwich core mutant (p.Cys275Phe)
@@ -57,7 +64,7 @@ const PDB_MAP = [
   // itself). 2WTK deposits TWO copies of the heterotrimer (A/B/C and
   // D/E/F) -- C is STK11's first copy. The platform had been highlighting
   // MO25alpha as the "primary" chain for an STK11 target this whole time.
-  { pdb: '2WTK', chain: 'C', highlightRes: [] as number[] }, // STK11 LKB1
+  { pdb: '2WTK', chain: 'C', highlightRes: [194] }, // STK11 D194N — catalytic DFG-motif Asp
   { pdb: '2OCJ', chain: 'A', highlightRes: [275] },         // TP53 C275F
 ] as const;
 

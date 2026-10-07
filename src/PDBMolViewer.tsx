@@ -124,6 +124,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   const [spinning, setSpinning] = useState(true);
   const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
   const [chainInfo, setChainInfo] = useState<{ chainname: string; description: string }[]>([]);
+  const [hoverInfo, setHoverInfo] = useState<{ chain: string; resno: number; resname: string; x: number; y: number } | null>(null);
   const [pocketStatus, setPocketStatus] = useState<string | null>(null);
   const [pocketResult, setPocketResult] = useState<PocketResponse | null>(null);
   const [selectedPocketId, setSelectedPocketId] = useState<number | null>(null);
@@ -359,12 +360,35 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
 
     stage.setSpin([0, 1, 0], 0.006);
 
+    // Custom hover tooltip (chain + residue) — NGL's own built-in tooltip is
+    // disabled above because its raw form ("sphere: 113 (pockets)") was
+    // meaningless for a pocket sphere; this replaces it with something
+    // useful for the STRUCTURE itself: which chain/residue is under the
+    // cursor. Answers "how do I know where the mutation is" by letting
+    // Doron hover around and read off chain+residue directly, instead of
+    // needing a pre-set highlight for every possible residue of interest.
+    const onHover = (pickingProxy: any) => {
+      if (pickingProxy && pickingProxy.atom) {
+        const a = pickingProxy.atom;
+        const pos = pickingProxy.mouse?.position;
+        setHoverInfo({
+          chain: a.chainname, resno: a.resno, resname: a.resname,
+          x: pos?.x ?? 0, y: pos?.y ?? 0,
+        });
+      } else {
+        setHoverInfo(null);
+      }
+    };
+    stage.signals.hovered.add(onHover);
+
     const onResize = () => stage.handleResize();
     window.addEventListener('resize', onResize);
 
     return () => {
       cancelled = true;
       window.removeEventListener('resize', onResize);
+      stage.signals.hovered.remove(onHover);
+      setHoverInfo(null);
       stageRef.current = null;
       structComponentRef.current = null;
       baseReprRef.current = null;
@@ -606,6 +630,22 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             the overlays, which live as siblings instead. */}
         <div ref={mountRef} style={{ position: 'absolute', inset: 0 }} />
 
+        {hoverInfo && (
+          <div style={{
+            position: 'absolute', zIndex: 20, pointerEvents: 'none',
+            left: hoverInfo.x + 12, top: hoverInfo.y + 12,
+            background: 'rgba(2,6,18,.95)', border: `1px solid ${cc}66`, borderRadius: 6,
+            padding: '4px 9px', fontSize: 12.5, color: 'rgba(230,240,255,0.98)',
+            whiteSpace: 'nowrap',
+          }}>
+            chain <b style={{ color: cc }}>{hoverInfo.chain}</b>
+            {' · '}{hoverInfo.resname}{hoverInfo.resno}
+            {mutation.highlightRes?.includes(hoverInfo.resno) && hoverInfo.chain === mutation.chain && (
+              <span style={{ color: '#ffd20a' }}> ● mutation site</span>
+            )}
+          </div>
+        )}
+
         {mutation.mech && (
           <div style={{
             position: 'absolute', top: 14, left: 14, zIndex: 10, maxWidth: 300,
@@ -622,7 +662,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
 
         {(pocketStatus || pocketResult) && (
           <div style={{
-            position: 'absolute', top: 14, right: 14, zIndex: 10, width: 380, maxHeight: 'calc(100% - 28px)',
+            position: 'absolute', top: 14, right: 14, zIndex: 10, width: 290, maxHeight: 'calc(100% - 28px)',
             background: 'rgba(2,6,18,.93)', border: `1px solid ${cc}55`, borderRadius: 10,
             padding: '14px 16px', backdropFilter: 'blur(10px)',
             display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
@@ -647,6 +687,12 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                   <b>{pocketResult.n_pockets_total}</b> candidate cavit{pocketResult.n_pockets_total === 1 ? 'y' : 'ies'} found
                   on the whole structure · <b>{pocketResult.n_single_chain_druggable}</b> clear the
                   conventional druggability bar (and aren't crystal-packing artifacts).
+                </div>
+                <div style={{ color: 'rgba(190,215,255,0.85)', fontSize: 11.5, lineHeight: 1.5 }}>
+                  "BEST" below is ranked by fpocket's own combined <b>score</b>, not by
+                  druggability alone — a pocket with lower druggability can still rank
+                  higher if its overall score (shape, enclosure, etc.) is better. Both
+                  numbers are shown on every row so you can see why.
                 </div>
 
                 {pocketResult.near_residue != null && (
@@ -706,6 +752,9 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                               <span style={{ flex: 1 }}>
                                 pocket {p.pocket_id}
                                 {' · '}druggability {(p.druggability_score ?? 0).toFixed(2)}
+                                {' · '}<span title="fpocket's own combined score — ranks candidates here, NOT druggability alone (a higher druggability can still rank below a lower one; see module docstring on the TP53 2OCJ crystal-contact-artifact case this distinction was built to catch)">
+                                  score {(p.score ?? 0).toFixed(2)}
+                                </span>
                                 {' · '}{(p.volume ?? 0).toFixed(0)} Å³
                                 {' · '}chain{p.chains.length > 1 ? 's' : ''} {p.chains.join('/')}
                               </span>
@@ -754,7 +803,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             this is the real data a manually-searched gene/PDB ID otherwise
             had none of). */}
         <div style={{
-          position: 'absolute', bottom: 14, left: 14, zIndex: 10, maxWidth: 340,
+          position: 'absolute', bottom: 14, left: 14, zIndex: 10, maxWidth: 260,
           background: 'rgba(2,6,18,.88)', border: `1px solid ${cc}44`, borderRadius: 10,
           padding: '10px 14px', backdropFilter: 'blur(10px)',
         }}>
