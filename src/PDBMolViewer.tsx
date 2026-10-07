@@ -252,10 +252,19 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
         haloShape.addSphere([p.x, p.y, p.z], [1, 1, 1], radius * 1.35);
       }
     }
+    // side:'double' + diffuseInterior:true: disableImpostor alone wasn't
+    // enough (confirmed live — still went dark up close). Root cause is
+    // standard mesh lighting: a sphere's front faces get culled once the
+    // camera passes inside it, and the back faces it would show instead
+    // have no normal-facing light hitting them, rendering solid black.
+    // diffuseInterior makes NGL light the interior ignoring normal facing;
+    // side:'double' ensures the interior faces are even drawn in the first
+    // place. Verified both are real, accepted repr params (not guessed)
+    // in a real headless-Chromium run before using them.
     const shapeComp = stage.addComponentFromObject(shape);
-    shapeComp.addRepresentation('buffer', { opacity: 0.55 });
+    shapeComp.addRepresentation('buffer', { opacity: 0.55, side: 'double', diffuseInterior: true });
     const haloComp = stage.addComponentFromObject(haloShape);
-    haloComp.addRepresentation('buffer', { opacity: 0.16 });
+    haloComp.addRepresentation('buffer', { opacity: 0.16, side: 'double', diffuseInterior: true });
     pocketShapeRef.current = [shapeComp, haloComp];
 
     return () => {
