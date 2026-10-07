@@ -66,12 +66,21 @@ ever disagree again, the dissertation wins.)
 
 ## IBM
 - Algorithm: sqDRIFT (sample-based quantum diagonalization; quantum sampling + classical diagonalization, NOT noise characterization)
-- Hardware: IBM Heron r3
-- Contact: Michal Rosen-Zvi (ROSEN@il.ibm.com) — leaving IBM, referred to Ella (quantum partnerships)
-- Ella: leads quantum partnerships at IBM Research Israel
+- Hardware target: IBM Heron r3
+- **No current relationship with IBM.** Corrected 2026-10-07 — the previous contacts (Michal
+  Rosen-Zvi, and "Ella" in quantum partnerships at IBM Research Israel) are long stale; this
+  file and prior chat turns kept citing them as if an active channel existed, and it does
+  not. Do not reference Rosen-Zvi or Ella as a current contact in any conversation, document,
+  or artifact (including the quantum-competitive-landscape table, which previously listed
+  IBM as an "existing partner" on this basis — wrong, needs re-labeling to "no current
+  relationship" there too). Establishing a real IBM contact is open work still to be done,
+  not a status that can be described as "in negotiation."
 
-## Heron r3 access — strategy (in negotiation, 2026-07; leave until access lands)
-- STATUS: Doron negotiating with the university to fund r3 runs. Not yet available.
+## Heron r3 access — strategy (status: no active channel, 2026-10-07)
+- STATUS: No current IBM relationship (see IBM section above) — the earlier "negotiating
+  with the university to fund r3 runs" framing, and the contact names behind it, were both
+  stale. Access is not available and no channel toward it currently exists; this needs
+  active work, not monitoring for a reply.
 - As of 2026-08-15, all eight real DMRG classifications (C275F, R282W, G245S, R249S,
   SETD2 R1625C, KEAP1 G333C, STK11 D194N, R175H) are Class B — classically tractable at
   their measured ranges. None currently carries a quantum-necessity case; every target
