@@ -95,10 +95,26 @@ async function fetchPdbMeta(pdbId: string): Promise<PdbMeta | null> {
   }
 }
 
+// Mutation-site display style — user-selectable (Doron: "כדורים, קווים,
+// קפסולות טיקטק" / balls, wires, tic-tac capsules), not hardcoded. Per-style
+// NGL representation params that otherwise look visually inconsistent if
+// left at one shared default (e.g. spacefill needs a much smaller
+// radiusScale than licorice to read as atoms rather than a solid blob).
+const MUT_STYLES = [
+  { key: 'licorice',  label: 'קווים · WIRE',        repr: 'licorice',  params: { radiusScale: 1.1 } },
+  { key: 'spacefill', label: 'כדורים · BALLS',       repr: 'spacefill', params: { radiusScale: 0.9 } },
+  { key: 'hyperball', label: 'קפסולות · CAPSULES',   repr: 'hyperball', params: { radiusScale: 0.8, shrink: 0.3 } },
+] as const;
+type MutStyleKey = typeof MUT_STYLES[number]['key'];
+
 export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosition }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
+  const structComponentRef = useRef<any>(null);
+  const mutSiteReprRef = useRef<any>(null);
   const pocketShapeRef = useRef<any>(null);
+  const [structReady, setStructReady] = useState(0);
+  const [mutStyle, setMutStyle] = useState<MutStyleKey>('licorice');
   const [spinning, setSpinning] = useState(true);
   const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
   const [pocketStatus, setPocketStatus] = useState<string | null>(null);
@@ -269,7 +285,6 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     });
     stageRef.current = stage;
 
-    const mutColor = hexToNGLColor(mutation.color);
     const pdbUrl = mutation.url || `https://files.rcsb.org/download/${mutation.pdb}.pdb`;
 
     stage.loadFile(pdbUrl, { ext: 'pdb', defaultRepresentation: false }).then((component: any) => {
@@ -284,6 +299,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       // than throwing a visible error.
       if (cancelled) return;
       const ch = mutation.chain;
+      structComponentRef.current = component;
 
       // Cartoon — restrict to one chain only
       component.addRepresentation('cartoon', {
@@ -294,19 +310,11 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       });
 
       if (mutation.highlightRes && mutation.highlightRes.length > 0) {
-        // Mutation site — licorice (wire/sticks), not a solid spacefill ball:
-        // a filled sphere hides the residue's own atomic/bond structure, and
-        // Doron asked for wire-only since the system doesn't expose a
-        // representation picker yet. Thicker + the mutation's own accent
-        // color keeps it visually distinct from the plain-element-colored
-        // neighbourhood licorice just below.
-        const sele = mutation.highlightRes.map(r => `${r}:${ch}`).join(' or ');
-        component.addRepresentation('licorice', {
-          sele,
-          color: mutColor,
-          opacity: 1.0,
-          radiusScale: 1.1,
-        });
+        // Mutation site representation itself is added by the dedicated
+        // effect below (depends on mutStyle, user-selectable: wire / balls /
+        // capsules) — not hardcoded here, so switching style doesn't need a
+        // full structure reload.
+        setStructReady(v => v + 1);
         // Pocket neighbourhood licorice — chain-qualified
         const pocketSele = mutation.highlightRes
           .flatMap(r => Array.from({ length: 11 }, (_, i) => r - 5 + i))
@@ -343,6 +351,8 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       cancelled = true;
       window.removeEventListener('resize', onResize);
       stageRef.current = null;
+      structComponentRef.current = null;
+      mutSiteReprRef.current = null;
       // stage.dispose() removes NGL's own bookkeeping and the canvas element,
       // but (confirmed against NGL's own dispose() source) never calls the
       // underlying THREE.WebGLRenderer's forceContextLoss() — the canvas can
@@ -361,6 +371,32 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       stage.dispose();
     };
   }, [mutation.pdb]);
+
+  // Mutation-site representation — kept separate from the structure-loading
+  // effect above so switching style (wire / balls / capsules) just swaps
+  // this one representation instead of reloading the whole PDB file.
+  useEffect(() => {
+    const component = structComponentRef.current;
+    if (!component || !mutation.highlightRes || mutation.highlightRes.length === 0) return;
+    if (mutSiteReprRef.current) {
+      component.removeRepresentation(mutSiteReprRef.current);
+      mutSiteReprRef.current = null;
+    }
+    const style = MUT_STYLES.find(s => s.key === mutStyle) || MUT_STYLES[0];
+    const sele = mutation.highlightRes.map(r => `${r}:${mutation.chain}`).join(' or ');
+    mutSiteReprRef.current = component.addRepresentation(style.repr, {
+      sele,
+      color: hexToNGLColor(mutation.color),
+      opacity: 1.0,
+      ...style.params,
+    });
+    return () => {
+      if (mutSiteReprRef.current) {
+        component.removeRepresentation(mutSiteReprRef.current);
+        mutSiteReprRef.current = null;
+      }
+    };
+  }, [structReady, mutStyle, mutation.highlightRes, mutation.chain, mutation.color]);
 
   function toggleSpin() {
     const stage = stageRef.current;
@@ -670,7 +706,27 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       }}>
         <span>■ CARTOON — secondary structure</span>
         {mutation.highlightRes && mutation.highlightRes.length > 0 && (
-          <span style={{ color: cc }}>● MUTATION SITE — res {mutation.highlightRes.join(', ')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: cc }}>● MUTATION SITE — res {mutation.highlightRes.join(', ')}:</span>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {MUT_STYLES.map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => setMutStyle(s.key)}
+                  title={s.label}
+                  style={{
+                    background: mutStyle === s.key ? `${cc}33` : 'rgba(255,255,255,.05)',
+                    border: `1px solid ${mutStyle === s.key ? cc : 'rgba(255,255,255,.15)'}`,
+                    color: mutStyle === s.key ? cc : 'rgba(200,220,255,.6)',
+                    borderRadius: 5, padding: '2px 8px', fontSize: 9, letterSpacing: 0.5,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         <span style={{ color: '#aaffdd' }}>● Zn²⁺ ion (if present)</span>
         {pocketResult && pocketResult.all_pockets.length > 0 && (
