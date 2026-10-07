@@ -27,6 +27,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
@@ -50,21 +51,34 @@ def _find_fpocket_bin():
 
 def _fetch_pdb(pdb_id: str) -> str:
     """Plain-.pdb fetch only (no gemmi/.cif fallback — see module docstring
-    for why that's a deliberately smaller scope than the Laguna script)."""
-    import urllib.request
+    for why that's a deliberately smaller scope than the Laguna script).
+
+    Uses httpx with an explicit timeout rather than bare urllib — found live
+    2026-10-07: urllib.request.urlretrieve has NO default timeout, so a slow
+    or unresponsive RCSB response left the request (and the frontend's
+    "Running fpocket…" status) hanging with no error ever surfacing, instead
+    of the clear failure a large/cryo-EM-only entry (no legacy .pdb file)
+    should produce quickly."""
     _STRUCT_CACHE.mkdir(parents=True, exist_ok=True)
     pdb_path = _STRUCT_CACHE / f"{pdb_id.upper()}.pdb"
     if pdb_path.exists():
         return str(pdb_path)
+    url = f"https://files.rcsb.org/download/{pdb_id.upper()}.pdb"
     try:
-        urllib.request.urlretrieve(f"https://files.rcsb.org/download/{pdb_id.upper()}.pdb", pdb_path)
-        return str(pdb_path)
-    except Exception as e:
+        r = httpx.get(url, timeout=20.0, follow_redirects=True)
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail=f"RCSB did not respond within 20s fetching {pdb_id.upper()}.pdb")
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"could not reach RCSB for {pdb_id.upper()}.pdb: {e}")
+    if r.status_code != 200:
         raise HTTPException(
             status_code=502,
-            detail=f"could not fetch {pdb_id.upper()}.pdb from RCSB (no legacy PDB-format file for "
-                   f"large/cryo-EM entries is not handled by this endpoint yet): {e}",
+            detail=f"RCSB has no legacy .pdb file for {pdb_id.upper()} (HTTP {r.status_code}) — "
+                   f"common for large assemblies/cryo-EM entries that only publish mmCIF; "
+                   f"this endpoint doesn't convert those yet.",
         )
+    pdb_path.write_bytes(r.content)
+    return str(pdb_path)
 
 
 def _run_fpocket(fpocket_bin: str, pdb_path: str, out_dir: Path):

@@ -41,6 +41,7 @@ interface PocketResult {
 }
 interface PocketResponse {
   pdb: string;
+  near_residue?: string | null;
   n_pockets_total: number;
   n_single_chain_druggable: number;
   best_single_chain_pocket: PocketResult | null;
@@ -102,6 +103,8 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
   const [pocketStatus, setPocketStatus] = useState<string | null>(null);
   const [pocketResult, setPocketResult] = useState<PocketResponse | null>(null);
+  const [selectedPocketId, setSelectedPocketId] = useState<number | null>(null);
+  const [showAllPockets, setShowAllPockets] = useState(false);
   const isAlphaFold = mutation.pdb.startsWith('AF-');
 
   // Reset pocket results whenever the user navigates to a different structure
@@ -110,7 +113,40 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   useEffect(() => {
     setPocketResult(null);
     setPocketStatus(null);
+    setSelectedPocketId(null);
+    setShowAllPockets(false);
   }, [mutation.pdb]);
+
+  // fpocket reports every geometric cavity on the WHOLE protein surface —
+  // for TP53 2OCJ that was 59 of them. Rendering all of them at once (what
+  // the first version did) reads as meaningless clutter, not information:
+  // reported live by Doron ("סתם שרטוט תלת מימדי שמסתובב - לא רלוונטי").
+  // Default to the handful that actually matter: the best druggable
+  // candidate, anything else single-chain that clears the bar, and —
+  // separately — anything (even multi-chain or low-score) that happens to
+  // sit AT the mutation residue, since that's the one question a user
+  // looking at a specific mutation actually has. "Show all" is still one
+  // click away for anyone who wants the raw landscape.
+  const allPockets = pocketResult?.all_pockets || [];
+  const withCoords = allPockets.filter(p => p.x != null && p.y != null && p.z != null);
+  const atMutationSite = withCoords.filter(p => p.includes_target_residue);
+  const topCandidates = withCoords
+    .filter(p => p.single_chain)
+    .sort((a, b) => (b.score ?? -999) - (a.score ?? -999))
+    .slice(0, 8);
+  const shownPockets = showAllPockets
+    ? withCoords
+    : Array.from(new Map([...atMutationSite, ...topCandidates].map(p => [p.pocket_id, p])).values());
+  const bestId = pocketResult?.best_single_chain_pocket?.pocket_id;
+
+  function focusPocket(p: PocketResult) {
+    setSelectedPocketId(p.pocket_id);
+    const stage = stageRef.current;
+    if (stage && p.x != null && p.y != null && p.z != null) {
+      stage.animationControls.move([p.x, p.y, p.z], 700);
+      stage.animationControls.zoom(Math.max((p.radius || 5) * 3.2, 18), 700);
+    }
+  }
 
   async function findPockets() {
     if (isAlphaFold) {
@@ -153,36 +189,48 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   // score, not druggability alone, is the trustworthy signal): gold = the
   // best single-chain druggable candidate, cyan = other single-chain
   // candidates, dim red = multi-chain (crystal-contact artifact, not a real
-  // binding site).
+  // binding site). A white halo marks any pocket that actually overlaps the
+  // mutation residue — the one thing a user looking at a specific mutation
+  // most wants to know at a glance, separate from which pocket ranks best
+  // overall. The selected pocket (from the list panel) gets a brighter
+  // pulsing-scale halo instead, as the click-to-focus feedback.
   useEffect(() => {
     const stage = stageRef.current;
     if (pocketShapeRef.current) {
-      stage?.removeComponent(pocketShapeRef.current);
+      for (const c of pocketShapeRef.current) stage?.removeComponent(c);
       pocketShapeRef.current = null;
     }
-    if (!stage || !pocketResult || !pocketResult.all_pockets.length) return;
+    if (!stage || !shownPockets.length) return;
 
     const shape = new (NGL as any).Shape('pockets');
-    const bestId = pocketResult.best_single_chain_pocket?.pocket_id;
-    for (const p of pocketResult.all_pockets) {
+    const haloShape = new (NGL as any).Shape('pocket-halos');
+    for (const p of shownPockets) {
       if (p.x == null || p.y == null || p.z == null) continue;
       const color: [number, number, number] = !p.single_chain
-        ? [0.55, 0.15, 0.15]
+        ? [0.6, 0.18, 0.18]
         : p.pocket_id === bestId
         ? [1.0, 0.82, 0.1]
-        : [0.1, 0.75, 0.85];
+        : [0.85, 0.25, 0.78]; // magenta — stays distinct from the cartoon's own rainbow (residueindex) coloring
       const radius = Math.max(p.radius || 4, 2.5);
       shape.addSphere([p.x, p.y, p.z], color, radius);
+      if (p.pocket_id === selectedPocketId) {
+        haloShape.addSphere([p.x, p.y, p.z], [1, 1, 1], radius * 1.6);
+      } else if (p.includes_target_residue) {
+        haloShape.addSphere([p.x, p.y, p.z], [1, 1, 1], radius * 1.35);
+      }
     }
     const shapeComp = stage.addComponentFromObject(shape);
-    shapeComp.addRepresentation('buffer', { opacity: 0.4 });
-    pocketShapeRef.current = shapeComp;
+    shapeComp.addRepresentation('buffer', { opacity: 0.55 });
+    const haloComp = stage.addComponentFromObject(haloShape);
+    haloComp.addRepresentation('buffer', { opacity: 0.16 });
+    pocketShapeRef.current = [shapeComp, haloComp];
 
     return () => {
       stage?.removeComponent(shapeComp);
-      if (pocketShapeRef.current === shapeComp) pocketShapeRef.current = null;
+      stage?.removeComponent(haloComp);
+      pocketShapeRef.current = null;
     };
-  }, [pocketResult]);
+  }, [pocketResult, showAllPockets, selectedPocketId]);
 
   useEffect(() => {
     setPdbMeta(null);
@@ -215,6 +263,9 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       quality: 'high',
       antialias: true,
       impostor: true,
+      tooltip: false, // NGL's default raw hover tooltip ("sphere: 113 (pockets)")
+      // is meaningless to a non-technical viewer — the pocket list panel is
+      // the real UI for inspecting a candidate (reported live 2026-10-07).
     });
     stageRef.current = stage;
 
@@ -462,32 +513,115 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
 
         {(pocketStatus || pocketResult) && (
           <div style={{
-            position: 'absolute', top: 14, right: 14, zIndex: 10, maxWidth: 290,
-            background: 'rgba(2,6,18,.88)', border: `1px solid ${cc}44`, borderRadius: 10,
-            padding: '10px 14px', backdropFilter: 'blur(10px)',
+            position: 'absolute', top: 14, right: 14, zIndex: 10, width: 380, maxHeight: 'calc(100% - 28px)',
+            background: 'rgba(2,6,18,.93)', border: `1px solid ${cc}55`, borderRadius: 10,
+            padding: '14px 16px', backdropFilter: 'blur(10px)',
+            display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
           }}>
-            <div style={{ color: cc, fontSize: 9, letterSpacing: 2, marginBottom: 5 }}>● POCKET DETECTION — fpocket</div>
+            <div style={{ color: cc, fontSize: 11, letterSpacing: 2, fontWeight: 700 }}>● POCKET DETECTION — fpocket</div>
+
             {pocketStatus && (
-              <div style={{ color: 'rgba(220,235,255,.85)', fontSize: 10.5 }}>{pocketStatus}</div>
+              <div style={{ color: 'rgba(220,235,255,.9)', fontSize: 13, lineHeight: 1.6 }}>{pocketStatus}</div>
             )}
+
             {pocketResult && (
               <>
-                <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.6 }}>
-                  {pocketResult.n_pockets_total} candidate cavit{pocketResult.n_pockets_total === 1 ? 'y' : 'ies'} found
-                  {' · '}{pocketResult.n_single_chain_druggable} single-chain, druggability ≥ 0.5
+                <div style={{ color: 'rgba(210,225,255,.85)', fontSize: 12, lineHeight: 1.65 }}>
+                  fpocket scans the <b>entire protein surface</b> for 3D cavities a drug-like
+                  molecule could physically fit into — a question that's <b>independent</b> of
+                  whether SOLANGE's DMRG classification found the electronic structure there
+                  classically tractable. A target can be Class B with no pocket at all, or Class
+                  A with a perfectly good one.
                 </div>
-                {pocketResult.best_single_chain_pocket ? (
-                  <div style={{ color: '#ffdd66', fontSize: 10, marginTop: 4 }}>
-                    ● best: pocket {pocketResult.best_single_chain_pocket.pocket_id}
-                    {' · '}druggability {pocketResult.best_single_chain_pocket.druggability_score?.toFixed(2)}
-                    {' · '}vol {pocketResult.best_single_chain_pocket.volume?.toFixed(0)} Å³
-                    {pocketResult.best_single_chain_pocket.includes_target_residue ? ' · at mutation site' : ''}
+
+                <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 12.5, lineHeight: 1.6 }}>
+                  <b>{pocketResult.n_pockets_total}</b> candidate cavit{pocketResult.n_pockets_total === 1 ? 'y' : 'ies'} found
+                  on the whole structure · <b>{pocketResult.n_single_chain_druggable}</b> clear the
+                  conventional druggability bar (and aren't crystal-packing artifacts).
+                </div>
+
+                {pocketResult.near_residue != null && (
+                  atMutationSite.length > 0 ? (
+                    <div style={{ color: '#fff', fontSize: 12.5, lineHeight: 1.6, background: 'rgba(255,255,255,.06)', borderRadius: 6, padding: '6px 9px' }}>
+                      ✓ {atMutationSite.length} of these cavit{atMutationSite.length === 1 ? 'y overlaps' : 'ies overlap'} the
+                      mutation residue itself ({pocketResult.near_residue}) — outlined in white below.
+                    </div>
+                  ) : (
+                    <div style={{ color: 'rgba(190,215,255,.75)', fontSize: 12.5, lineHeight: 1.6, background: 'rgba(255,255,255,.04)', borderRadius: 6, padding: '6px 9px' }}>
+                      ✗ None of the candidate cavities overlap the mutation residue itself
+                      ({pocketResult.near_residue}) — whatever pockets exist elsewhere on the
+                      structure don't tell you the mutation site itself is druggable.
+                    </div>
+                  )
+                )}
+
+                {!pocketResult.best_single_chain_pocket && (
+                  <div style={{ color: 'rgba(190,215,255,.65)', fontSize: 12, lineHeight: 1.5 }}>
+                    No single-chain candidate clears the druggability bar — consistent with a
+                    genuinely non-druggable target by this criterion (not a tool failure).
                   </div>
-                ) : (
-                  <div style={{ color: 'rgba(190,215,255,.65)', fontSize: 10, marginTop: 4 }}>
-                    No single-chain druggable cavity — consistent with a genuinely
-                    non-druggable target by this criterion (not a tool failure).
-                  </div>
+                )}
+
+                {shownPockets.length > 0 && (
+                  <>
+                    <div style={{ color: 'rgba(160,200,255,.6)', fontSize: 10, letterSpacing: 1.5 }}>
+                      SHOWING {shownPockets.length} OF {pocketResult.n_pockets_total} — CLICK TO FOCUS
+                    </div>
+                    <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5, paddingRight: 2 }}>
+                      {shownPockets
+                        .slice()
+                        .sort((a, b) => (b.score ?? -999) - (a.score ?? -999))
+                        .map(p => {
+                          const dotColor = !p.single_chain ? '#8c2626' : p.pocket_id === bestId ? '#ffd20a' : '#db40c7';
+                          const selected = p.pocket_id === selectedPocketId;
+                          return (
+                            <button
+                              key={p.pocket_id}
+                              onClick={() => focusPocket(p)}
+                              style={{
+                                textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                                background: selected ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.04)',
+                                border: `1px solid ${selected ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.1)'}`,
+                                borderRadius: 7, padding: '6px 9px', color: 'rgba(220,235,255,.95)', fontSize: 11.5,
+                                display: 'flex', alignItems: 'center', gap: 8,
+                              }}
+                            >
+                              <span style={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                              <span style={{ flex: 1 }}>
+                                pocket {p.pocket_id}
+                                {' · '}druggability {(p.druggability_score ?? 0).toFixed(2)}
+                                {' · '}{(p.volume ?? 0).toFixed(0)} Å³
+                                {p.chains.length > 1 ? ` · chains ${p.chains.join('/')}` : ''}
+                              </span>
+                              {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 9, letterSpacing: 1 }}>BEST</span>}
+                              {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 9, letterSpacing: 1 }}>● SITE</span>}
+                            </button>
+                          );
+                        })}
+                    </div>
+                    {!showAllPockets && shownPockets.length < pocketResult.n_pockets_total && (
+                      <button
+                        onClick={() => setShowAllPockets(true)}
+                        style={{
+                          alignSelf: 'flex-start', background: 'transparent', border: '1px solid rgba(160,200,255,.3)',
+                          color: 'rgba(160,200,255,.8)', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, cursor: 'pointer',
+                        }}
+                      >
+                        show all {pocketResult.n_pockets_total} candidates (incl. low-score / crystal artifacts)
+                      </button>
+                    )}
+                    {showAllPockets && (
+                      <button
+                        onClick={() => setShowAllPockets(false)}
+                        style={{
+                          alignSelf: 'flex-start', background: 'transparent', border: '1px solid rgba(160,200,255,.3)',
+                          color: 'rgba(160,200,255,.8)', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, cursor: 'pointer',
+                        }}
+                      >
+                        show top candidates only
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -537,7 +671,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
         {pocketResult && pocketResult.all_pockets.length > 0 && (
           <>
             <span style={{ color: '#ffd20a' }}>◉ best druggable pocket</span>
-            <span style={{ color: '#19bfd9' }}>◉ other single-chain pocket</span>
+            <span style={{ color: '#db40c7' }}>◉ other single-chain pocket</span>
             <span style={{ color: '#8c2626' }}>◉ multi-chain (crystal-contact artifact)</span>
           </>
         )}
