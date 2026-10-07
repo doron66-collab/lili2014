@@ -194,8 +194,15 @@ class OrbitalTimeBudgetExceeded(Exception):
 def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
              n_threads=4, max_minutes=None, early_stop=True,
              stack_mem_gb=DEFAULT_STACK_MEM_GB, n_sweeps=10,
-             noises=None, tol=1e-7):
+             noises=None, tol=1e-7, spin=0):
     """Run DMRG at increasing bond dimensions. Returns per-M energies + S_max.
+
+    spin (added 2026-10-07, for SDHB S3's odd-electron CAS(53,38) ground
+    state — na-nb=1, no spin=0 sector exists): the target 2S for block2's
+    DMRGDriver.initialize_system(), same convention as PySCF's mol.spin.
+    Defaults to 0, so every existing caller of this function (every prior
+    run — C275F etc., all closed-shell active spaces) is completely
+    unaffected; only a caller that explicitly passes spin=N changes behavior.
 
     HPC-ticket-aware: prints live per-M timing (so `tail -f` shows real progress,
     letting you judge whether to Ctrl+C before a fixed-walltime allocation ends),
@@ -225,7 +232,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     from pyblock2.driver.core import DMRGDriver, SymmetryTypes
     drv = DMRGDriver(scratch=scratch, symm_type=SymmetryTypes.SU2, n_threads=n_threads,
                      stack_mem=int(stack_mem_gb * (1 << 30)))
-    drv.initialize_system(n_sites=ncas, n_elec=nelecas, spin=0)
+    drv.initialize_system(n_sites=ncas, n_elec=nelecas, spin=spin)
     # Free sector confirmation (Claude Science, 2026-10-02): this single call sets
     # the target (N, S) sector for BOTH the MPO built below and the random MPS
     # get_random_mps() creates right after -- so they are in the same symmetry
@@ -233,7 +240,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     # differently-sectored pair would have failed outright rather than returned a
     # number. Printed as a record, not as a test that can fail silently.
     print(f"  [sector] DMRGDriver.initialize_system(n_sites={ncas}, n_elec={nelecas}, "
-          f"spin=0) -- target sector shared by this run's MPO and MPS", flush=True)
+          f"spin={spin}) -- target sector shared by this run's MPO and MPS", flush=True)
     mpo = drv.get_qc_mpo(h1e=h1e, g2e=h2e, ecore=ecore, iprint=0)
     # The module docstring above has claimed since this pipeline's early days that
     # reusing --scratch resumes a killed run instead of restarting the bond-dimension

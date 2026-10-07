@@ -289,15 +289,36 @@ def avas_at_threshold(mf, ao_labels, threshold):
     return spec, mo
 
 
-def build_lowspin_casci(mf_highspin, mo_coeff, charge, ncas, nelecas):
-    """S=1/2 (ground, antiferromagnetically coupled) state, CASCI on the
-    HIGH-SPIN reference's own orbitals. Generalized from run_gate2_sdhb.py's
+def build_lowspin_casci(mf_highspin, mo_coeff, charge, ncas, nelecas,
+                         bond_dims=(250, 500, 1000, 2000), scratch="./tmp_dmrg_s3",
+                         n_threads=4, max_minutes=None):
+    """S=1/2 (ground, antiferromagnetically coupled) state, on the HIGH-SPIN
+    reference's own orbitals. Generalized from run_gate2_sdhb.py's
     build_s0_casci() for an ODD na-nb difference (=1, not =0): S3 has 15
     d-electrons (odd), so there is no S=0 state here at all -- the true
     ground state carries a half-integer spin quantum number by construction,
     not by choice.
+
+    CORRECTED 2026-10-07: this used to call mc.kernel() -- PySCF's default
+    EXACT FCI solver -- on CAS(53,38). That is not a resource/memory tuning
+    problem, it is combinatorially impossible (confirmed live: block2's own
+    link-string index alone needed 5.67 TiB). Exact FCI is only tractable to
+    roughly CAS(16,16); every active space in this project past that size
+    (including this script's own module docstring, which already said this
+    CAS would land around 27 orbitals -- itself already past that limit)
+    goes through DMRG (block2), same as C275F and everything else. This was
+    an unflagged planning gap, not a deliberate placeholder -- the module
+    docstring's own numbers should have caught it before the script was
+    first run.
+
+    Does NOT call mc.kernel(). Pulls the active-space integrals (h1e, h2e,
+    ecore) directly off the un-run CASCI object via get_h1eff()/get_h2eff()
+    -- the exact same accessor pattern solange_dmrg.py's own CASSCF path
+    already uses to hand integrals to run_dmrg() (see that function's own
+    comment on why mo_coeff=None there is safe) -- then calls
+    solange_dmrg.run_dmrg() directly with spin=1.
     """
-    from pyscf import mcscf
+    from pyscf import mcscf, ao2mo
     mol_ls = mf_highspin.mol.copy()
     mol_ls.spin = 1
     mol_ls.charge = charge
@@ -308,19 +329,48 @@ def build_lowspin_casci(mf_highspin, mo_coeff, charge, ncas, nelecas):
         f"(expected 15 d-electrons for [3Fe-4S], an odd number)")
     na = (nelecas + 1) // 2
     nb = (nelecas - 1) // 2
+    target_spin = na - nb
+    # The guard Doron asked for explicitly: this function is ONLY valid for
+    # the odd-na-nb-difference-of-1 case it was built for. A future caller
+    # (copy-paste onto a different cluster) passing an nelecas/spin pair this
+    # function didn't derive itself must fail loudly here, not run DMRG in
+    # the wrong symmetry sector and report a confident, wrong energy.
+    assert target_spin == 1, (
+        f"derived spin (na-nb)={target_spin} from nelecas={nelecas}, but this function "
+        f"only implements the S=1/2 (spin=1) case it was built for -- do not reuse it "
+        f"for a different target without re-deriving na/nb and this assertion together")
     mc = mcscf.CASCI(mf_highspin, ncas, (na, nb))
     mc.mol = mol_ls
     mc.mo_coeff = mo_coeff
-    mc.kernel()
-    # Same DFCASCI.spin_square() AttributeError fix as run_gate2_sdhb.py's
-    # build_s0_casci() -- go through fcisolver directly.
-    ss, mult = mc.fcisolver.spin_square(mc.ci, mc.ncas, mc.nelecas)
-    print(f"[spin] S=1/2 CASCI: <S^2>={ss:.4f} (expect 0.75), 2S+1={mult:.4f} (expect 2.0)")
-    if abs(ss - 0.75) > 0.2:
-        print("*** <S^2> does not match the expected S=1/2 value for this CASCI solution -- "
-              "the solver may have found a different spin state within the same orbital "
-              "space; check the CI vector / active-space symmetry before trusting the energy")
-    return mc
+    h1e, ecore = mc.get_h1eff(mo_coeff=mo_coeff)
+    h2e = ao2mo.restore(1, mc.get_h2eff(mo_coeff), ncas)
+    print(f"[dmrg] CAS({nelecas},{ncas}) is far beyond exact FCI's ~CAS(16,16) practical "
+          f"ceiling -- solving via DMRG (block2), spin={target_spin}, bond_dims={list(bond_dims)}")
+
+    import sys as _sys
+    _sys.path.insert(0, os.getcwd())
+    import solange_dmrg
+    energies, s_max, stop_reason, discarded_weights, sweep_history = solange_dmrg.run_dmrg(
+        h1e, h2e, ecore, ncas, nelecas, list(bond_dims), scratch=scratch,
+        n_threads=n_threads, max_minutes=max_minutes, spin=target_spin)
+
+    # <S^2> is NOT independently measured here -- same reasoning as
+    # dmrgscf_block2.py's own Block2FCISolver.spin_square(): SU2 symmetry
+    # mode is spin-adapted by construction, so a converged state in the
+    # spin=1 sector IS an S=1/2 eigenstate by construction, not by
+    # verification. That existing analytical-reporting pattern is reused
+    # here rather than guessing at an unverified pyblock2 API call for a
+    # real spin-expectation measurement (none was found in this codebase to
+    # copy; DP1 -- do not invent one for an HPC-only library this sandbox
+    # cannot run live).
+    s_expected = target_spin / 2.0
+    print(f"[spin] S=1/2 DMRG: <S^2>={s_expected * (s_expected + 1):.4f} (expect 0.75, "
+          f"analytically from the SU2 spin=1 sector requested -- not independently measured)")
+
+    return dict(energies=energies, s_max=s_max, stop_reason=stop_reason,
+                discarded_weights=discarded_weights, sweep_history=sweep_history,
+                e_tot=(energies[-1][1] if energies else None), ncas=ncas, nelecas=nelecas,
+                spin=target_spin)
 
 
 def main():
@@ -341,6 +391,20 @@ def main():
                           "script's own flag for the full rationale.")
     ap.add_argument("--ph", type=float, default=7.4)
     ap.add_argument("--out-dir", default=".")
+    ap.add_argument("--bond-dims", default="250,500,1000,2000",
+                     help="DMRG bond-dimension ladder for the S=1/2 low-spin solve (CAS this "
+                          "large has no exact-FCI answer to fall back on -- see "
+                          "build_lowspin_casci()'s docstring). Same default ladder as "
+                          "solange_dmrg.py's own --bond-dims.")
+    ap.add_argument("--dmrg-scratch", default="./tmp_dmrg_s3",
+                     help="Reused across resubmissions to resume the MPS instead of "
+                          "restarting the bond-dimension ladder from scratch -- same "
+                          "mechanism as solange_dmrg.py's --scratch.")
+    ap.add_argument("--dmrg-threads", type=int, default=4)
+    ap.add_argument("--dmrg-max-minutes", type=float, default=None,
+                     help="Wall-clock budget for the DMRG ladder; stops requesting larger "
+                          "bond dims once exceeded rather than being killed mid-sweep with "
+                          "nothing recorded. Omit for no limit.")
     a = ap.parse_args()
 
     verify_wt()
@@ -415,7 +479,10 @@ def main():
     np.save(mo_path, mo)
     print(f"[avas] saved shared orbitals -> {mo_path}")
 
-    mc_ls = build_lowspin_casci(mf_hs, mo, charge, ncas, nelecas)
+    bond_dims = [int(x) for x in a.bond_dims.split(",")]
+    dmrg_result = build_lowspin_casci(
+        mf_hs, mo, charge, ncas, nelecas, bond_dims=bond_dims,
+        scratch=a.dmrg_scratch, n_threads=a.dmrg_threads, max_minutes=a.dmrg_max_minutes)
 
     out = f"{a.out_dir}/sdhb_s3_both_spins.json"
     json.dump(dict(
@@ -423,16 +490,29 @@ def main():
         threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
         high_spin=dict(spin=15, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),
                         spin_square_expected=63.75),
-        casci_lowspin=dict(spin=1, e_tot=float(mc_ls.e_tot), spin_square_expected=0.75),
+        dmrg_lowspin=dict(
+            spin=1, spin_square_expected=0.75,
+            bond_dims=[m for m, _ in dmrg_result["energies"]],
+            energies=[e for _, e in dmrg_result["energies"]],
+            e_tot=dmrg_result["e_tot"], s_max=dmrg_result["s_max"],
+            stop_reason=dmrg_result["stop_reason"],
+            discarded_weights=dmrg_result["discarded_weights"],
+        ),
         mo_coeff_path=mo_path,
     ), open(out, "w"), indent=1)
     print(f"\nwrote {out}")
+    if not mf_hs.converged:
+        print("\n*** REMINDER: the high-spin SCF reference did NOT converge -- every number "
+              "above (orbitals, DMRG energies, S_max) is provisional until that's fixed or "
+              "re-checked. Do not report this as a final result as-is.")
     print(f"\n[next] P3 FIRST (not this target): validate DMRG/SHCI against exact FCI on "
           f"S1's CAS(10,10) -- cheap, must agree to ~1e-9 before anything here is readable. "
-          f"Then feed ncas={ncas}, nelecas={nelecas}, --load-orbitals {mo_path} into "
-          f"solange_dmrg.py's --geometry path for the bond-dimension ladder (both spin "
-          f"states), plus a size/filling-matched chemistry-free control at CAS({nelecas},{ncas}), "
-          f"same basis, before reading any R_spin value. Pre-registered predictions P1/P2 "
+          f"The S=1/2 DMRG ladder for THIS cluster (CAS({nelecas},{ncas})) now runs inline, "
+          f"above -- it no longer needs a separate solange_dmrg.py --geometry invocation. "
+          f"Still needed before reading any R_spin value: (1) the high-spin reference "
+          f"converging cleanly (see the REMINDER above if it didn't this run), and (2) a "
+          f"size/filling-matched chemistry-free negative control at CAS({nelecas},{ncas}), "
+          f"same basis -- not yet built by this script. Pre-registered predictions P1/P2 "
           f"(R_spin > 1 for S3 and S2; R ordering S2 > S3 > S1 by iron count) are falsifiable -- "
           f"report the result either way.")
 
