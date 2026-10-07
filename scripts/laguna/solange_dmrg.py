@@ -269,7 +269,13 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
     if meta_path.exists():
         try:
             saved_dims = json.loads(meta_path.read_text())
-            dims_match = (saved_dims.get("ncas") == ncas and saved_dims.get("nelecas") == nelecas)
+            # spin added 2026-10-08 alongside run_dmrg(spin=...): two legs of one
+            # target share (ncas, nelecas) but not spin, and an MPS from one spin
+            # sector must never be "resumed" into another. Metadata written before
+            # this existed has no "spin" key -> read as 0, which is exactly what
+            # every pre-existing caller used, so their resume behaviour is unchanged.
+            dims_match = (saved_dims.get("ncas") == ncas and saved_dims.get("nelecas") == nelecas
+                          and saved_dims.get("spin", 0) == spin)
             if not dims_match:
                 print(f"  [resume] {scratch} holds a saved MPS for a DIFFERENT active space "
                       f"(CAS({saved_dims.get('nelecas')},{saved_dims.get('ncas')}) on disk vs. "
@@ -295,7 +301,7 @@ def run_dmrg(h1e, h2e, ecore, ncas, nelecas, bond_dims, scratch="./tmp_dmrg",
             print(f"  [resume] no active-space metadata recorded in {scratch} — "
                   f"starting from a fresh random MPS.", flush=True)
     Path(scratch).mkdir(parents=True, exist_ok=True)
-    meta_path.write_text(json.dumps({"ncas": ncas, "nelecas": nelecas}))
+    meta_path.write_text(json.dumps({"ncas": ncas, "nelecas": nelecas, "spin": spin}))
     energies = []
     # discarded_weights: best-effort capture of block2's per-M truncation error,
     # for dmrg_extrapolate.py's E(w)->w=0 fit (Claude Science, 2026-09-30) — a

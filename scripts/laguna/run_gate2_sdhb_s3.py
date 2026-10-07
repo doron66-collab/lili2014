@@ -241,32 +241,82 @@ def protonate(ph=7.4, out=None):
     return out
 
 
-def build_mf(xyz, charge, spin, basis="def2-tzvp"):
+def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=300,
+             chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp"):
     """High-spin (S=15/2, spin=15) ROHF reference -- the single-determinant,
     genuinely well-behaved state. Same reasoning as run_gate2_sdhb.py's
     build_mf(): never build the low-spin (S=1/2) state's own independent
     mean-field, since it's open-shell/multi-reference despite having a
-    well-defined spin quantum number."""
-    from pyscf import gto, scf
+    well-defined spin quantum number.
+
+    Convergence (added 2026-10-08): the plain ROHF here failed to converge
+    on two consecutive real runs, and the two runs did NOT agree with each
+    other -- E_SCF differed by 78 mHa (-7308.872 vs -7308.794) and AVAS then
+    picked different active spaces (CAS(53,38) vs CAS(53,39)) from the same
+    input. An unconverged, non-reproducible reference makes every number
+    downstream of it unreportable, regardless of how good the DMRG is.
+    Three standard measures, in order of preference:
+      1. chkfile -- if a previous run converged and saved its orbitals, start
+         from those: reproducible by construction, and much faster.
+      2. Otherwise, converge first in a smaller basis (guess_basis), project
+         that density into the target basis, and use it as the starting
+         guess -- a much better start for a 3-Fe open-shell cluster than
+         PySCF's default atomic-superposition guess.
+      3. level_shift on the virtual orbitals throughout -- damps the
+         occupied/virtual oscillation that is the usual failure mode for
+         transition-metal ROHF. A level shift changes the PATH, not the
+         converged fixed point: verified on an O2-triplet toy before using it
+         here (shifted and unshifted converged energies agree to 1e-13 Ha;
+         reloading from the chkfile reproduces to 5e-13 Ha).
+    """
+    from pyscf import gto, scf, lib
+    from pyscf.scf import addons
+    import numpy as np
     if spin != 15:
         raise ValueError("build_mf() only builds the high-spin (S=15/2, spin=15) reference -- "
                           "see this function's docstring. The S=1/2 state is evaluated by "
                           "build_lowspin_casci() on these same orbitals.")
     lines = [l.strip() for l in open(xyz).read().splitlines()[2:] if l.strip()]
-    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=3)
-    print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
-    mf = scf.ROHF(mol).density_fit()
-    # Same disk-space and auxbasis fixes as run_gate2_sdhb.py, applied here too --
-    # this cluster is smaller (27 target orbitals vs 28) but the full QM cluster
-    # (all heavy+capping atoms, not just the active space) is comparable in size,
-    # so the same ERI-cache blowup risk applies.
-    from pyscf import lib
+    # Same disk-space fix as run_gate2_sdhb.py -- set BEFORE any DF object is
+    # built (the small-basis guess below builds one too).
     dftmp_dir = os.path.join(os.getcwd(), "pyscf_tmp")
     os.makedirs(dftmp_dir, exist_ok=True)
     lib.param.TMPDIR = dftmp_dir
     print(f"[scratch] PySCF density-fitting scratch redirected to {dftmp_dir}")
-    mf.with_df.auxbasis = "def2-universal-jkfit"
-    mf.kernel()
+
+    def _rohf(m):
+        f = scf.ROHF(m).density_fit()
+        f.with_df.auxbasis = "def2-universal-jkfit"
+        f.level_shift = level_shift
+        f.max_cycle = max_cycle
+        return f
+
+    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=3)
+    print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
+    mf = _rohf(mol)
+
+    dm0 = None
+    if chkfile and os.path.exists(chkfile):
+        try:
+            dm0 = mf.from_chk(chkfile)
+            print(f"[scf] starting from saved orbitals in {chkfile} (reproducible restart)")
+        except Exception as e:
+            print(f"[scf] could not read {chkfile} ({type(e).__name__}) -- ignoring it")
+            dm0 = None
+    if dm0 is None and guess_basis:
+        print(f"[scf] stage 1: converging ROHF in {guess_basis} as a starting guess "
+              f"(level_shift={level_shift}, max_cycle={max_cycle})")
+        mol_s = gto.M(atom="\n".join(lines), basis=guess_basis, charge=charge, spin=spin, verbose=3)
+        mf_s = _rohf(mol_s)
+        mf_s.kernel()
+        print(f"[scf] stage 1 ({guess_basis}): converged={mf_s.converged} E={mf_s.e_tot:.8f}")
+        dm0 = np.array([addons.project_dm_nr2nr(mol_s, d, mol) for d in mf_s.make_rdm1()])
+
+    if chkfile:
+        mf.chkfile = chkfile
+    print(f"[scf] stage 2: ROHF in {basis} (level_shift={level_shift}, max_cycle={max_cycle})")
+    mf.kernel(dm0)
+    print(f"[scf] converged={mf.converged} E_SCF={mf.e_tot:.8f}")
     if not mf.converged:
         print("*** SCF did NOT converge -- treat any active space below as provisional")
     ss, mult = mf.spin_square()
@@ -373,6 +423,63 @@ def build_lowspin_casci(mf_highspin, mo_coeff, charge, ncas, nelecas,
                 spin=target_spin)
 
 
+def build_highspin_dmrg(mf_highspin, mo_coeff, charge, ncas, nelecas,
+                        bond_dims=(250, 500, 1000, 2000), scratch="./tmp_dmrg_s3_hs",
+                        n_threads=4, max_minutes=None):
+    """S=15/2 (fully ferromagnetic) leg, DMRG on the SAME shared orbitals and
+    the SAME active space as build_lowspin_casci() -- the second spin leg the
+    protocol needs for R_spin, and (added 2026-10-08) the cleanest available
+    check on the integral bookkeeping itself.
+
+    Why it is a check: the high-spin ROHF determinant lies INSIDE this
+    spin=15 active-space sector (AVAS's core/active split keeps the 15
+    singly-occupied orbitals active -- confirmed by the even core electron
+    count, 309-53=256), so the exact active-space energy here can only be at
+    or BELOW E_ROHF. A converged DMRG energy that lands well ABOVE E_ROHF
+    means h1e/h2e/ecore are wrong, not that the chemistry is interesting.
+    That is exactly the open question raised by the first real S=1/2 run
+    (M=250 landed 1.6 Ha above E_ROHF): if this leg also lands ~1.6 Ha high,
+    the bug is in the integrals; if it lands at/below E_ROHF, the S=1/2 gap
+    was the cold-start artifact already documented for R175H.
+
+    Separate scratch directory on purpose: run_dmrg()'s resume check keys on
+    (ncas, nelecas[, spin]) and both legs share ncas/nelecas.
+    """
+    from pyscf import mcscf, ao2mo
+    target_spin = 15
+    assert nelecas % 2 == 1 and nelecas >= target_spin, (
+        f"nelecas={nelecas} cannot host a spin={target_spin} state")
+    na = (nelecas + target_spin) // 2
+    nb = (nelecas - target_spin) // 2
+    assert na - nb == target_spin
+    mc = mcscf.CASCI(mf_highspin, ncas, (na, nb))
+    mc.mo_coeff = mo_coeff
+    h1e, ecore = mc.get_h1eff(mo_coeff=mo_coeff)
+    h2e = ao2mo.restore(1, mc.get_h2eff(mo_coeff), ncas)
+    print(f"[dmrg-hs] CAS({nelecas},{ncas}) high-spin leg, spin={target_spin}, "
+          f"bond_dims={list(bond_dims)}, scratch={scratch}")
+    import sys as _sys
+    _sys.path.insert(0, os.getcwd())
+    import solange_dmrg
+    energies, s_max, stop_reason, discarded_weights, sweep_history = solange_dmrg.run_dmrg(
+        h1e, h2e, ecore, ncas, nelecas, list(bond_dims), scratch=scratch,
+        n_threads=n_threads, max_minutes=max_minutes, spin=target_spin)
+    e_last = energies[-1][1] if energies else None
+    e_scf = float(mf_highspin.e_tot)
+    if e_last is not None:
+        gap_mha = (e_last - e_scf) * 1000.0
+        print(f"[embedding-hs] E_DMRG(S=15/2, M={energies[-1][0]})={e_last:.8f}  "
+              f"E_ROHF={e_scf:.8f}  difference={gap_mha:+.3f} mHa "
+              f"(must be <= ~0 if the integrals are right)")
+        if gap_mha > 1.6:
+            print("*** E_DMRG(high-spin) is ABOVE the ROHF energy it contains -- the active-"
+                  "space integrals (h1e/h2e/ecore) or the core/active split are suspect. Do NOT "
+                  "interpret the S=1/2 leg until this is explained. ***")
+    return dict(energies=energies, s_max=s_max, stop_reason=stop_reason,
+                discarded_weights=discarded_weights, sweep_history=sweep_history,
+                e_tot=e_last, ncas=ncas, nelecas=nelecas, spin=target_spin)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--verify-only", action="store_true")
@@ -400,6 +507,22 @@ def main():
                      help="Reused across resubmissions to resume the MPS instead of "
                           "restarting the bond-dimension ladder from scratch -- same "
                           "mechanism as solange_dmrg.py's --scratch.")
+    ap.add_argument("--scf-level-shift", type=float, default=0.3,
+                     help="Virtual-orbital level shift (Ha) for the high-spin ROHF. Changes the "
+                          "convergence path, not the converged answer.")
+    ap.add_argument("--scf-max-cycle", type=int, default=300)
+    ap.add_argument("--scf-chkfile", default="sdhb_s3_scf.chk",
+                     help="Saved SCF orbitals. Reused as the starting point on the next run if "
+                          "present -- makes the reference reproducible across runs, and lets a "
+                          "run that ran out of cycles continue instead of restarting.")
+    ap.add_argument("--allow-unconverged-scf", action="store_true",
+                     help="Proceed to AVAS/DMRG even if the high-spin SCF did not converge. Off by "
+                          "default: two real runs with an unconverged reference gave different "
+                          "active spaces from the same input, so nothing downstream is reportable. "
+                          "Use only for a deliberate pipeline smoke test.")
+    ap.add_argument("--skip-highspin-dmrg", action="store_true",
+                     help="Skip the S=15/2 DMRG leg. Not recommended: it is both the second spin "
+                          "leg R_spin needs and the integral-bookkeeping check.")
     ap.add_argument("--dmrg-threads", type=int, default=4)
     ap.add_argument("--dmrg-max-minutes", type=float, default=None,
                      help="Wall-clock budget for the DMRG ladder; stops requesting larger "
@@ -470,7 +593,14 @@ def main():
     print(f"[guard] preflight passed: N={nelectron}, charge={charge:+d}, spin=15, "
           f"{len(sg_indices)} ligating SG checked for residual H")
 
-    mf_hs = build_mf(xyz, charge, spin=15, basis=a.basis)
+    mf_hs = build_mf(xyz, charge, spin=15, basis=a.basis, level_shift=a.scf_level_shift,
+                     max_cycle=a.scf_max_cycle, chkfile=a.scf_chkfile)
+    if not mf_hs.converged and not a.allow_unconverged_scf:
+        sys.exit(f"\n*** REFUSING to continue: high-spin SCF did not converge "
+                 f"(E={mf_hs.e_tot:.8f}). Its orbitals were saved to {a.scf_chkfile} -- "
+                 f"re-running this same command resumes from them. Pass "
+                 f"--allow-unconverged-scf only for a deliberate pipeline smoke test; "
+                 f"nothing from such a run is reportable. ***")
     spec, mo = avas_at_threshold(mf_hs, "Fe 3d, S 3p", a.threshold)
     ncas, nelecas = spec["ncas"], spec["nelecas"]
 
@@ -480,6 +610,23 @@ def main():
     print(f"[avas] saved shared orbitals -> {mo_path}")
 
     bond_dims = [int(x) for x in a.bond_dims.split(",")]
+
+    def _leg_json(r):
+        return dict(spin=r["spin"], bond_dims=[m for m, _ in r["energies"]],
+                    energies=[e for _, e in r["energies"]], e_tot=r["e_tot"],
+                    s_max=r["s_max"], stop_reason=r["stop_reason"],
+                    discarded_weights=r["discarded_weights"])
+
+    # High-spin leg FIRST: it's the integral-bookkeeping check (see
+    # build_highspin_dmrg's docstring) -- if it fails, the S=1/2 leg's hours
+    # would be spent on integrals already shown to be wrong.
+    hs_result = None
+    if not a.skip_highspin_dmrg:
+        hs_result = build_highspin_dmrg(
+            mf_hs, mo, charge, ncas, nelecas, bond_dims=bond_dims,
+            scratch=a.dmrg_scratch + "_hs", n_threads=a.dmrg_threads,
+            max_minutes=a.dmrg_max_minutes)
+
     dmrg_result = build_lowspin_casci(
         mf_hs, mo, charge, ncas, nelecas, bond_dims=bond_dims,
         scratch=a.dmrg_scratch, n_threads=a.dmrg_threads, max_minutes=a.dmrg_max_minutes)
@@ -490,6 +637,7 @@ def main():
         threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
         high_spin=dict(spin=15, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),
                         spin_square_expected=63.75),
+        dmrg_highspin=(_leg_json(hs_result) if hs_result else None),
         dmrg_lowspin=dict(
             spin=1, spin_square_expected=0.75,
             bond_dims=[m for m, _ in dmrg_result["energies"]],
