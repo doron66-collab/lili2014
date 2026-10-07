@@ -116,12 +116,14 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   const stageRef = useRef<any>(null);
   const structComponentRef = useRef<any>(null);
   const baseReprRef = useRef<any>(null);
+  const otherChainsReprRef = useRef<any>(null);
   const mutSiteReprRef = useRef<any>(null);
   const pocketShapeRef = useRef<any>(null);
   const [structReady, setStructReady] = useState(0);
   const [structStyle, setStructStyle] = useState<StructStyleKey>('cartoon');
   const [spinning, setSpinning] = useState(true);
   const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
+  const [chainInfo, setChainInfo] = useState<{ chainname: string; description: string }[]>([]);
   const [pocketStatus, setPocketStatus] = useState<string | null>(null);
   const [pocketResult, setPocketResult] = useState<PocketResponse | null>(null);
   const [selectedPocketId, setSelectedPocketId] = useState<number | null>(null);
@@ -255,6 +257,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
 
   useEffect(() => {
     setPdbMeta(null);
+    setChainInfo([]);
     if (isAlphaFold) return; // predicted model, not an RCSB experimental entry
     let cancelled = false;
     fetchPdbMeta(mutation.pdb).then(m => { if (!cancelled) setPdbMeta(m); });
@@ -306,6 +309,20 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       const ch = mutation.chain;
       structComponentRef.current = component;
 
+      // Per-chain identity, straight from the loaded file's own entity
+      // records (COMPND/entity description — no extra network call) —
+      // answers "what are these chains" for any multi-chain complex, after
+      // Doron asked this directly for 2WTK's LKB1/STRADalpha/MO25alpha trio.
+      const seen = new Set<string>();
+      const chains: { chainname: string; description: string }[] = [];
+      component.structure.eachChain((cp: any) => {
+        if (seen.has(cp.chainname)) return;
+        seen.add(cp.chainname);
+        chains.push({ chainname: cp.chainname, description: cp.entity?.description || '(no entity description in file)' });
+      });
+      chains.sort((a, b) => a.chainname.localeCompare(b.chainname));
+      setChainInfo(chains);
+
       // The whole-chain base representation (ribbon / wire / balls /
       // capsules) is added by the dedicated effect below, keyed on
       // structStyle — not hardcoded here — so switching style swaps one
@@ -351,6 +368,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       stageRef.current = null;
       structComponentRef.current = null;
       baseReprRef.current = null;
+      otherChainsReprRef.current = null;
       mutSiteReprRef.current = null;
       // stage.dispose() removes NGL's own bookkeeping and the canvas element,
       // but (confirmed against NGL's own dispose() source) never calls the
@@ -374,9 +392,19 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
   // Whole-chain base representation (ribbon / wire / balls / capsules) —
   // kept separate from the structure-loading effect above so switching
   // style just swaps this one representation instead of reloading the
-  // whole PDB file. Applies to the ENTIRE chain, per Doron's correction
-  // after the first version only let this control the mutation residue
-  // ("התכוונתי לשינוי בכל החלבון").
+  // whole PDB file. Applies to the ENTIRE primary chain, per Doron's
+  // correction after the first version only let this control the mutation
+  // residue ("התכוונתי לשינוי בכל החלבון").
+  //
+  // A second, dimmed representation draws every OTHER chain in the
+  // deposited entry (e.g. 2WTK's STRADalpha/MO25alpha partners alongside
+  // STK11/LKB1 itself) — added after Doron asked directly whether the
+  // viewer could show all three chains of a multi-chain complex, and why
+  // fpocket's own pockets on those other chains looked like they were
+  // floating in empty space (they were real cavities on protein that
+  // simply wasn't being drawn at all). Dimmed/desaturated rather than full
+  // color so the primary chain (the actual mutation's own gene product)
+  // stays visually unambiguous as the main subject.
   useEffect(() => {
     const component = structComponentRef.current;
     if (!component) return;
@@ -384,15 +412,30 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       component.removeRepresentation(baseReprRef.current);
       baseReprRef.current = null;
     }
+    if (otherChainsReprRef.current) {
+      component.removeRepresentation(otherChainsReprRef.current);
+      otherChainsReprRef.current = null;
+    }
     const style = STRUCT_STYLES.find(s => s.key === structStyle) || STRUCT_STYLES[0];
     baseReprRef.current = component.addRepresentation(style.repr, {
       sele: `:${mutation.chain}`,
       ...style.params,
     });
+    otherChainsReprRef.current = component.addRepresentation(style.repr, {
+      sele: `not :${mutation.chain}`,
+      ...style.params,
+      colorScheme: 'uniform',
+      color: '#5a6a85',
+      opacity: Math.min(style.params.opacity ?? 0.9, 0.9) * 0.4,
+    });
     return () => {
       if (baseReprRef.current) {
         component.removeRepresentation(baseReprRef.current);
         baseReprRef.current = null;
+      }
+      if (otherChainsReprRef.current) {
+        component.removeRepresentation(otherChainsReprRef.current);
+        otherChainsReprRef.current = null;
       }
     };
   }, [structReady, structStyle, mutation.chain]);
@@ -731,6 +774,21 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             </>
           ) : (
             <div style={{ color: 'rgba(190,215,255,0.8)', fontSize: 13 }}>Loading structure data…</div>
+          )}
+          {chainInfo.length > 0 && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${cc}33` }}>
+              <div style={{ color: cc, fontSize: 11, letterSpacing: 1.5, marginBottom: 3 }}>
+                ● CHAINS IN THIS FILE {chainInfo.length > 1 ? '(dimmed in the 3D view unless it\'s the primary one)' : ''}
+              </div>
+              {chainInfo.map(c => (
+                <div key={c.chainname} style={{ color: 'rgba(210,225,255,0.9)', fontSize: 12, lineHeight: 1.5 }}>
+                  <b style={{ color: c.chainname === mutation.chain ? cc : 'rgba(210,225,255,0.9)' }}>
+                    Chain {c.chainname}{c.chainname === mutation.chain ? ' (primary)' : ''}
+                  </b>
+                  {': '}{c.description}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
