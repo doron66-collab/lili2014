@@ -264,11 +264,27 @@ def build_mf(xyz, charge, spin, basis="ccpvdz"):
     mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=3)
     print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
     mf = scf.ROHF(mol).density_fit()
-    # The default JK-fit auxiliary basis (cc-pvdz-jkfit) has no entry for Fe --
-    # transition metals are outside standard Dunning aux-basis coverage. Build
-    # an even-tempered (ETB) auxiliary basis instead, which covers every
-    # element actually present rather than requiring a hand-picked one.
-    mf.with_df.auxbasis = df.make_auxbasis(mol)
+    # Found live 2026-10-07: at 150 atoms / 1570 basis functions, the density-fitting
+    # Cholesky ERI cache hit ~24GB and filled the SLURM job's node-local /tmp (typically
+    # small), crashing with OSError "No space left on device" partway through writing.
+    # Redirect PySCF's scratch to the CURRENT working directory instead -- wherever this
+    # script is actually being run from (beegfs or similar networked storage on Laguna),
+    # which has far more headroom than node-local /tmp. Must be set before density_fit()
+    # actually builds its scratch file, i.e. before mf.kernel() below.
+    from pyscf import lib
+    dftmp_dir = os.path.join(os.getcwd(), "pyscf_tmp")
+    os.makedirs(dftmp_dir, exist_ok=True)
+    lib.param.TMPDIR = dftmp_dir
+    print(f"[scratch] PySCF density-fitting scratch redirected to {dftmp_dir} "
+          f"(was defaulting to node-local /tmp, too small for this system's ~24GB+ "
+          f"ERI cache) -- clean this directory up after the run, it is not auto-deleted")
+    # Also switch the auxiliary basis from an auto-generated even-tempered (ETB) one to
+    # the standard def2-universal-jkfit, which properly covers Fe/S (unlike cc-pvdz-jkfit)
+    # without PySCF having to improvise one -- same convention solange_dmrg.py already
+    # uses elsewhere in this project (--df-auxbasis default). Comparable size to the ETB
+    # basis in local testing, so this is about using a vetted basis, not about the disk
+    # issue above (which is the scratch-location fix, not this).
+    mf.with_df.auxbasis = "def2-universal-jkfit"
     mf.kernel()
     if not mf.converged:
         print("*** SCF did NOT converge -- treat any active space below as provisional")
