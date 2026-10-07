@@ -265,7 +265,12 @@ print_table("KEAP1 LOF CORE — Minimal correlated sub-shell", lof_core, e_lof, 
 
 # =============================================================================
 # PDB 2WTK — STK11/LKB1 kinase domain in complex with STRADα + MO25α
-# Chain A: LKB1 (residues 44–347 ordered), Chain B: STRADα, Chain C: MO25α
+# Chain C: LKB1 (residues 44-347 ordered), Chain B: STRADalpha, Chain A: MO25alpha/CAB39
+# -- corrected 2026-10-07: verified live against the deposited file's own entity
+# records (previously had A/C swapped here; no live coordinate extraction in this
+# script keys off chain letter, so this was a documentation error only, not a
+# data bug -- see NSCLCViewer.tsx's PDB_MAP, which WAS feeding chain='A' into the
+# 3D viewer as the "primary" chain and has been fixed to 'C')
 # Reference: Zeqiraj E et al. (2009) Science 326(5960):1707–1711
 #            DOI:10.1126/science.1178377
 # Resolution: 2.65 Å
@@ -282,7 +287,7 @@ print("="*70)
 # ---------------------------------------------------------------------------
 # F354 is in the αH helix / hydrophobic spine of the C-lobe.
 # It is part of the regulatory (R-spine) hydrophobic assembly:
-#   L354 neighbors in 2WTK (chain A):
+#   L354 neighbors in 2WTK (chain C, LKB1 -- not A, see correction above):
 #   - L350 (Cδ2 ~3.8 Å)
 #   - I353 (Cδ1 ~4.2 Å)
 #   - L357 (Cδ2 ~4.5 Å)
@@ -317,7 +322,7 @@ f354l_local = [
 
 print("\n--- F354 (native) 5 Å local shell ---")
 e_f354, bd_f354 = count_electrons(f354_local)
-print_table("F354 LOCAL — Native (2WTK, chain A)", f354_local, e_f354, bd_f354)
+print_table("F354 LOCAL — Native (2WTK, chain C)", f354_local, e_f354, bd_f354)
 
 print("\n--- F354L (mutant) 5 Å local shell ---")
 e_f354l, bd_f354l = count_electrons(f354l_local)
@@ -328,7 +333,7 @@ print(f"\n  ΔElectrons F354→F354L: {e_f354l - e_f354}e (loss of aromatic π s
 # LKB1 D194N mutation — LOCAL active space (5 Å shell around D194)
 # ---------------------------------------------------------------------------
 # D194 is the catalytic Asp in the DFG motif (D194-F195-G196 in LKB1).
-# In 2WTK (chain A), D194 coordinates:
+# In 2WTK (chain C, LKB1), D194 coordinates:
 #   - Mg2+ / ATP mimic contacts
 #   - F195 (DFG Phe, Cβ ~3.8 Å)
 #   - G196 (DFG Gly, Cα ~3.8 Å)
@@ -365,7 +370,7 @@ d194n_local = [
 
 print("\n--- D194 (native) 5 Å local shell ---")
 e_d194, bd_d194 = count_electrons(d194_local)
-print_table("D194 LOCAL — Native (2WTK, chain A)", d194_local, e_d194, bd_d194)
+print_table("D194 LOCAL — Native (2WTK, chain C)", d194_local, e_d194, bd_d194)
 
 print("\n--- D194N (mutant) 5 Å local shell ---")
 e_d194n, bd_d194n = count_electrons(d194n_local)
@@ -387,7 +392,7 @@ print("  Note: The key change is loss of Mg2+-coordinating carboxylate, not elec
 #     K78 = catalytic Lys (N-lobe β3)
 #     E98 = αC-Glu
 #     D176 = DFG Asp (some papers number this differently due to isoforms)
-#   In 2WTK (Zeqiraj 2009), the DFG motif is at D194-F195-G196 (chain A LKB1).
+#   In 2WTK (Zeqiraj 2009), the DFG motif is at D194-F195-G196 (chain C, LKB1).
 #   The activation loop runs from D194 to E208 approximately.
 #   The full ATP pocket encompasses:
 # Sources: Zeqiraj 2009 Science; Nolen 2004 Mol Cell;
@@ -417,7 +422,7 @@ stk11_full_atp = [
 print("\n--- STK11/LKB1 FULL ATP-binding pocket + R-spine ---")
 e_atp, bd_atp = count_electrons(stk11_full_atp)
 print_table(
-    "STK11 FULL ATP POCKET — Kinase domain (2WTK, chain A)",
+    "STK11 FULL ATP POCKET — Kinase domain (2WTK, chain C)",
     stk11_full_atp, e_atp, bd_atp
 )
 
@@ -693,6 +698,6 @@ print("""
 # print(get_5A_neighbors('1U6D.pdb', 'A', 333))
 # print(get_5A_neighbors('1U6D.pdb', 'A', 320))
 # # STK11
-# print(get_5A_neighbors('2WTK.pdb', 'A', 354))
-# print(get_5A_neighbors('2WTK.pdb', 'A', 194))
+# print(get_5A_neighbors('2WTK.pdb', 'C', 354))  # LKB1 is chain C, not A
+# print(get_5A_neighbors('2WTK.pdb', 'C', 194))  # LKB1 is chain C, not A
 """)

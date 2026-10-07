@@ -49,7 +49,15 @@ const PDB_MAP = [
   { pdb: '2VUK', chain: 'A', highlightRes: [220] },        // TP53 Y220C
   { pdb: '2FLU', chain: 'X', highlightRes: [] as number[] }, // KEAP1 LOF
   { pdb: '2A5E', chain: 'A', highlightRes: [] as number[] }, // CDKN2A p16 INK4a
-  { pdb: '2WTK', chain: 'A', highlightRes: [] as number[] }, // STK11 LKB1
+  // Chain A in 2WTK is CAB39/MO25alpha, NOT STK11 -- confirmed live 2026-10-07
+  // via the 3D viewer's own "chains in this file" panel (entity.description
+  // read straight from the deposited file): chain A = "CALCIUM-BINDING
+  // PROTEIN 39", chain B = "STE20-RELATED KINASE ADAPTER PROTEIN ALPHA"
+  // (STRADalpha), chain C = "SERINE/THREONINE-PROTEIN KINASE 11" (STK11
+  // itself). 2WTK deposits TWO copies of the heterotrimer (A/B/C and
+  // D/E/F) -- C is STK11's first copy. The platform had been highlighting
+  // MO25alpha as the "primary" chain for an STK11 target this whole time.
+  { pdb: '2WTK', chain: 'C', highlightRes: [] as number[] }, // STK11 LKB1
   { pdb: '2OCJ', chain: 'A', highlightRes: [275] },         // TP53 C275F
 ] as const;
 
