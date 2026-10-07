@@ -404,6 +404,28 @@ def main():
               f"them) -- excluded here; the single source of truth for FES is "
               f"read_fes_from_cif()'s direct cif read, below.")
     atoms = pdb_atoms + read_fes_from_cif(PDB_ID, CHAIN, "301")
+
+    # Found via the sibling S3 script's 2026-10-07 parity crash, per Claude
+    # Science's consult reply: pdbfixer's addMissingHydrogens() protonates
+    # every CYS as a neutral thiol (-SH) by default -- it has no notion of a
+    # metal-coordinating thiolate (-S-) unless typed CYM, which nothing here
+    # does. This script's FOUR ligating cysteines (even count) carry the same
+    # spurious HG each, but an even count never flips electron/spin parity,
+    # so it never crashed here -- it silently built a cluster with 4 extra
+    # electrons (over-reduced relative to the [2Fe-2S]2+ core this script
+    # specifies) and ran to a numerically converged, chemically meaningless
+    # result. S1 is only a solver-validation case now (FCI-exact cross-check
+    # at CAS(10,10)), not a Class A candidate, but that role still requires
+    # the correct electron count -- fixed here for the same reason as S3.
+    spurious_hg = [a for a in atoms
+                   if a["comp"] == "CYS" and a["seq"] in CYS_LIGANDS and a["name"] == "HG"]
+    if spurious_hg:
+        print(f"[cluster] NOTE: stripping {len(spurious_hg)} spurious thiol H (HG) from "
+              f"ligating Cys residue(s) {sorted(a['seq'] for a in spurious_hg)} -- these "
+              f"coordinate the [2Fe-2S] cluster as thiolates and must not carry that "
+              f"hydrogen (see cluster_spin_guard.py).")
+        atoms = [a for a in atoms
+                 if not (a["comp"] == "CYS" and a["seq"] in CYS_LIGANDS and a["name"] == "HG")]
     groups, caps, charge = build_cluster(atoms)
     n_heavy = sum(1 for k in groups for a in groups[k] if a["elem"] != "H")
     print(f"[cluster] {len(groups)} residues, {n_heavy} heavy atoms, {len(caps)} capping H, "
@@ -420,6 +442,28 @@ def main():
     write_xyz(groups, caps, xyz, comment=f"SDHB [2Fe-2S] S1 site, {PDB_ID}, Fe3d+S3p AVAS")
     print(f"[cluster] wrote {xyz}")
     print(f"[core] Fe 3s/3p treated as {a.fe_semicore} (--fe-semicore)")
+
+    # Preflight -- run before gto.M(), not after the SCF. Same atom-list
+    # ordering write_xyz itself uses, so sg_indices line up with the XYZ
+    # file's own atom order. ARG94/GLU95 sidechain charges (non-Cys, non-S)
+    # don't carry an SG, so sg_indices only picks up the four Cys ligands.
+    # Note: preflight's own formal-charge cross-check only knows core_charge
+    # and n_thiolate (core - n_thiolate = 2 - 4 = -2); it passes here only
+    # because ARG94 (+1) and GLU95 (-1) happen to cancel in this cluster's
+    # actual `charge`. If a future edit adds a sidechain contribution that
+    # doesn't cancel, that specific sub-check will need extending -- it's
+    # not reading SIDECHAIN_Q, only core_charge/n_thiolate.
+    import cluster_spin_guard as csg
+    ordered = [atm for k in sorted(groups) for atm in groups[k]]
+    sg_indices = [i for i, atm in enumerate(ordered) if atm["name"] == "SG"]
+    symbols = [atm["elem"] for atm in ordered] + ["H"] * len(caps)
+    coords = [atm["xyz"] for atm in ordered] + [c[1] for c in caps]
+    nelectron = csg.sum_nuclear_charge(symbols) - charge
+    csg.preflight(symbols, coords, nelectron, charge, spin=10,
+                  sg_indices=sg_indices, iron_oxidation_states=[3, 3],
+                  core_charge=FES_CORE_CHARGE, label="SDHB S1")
+    print(f"[guard] preflight passed: N={nelectron}, charge={charge:+d}, spin=10, "
+          f"{len(sg_indices)} ligating SG checked for residual H")
 
     # Step 1: high-spin (S=5) reference + AVAS -- the only mean-field build in this script.
     mf_hs = build_mf(xyz, charge, spin=10, basis=a.basis)

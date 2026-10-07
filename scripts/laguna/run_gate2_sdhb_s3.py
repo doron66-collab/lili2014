@@ -358,6 +358,26 @@ def main():
         print(f"[cluster] NOTE: {dropped} F3S atom(s) were present in the protonated PDB -- "
               f"excluded; read_f3s_from_cif()'s direct cif read is the single source of truth.")
     atoms = pdb_atoms + read_f3s_from_cif(PDB_ID, CHAIN, "303")
+
+    # Root cause of the 2026-10-07 "Electron number 312 and spin 15 are not
+    # consistent" crash, per Claude Science's consult reply: pdbfixer's
+    # addMissingHydrogens() protonates every CYS as a neutral thiol (-SH) by
+    # default -- it has no notion of a metal-coordinating thiolate (-S-)
+    # unless the residue is explicitly typed CYM, which nothing here does.
+    # The three ligating cysteines therefore each carried one spurious HG on
+    # their SG. EXPECTED_NET_CHARGE above could never catch this: it's the
+    # formal recipe (core charge + per-residue contributions), compared
+    # against a `charge` variable computed the same way -- a constant
+    # checked against itself, not against the real atom list.
+    spurious_hg = [a for a in atoms
+                   if a["comp"] == "CYS" and a["seq"] in CYS_LIGANDS and a["name"] == "HG"]
+    if spurious_hg:
+        print(f"[cluster] NOTE: stripping {len(spurious_hg)} spurious thiol H (HG) from "
+              f"ligating Cys residue(s) {sorted(a['seq'] for a in spurious_hg)} -- these "
+              f"coordinate the [3Fe-4S] cluster as thiolates and must not carry that "
+              f"hydrogen (see cluster_spin_guard.py).")
+        atoms = [a for a in atoms
+                 if not (a["comp"] == "CYS" and a["seq"] in CYS_LIGANDS and a["name"] == "HG")]
     groups, caps, charge = build_cluster(atoms)
     n_heavy = sum(1 for k in groups for a in groups[k] if a["elem"] != "H")
     print(f"[cluster] {len(groups)} residues, {n_heavy} heavy atoms, {len(caps)} capping H, "
@@ -369,6 +389,22 @@ def main():
     write_xyz(groups, caps, xyz, comment=f"SDHB [3Fe-4S] S3 site, {PDB_ID}, Fe3d+bridging-S3p AVAS")
     print(f"[cluster] wrote {xyz}")
     print(f"[core] Fe 3s/3p treated as {a.fe_semicore} (--fe-semicore)")
+
+    # Preflight -- run before gto.M(), not after the SCF. Same atom-list-
+    # ordering `write_xyz` itself uses (sorted(groups) then each group's own
+    # list order, caps appended last), so sg_indices line up with the XYZ
+    # file's own atom order.
+    import cluster_spin_guard as csg
+    ordered = [atm for k in sorted(groups) for atm in groups[k]]
+    sg_indices = [i for i, atm in enumerate(ordered) if atm["name"] == "SG"]
+    symbols = [atm["elem"] for atm in ordered] + ["H"] * len(caps)
+    coords = [atm["xyz"] for atm in ordered] + [c[1] for c in caps]
+    nelectron = csg.sum_nuclear_charge(symbols) - charge
+    csg.preflight(symbols, coords, nelectron, charge, spin=15,
+                  sg_indices=sg_indices, iron_oxidation_states=[3, 3, 3],
+                  core_charge=F3S_CORE_CHARGE, label="SDHB S3")
+    print(f"[guard] preflight passed: N={nelectron}, charge={charge:+d}, spin=15, "
+          f"{len(sg_indices)} ligating SG checked for residual H")
 
     mf_hs = build_mf(xyz, charge, spin=15, basis=a.basis)
     spec, mo = avas_at_threshold(mf_hs, "Fe 3d, S 3p", a.threshold)
