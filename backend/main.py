@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import simulate, pdb, provenance, admin, notify, gateway, gate1, gate2
+from routes import simulate, pdb, provenance, admin, notify, gateway, gate1, gate2, pocket
 
 app = FastAPI(
     title="QC·AI·HPC Simulation API",
@@ -25,6 +25,7 @@ app.include_router(notify.router,     prefix="/api/notify",     tags=["Notify"])
 app.include_router(gateway.router,    prefix="/api/gateway",    tags=["Decision Gateway"])
 app.include_router(gate1.router,      prefix="/api/gate1",      tags=["Gate 1"])
 app.include_router(gate2.router,      prefix="/api/gate2",      tags=["Gate 2"])
+app.include_router(pocket.router,     prefix="/api/pocket",     tags=["Pocket Detection"])
 
 @app.get("/")
 def root():

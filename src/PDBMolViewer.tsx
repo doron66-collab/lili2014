@@ -23,6 +23,35 @@ interface Props {
   navPosition?: string;   // e.g. "2 / 5" — shown next to the prev/next controls
 }
 
+// ── Pocket detection (fpocket, backend/routes/pocket.py) ─────────────────────
+// The SECOND, independent axis of target assessment alongside SOLANGE's
+// existing electronic-structure/DMRG classification: does a 3D cavity even
+// exist here for a drug-like ligand, regardless of Class A/B/C. Triggered by
+// the user's own choice of structure — not a fixed list — per Doron's own
+// framing: "משתמש קצה הגיע לתלת מימד ... צריך להוסיף שם כפתור מצא כיסים".
+interface PocketResult {
+  pocket_id: number;
+  score?: number;
+  druggability_score?: number;
+  volume?: number;
+  x?: number; y?: number; z?: number; radius?: number;
+  chains: string[];
+  single_chain: boolean;
+  includes_target_residue?: boolean;
+}
+interface PocketResponse {
+  pdb: string;
+  n_pockets_total: number;
+  n_single_chain_druggable: number;
+  best_single_chain_pocket: PocketResult | null;
+  all_pockets: PocketResult[];
+}
+
+function apiBase(): string {
+  return (typeof window !== 'undefined' && (window as any).QCAIHPC_API_BASE)
+    || 'https://qcaihpc-simulation-api.onrender.com';
+}
+
 // Map hex color → NGL color string
 function hexToNGLColor(hex: number): string {
   return '#' + hex.toString(16).padStart(6, '0');
@@ -68,9 +97,92 @@ async function fetchPdbMeta(pdbId: string): Promise<PdbMeta | null> {
 export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosition }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
+  const pocketShapeRef = useRef<any>(null);
   const [spinning, setSpinning] = useState(true);
   const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
+  const [pocketStatus, setPocketStatus] = useState<string | null>(null);
+  const [pocketResult, setPocketResult] = useState<PocketResponse | null>(null);
   const isAlphaFold = mutation.pdb.startsWith('AF-');
+
+  // Reset pocket results whenever the user navigates to a different structure
+  // — a stale pocket overlay from the previous mutation rendered on the new
+  // one would misattribute a cavity to the wrong target.
+  useEffect(() => {
+    setPocketResult(null);
+    setPocketStatus(null);
+  }, [mutation.pdb]);
+
+  async function findPockets() {
+    if (isAlphaFold) {
+      setPocketStatus('✗ fpocket needs a real RCSB crystal structure — not available for AlphaFold models');
+      return;
+    }
+    setPocketStatus('◌ Running fpocket…');
+    setPocketResult(null);
+    const nearResidue = mutation.highlightRes && mutation.highlightRes.length > 0
+      ? `${mutation.chain}:${mutation.highlightRes[0]}`
+      : undefined;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 130000); // fpocket itself is capped at 120s server-side
+    try {
+      const params = new URLSearchParams({ pdb: mutation.pdb, min_druggability: '0.5' });
+      if (nearResidue) params.set('near_residue', nearResidue);
+      const res = await fetch(`${apiBase()}/api/pocket/detect?${params}`, { signal: controller.signal });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setPocketStatus(`✗ ${body?.detail || `pocket detection failed (HTTP ${res.status})`}`);
+        return;
+      }
+      const data: PocketResponse = await res.json();
+      setPocketResult(data);
+      setPocketStatus(null);
+    } catch (e: any) {
+      setPocketStatus(e?.name === 'AbortError'
+        ? '✗ pocket detection timed out'
+        : '✗ could not reach pocket-detection backend (may be cold-starting — try again in ~30s)');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Render pocket spheres as a separate NGL shape layer, independent of the
+  // structure component above — added/removed on top of whatever structure
+  // is already loaded, in the same PDB coordinate frame so they align
+  // automatically. Colour encodes what the backend already decided (see
+  // pocket.py / run_pocket_detect.py's own docstring on why the combined
+  // score, not druggability alone, is the trustworthy signal): gold = the
+  // best single-chain druggable candidate, cyan = other single-chain
+  // candidates, dim red = multi-chain (crystal-contact artifact, not a real
+  // binding site).
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (pocketShapeRef.current) {
+      stage?.removeComponent(pocketShapeRef.current);
+      pocketShapeRef.current = null;
+    }
+    if (!stage || !pocketResult || !pocketResult.all_pockets.length) return;
+
+    const shape = new (NGL as any).Shape('pockets');
+    const bestId = pocketResult.best_single_chain_pocket?.pocket_id;
+    for (const p of pocketResult.all_pockets) {
+      if (p.x == null || p.y == null || p.z == null) continue;
+      const color: [number, number, number] = !p.single_chain
+        ? [0.55, 0.15, 0.15]
+        : p.pocket_id === bestId
+        ? [1.0, 0.82, 0.1]
+        : [0.1, 0.75, 0.85];
+      const radius = Math.max(p.radius || 4, 2.5);
+      shape.addSphere([p.x, p.y, p.z], color, radius);
+    }
+    const shapeComp = stage.addComponentFromObject(shape);
+    shapeComp.addRepresentation('buffer', { opacity: 0.4 });
+    pocketShapeRef.current = shapeComp;
+
+    return () => {
+      stage?.removeComponent(shapeComp);
+      if (pocketShapeRef.current === shapeComp) pocketShapeRef.current = null;
+    };
+  }, [pocketResult]);
 
   useEffect(() => {
     setPdbMeta(null);
@@ -273,6 +385,21 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
           >
             {spinning ? '⏸ PAUSE' : '▶ ROTATE'}
           </button>
+          <button
+            onClick={findPockets}
+            disabled={pocketStatus === '◌ Running fpocket…'}
+            title="Geometric pocket detection (fpocket) — the independent 3D-cavity axis, separate from the DMRG electronic-structure classification"
+            style={{
+              background: pocketResult ? 'rgba(255,210,30,.14)' : 'rgba(170,120,255,.12)',
+              border: `1px solid ${pocketResult ? 'rgba(255,210,30,.55)' : 'rgba(170,120,255,.45)'}`,
+              color: pocketResult ? 'rgba(255,220,100,.95)' : 'rgba(200,170,255,.9)',
+              borderRadius: 8, padding: '5px 13px',
+              cursor: pocketStatus === '◌ Running fpocket…' ? 'default' : 'pointer',
+              fontSize: 12, letterSpacing: 1,
+            }}
+          >
+            🔎 מצא כיסים · FIND POCKETS
+          </button>
           <div>
             <span style={{ color: cc, fontWeight: 'bold', fontSize: 16, letterSpacing: 3 }}>
               {mutation.id}
@@ -333,6 +460,40 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
           </div>
         )}
 
+        {(pocketStatus || pocketResult) && (
+          <div style={{
+            position: 'absolute', top: 14, right: 14, zIndex: 10, maxWidth: 290,
+            background: 'rgba(2,6,18,.88)', border: `1px solid ${cc}44`, borderRadius: 10,
+            padding: '10px 14px', backdropFilter: 'blur(10px)',
+          }}>
+            <div style={{ color: cc, fontSize: 9, letterSpacing: 2, marginBottom: 5 }}>● POCKET DETECTION — fpocket</div>
+            {pocketStatus && (
+              <div style={{ color: 'rgba(220,235,255,.85)', fontSize: 10.5 }}>{pocketStatus}</div>
+            )}
+            {pocketResult && (
+              <>
+                <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.6 }}>
+                  {pocketResult.n_pockets_total} candidate cavit{pocketResult.n_pockets_total === 1 ? 'y' : 'ies'} found
+                  {' · '}{pocketResult.n_single_chain_druggable} single-chain, druggability ≥ 0.5
+                </div>
+                {pocketResult.best_single_chain_pocket ? (
+                  <div style={{ color: '#ffdd66', fontSize: 10, marginTop: 4 }}>
+                    ● best: pocket {pocketResult.best_single_chain_pocket.pocket_id}
+                    {' · '}druggability {pocketResult.best_single_chain_pocket.druggability_score?.toFixed(2)}
+                    {' · '}vol {pocketResult.best_single_chain_pocket.volume?.toFixed(0)} Å³
+                    {pocketResult.best_single_chain_pocket.includes_target_residue ? ' · at mutation site' : ''}
+                  </div>
+                ) : (
+                  <div style={{ color: 'rgba(190,215,255,.65)', fontSize: 10, marginTop: 4 }}>
+                    No single-chain druggable cavity — consistent with a genuinely
+                    non-druggable target by this criterion (not a tool failure).
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* PDB structure data — RCSB-sourced, shown for every structure (the
             curated mech card above only exists for the five demo mutations;
             this is the real data a manually-searched gene/PDB ID otherwise
@@ -373,6 +534,13 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
           <span style={{ color: cc }}>● MUTATION SITE — res {mutation.highlightRes.join(', ')}</span>
         )}
         <span style={{ color: '#aaffdd' }}>● Zn²⁺ ion (if present)</span>
+        {pocketResult && pocketResult.all_pockets.length > 0 && (
+          <>
+            <span style={{ color: '#ffd20a' }}>◉ best druggable pocket</span>
+            <span style={{ color: '#19bfd9' }}>◉ other single-chain pocket</span>
+            <span style={{ color: '#8c2626' }}>◉ multi-chain (crystal-contact artifact)</span>
+          </>
+        )}
         <span style={{ marginLeft: 'auto' }}>
           Source: RCSB PDB · Drag to rotate · Scroll to zoom · ⏸ to pause
         </span>

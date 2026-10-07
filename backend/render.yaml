@@ -4,7 +4,19 @@ services:
     runtime: python
     region: oregon
     plan: starter
-    buildCommand: pip install -r requirements.txt
+    # fpocket (geometric pocket detection, backend/routes/pocket.py) has no
+    # apt/pip package — compiled from source once per deploy into bin/fpocket.
+    # If gcc/make aren't available in Render's Python build image this step
+    # fails silently into the `|| true` and pocket.py's own 503 surfaces it
+    # at request time instead of failing the whole deploy over one feature.
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      mkdir -p bin &&
+      (test -x bin/fpocket ||
+        (rm -rf /tmp/fpocket_src &&
+         git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket_src &&
+         make -C /tmp/fpocket_src &&
+         cp /tmp/fpocket_src/bin/fpocket bin/fpocket) || true)
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
