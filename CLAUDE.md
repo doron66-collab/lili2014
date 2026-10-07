@@ -67,8 +67,15 @@ ever disagree again, the dissertation wins.)
 ## IBM
 - Algorithm: sqDRIFT (sample-based quantum diagonalization; quantum sampling + classical diagonalization, NOT noise characterization)
 - Hardware: IBM Heron r3
-- Contact: Michal Rosen-Zvi (ROSEN@il.ibm.com) — leaving IBM, referred to Ella (quantum partnerships)
-- Ella: leads quantum partnerships at IBM Research Israel
+- **No live contact as of 2026-10-07.** Michal Rosen-Zvi (ROSEN@il.ibm.com) left IBM and referred
+  Doron to Ella (quantum partnerships, IBM Research Israel); Doron emailed Ella directly, including
+  a follow-up reminder, and received no response. Treat both names as a dead end, not a warm contact
+  — any outreach needs a new entry point at IBM, not a retry to either of these two. Does not change
+  the strategic call that IBM is still the lowest-effort first ICP to pursue (16 real governed QPU
+  runs already exist as a concrete demo-able artifact, per the 2026-10-07 North Star in
+  open_items_updated.html) — only the tactic, which now needs a fresh channel (e.g. IBM Quantum
+  Network program, a different partnerships contact, or a conference/publication route) rather than
+  a warm email.
 
 ## Heron r3 access — strategy (in negotiation, 2026-07; leave until access lands)
 - STATUS: Doron negotiating with the university to fund r3 runs. Not yet available.
