@@ -95,26 +95,31 @@ async function fetchPdbMeta(pdbId: string): Promise<PdbMeta | null> {
   }
 }
 
-// Mutation-site display style — user-selectable (Doron: "כדורים, קווים,
-// קפסולות טיקטק" / balls, wires, tic-tac capsules), not hardcoded. Per-style
-// NGL representation params that otherwise look visually inconsistent if
-// left at one shared default (e.g. spacefill needs a much smaller
-// radiusScale than licorice to read as atoms rather than a solid blob).
-const MUT_STYLES = [
-  { key: 'licorice',  label: 'קווים · WIRE',        repr: 'licorice',  params: { radiusScale: 1.1 } },
-  { key: 'spacefill', label: 'כדורים · BALLS',       repr: 'spacefill', params: { radiusScale: 0.9 } },
-  { key: 'hyperball', label: 'קפסולות · CAPSULES',   repr: 'hyperball', params: { radiusScale: 0.8, shrink: 0.3 } },
+// Whole-protein display style — user-selectable (Doron: "כדורים, קווים,
+// קפסולות טיקטק" / balls, wires, tic-tac capsules — and explicitly for the
+// WHOLE protein, not just the mutation residue, after the first version
+// only let this control the mutation site). English-only labels (repeated
+// feedback: no Hebrew in UI controls). Per-style NGL representation params
+// that otherwise look visually inconsistent at one shared default (e.g.
+// spacefill needs a much smaller radiusScale than licorice to read as
+// atoms rather than a solid blob over an entire chain).
+const STRUCT_STYLES = [
+  { key: 'cartoon',   label: 'RIBBON',   repr: 'cartoon',   params: { colorScheme: 'residueindex', smoothSheet: true, opacity: 0.92 } },
+  { key: 'licorice',  label: 'WIRE',     repr: 'licorice',  params: { colorScheme: 'element', opacity: 0.9, radiusScale: 0.35 } },
+  { key: 'spacefill', label: 'BALLS',    repr: 'spacefill', params: { colorScheme: 'element', opacity: 0.9, radiusScale: 0.5 } },
+  { key: 'hyperball', label: 'CAPSULES', repr: 'hyperball', params: { colorScheme: 'element', opacity: 0.9, radiusScale: 0.4, shrink: 0.3 } },
 ] as const;
-type MutStyleKey = typeof MUT_STYLES[number]['key'];
+type StructStyleKey = typeof STRUCT_STYLES[number]['key'];
 
 export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosition }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
   const structComponentRef = useRef<any>(null);
+  const baseReprRef = useRef<any>(null);
   const mutSiteReprRef = useRef<any>(null);
   const pocketShapeRef = useRef<any>(null);
   const [structReady, setStructReady] = useState(0);
-  const [mutStyle, setMutStyle] = useState<MutStyleKey>('licorice');
+  const [structStyle, setStructStyle] = useState<StructStyleKey>('cartoon');
   const [spinning, setSpinning] = useState(true);
   const [pdbMeta, setPdbMeta] = useState<PdbMeta | null>(null);
   const [pocketStatus, setPocketStatus] = useState<string | null>(null);
@@ -301,20 +306,13 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       const ch = mutation.chain;
       structComponentRef.current = component;
 
-      // Cartoon — restrict to one chain only
-      component.addRepresentation('cartoon', {
-        sele: `:${ch}`,
-        colorScheme: 'residueindex',
-        smoothSheet: true,
-        opacity: 0.92,
-      });
+      // The whole-chain base representation (ribbon / wire / balls /
+      // capsules) is added by the dedicated effect below, keyed on
+      // structStyle — not hardcoded here — so switching style swaps one
+      // representation instead of reloading the whole PDB file.
+      setStructReady(v => v + 1);
 
       if (mutation.highlightRes && mutation.highlightRes.length > 0) {
-        // Mutation site representation itself is added by the dedicated
-        // effect below (depends on mutStyle, user-selectable: wire / balls /
-        // capsules) — not hardcoded here, so switching style doesn't need a
-        // full structure reload.
-        setStructReady(v => v + 1);
         // Pocket neighbourhood licorice — chain-qualified
         const pocketSele = mutation.highlightRes
           .flatMap(r => Array.from({ length: 11 }, (_, i) => r - 5 + i))
@@ -352,6 +350,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       window.removeEventListener('resize', onResize);
       stageRef.current = null;
       structComponentRef.current = null;
+      baseReprRef.current = null;
       mutSiteReprRef.current = null;
       // stage.dispose() removes NGL's own bookkeeping and the canvas element,
       // but (confirmed against NGL's own dispose() source) never calls the
@@ -372,9 +371,36 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     };
   }, [mutation.pdb]);
 
-  // Mutation-site representation — kept separate from the structure-loading
-  // effect above so switching style (wire / balls / capsules) just swaps
-  // this one representation instead of reloading the whole PDB file.
+  // Whole-chain base representation (ribbon / wire / balls / capsules) —
+  // kept separate from the structure-loading effect above so switching
+  // style just swaps this one representation instead of reloading the
+  // whole PDB file. Applies to the ENTIRE chain, per Doron's correction
+  // after the first version only let this control the mutation residue
+  // ("התכוונתי לשינוי בכל החלבון").
+  useEffect(() => {
+    const component = structComponentRef.current;
+    if (!component) return;
+    if (baseReprRef.current) {
+      component.removeRepresentation(baseReprRef.current);
+      baseReprRef.current = null;
+    }
+    const style = STRUCT_STYLES.find(s => s.key === structStyle) || STRUCT_STYLES[0];
+    baseReprRef.current = component.addRepresentation(style.repr, {
+      sele: `:${mutation.chain}`,
+      ...style.params,
+    });
+    return () => {
+      if (baseReprRef.current) {
+        component.removeRepresentation(baseReprRef.current);
+        baseReprRef.current = null;
+      }
+    };
+  }, [structReady, structStyle, mutation.chain]);
+
+  // Mutation-site highlight — always licorice in the mutation's own accent
+  // color, regardless of the whole-chain style picked above, so the
+  // mutation residue stays identifiable no matter which base style is
+  // active (e.g. still visible as a colored wire inside a BALLS view).
   useEffect(() => {
     const component = structComponentRef.current;
     if (!component || !mutation.highlightRes || mutation.highlightRes.length === 0) return;
@@ -382,13 +408,12 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       component.removeRepresentation(mutSiteReprRef.current);
       mutSiteReprRef.current = null;
     }
-    const style = MUT_STYLES.find(s => s.key === mutStyle) || MUT_STYLES[0];
     const sele = mutation.highlightRes.map(r => `${r}:${mutation.chain}`).join(' or ');
-    mutSiteReprRef.current = component.addRepresentation(style.repr, {
+    mutSiteReprRef.current = component.addRepresentation('licorice', {
       sele,
       color: hexToNGLColor(mutation.color),
       opacity: 1.0,
-      ...style.params,
+      radiusScale: 1.1,
     });
     return () => {
       if (mutSiteReprRef.current) {
@@ -396,7 +421,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
         mutSiteReprRef.current = null;
       }
     };
-  }, [structReady, mutStyle, mutation.highlightRes, mutation.chain, mutation.color]);
+  }, [structReady, mutation.highlightRes, mutation.chain, mutation.color]);
 
   function toggleSpin() {
     const stage = stageRef.current;
@@ -427,7 +452,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             onClick={onBack}
             style={{
               background: 'rgba(100,140,255,.12)', border: '1px solid rgba(100,140,255,.4)',
-              color: 'rgba(160,200,255,.9)', borderRadius: 8, padding: '5px 13px',
+              color: 'rgba(160,200,255,0.9)', borderRadius: 8, padding: '5px 13px',
               cursor: 'pointer', fontSize: 12, letterSpacing: 1,
             }}
           >
@@ -448,7 +473,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                 ◀
               </button>
               {navPosition && (
-                <span style={{ color: 'rgba(160,200,255,.6)', fontSize: 10, letterSpacing: 1 }}>{navPosition}</span>
+                <span style={{ color: 'rgba(160,200,255,0.8)', fontSize: 13, letterSpacing: 1 }}>{navPosition}</span>
               )}
               <button
                 onClick={onNext}
@@ -496,14 +521,14 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             <span style={{ color: cc, fontWeight: 'bold', fontSize: 16, letterSpacing: 3 }}>
               {mutation.id}
             </span>
-            <span style={{ color: 'rgba(180,210,255,.7)', fontSize: 11, letterSpacing: 2, marginLeft: 10 }}>
+            <span style={{ color: 'rgba(180,210,255,0.9)', fontSize: 14, letterSpacing: 2, marginLeft: 10 }}>
               {mutation.variant}
             </span>
           </div>
         </div>
 
         <div style={{ textAlign: 'right' }}>
-          <div style={{ color: 'rgba(160,200,255,.6)', fontSize: 9, letterSpacing: 2 }}>
+          <div style={{ color: 'rgba(160,200,255,0.8)', fontSize: 12, letterSpacing: 2 }}>
             PDB CRYSTALLOGRAPHIC DATA
           </div>
           <div style={{ color: cc, fontSize: 13, fontWeight: 'bold', letterSpacing: 2 }}>
@@ -512,13 +537,13 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
         </div>
 
         <div style={{ textAlign: 'right', maxWidth: 280 }}>
-          <div style={{ color: 'rgba(160,200,255,.6)', fontSize: 9, letterSpacing: 1.5, marginBottom: 2 }}>
+          <div style={{ color: 'rgba(160,200,255,0.8)', fontSize: 12, letterSpacing: 1.5, marginBottom: 2 }}>
             TARGETED THERAPY
           </div>
-          <div style={{ color: 'rgba(220,235,255,.9)', fontSize: 10 }}>
+          <div style={{ color: 'rgba(220,235,255,0.9)', fontSize: 13 }}>
             {mutation.drug}
           </div>
-          <div style={{ color: 'rgba(150,180,255,.6)', fontSize: 9 }}>
+          <div style={{ color: 'rgba(150,180,255,0.8)', fontSize: 12 }}>
             {mutation.phase}
           </div>
         </div>
@@ -545,10 +570,10 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             padding: '12px 16px', backdropFilter: 'blur(10px)',
           }}>
             {mutation.sub && (
-              <div style={{ color: 'rgba(190,215,255,.9)', fontSize: 10, marginBottom: 6 }}>{mutation.sub}</div>
+              <div style={{ color: 'rgba(190,215,255,0.9)', fontSize: 13, marginBottom: 6 }}>{mutation.sub}</div>
             )}
-            <div style={{ color: cc, fontSize: 9, letterSpacing: 2, marginBottom: 5 }}>● BINDING MECHANISM</div>
-            <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.6 }}>{mutation.mech}</div>
+            <div style={{ color: cc, fontSize: 12, letterSpacing: 2, marginBottom: 5 }}>● BINDING MECHANISM</div>
+            <div style={{ color: 'rgba(220,235,255,0.95)', fontSize: 13.5, lineHeight: 1.6 }}>{mutation.mech}</div>
           </div>
         )}
 
@@ -559,15 +584,15 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             padding: '14px 16px', backdropFilter: 'blur(10px)',
             display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
           }}>
-            <div style={{ color: cc, fontSize: 11, letterSpacing: 2, fontWeight: 700 }}>● POCKET DETECTION — fpocket</div>
+            <div style={{ color: cc, fontSize: 14, letterSpacing: 2, fontWeight: 700 }}>● POCKET DETECTION — fpocket</div>
 
             {pocketStatus && (
-              <div style={{ color: 'rgba(220,235,255,.9)', fontSize: 13, lineHeight: 1.6 }}>{pocketStatus}</div>
+              <div style={{ color: 'rgba(220,235,255,0.9)', fontSize: 13, lineHeight: 1.6 }}>{pocketStatus}</div>
             )}
 
             {pocketResult && (
               <>
-                <div style={{ color: 'rgba(210,225,255,.85)', fontSize: 12, lineHeight: 1.65 }}>
+                <div style={{ color: 'rgba(210,225,255,0.85)', fontSize: 12, lineHeight: 1.65 }}>
                   fpocket scans the <b>entire protein surface</b> for 3D cavities a drug-like
                   molecule could physically fit into — a question that's <b>independent</b> of
                   whether SOLANGE's DMRG classification found the electronic structure there
@@ -575,7 +600,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                   A with a perfectly good one.
                 </div>
 
-                <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 12.5, lineHeight: 1.6 }}>
+                <div style={{ color: 'rgba(220,235,255,0.95)', fontSize: 12.5, lineHeight: 1.6 }}>
                   <b>{pocketResult.n_pockets_total}</b> candidate cavit{pocketResult.n_pockets_total === 1 ? 'y' : 'ies'} found
                   on the whole structure · <b>{pocketResult.n_single_chain_druggable}</b> clear the
                   conventional druggability bar (and aren't crystal-packing artifacts).
@@ -588,7 +613,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                       mutation residue itself ({pocketResult.near_residue}) — outlined in white below.
                     </div>
                   ) : (
-                    <div style={{ color: 'rgba(190,215,255,.75)', fontSize: 12.5, lineHeight: 1.6, background: 'rgba(255,255,255,.04)', borderRadius: 6, padding: '6px 9px' }}>
+                    <div style={{ color: 'rgba(190,215,255,0.95)', fontSize: 12.5, lineHeight: 1.6, background: 'rgba(255,255,255,.04)', borderRadius: 6, padding: '6px 9px' }}>
                       ✗ None of the candidate cavities overlap the mutation residue itself
                       ({pocketResult.near_residue}) — whatever pockets exist elsewhere on the
                       structure don't tell you the mutation site itself is druggable.
@@ -597,7 +622,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                 )}
 
                 {!pocketResult.best_single_chain_pocket && (
-                  <div style={{ color: 'rgba(190,215,255,.65)', fontSize: 12, lineHeight: 1.5 }}>
+                  <div style={{ color: 'rgba(190,215,255,0.85)', fontSize: 12, lineHeight: 1.5 }}>
                     No single-chain candidate clears the druggability bar — consistent with a
                     genuinely non-druggable target by this criterion (not a tool failure).
                   </div>
@@ -605,7 +630,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
 
                 {shownPockets.length > 0 && (
                   <>
-                    <div style={{ color: 'rgba(160,200,255,.6)', fontSize: 10, letterSpacing: 1.5 }}>
+                    <div style={{ color: 'rgba(160,200,255,0.8)', fontSize: 13, letterSpacing: 1.5 }}>
                       SHOWING {shownPockets.length} OF {pocketResult.n_pockets_total} — CLICK TO FOCUS
                     </div>
                     <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5, paddingRight: 2 }}>
@@ -623,7 +648,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                                 textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                                 background: selected ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.04)',
                                 border: `1px solid ${selected ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.1)'}`,
-                                borderRadius: 7, padding: '6px 9px', color: 'rgba(220,235,255,.95)', fontSize: 11.5,
+                                borderRadius: 7, padding: '6px 9px', color: 'rgba(220,235,255,0.95)', fontSize: 14.5,
                                 display: 'flex', alignItems: 'center', gap: 8,
                               }}
                             >
@@ -634,8 +659,8 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                                 {' · '}{(p.volume ?? 0).toFixed(0)} Å³
                                 {p.chains.length > 1 ? ` · chains ${p.chains.join('/')}` : ''}
                               </span>
-                              {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 9, letterSpacing: 1 }}>BEST</span>}
-                              {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 9, letterSpacing: 1 }}>● SITE</span>}
+                              {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 12, letterSpacing: 1 }}>BEST</span>}
+                              {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 12, letterSpacing: 1 }}>● SITE</span>}
                             </button>
                           );
                         })}
@@ -645,7 +670,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                         onClick={() => setShowAllPockets(true)}
                         style={{
                           alignSelf: 'flex-start', background: 'transparent', border: '1px solid rgba(160,200,255,.3)',
-                          color: 'rgba(160,200,255,.8)', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, cursor: 'pointer',
+                          color: 'rgba(160,200,255,0.8)', borderRadius: 6, padding: '4px 10px', fontSize: 13.5, cursor: 'pointer',
                         }}
                       >
                         show all {pocketResult.n_pockets_total} candidates (incl. low-score / crystal artifacts)
@@ -656,7 +681,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                         onClick={() => setShowAllPockets(false)}
                         style={{
                           alignSelf: 'flex-start', background: 'transparent', border: '1px solid rgba(160,200,255,.3)',
-                          color: 'rgba(160,200,255,.8)', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, cursor: 'pointer',
+                          color: 'rgba(160,200,255,0.8)', borderRadius: 6, padding: '4px 10px', fontSize: 13.5, cursor: 'pointer',
                         }}
                       >
                         show top candidates only
@@ -678,21 +703,21 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
           background: 'rgba(2,6,18,.88)', border: `1px solid ${cc}44`, borderRadius: 10,
           padding: '10px 14px', backdropFilter: 'blur(10px)',
         }}>
-          <div style={{ color: cc, fontSize: 9, letterSpacing: 2, marginBottom: 5 }}>● PDB STRUCTURE DATA — RCSB</div>
+          <div style={{ color: cc, fontSize: 12, letterSpacing: 2, marginBottom: 5 }}>● PDB STRUCTURE DATA — RCSB</div>
           {isAlphaFold ? (
-            <div style={{ color: 'rgba(190,215,255,.75)', fontSize: 10 }}>
+            <div style={{ color: 'rgba(190,215,255,0.95)', fontSize: 13 }}>
               AlphaFold predicted model — no RCSB experimental record.
             </div>
           ) : pdbMeta ? (
             <>
-              <div style={{ color: 'rgba(220,235,255,.95)', fontSize: 10.5, lineHeight: 1.5 }}>{pdbMeta.title}</div>
-              <div style={{ color: 'rgba(150,180,255,.7)', fontSize: 9, marginTop: 4 }}>
+              <div style={{ color: 'rgba(220,235,255,0.95)', fontSize: 13.5, lineHeight: 1.5 }}>{pdbMeta.title}</div>
+              <div style={{ color: 'rgba(150,180,255,0.9)', fontSize: 12, marginTop: 4 }}>
                 {pdbMeta.method || 'Method unknown'}
                 {pdbMeta.resolution != null ? ` · ${pdbMeta.resolution.toFixed(2)} Å` : ''}
               </div>
             </>
           ) : (
-            <div style={{ color: 'rgba(190,215,255,.6)', fontSize: 10 }}>Loading structure data…</div>
+            <div style={{ color: 'rgba(190,215,255,0.8)', fontSize: 13 }}>Loading structure data…</div>
           )}
         </div>
       </div>
@@ -702,31 +727,31 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
         padding: '7px 18px', background: 'rgba(0,8,30,0.90)',
         borderTop: `1px solid ${cc}33`, flexShrink: 0,
         display: 'flex', gap: 24, alignItems: 'center',
-        color: 'rgba(140,180,255,.55)', fontSize: 9, letterSpacing: 1.5,
+        color: 'rgba(140,180,255,0.75)', fontSize: 12, letterSpacing: 1.5,
       }}>
-        <span>■ CARTOON — secondary structure</span>
-        {mutation.highlightRes && mutation.highlightRes.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: cc }}>● MUTATION SITE — res {mutation.highlightRes.join(', ')}:</span>
-            <div style={{ display: 'flex', gap: 3 }}>
-              {MUT_STYLES.map(s => (
-                <button
-                  key={s.key}
-                  onClick={() => setMutStyle(s.key)}
-                  title={s.label}
-                  style={{
-                    background: mutStyle === s.key ? `${cc}33` : 'rgba(255,255,255,.05)',
-                    border: `1px solid ${mutStyle === s.key ? cc : 'rgba(255,255,255,.15)'}`,
-                    color: mutStyle === s.key ? cc : 'rgba(200,220,255,.6)',
-                    borderRadius: 5, padding: '2px 8px', fontSize: 9, letterSpacing: 0.5,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>STRUCTURE STYLE:</span>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {STRUCT_STYLES.map(s => (
+              <button
+                key={s.key}
+                onClick={() => setStructStyle(s.key)}
+                title={`Show the whole chain as ${s.label.toLowerCase()}`}
+                style={{
+                  background: structStyle === s.key ? `${cc}33` : 'rgba(255,255,255,.08)',
+                  border: `1px solid ${structStyle === s.key ? cc : 'rgba(255,255,255,.2)'}`,
+                  color: structStyle === s.key ? cc : 'rgba(210,225,255,.85)',
+                  borderRadius: 5, padding: '3px 10px', fontSize: 12, letterSpacing: 0.5,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
+        </div>
+        {mutation.highlightRes && mutation.highlightRes.length > 0 && (
+          <span style={{ color: cc }}>● MUTATION SITE (always wire) — res {mutation.highlightRes.join(', ')}</span>
         )}
         <span style={{ color: '#aaffdd' }}>● Zn²⁺ ion (if present)</span>
         {pocketResult && pocketResult.all_pockets.length > 0 && (
