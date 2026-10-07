@@ -215,11 +215,33 @@ def protonate(ph=7.4, out=None):
 
 
 def build_mf(xyz, charge, spin, basis="ccpvdz"):
+    """Mean-field reference, HIGH-SPIN ONLY (spin=10, S=5).
+
+    Claude Science's 2026-10-07 consult flagged the prior version of this
+    function as the pipeline's actual blocking defect: it built an
+    independent RHF reference for the spin=0 (antiferromagnetic) state.
+    [2Fe-2S]2+ at S=0 is Fe(III)/Fe(III) antiferromagnetically coupled --
+    MULTI-REFERENCE even though formally closed-shell -- so a single-
+    determinant RHF reference for that state is not a valid starting point
+    (not merely low-quality: the wrong kind of wavefunction for what's being
+    asked of it). Standard practice for AF-coupled metal clusters (see e.g.
+    Noodleman broken-symmetry DFT) is instead to build ONE well-behaved
+    single-determinant reference on the HIGH-SPIN state (S=5 here, ferro-
+    magnetic, spin=10, genuinely single-reference), run AVAS on THAT
+    reference, and reuse the resulting orbitals for CASCI/DMRG on BOTH spin
+    states -- never build S=0's own independent mean-field at all. This
+    function therefore only ever runs at spin=10 now; see build_s0_casci()
+    below for how the S=0 state is actually evaluated.
+    """
     from pyscf import gto, scf, df
+    if spin != 10:
+        raise ValueError("build_mf() only builds the high-spin (S=5, spin=10) reference now -- "
+                          "see this function's docstring. The spin=0 state is evaluated by "
+                          "build_s0_casci() on these same orbitals, not by its own mean-field.")
     lines = [l.strip() for l in open(xyz).read().splitlines()[2:] if l.strip()]
     mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=3)
     print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
-    mf = (scf.RHF(mol) if spin == 0 else scf.ROHF(mol)).density_fit()
+    mf = scf.ROHF(mol).density_fit()
     # The default JK-fit auxiliary basis (cc-pvdz-jkfit) has no entry for Fe --
     # transition metals are outside standard Dunning aux-basis coverage. Build
     # an even-tempered (ETB) auxiliary basis instead, which covers every
@@ -228,35 +250,96 @@ def build_mf(xyz, charge, spin, basis="ccpvdz"):
     mf.kernel()
     if not mf.converged:
         print("*** SCF did NOT converge -- treat any active space below as provisional")
+    ss, mult = mf.spin_square()
+    print(f"[spin] high-spin reference: <S^2>={ss:.4f} (expect 30.0 for S=5), "
+          f"2S+1={mult:.4f} (expect 11.0)")
+    if abs(ss - 30.0) > 0.1:
+        print("*** <S^2> does not match the expected S=5 value -- reference may have "
+              "converged to a different spin state than intended; check before trusting "
+              "any orbitals derived from it")
     return mf
 
 
 def avas_at_threshold(mf, ao_labels, threshold):
+    """AVAS on the high-spin reference. Returns (spec_dict, mo_coeff) --
+    the orbitals themselves are what gets reused for the S=0 CASCI below,
+    not just the (ncas, nelecas) counts."""
     from pyscf.mcscf import avas
     aos = [s.strip() for s in ao_labels.split(",")]
     ncas, nelecas, mo = avas.avas(mf, aos, threshold=threshold)
     print(f"[avas] threshold={threshold} AOs={aos} -> CAS({nelecas},{ncas}) "
           f"= {2 * ncas} qubits under Jordan-Wigner")
-    return dict(threshold=threshold, ncas=int(ncas), nelecas=int(nelecas), qubits=int(2 * ncas))
+    spec = dict(threshold=threshold, ncas=int(ncas), nelecas=int(nelecas), qubits=int(2 * ncas))
+    return spec, mo
+
+
+def build_s0_casci(mf_highspin, mo_coeff, charge, ncas, nelecas):
+    """S=0 (antiferromagnetic) state, CASCI on the HIGH-SPIN reference's own
+    orbitals -- not a fresh RHF mean-field. This is the fix for the defect
+    above: both spin states are read off the identical orbital set, so any
+    difference between them is attributable to spin coupling alone, not to
+    starting from two different (and for S=0, invalid) references.
+
+    nelecas here must be expressed as (n_alpha, n_beta) for the S=0 CASCI
+    call, not the single nelecas count AVAS reports for the high-spin case --
+    PySCF's CASCI takes a tuple when spin != (nelec_total convention), and at
+    S=0 alpha=beta=nelecas//2 exactly (even electron count expected for this
+    cluster; fails loudly via the assertion below if that's not the case,
+    rather than silently building the wrong state).
+    """
+    from pyscf import mcscf
+    mol_s0 = mf_highspin.mol.copy()
+    mol_s0.spin = 0
+    mol_s0.charge = charge
+    mol_s0.build()
+    assert nelecas % 2 == 0, (
+        f"nelecas={nelecas} is odd -- S=0 (closed-shell-electron-count) CASCI is not "
+        f"well-defined on this active space; re-check the AVAS selection before proceeding")
+    na = nb = nelecas // 2
+    mc = mcscf.CASCI(mf_highspin, ncas, (na, nb))
+    mc.mol = mol_s0
+    mc.mo_coeff = mo_coeff
+    mc.kernel()
+    ss, mult = mc.spin_square() if hasattr(mc, "spin_square") else (float("nan"), float("nan"))
+    print(f"[spin] S=0 CASCI: <S^2>={ss:.4f} (expect 0.0), 2S+1={mult:.4f} (expect 1.0)")
+    if abs(ss) > 0.1:
+        print("*** <S^2> does not match the expected S=0 value for this CASCI solution -- "
+              "the solver may have found a different spin state within the same orbital "
+              "space; check the CI vector / active-space symmetry before trusting the energy")
+    return mc
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--verify-only", action="store_true")
-    ap.add_argument("--spin", type=int, choices=[0, 10], help="pyscf spin_2S: 0 or 10 (see spec)")
-    ap.add_argument("--sweep", default="0.1,0.2,0.4,0.6,0.8,0.95")
-    ap.add_argument("--basis", default="ccpvdz",
-                     help="Fe-S clusters need polarization on S/Fe; 6-31g is too thin for "
-                          "the cluster core (spec did not pin a basis -- flag this choice)")
+    ap.add_argument("--threshold", type=float, default=0.2,
+                     help="AVAS threshold on the high-spin reference. Claude Science's point 2: "
+                          "the Fe 3d + S 3p target AO pool (10+18=28 AOs) equals the cluster's own "
+                          "28 orbitals exactly -- pool==cut, so there is nothing for a threshold "
+                          "sweep to select between. Kept as a single value, not swept, and recorded "
+                          "as such; do not read a sweep's worth of meaning into this one number.")
+    ap.add_argument("--basis", default="def2-svp",
+                     help="Changed from ccpvdz (this script's own prior default) per Claude "
+                          "Science's 2026-10-07 point 4: Fe 3d needs better polarization than "
+                          "Dunning-family bases provide at this size; def2-svp is the stated "
+                          "minimum, def2-tzvp the preferred choice if affordable. This does NOT "
+                          "need to match any other target's basis (e.g. TP53 C275F's 6-31g) -- R "
+                          "is computed within SDHB against its own size-matched control, so the "
+                          "control just needs to share THIS basis, not any other system's.")
+    ap.add_argument("--fe-semicore", choices=["core", "active"], default="core",
+                     help="Explicit decision point per Claude Science's point 3: whether Fe 3s/3p "
+                          "semi-core orbitals are frozen (ncore) or included in the active space. "
+                          "Default 'core' (standard practice; 3s/3p correlation effects are "
+                          "normally small relative to 3d) -- recorded explicitly here rather than "
+                          "left to whatever AVAS/PySCF defaults happen to do, per the point's own "
+                          "instruction that this needs one line in the record, not silence.")
     ap.add_argument("--ph", type=float, default=7.4)
+    ap.add_argument("--out-dir", default=".")
     a = ap.parse_args()
 
     verify_wt()
     if a.verify_only:
         return
-    if a.spin is None:
-        sys.exit("--spin 0 or --spin 10 required (see active_space_spec_sdhb.json "
-                 "candidate_spins) unless --verify-only")
 
     ph_pdb = protonate(a.ph)
     atoms = read_pdb(ph_pdb) + read_fes_from_cif(PDB_ID, CHAIN, "301")
@@ -269,16 +352,43 @@ def main():
               f"a spurious HG to a metal-bound Cys thiolate (known failure mode; see "
               f"run_gate2_avas.py's build_cluster comments) before trusting this number.")
     xyz = "sdhb_c101_cluster.xyz"
-    write_xyz(groups, caps, xyz, comment=f"SDHB [2Fe-2S] S1 site, {PDB_ID}, spin={a.spin}")
+    # Single cluster geometry for BOTH spin states -- same core, same charge, same basis,
+    # same active space, per Claude Science's own framing of this as the built-in control
+    # (R_spin = dE(S=0)/dE(S=5) at matched M -- the only difference between the two legs
+    # is spin coupling, nothing else).
+    write_xyz(groups, caps, xyz, comment=f"SDHB [2Fe-2S] S1 site, {PDB_ID}, Fe3d+S3p AVAS")
     print(f"[cluster] wrote {xyz}")
+    print(f"[core] Fe 3s/3p treated as {a.fe_semicore} (--fe-semicore)")
 
-    mf = build_mf(xyz, charge, a.spin, basis=a.basis)
-    results = [avas_at_threshold(mf, "Fe 3d, S 3p", th) for th in [float(x) for x in a.sweep.split(",")]]
-    out = f"sdhb_c101_spin{a.spin}_avas.json"
-    json.dump(dict(pdb=PDB_ID, charge=charge, spin=a.spin, basis=a.basis,
-                   e_scf=float(mf.e_tot), scf_converged=bool(mf.converged), runs=results),
-              open(out, "w"), indent=1)
+    # Step 1: high-spin (S=5) reference + AVAS -- the only mean-field build in this script.
+    mf_hs = build_mf(xyz, charge, spin=10, basis=a.basis)
+    spec, mo = avas_at_threshold(mf_hs, "Fe 3d, S 3p", a.threshold)
+    ncas, nelecas = spec["ncas"], spec["nelecas"]
+
+    mo_path = f"{a.out_dir}/sdhb_s1_mo_coeff_highspin.npy"
+    import numpy as np
+    np.save(mo_path, mo)
+    print(f"[avas] saved shared orbitals -> {mo_path} (reused for S=0 below, "
+          f"and for any downstream solange_dmrg.py --load-orbitals run)")
+
+    # Step 2: S=0 (antiferromagnetic) CASCI on those SAME orbitals -- no independent
+    # mean-field, per the fix documented in build_mf()'s and build_s0_casci()'s docstrings.
+    mc_s0 = build_s0_casci(mf_hs, mo, charge, ncas, nelecas)
+
+    out = f"{a.out_dir}/sdhb_s1_both_spins.json"
+    json.dump(dict(
+        pdb=PDB_ID, charge=charge, basis=a.basis, fe_semicore=a.fe_semicore,
+        threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
+        high_spin=dict(spin=10, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),
+                        spin_square_expected=30.0),
+        casci_s0=dict(spin=0, e_tot=float(mc_s0.e_tot), spin_square_expected=0.0),
+        mo_coeff_path=mo_path,
+    ), open(out, "w"), indent=1)
     print(f"\nwrote {out}")
+    print(f"\n[next] feed ncas={ncas}, nelecas={nelecas}, --load-orbitals {mo_path} into "
+          f"solange_dmrg.py's --geometry path for the actual bond-dimension ladder (both spin "
+          f"states), plus the matched size/filling control (adamantane C10H16 or n-C12H26 at "
+          f"CAS({nelecas},{ncas}), same basis) before reading any R value.")
 
 
 if __name__ == "__main__":
