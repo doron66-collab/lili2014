@@ -163,6 +163,13 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     : Array.from(new Map([...atMutationSite, ...topCandidates].map(p => [p.pocket_id, p])).values());
   const bestId = pocketResult?.best_single_chain_pocket?.pocket_id;
 
+  function goToMutation() {
+    const component = structComponentRef.current;
+    if (!component || !mutation.highlightRes || mutation.highlightRes.length === 0) return;
+    const sele = mutation.highlightRes.map(r => `${r}:${mutation.chain}`).join(' or ');
+    component.autoView(sele, 700);
+  }
+
   function focusPocket(p: PocketResult) {
     setSelectedPocketId(p.pocket_id);
     const stage = stageRef.current;
@@ -602,6 +609,19 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
           >
             🔎 FIND POCKETS
           </button>
+          {mutation.highlightRes && mutation.highlightRes.length > 0 && (
+            <button
+              onClick={goToMutation}
+              title={`Zoom to the mutation residue (res ${mutation.highlightRes.join(', ')}, chain ${mutation.chain})`}
+              style={{
+                background: 'rgba(255,210,30,.12)', border: '1px solid rgba(255,210,30,.45)',
+                color: 'rgba(255,220,100,.95)', borderRadius: 8, padding: '5px 13px',
+                cursor: 'pointer', fontSize: 12, letterSpacing: 1,
+              }}
+            >
+              📍 GO TO MUTATION
+            </button>
+          )}
           <div>
             <span style={{ color: cc, fontWeight: 'bold', fontSize: 16, letterSpacing: 3 }}>
               {mutation.id}

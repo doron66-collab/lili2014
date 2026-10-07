@@ -206,6 +206,8 @@ export default function NSCLCViewer() {
   // state above: a manual result temporarily replaces the list view, and
   // "← BACK" from it returns to wherever the list was, not out of the viewer.
   const [query, setQuery] = useState('');
+  const [manualChain, setManualChain] = useState('A');
+  const [manualRes, setManualRes] = useState('');
   const [manual, setManual] = useState<PdbMutInfo | null>(null);
   const [manualStatus, setManualStatus] = useState<string | null>(null);
 
@@ -260,11 +262,21 @@ export default function NSCLCViewer() {
     const q = query.trim();
     if (!q) return;
     setManual(null);
+    // Residue number is optional and free-text here deliberately — the system
+    // cannot know a mutation's residue number for an arbitrary PDB ID or gene
+    // the way it does for the five curated entries (PDB_MAP above); the user
+    // supplies it when they have it. Chain defaults to 'A' but is editable —
+    // per the STK11/2WTK finding this session (chain A there was MO25alpha,
+    // not the target protein), 'A' is a common but NOT safe default to assume
+    // silently.
+    const resNums = manualRes.trim()
+      ? manualRes.split(',').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n))
+      : [];
     if (looksLikePdbId(q)) {
       setManualStatus(null);
       setManual({
-        id: q.toUpperCase(), variant: '', pdb: q.toUpperCase(), chain: 'A',
-        highlightRes: [], color: 0x06b6d4,
+        id: q.toUpperCase(), variant: '', pdb: q.toUpperCase(), chain: manualChain.trim() || 'A',
+        highlightRes: resNums, color: 0x06b6d4,
         drug: 'User-selected structure', phase: '—',
       });
       return;
@@ -275,7 +287,11 @@ export default function NSCLCViewer() {
     if (!s) { setManualStatus(`✗ No structure found for ${gene}`); return; }
     setManualStatus(null);
     setManual({
-      id: gene, variant: '', pdb: s.pdb, chain: s.chain, highlightRes: [],
+      // The auto-resolved chain from resolveStructure() is trusted when the
+      // user left the chain field at its default 'A' (most callers); an
+      // explicitly-edited chain overrides it, same reasoning as above.
+      id: gene, variant: '', pdb: s.pdb, chain: manualChain.trim() && manualChain.trim() !== 'A' ? manualChain.trim() : s.chain,
+      highlightRes: resNums,
       color: 0x06b6d4, drug: 'User-selected structure', phase: '—', url: s.url,
     });
   }
@@ -283,6 +299,8 @@ export default function NSCLCViewer() {
   function clearManual() {
     setManual(null);
     setManualStatus(null);
+    setManualChain('A');
+    setManualRes('');
     setQuery('');
   }
 
@@ -307,7 +325,29 @@ export default function NSCLCViewer() {
         style={{
           background: 'rgba(6,182,212,.08)', border: '1px solid rgba(6,182,212,.3)',
           color: '#f1f5f9', borderRadius: 6, padding: '4px 8px', fontSize: 11,
-          width: 230, outline: 'none',
+          width: 200, outline: 'none',
+        }}
+      />
+      <input
+        value={manualChain}
+        onChange={e => setManualChain(e.target.value.toUpperCase())}
+        placeholder="chain"
+        title="PDB chain letter — check the viewer's own 'chains in this file' list after loading if unsure; don't assume 'A' (see STK11/2WTK)"
+        style={{
+          background: 'rgba(6,182,212,.08)', border: '1px solid rgba(6,182,212,.3)',
+          color: '#f1f5f9', borderRadius: 6, padding: '4px 6px', fontSize: 11,
+          width: 42, outline: 'none', textAlign: 'center',
+        }}
+      />
+      <input
+        value={manualRes}
+        onChange={e => setManualRes(e.target.value)}
+        placeholder="res # (optional)"
+        title="Mutation residue number(s), comma-separated — enables the mutation-site highlight, hover tag, and GO TO MUTATION button"
+        style={{
+          background: 'rgba(6,182,212,.08)', border: '1px solid rgba(6,182,212,.3)',
+          color: '#f1f5f9', borderRadius: 6, padding: '4px 8px', fontSize: 11,
+          width: 90, outline: 'none',
         }}
       />
       <button
