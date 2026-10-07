@@ -294,13 +294,18 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
       });
 
       if (mutation.highlightRes && mutation.highlightRes.length > 0) {
-        // Mutation site spacefill — chain-qualified
+        // Mutation site — licorice (wire/sticks), not a solid spacefill ball:
+        // a filled sphere hides the residue's own atomic/bond structure, and
+        // Doron asked for wire-only since the system doesn't expose a
+        // representation picker yet. Thicker + the mutation's own accent
+        // color keeps it visually distinct from the plain-element-colored
+        // neighbourhood licorice just below.
         const sele = mutation.highlightRes.map(r => `${r}:${ch}`).join(' or ');
-        component.addRepresentation('spacefill', {
+        component.addRepresentation('licorice', {
           sele,
           color: mutColor,
           opacity: 1.0,
-          radiusScale: 1.4,
+          radiusScale: 1.1,
         });
         // Pocket neighbourhood licorice — chain-qualified
         const pocketSele = mutation.highlightRes
