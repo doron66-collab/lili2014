@@ -51,11 +51,33 @@ FES_CORE_CHARGE = 2   # [Fe2S2]2+ oxidised core, per spec's R4 assignment
 EXPECTED_NET_CHARGE = -2   # FES core +2, four Cys thiolates -4, ARG94 +1, GLU95 -1
 
 
+def fetch(pdb_id, cache="struct"):
+    """Same pattern as run_gate2_avas.py's fetch() -- added here because this
+    script previously assumed struct/9KC4.cif and sifts/9KC4.json were already
+    present from an earlier manual fetch, which is exactly what failed live
+    2026-10-07 (FileNotFoundError on a fresh checkout)."""
+    import urllib.request
+    os.makedirs(cache, exist_ok=True)
+    cif = os.path.join(cache, f"{pdb_id}.cif")
+    if not os.path.exists(cif):
+        print(f"[fetch] downloading {cif} from RCSB...")
+        urllib.request.urlretrieve(
+            f"https://files.rcsb.org/download/{pdb_id}.cif", cif)
+    sif = os.path.join("sifts", f"{pdb_id}.json")
+    os.makedirs("sifts", exist_ok=True)
+    if not os.path.exists(sif):
+        print(f"[fetch] downloading {sif} from EBI SIFTS...")
+        with open(sif, "wb") as fh:
+            fh.write(urllib.request.urlopen(
+                f"https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/"
+                f"{pdb_id.lower()}", timeout=60).read())
+    return cif, json.load(open(sif))
+
+
 def verify_wt():
     sys.path.insert(0, os.getcwd())
     import mmcif_verify as mv
-    cif = f"struct/{PDB_ID}.cif"
-    sifts_json = json.load(open(f"sifts/{PDB_ID}.json"))
+    cif, sifts_json = fetch(PDB_ID)
     for mut1, label in (("Y", "C101Y"), ("S", "C101S")):
         r = mv.verify_sifts(cif, sifts_json, PDB_ID, ACCESSION, "C", 101, mut1)
         print(f"[verify] {PDB_ID} vs {label}: {r['verdict']}")
