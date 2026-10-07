@@ -162,6 +162,15 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     ? withCoords
     : Array.from(new Map([...atMutationSite, ...topCandidates].map(p => [p.pocket_id, p])).values());
   const bestId = pocketResult?.best_single_chain_pocket?.pocket_id;
+  // Separate from bestId on purpose: "best overall score" and "best AT the
+  // mutation site" are independent questions that do not have to agree —
+  // fpocket's score has no notion of which residue the user cares about.
+  // Doron, live: "איך יכול להיות שכיס שיושב על המוטציה לא נבחר להיות הבסט
+  // וכיס שיושב רחוק נבחר?" — not a bug, but confusing enough to deserve
+  // its own explicit badge rather than only a prose explanation.
+  const bestAtSiteId = atMutationSite.length
+    ? atMutationSite.slice().sort((a, b) => (b.score ?? -999) - (a.score ?? -999))[0].pocket_id
+    : null;
 
   function goToMutation() {
     const component = structComponentRef.current;
@@ -750,7 +759,10 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                   atMutationSite.length > 0 ? (
                     <div style={{ color: '#fff', fontSize: 12.5, lineHeight: 1.6, background: 'rgba(255,255,255,.06)', borderRadius: 6, padding: '6px 9px' }}>
                       ✓ {atMutationSite.length} of these cavit{atMutationSite.length === 1 ? 'y overlaps' : 'ies overlap'} the
-                      mutation residue itself ({pocketResult.near_residue}) — outlined in white below.
+                      mutation residue itself ({pocketResult.near_residue}) — outlined in white below, and the
+                      highest-scoring one among them is tagged <b style={{ color: '#39ff14' }}>BEST AT SITE</b>.
+                      That's a <i>different</i> ranking from the global <b style={{ color: '#ffd20a' }}>BEST</b> tag —
+                      a pocket elsewhere in the structure can out-score everything at the mutation site itself.
                     </div>
                   ) : (
                     <div style={{ color: 'rgba(190,215,255,0.95)', fontSize: 12.5, lineHeight: 1.6, background: 'rgba(255,255,255,.04)', borderRadius: 6, padding: '6px 9px' }}>
@@ -810,6 +822,11 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                                 {' · '}chain{p.chains.length > 1 ? 's' : ''} {p.chains.join('/')}
                               </span>
                               {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 12, letterSpacing: 1 }}>BEST</span>}
+                              {p.pocket_id === bestAtSiteId && p.pocket_id !== bestId && (
+                                <span style={{ color: '#39ff14', fontSize: 12, letterSpacing: 1 }} title="Highest-score pocket among those overlapping the mutation residue — NOT the same ranking as BEST, which considers the whole structure">
+                                  BEST AT SITE
+                                </span>
+                              )}
                               {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 12, letterSpacing: 1 }}>● SITE</span>}
                               {!onPrimaryChain && (
                                 <span style={{ color: '#9aa8c4', fontSize: 11, letterSpacing: 0.5 }} title="This pocket is on a complex partner chain, dimmed grey in the 3D view — not the mutation's own chain">
