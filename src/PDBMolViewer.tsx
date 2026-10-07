@@ -683,14 +683,13 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                         .map(p => {
                           const dotColor = !p.single_chain ? '#8c2626' : p.pocket_id === bestId ? '#ffd20a' : '#db40c7';
                           const selected = p.pocket_id === selectedPocketId;
-                          // fpocket runs on the FULL downloaded PDB (every chain in the
-                          // deposited entry), but the 3D viewer only renders ONE chain
-                          // (mutation.chain) — a multi-chain complex's other chains are
-                          // never drawn. A pocket on a chain we aren't showing will look
-                          // like it's floating in empty space with nothing around it
-                          // (reported live 2026-10-07, STK11/2WTK — a 3-chain complex).
-                          // Flagging this explicitly beats leaving it unexplained.
-                          const onShownChain = p.chains.includes(mutation.chain);
+                          // All chains in the deposited entry are drawn now (the primary
+                          // one in full color, the rest dimmed grey) — so every pocket IS
+                          // visible somewhere in the scene. This just flags which ones sit
+                          // on a DIMMED (non-primary) chain, since "pocket 2 looks great
+                          // but score low in my search" can still confuse without knowing
+                          // it's on a secondary chain, not the mutation's own gene product.
+                          const onPrimaryChain = p.chains.includes(mutation.chain);
                           return (
                             <button
                               key={p.pocket_id}
@@ -712,9 +711,9 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                               </span>
                               {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 12, letterSpacing: 1 }}>BEST</span>}
                               {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 12, letterSpacing: 1 }}>● SITE</span>}
-                              {!onShownChain && (
-                                <span style={{ color: '#ff9a4d', fontSize: 11, letterSpacing: 0.5 }} title="This pocket sits on a chain the 3D view isn't currently drawing">
-                                  ⚠ not shown
+                              {!onPrimaryChain && (
+                                <span style={{ color: '#9aa8c4', fontSize: 11, letterSpacing: 0.5 }} title="This pocket is on a complex partner chain, dimmed grey in the 3D view — not the mutation's own chain">
+                                  ◌ dimmed chain
                                 </span>
                               )}
                             </button>
