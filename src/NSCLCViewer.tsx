@@ -20,9 +20,14 @@ const MUT_INFO = [
     mech: 'Binds Y220C cryptic pocket → restores wild-type p53 conformation → reactivates tumor suppression',
   },
   {
-    id: 'KEAP1', variant: 'LOF', drug: 'VVD-065', sub: 'Covalent NRF2 inhibitor',
+    // KEAP1 G333C — the gene's dissertation-verified point mutation (PDB
+    // 1U6D/2FLU, Kelch-domain residues 322-609 resolved, G333 sits well
+    // inside that range; DMRG-measured Class B at 72e, S_max=0.22). Same
+    // correction as STK11 D194N: was the generic gene-level "LOF" label
+    // with no residue anchor, even though a real one already exists.
+    id: 'KEAP1', variant: 'G333C', drug: 'VVD-065', sub: 'Covalent NRF2 inhibitor',
     phase: 'Phase I — NCT05954312', color: 0x33ffaa,
-    mech: 'Covalent NRF2 inhibition in KEAP1-deficient cells → restores chemosensitivity',
+    mech: 'G333 sits in the Kelch β-propeller domain that normally binds NRF2 for degradation; G333C disrupts that binding, letting NRF2 accumulate unchecked (the same functional consequence as generic KEAP1 loss-of-function). No drug targets KEAP1’s own Kelch pocket directly — VVD-065 instead covalently inhibits the downstream, now-overactive NRF2.',
   },
   {
     id: 'CDKN2A', variant: 'p16 loss', drug: 'Palbociclib + Olaparib', sub: 'CDK4/6 + PARP synergy',
@@ -54,7 +59,13 @@ const MUT_INFO = [
 // PDB crystallographic data per mutation (parallel to MUT_INFO)
 const PDB_MAP = [
   { pdb: '2VUK', chain: 'A', highlightRes: [220] },        // TP53 Y220C
-  { pdb: '2FLU', chain: 'X', highlightRes: [] as number[] }, // KEAP1 LOF
+  // chain 'X' was already a deliberate, non-default choice here (unlike
+  // STK11's lazy/wrong 'A') — kept as-is since this session found no
+  // evidence against it, but NOT independently re-verified against the
+  // live file the way STK11's chain was (no network access from this
+  // sandbox to RCSB) -- check the viewer's own "chains in this file" list
+  // after loading if the G333 highlight doesn't land where expected.
+  { pdb: '2FLU', chain: 'X', highlightRes: [333] }, // KEAP1 G333C
   { pdb: '2A5E', chain: 'A', highlightRes: [] as number[] }, // CDKN2A p16 INK4a
   // Chain A in 2WTK is CAB39/MO25alpha, NOT STK11 -- confirmed live 2026-10-07
   // via the 3D viewer's own "chains in this file" panel (entity.description
