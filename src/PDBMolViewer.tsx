@@ -226,8 +226,17 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     }
     if (!stage || !shownPockets.length) return;
 
-    const shape = new (NGL as any).Shape('pockets');
-    const haloShape = new (NGL as any).Shape('pocket-halos');
+    // disableImpostor: raycasted screen-space impostor spheres (NGL's
+    // default, faster to render) go dark/black once the camera crosses
+    // into or very near the sphere's own volume — exactly what happens
+    // when "focus" zooms the camera in on a small pocket, or the user
+    // scrolls in close manually (reported live 2026-10-07: "הצבע הזהוב
+    // שנעלם בפוזיציה מסויימת כאשר מגיעים אליה"). Real mesh geometry
+    // doesn't have that failure mode, at the (here, negligible — a
+    // handful of low-poly spheres) cost of being somewhat more expensive
+    // to render than impostors.
+    const shape = new (NGL as any).Shape('pockets', { disableImpostor: true });
+    const haloShape = new (NGL as any).Shape('pocket-halos', { disableImpostor: true });
     for (const p of shownPockets) {
       if (p.x == null || p.y == null || p.z == null) continue;
       const color: [number, number, number] = !p.single_chain
