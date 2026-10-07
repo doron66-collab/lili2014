@@ -489,31 +489,42 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
     };
   }, [structReady, structStyle, mutation.chain]);
 
-  // Mutation-site highlight — always licorice in the mutation's own accent
-  // color, regardless of the whole-chain style picked above, so the
-  // mutation residue stays identifiable no matter which base style is
-  // active (e.g. still visible as a colored wire inside a BALLS view).
+  // Mutation-site highlight — a fixed, bold color (NOT the per-target accent
+  // color, which can blend into the cartoon's own rainbow or a nearby pocket
+  // sphere) so it never gets lost. Doron reported it "disappearing" when
+  // zoomed in via GO TO MUTATION — two causes, both addressed: (1) the old
+  // per-target color wasn't guaranteed to contrast against everything else
+  // on screen, now a single unmistakable lime green used for nothing else
+  // in this viewer; (2) licorice cylinders are impostor-rendered by default,
+  // same underlying lighting issue the pocket spheres had up close (see that
+  // fix's own comment) — side:'double' + diffuseInterior:true applied here
+  // too. A spacefill ball is layered on top for visibility at any zoom
+  // level, not just when close enough to resolve individual bonds.
   useEffect(() => {
     const component = structComponentRef.current;
     if (!component || !mutation.highlightRes || mutation.highlightRes.length === 0) return;
     if (mutSiteReprRef.current) {
-      component.removeRepresentation(mutSiteReprRef.current);
+      for (const r of mutSiteReprRef.current) component.removeRepresentation(r);
       mutSiteReprRef.current = null;
     }
     const sele = mutation.highlightRes.map(r => `${r}:${mutation.chain}`).join(' or ');
-    mutSiteReprRef.current = component.addRepresentation('licorice', {
-      sele,
-      color: hexToNGLColor(mutation.color),
-      opacity: 1.0,
-      radiusScale: 1.1,
+    const MUT_HIGHLIGHT_COLOR = '#39ff14'; // bold lime green — used nowhere else in this viewer
+    const licoriceRepr = component.addRepresentation('licorice', {
+      sele, color: MUT_HIGHLIGHT_COLOR, opacity: 1.0, radiusScale: 1.6,
+      side: 'double', diffuseInterior: true,
     });
+    const ballRepr = component.addRepresentation('spacefill', {
+      sele, color: MUT_HIGHLIGHT_COLOR, opacity: 0.55, radiusScale: 0.55,
+      side: 'double', diffuseInterior: true,
+    });
+    mutSiteReprRef.current = [licoriceRepr, ballRepr];
     return () => {
       if (mutSiteReprRef.current) {
-        component.removeRepresentation(mutSiteReprRef.current);
+        for (const r of mutSiteReprRef.current) component.removeRepresentation(r);
         mutSiteReprRef.current = null;
       }
     };
-  }, [structReady, mutation.highlightRes, mutation.chain, mutation.color]);
+  }, [structReady, mutation.highlightRes, mutation.chain]);
 
   function toggleSpin() {
     const stage = stageRef.current;
@@ -679,7 +690,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             chain <b style={{ color: cc }}>{hoverInfo.chain}</b>
             {' · '}{hoverInfo.resname}{hoverInfo.resno}
             {mutation.highlightRes?.includes(hoverInfo.resno) && hoverInfo.chain === mutation.chain && (
-              <span style={{ color: '#ffd20a' }}> ● mutation site</span>
+              <span style={{ color: '#39ff14' }}> ● mutation site</span>
             )}
           </div>
         )}
@@ -908,7 +919,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
           </div>
         </div>
         {mutation.highlightRes && mutation.highlightRes.length > 0 && (
-          <span style={{ color: cc }}>● MUTATION SITE (always wire) — res {mutation.highlightRes.join(', ')}</span>
+          <span style={{ color: '#39ff14' }}>● MUTATION SITE — res {mutation.highlightRes.join(', ')}</span>
         )}
         <span style={{ color: '#aaffdd' }}>● Zn²⁺ ion (if present)</span>
         {pocketResult && pocketResult.all_pockets.length > 0 && (
