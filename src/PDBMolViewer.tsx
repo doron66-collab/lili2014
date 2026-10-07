@@ -596,10 +596,8 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
             onClick={toggleSpin}
             title={spinning ? 'Pause rotation' : 'Resume rotation'}
             style={{
-              background: spinning ? 'rgba(255,180,50,.12)' : 'rgba(80,255,160,.12)',
-              border: `1px solid ${spinning ? 'rgba(255,180,50,.5)' : 'rgba(80,255,160,.5)'}`,
-              color: spinning ? 'rgba(255,200,80,.9)' : 'rgba(100,255,180,.9)',
-              borderRadius: 8, padding: '5px 13px',
+              background: 'rgba(255,210,30,.12)', border: '1px solid rgba(255,210,30,.45)',
+              color: 'rgba(255,220,100,.95)', borderRadius: 8, padding: '5px 13px',
               cursor: 'pointer', fontSize: 12, letterSpacing: 1,
             }}
           >
@@ -630,7 +628,11 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                 cursor: 'pointer', fontSize: 12, letterSpacing: 1,
               }}
             >
-              📍 GO TO MUTATION
+              {/* "●" not the 📍 emoji: emoji glyphs are rendered as fixed-color
+                  bitmap/color-font glyphs in every mainstream browser and
+                  ignore the CSS `color` property entirely — only a plain
+                  text/symbol character can actually take the lime-green tint. */}
+              <span style={{ color: '#39ff14', fontSize: 14 }}>●</span> GO TO MUTATION
             </button>
           )}
           <div>
