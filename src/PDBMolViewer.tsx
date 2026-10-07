@@ -398,7 +398,7 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
               fontSize: 12, letterSpacing: 1,
             }}
           >
-            🔎 מצא כיסים · FIND POCKETS
+            🔎 FIND POCKETS
           </button>
           <div>
             <span style={{ color: cc, fontWeight: 'bold', fontSize: 16, letterSpacing: 3 }}>
