@@ -386,7 +386,24 @@ def main():
         return
 
     ph_pdb = protonate(a.ph)
-    atoms = read_pdb(ph_pdb) + read_fes_from_cif(PDB_ID, CHAIN, "301")
+    # Found live 2026-10-07: "RuntimeError: Ill geometry" from duplicate atom
+    # coordinates (4 pairs, exactly the FES cofactor's own atom count). The old
+    # comment on read_fes_from_cif() assumed gemmi's write_pdb() always drops
+    # FES HETATM records during cif->pdb conversion -- that assumption just
+    # proved wrong (gemmi/pdbfixer version-dependent, apparently, since this
+    # exact code path ran clean in an earlier round). Stop relying on the
+    # conversion dropping them; explicitly exclude any FES read from the PDB
+    # instead, so read_fes_from_cif()'s own direct cif read is the ONLY source
+    # of those 4 atoms regardless of what the PDB conversion does or doesn't do.
+    all_pdb_atoms = read_pdb(ph_pdb)
+    pdb_atoms = [a for a in all_pdb_atoms if a["comp"] != "FES"]
+    dropped = len(all_pdb_atoms) - len(pdb_atoms)
+    if dropped:
+        print(f"[cluster] NOTE: {dropped} FES atom(s) were present in the protonated PDB "
+              f"this run (contradicting this script's prior assumption that gemmi drops "
+              f"them) -- excluded here; the single source of truth for FES is "
+              f"read_fes_from_cif()'s direct cif read, below.")
+    atoms = pdb_atoms + read_fes_from_cif(PDB_ID, CHAIN, "301")
     groups, caps, charge = build_cluster(atoms)
     n_heavy = sum(1 for k in groups for a in groups[k] if a["elem"] != "H")
     print(f"[cluster] {len(groups)} residues, {n_heavy} heavy atoms, {len(caps)} capping H, "
