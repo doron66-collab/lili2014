@@ -25,9 +25,18 @@ const TRIALS = [
     ],
   },
   {
-    mutation: 'STK11', variant: 'LKB1 loss', mColor: '#ff3366',
+    mutation: 'STK11', variant: 'D194N', mColor: '#ff3366',
     drugs: [
-      { drug: 'Ceralasertib + Durvalumab', sponsor: 'AstraZeneca', progress: 75, phase: 'Phase III', trial: 'LATIFY · NCT05450692', note: 'ATR+PD-L1 · STK11/KEAP1-enriched biomarker' },
+      // Corrected 2026-10-07 after live verification: LATIFY read out
+      // NEGATIVE (did not improve overall survival vs. docetaxel) and its
+      // eligibility criteria were NOT STK11/KEAP1-biomarker-selected at all
+      // (EGFR/ALK-wild-type NSCLC, biomarker-unselected) -- the
+      // "STK11/KEAP1-enriched biomarker" note below was simply wrong, not
+      // just stale. Kept in the list (progress:100, marked FAILED) rather
+      // than deleted, so the record shows what was tried, not just what's
+      // still open.
+      { drug: 'Ceralasertib + Durvalumab', sponsor: 'AstraZeneca', progress: 100, phase: 'Phase III — FAILED', trial: 'LATIFY · NCT05450692', note: 'Did not meet primary endpoint (OS) vs. docetaxel. NOT STK11/KEAP1-biomarker-selected — enrolled EGFR/ALK-WT NSCLC broadly.' },
+      { drug: 'TNG260 + Pembrolizumab', sponsor: 'Tango Therapeutics', progress: 25, phase: 'Phase I/II', trial: 'NCT05887492', note: 'CoREST inhibitor · actively recruiting, STK11-mutant solid tumors specifically selected' },
       { drug: 'Bemcentinib (BGB324)', sponsor: 'Blueprint Medicines', progress: 50, phase: 'Phase II', trial: 'AXL-STK11 cohort', note: 'AXL inhibitor · FDA Fast Track designation' },
       { drug: 'Telaglenastat (CB-839)', sponsor: 'Calithera Biosciences', progress: 50, phase: 'Phase II', trial: 'BeGIN · NCT03872427', note: 'Glutaminase inhibitor · LKB1/KEAP1/NRF2 cohort' },
     ],
@@ -209,7 +218,7 @@ function NetworkTab() {
       <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(8,16,45,.55)', borderRadius: 7, border: '1px solid rgba(255,50,100,.2)' }}>
         <div style={{ color: '#ff3366', fontSize: 8.5, letterSpacing: 1.5, marginBottom: 5 }}>● KEY INSIGHT</div>
         <div style={{ color: 'rgba(225,238,255,.95)', fontSize: 9.5, lineHeight: 1.65 }}>
-          STK11 is the highest-connectivity node — co-mutating with KRAS (54%), TP53 (44%), CDKN2A (37%), and KEAP1 (27%). The STK11/KEAP1 combination drives ATR dependency exploited by Ceralasertib in the Phase III LATIFY trial.
+          STK11 is the highest-connectivity node — co-mutating with KRAS (54%), TP53 (44%), CDKN2A (37%), and KEAP1 (27%). The STK11/KEAP1-driven ATR-dependency hypothesis behind Ceralasertib was tested in the Phase III LATIFY trial, which read out negative (no OS benefit vs. docetaxel) — and notably was not even STK11/KEAP1-biomarker-selected, so it did not cleanly test the hypothesis in the first place.
         </div>
       </div>
     </div>

@@ -42,9 +42,17 @@ const MUT_INFO = [
     // this project's own rule, a gene whose mutations genuinely differ
     // (which STK11's dissertation entry does, via D194N) should carry the
     // specific mutation, not a size-proxy label, once a real anchor exists.
-    id: 'STK11', variant: 'D194N', drug: 'Ceralasertib', sub: '+ Durvalumab (ATR inhibitor)',
-    phase: 'Phase III — LATIFY NCT05450692', color: 0xff3366,
-    mech: 'D194 is the catalytic Asp of the kinase DFG motif; D194N abolishes catalytic activity entirely. ATR inhibition targets the resulting replication stress (sqDRIFT-modellable synthetic lethality) — not the kinase site itself, which has no mutation-specific drug.',
+    // Drug/phase corrected 2026-10-07 after live verification: LATIFY
+    // (Ceralasertib+Durvalumab) read out NEGATIVE (no OS benefit vs.
+    // docetaxel) and, contrary to the platform's prior framing, was never
+    // STK11/KEAP1-biomarker-selected in the first place (EGFR/ALK-WT NSCLC,
+    // broadly). TNG260+pembrolizumab (NCT05887492, Tango Therapeutics) is
+    // the real currently-recruiting trial specifically selecting STK11-
+    // mutant tumors. Neither targets D194N (or any STK11 site) directly —
+    // D194N itself still has no mutation-specific drug or research.
+    id: 'STK11', variant: 'D194N', drug: 'TNG260 + Pembrolizumab', sub: 'CoREST inhibitor (Tango Therapeutics)',
+    phase: 'Phase I/II — NCT05887492 (recruiting)', color: 0xff3366,
+    mech: 'D194 is the catalytic Asp of the kinase DFG motif; D194N abolishes catalytic activity entirely — no drug targets this site or this specific mutation. TNG260 exploits a downstream epigenetic/immune vulnerability in STK11-mutant tumors broadly (not D194N specifically), in STK11-mutation-selected patients. (Ceralasertib+Durvalumab/LATIFY, cited here until 2026-10-07, read out negative in a non-STK11-selected population — dropped.)',
   },
   {
     // TP53 C275F — structural β-sandwich core mutant (p.Cys275Phe)
