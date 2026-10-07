@@ -300,7 +300,13 @@ def build_s0_casci(mf_highspin, mo_coeff, charge, ncas, nelecas):
     mc.mol = mol_s0
     mc.mo_coeff = mo_coeff
     mc.kernel()
-    ss, mult = mc.spin_square() if hasattr(mc, "spin_square") else (float("nan"), float("nan"))
+    # mc.spin_square() itself raises AttributeError here: mcscf.CASCI() built on a
+    # density-fitted mean-field (as build_mf() above always produces) returns a
+    # DFCASCI instance, which does not inherit spin_square() the way plain CASCI does.
+    # Found live 2026-10-07 testing this exact pattern on a stretched-H2 analog before
+    # trusting it on the real cluster -- go through fcisolver.spin_square() directly,
+    # which works on both variants.
+    ss, mult = mc.fcisolver.spin_square(mc.ci, mc.ncas, mc.nelecas)
     print(f"[spin] S=0 CASCI: <S^2>={ss:.4f} (expect 0.0), 2S+1={mult:.4f} (expect 1.0)")
     if abs(ss) > 0.1:
         print("*** <S^2> does not match the expected S=0 value for this CASCI solution -- "
