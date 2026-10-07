@@ -66,19 +66,26 @@ ever disagree again, the dissertation wins.)
 
 ## IBM
 - Algorithm: sqDRIFT (sample-based quantum diagonalization; quantum sampling + classical diagonalization, NOT noise characterization)
-- Hardware: IBM Heron r3
-- **No live contact as of 2026-10-07.** Michal Rosen-Zvi (ROSEN@il.ibm.com) left IBM and referred
-  Doron to Ella (quantum partnerships, IBM Research Israel); Doron emailed Ella directly, including
-  a follow-up reminder, and received no response. Treat both names as a dead end, not a warm contact
-  — any outreach needs a new entry point at IBM, not a retry to either of these two. Does not change
-  the strategic call that IBM is still the lowest-effort first ICP to pursue (16 real governed QPU
-  runs already exist as a concrete demo-able artifact, per the 2026-10-07 North Star in
-  open_items_updated.html) — only the tactic, which now needs a fresh channel (e.g. IBM Quantum
-  Network program, a different partnerships contact, or a conference/publication route) rather than
-  a warm email.
+- Hardware target: IBM Heron r3
+- **No current relationship with IBM.** Corrected 2026-10-07 (independently flagged the same day by
+  two separate sessions) — the previous contacts (Michal Rosen-Zvi, and "Ella" in quantum
+  partnerships at IBM Research Israel, whom Rosen-Zvi referred Doron to before leaving) are a dead
+  end: Doron emailed Ella directly, including a follow-up reminder, and received no response. Do not
+  reference Rosen-Zvi or Ella as a current contact in any conversation, document, or artifact
+  (including the quantum-competitive-landscape table, which previously listed IBM as an "existing
+  partner" on this basis — wrong, needs re-labeling to "no current relationship" there too).
+  Establishing a real IBM contact is open work still to be done, not a status that can be described
+  as "in negotiation." Does not change the strategic call that IBM is still the lowest-effort first
+  ICP to pursue (16 real governed QPU runs already on record, §Heron r3 below, are a concrete
+  demo-able artifact) — only the tactic: a fresh entry point is needed (e.g. the IBM Quantum Network
+  program, a different partnerships contact, or a conference/publication route), not a retry to
+  either of these two names.
 
-## Heron r3 access — strategy (in negotiation, 2026-07; leave until access lands)
-- STATUS: Doron negotiating with the university to fund r3 runs. Not yet available.
+## Heron r3 access — strategy (status: no active channel, 2026-10-07)
+- STATUS: No current IBM relationship (see IBM section above) — the earlier "negotiating
+  with the university to fund r3 runs" framing, and the contact names behind it, were both
+  stale. Access is not available and no channel toward it currently exists; this needs
+  active work, not monitoring for a reply.
 - As of 2026-08-15, all eight real DMRG classifications (C275F, R282W, G245S, R249S,
   SETD2 R1625C, KEAP1 G333C, STK11 D194N, R175H) are Class B — classically tractable at
   their measured ranges. None currently carries a quantum-necessity case; every target
