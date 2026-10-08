@@ -241,7 +241,7 @@ def protonate(ph=7.4, out=None):
     return out
 
 
-def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=300,
+def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80,
              chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp", newton_max_cycle=60):
     """High-spin (S=15/2, spin=15) ROHF reference -- the single-determinant,
     genuinely well-behaved state. Same reasoning as run_gate2_sdhb.py's
@@ -311,7 +311,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=30
         print(f"[scf] {label}: second-order SCF converged={g.converged} E={g.e_tot:.8f}")
         return g
 
-    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=3)
+    mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=4)
     print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
     mf = _rohf(mol)
 
@@ -326,7 +326,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=30
     if dm0 is None and guess_basis:
         print(f"[scf] stage 1: converging ROHF in {guess_basis} as a starting guess "
               f"(level_shift={level_shift}, max_cycle={max_cycle})")
-        mol_s = gto.M(atom="\n".join(lines), basis=guess_basis, charge=charge, spin=spin, verbose=3)
+        mol_s = gto.M(atom="\n".join(lines), basis=guess_basis, charge=charge, spin=spin, verbose=4)
         mf_s = _converge(_rohf(mol_s), None, f"stage 1 ({guess_basis})")
         print(f"[scf] stage 1 ({guess_basis}): converged={mf_s.converged} E={mf_s.e_tot:.8f}")
         dm0 = np.array([addons.project_dm_nr2nr(mol_s, d, mol) for d in mf_s.make_rdm1()])
@@ -529,7 +529,11 @@ def main():
     ap.add_argument("--scf-level-shift", type=float, default=0.3,
                      help="Virtual-orbital level shift (Ha) for the high-spin ROHF. Changes the "
                           "convergence path, not the converged answer.")
-    ap.add_argument("--scf-max-cycle", type=int, default=300)
+    ap.add_argument("--scf-max-cycle", type=int, default=80,
+                     help="DIIS cycles before handing over to second-order SCF (newton). Was 300: on "
+                          "the real cluster DIIS+level shift failed to converge in 300 cycles even in "
+                          "def2-svp, and at ~2.3 min/cycle in def2-tzvp that is ~11.5 h spent before "
+                          "the far more robust newton step even starts.")
     ap.add_argument("--scf-chkfile", default="sdhb_s3_scf.chk",
                      help="Saved SCF orbitals. Reused as the starting point on the next run if "
                           "present -- makes the reference reproducible across runs, and lets a "
