@@ -64,7 +64,7 @@
   <!-- box 4 (dashed): build AVAS -->
   <rect x="255" y="490" width="590" height="96" rx="10" fill="#fff" stroke="#111" stroke-width="1.6" stroke-dasharray="6,4"/>
   <text x="550" y="514" text-anchor="middle" font-weight="700" font-size="14.5">Build the real active space (AVAS on the resolved site)</text>
-  <text x="550" y="534" text-anchor="middle" font-size="11" fill="#444">turns "~44e, estimated" into a REAL COMPUTED RANGE —</text>
+  <text x="550" y="534" text-anchor="middle" font-size="11" fill="#444">turns an unsourced estimate into a REAL COMPUTED RANGE —</text>
   <text x="550" y="549" text-anchor="middle" font-size="11" fill="#444">not a single number: depends on which orbitals are targeted</text>
   <text x="550" y="564" text-anchor="middle" font-size="11" fill="#a36a00" font-weight="700">final criterion still needs a computational chemist's sign-off</text>
   <line x1="550" y1="586" x2="550" y2="622" stroke="#111" stroke-width="1.6" marker-end="url(#arrow)"/>

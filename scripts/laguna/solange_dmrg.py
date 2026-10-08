@@ -94,7 +94,7 @@ EXACT_WALL_E = 18   # active electrons up to which exact diagonalisation is rout
 # form is an upper bound, following from a flat entanglement spectrum, and real
 # spectra decay. Both its prefactor and its exponent depend on the chemistry and
 # on the size of the active space, so a fit on N2 does not transfer to a
-# 44-electron site.
+# 48-electron site.
 S_HARD       = 1.5
 
 
@@ -591,7 +591,7 @@ def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose
     whatever it was handed" this module otherwise does: here DMRG is inside the
     orbital-optimization loop, so the WHOLE procedure — orbital selection AND
     the active-space solve — scales polynomially in ncas, not exponentially.
-    That is what actually lets --ncas grow past 16 toward a real ~44-155e site;
+    That is what actually lets --ncas grow past 16 toward a real ~48-155e site;
     plain CASSCF (dmrg_scf=False) cannot, no matter how the bond dims used
     downstream in run_dmrg() are set, because it never gets a converged active
     space at that size in the first place.

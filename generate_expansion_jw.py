@@ -211,7 +211,7 @@ EXPANSION_MODELS = {
     # ── Structural tumor suppressor (generic LOF) ────────────────────────────
 
     "TP53_LOF": {
-        "gene": "TP53", "full_electrons": 44, "full_qubits": 88,
+        "gene": "TP53", "full_electrons": 48, "full_qubits": 56,
         # Generic structural LOF anchor at Arg248 (DNA-binding domain "hotspot"
         # residue) — distinct from the specific point mutation TP53_C275F (the
         # dissertation's primary anchor). Native only: the real, common TP53

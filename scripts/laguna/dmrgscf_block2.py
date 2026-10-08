@@ -6,7 +6,7 @@ WHY THIS EXISTS
 CASSCF's default active-space solver is FCI: exact, but combinatorial in the
 number of active orbitals, so it walls out around 16 and takes the whole
 orbital-optimization loop with it. That wall — not the downstream bond-dimension
-sweep — is what stops SOLANGE's DMRG rung from ever reaching a real ~44e site.
+sweep — is what stops SOLANGE's DMRG rung from ever reaching a real ~48e site.
 Replacing that inner solver with DMRG makes the WHOLE procedure (orbital
 selection AND the active-space solve) polynomial rather than exponential.
 

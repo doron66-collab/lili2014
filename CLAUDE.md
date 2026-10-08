@@ -39,7 +39,7 @@ ever disagree again, the dissertation wins.)
 - Targets: four — TP53, KEAP1, CDKN2A, STK11 (CDKN2A confirmed as the fourth written target, 2026-07-26; the earlier "exclude CDKN2A from written text" rule is retired — the dissertation names all four consistently)
 - Key mutation: C275F — 18–48 active electrons / 24–56 qubits, AVAS-tested range (criterion-
   dependent, not a single value); DMRG-measured Class B at 36e (S_max=0.25) and 48e
-  (S_max=0.35), both real, converged, FINAL results. The "44e/88q" figure used throughout
+  (S_max=0.35), both real, converged, FINAL results. An earlier single-value active-space figure used throughout
   the dissertation and codebase until 2026-08-14/15 was an architectural estimate that
   traced back to no verifiable derivation — replaced everywhere with the real measured
   range. Eight real DMRG classifications exist now, ALL Class B: C275F, R282W, G245S,
@@ -121,7 +121,7 @@ ever disagree again, the dissertation wins.)
   Classifications" table regardless of any NGS session, while the NGS-driven dynamic gene list
   maps genes through a completely separate, generic GENE_MAP entry (e.g. SETD2 → PDB 5JLB, a
   different structure/compound) that has no link to that specific mutation record — two
-  unconnected sources of truth, the same shape of problem as the 44e/88q drift this session
+  unconnected sources of truth, the same shape of problem as the C275F active-space-estimate drift this session
   spent hours fixing elsewhere. Needs a real session_id/is_current distinction at the data
   layer, not a UI-only fix — scope properly before implementing, not mid-session.
 
@@ -167,7 +167,7 @@ ever disagree again, the dissertation wins.)
 - **Which table owns a class:** genes the dissertation records as having *"no
   single-residue anchor"* (KEAP1, CDKN2A, STK11) carry `bqp_class` on GENE_MAP — for them
   the class is a property of the domain, so gene-level is correct. Genes whose mutations
-  genuinely differ (TP53: C275F = B at 44e, Y220C = C at 38e) carry **no** gene-level
+  genuinely differ (TP53: C275F = B, cross-validated at CAS(42e,25o); Y220C = C at 38e) carry **no** gene-level
   class and live in `MUTATION_CLASS`. Never add a gene-level class to a gene that
   classifies per mutation: an unlisted variant must come back *not classified*, never a
   size proxy. Every entry needs its dissertation quote in `source`.
@@ -191,7 +191,7 @@ ever disagree again, the dissertation wins.)
   number, or four views of one calculation read as four independent results agreeing.
 - **Scope gates everything.** A measurement is authoritative only for the active space it
   covered: `solangeDmrgCoversSite` (UI) and `_covers_site` (gateway) both require ≥90% of
-  the target's site. A CAS(6,4) run does not classify a 44e site — it annotates, it never
+  the target's site. A CAS(6,4) run does not classify a 48e site — it annotates, it never
   overrides.
 - **Confidence is capped by provenance, not by presence** (`backend/routes/gateway.py`).
   Unstated provenance is treated as unverified, never assumed good.

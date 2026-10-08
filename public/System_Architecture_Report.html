@@ -617,8 +617,8 @@
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"allele_frequency"</span>: <span style="color:#14d9b8">0.1266</span>,<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"tier"</span>: <span style="color:#14d9b8">"I"</span>,<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"simulation_id"</span>: <span style="color:#14d9b8">"TP53_C275F"</span>,<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"active_electrons"</span>: <span style="color:#14d9b8">44</span>,<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"full_qubits"</span>: <span style="color:#14d9b8">88</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"active_electrons"</span>: <span style="color:#14d9b8">48</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f0b429">"full_qubits"</span>: <span style="color:#14d9b8">56</span><br>
     &nbsp;&nbsp;&nbsp;&nbsp;}, <span style="color:#94a3b8">... more variants</span><br>
     &nbsp;&nbsp;]<br>
     <span style="color:#94a3b8">}</span>
@@ -651,7 +651,7 @@
     <tr>
       <td><strong>2 qubits</strong></td>
       <td>Minimal active space POC (2e / 2 orbitals)</td>
-      <td>Full Phase 3B: ~44 active electrons → 88 qubits on IBM Heron r3</td>
+      <td>Full Phase 3B: up to 48 active electrons → 56 qubits (largest AVAS space tested)</td>
     </tr>
     <tr>
       <td><strong>5 gates, depth 3</strong></td>
@@ -675,7 +675,7 @@
   <table>
     <tr><th>Dimension</th><th><span class="phase-badge badge-3a">Phase 3A (LIVE)</span></th><th><span class="phase-badge badge-3b">Phase 3B (Future)</span></th></tr>
     <tr><td>Backend</td><td>PennyLane default.qubit (noiseless simulator)</td><td>IBM Heron r3 (real QPU)</td></tr>
-    <tr><td>Active space</td><td>2e / 2 orbitals (2 qubits)</td><td>~44e / ~44 orbitals (~88 qubits)</td></tr>
+    <tr><td>Active space</td><td>2e / 2 orbitals (2 qubits)</td><td>48e / 28 orbitals (56 qubits)</td></tr>
     <tr><td>Hamiltonian</td><td>Proxy H₂ STO-3G coefficients (Jordan-Wigner)</td><td>Full molecular Hamiltonian from PySCF + OpenFermion</td></tr>
     <tr><td>Error mitigation</td><td>None (noiseless)</td><td>ZNE + Pauli Twirling</td></tr>
     <tr><td>P4 error budget</td><td>0.0 (simulator)</td><td>Real T1/T2/gate fidelity from IBM calibration</td></tr>
@@ -702,7 +702,7 @@
     <em>"Does every component of the QC·AI·HPC architecture work correctly end-to-end?"</em>
     The 2-electron active space is the smallest chemically meaningful quantum system that exercises
     every stage of the pipeline — NGS input, Hamiltonian construction, VQE execution, provenance assembly,
-    cryptographic sealing, and Supabase storage. Running a 44-electron job on IBM Heron r3 without
+    cryptographic sealing, and Supabase storage. Running a 48-electron job on IBM Heron r3 without
     first validating the pipeline on a simulator would be scientifically irresponsible and practically
     impossible (QPU time is expensive and scarce).
   </p>
@@ -768,7 +768,7 @@
 
   <table>
     <tr><th>Mutation</th><th>Active electrons (Phase 3B)</th><th>Qubits (Jordan-Wigner)</th><th>Biological target</th></tr>
-    <tr><td><strong style="color:#E8A020">TP53 C275F</strong></td><td>~44e</td><td>~88q</td><td>Zinc coordination π-fragment · DNA binding domain</td></tr>
+    <tr><td><strong style="color:#E8A020">TP53 C275F</strong></td><td>48e</td><td>56q</td><td>DNA-binding domain · Class B (classically tractable)</td></tr>
     <tr><td><strong style="color:#60a5fa">TP53 Y220C</strong></td><td>~38e</td><td>~76q</td><td>Binding pocket cavity · stabilizer drug target</td></tr>
     <tr><td><strong style="color:#b47fd4">KEAP1 LOF</strong></td><td>~52e</td><td>~104q</td><td>NRF2 protein–protein interface</td></tr>
     <tr><td><strong style="color:#34d399">STK11 LKB1</strong></td><td>~46e</td><td>~92q</td><td>Kinase domain · synthetic lethality target</td></tr>

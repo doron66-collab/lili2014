@@ -146,7 +146,7 @@ fault tolerance.
   **superconducting qubits** (Heron r3 → Starling → Blue Jay) for near-term NISQ execution,
   and **silicon-spin qubits** (HRL expertise, paired with the Anderon quantum wafer foundry)
   for the fault-tolerant regime. SOLANGE's Phase 3B targets the superconducting track
-  (Heron r3, 88q for C275F — within the 94-qubit ceiling demonstrated by Merz et al. 2026);
+  (Heron r3, 56q for C275F's largest tested AVAS space — within the 94-qubit ceiling demonstrated by Merz et al. 2026);
   KEAP1 and STK11 full-site targets (300+ qubits) fall in the fault-tolerant window, now
   mapped to IBM's silicon-spin trajectory (~2030+).
   `[IBM Newsroom, 23 Jul 2026; Reuters, 23 Jul 2026]`

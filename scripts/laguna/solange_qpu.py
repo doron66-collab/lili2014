@@ -12,7 +12,7 @@ Two targets:
   • --key/--side — one of SOLANGE's OWN 4-qubit CAS(2,2) model-compound
     Hamiltonians from jw_hamiltonians.json (e.g. TP53_C275F native/mutant). This
     runs the dissertation's actual target Hamiltonian on real hardware — still a
-    minimal CAS(2,2) active space, NOT the full 44e/88q anchor, and a fixed-state
+    minimal CAS(2,2) active space, NOT the full anchor active space (up to 48e/56q tested), and a fixed-state
     <H> measurement with NO on-device VQE optimization (which would burn a scarce
     QPU-time budget for a value already known classically).
 

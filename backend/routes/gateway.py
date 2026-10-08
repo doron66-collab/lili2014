@@ -29,7 +29,7 @@ recommendation.
 
 SCOPE GATE — the same rule the UI applies (solangeDmrgCoversSite): a DMRG verdict
 is authoritative for a target only if the run's active space actually covered that
-target's site. A CAS(6,4) validation run says nothing about a 44e site, and is
+target's site. A CAS(6,4) validation run says nothing about a 48e site, and is
 reported as an evidence GAP rather than silently treated as a measurement.
 
 IP BOUNDARY (deployment)
@@ -78,7 +78,7 @@ EXACT_WALL_E = 18   # active electrons up to which exact diagonalisation is rout
 # form is an upper bound, following from a flat entanglement spectrum, and real
 # spectra decay. Both its prefactor and its exponent depend on the chemistry and
 # on the size of the active space, so a fit on N2 does not transfer to a
-# 44-electron site.
+# 48-electron site.
 S_HARD       = 1.5
 
 # The bond dimension this pipeline is willing to spend. Not derived: a stated
@@ -101,7 +101,7 @@ HERON_QUBITS = 156
 
 # Scope gate: a DMRG verdict reclassifies a target only if its active space covered
 # that target's site. Sized as a fraction because GENE_MAP site counts are stated
-# approximately ("~44e").
+# approximately ("~48e").
 SITE_COVERAGE_MIN = 0.9
 
 # ── Provenance discipline ──────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ SITE_COVERAGE_MIN = 0.9
 # computed over CAS(2e,2o)/STO-3G *model compounds* (toluene standing in for a Phe
 # sidechain, methanethiol for Cys). They are real computations and they are correct
 # about what they measured — two electrons of a proxy molecule. They are not a
-# characterisation of a 44-electron protein active site, and the Gateway must never
+# characterisation of a 48-electron protein active site, and the Gateway must never
 # let one be read as the other. Likewise, GENE_MAP's active-electron counts are
 # curated literature estimates, not measurements, and the route can hinge on them.
 CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
@@ -327,7 +327,7 @@ def recommend(ev: dict) -> dict:
     # A correlation energy computed over a CAS(2e,2o) model compound is a true
     # statement about two electrons of a stand-in molecule. Saying "mean-field is
     # insufficient HERE" on that basis silently promotes it into a claim about a
-    # 44-electron protein site it never touched. Scope is checked, and the sentence
+    # 48-electron protein site it never touched. Scope is checked, and the sentence
     # changes to match what was actually measured.
     if corr_mha is not None:
         ratio = abs(corr_mha) / CHEM_ACC_MHA

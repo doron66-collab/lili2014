@@ -21,7 +21,7 @@
    — Constructive proof that a universal quantum computer can efficiently simulate any local quantum system via Trotterized evolution. Legitimizes the Trotter/sqDRIFT framing.
 
 3. **Abrams, D. S., & Lloyd, S. (1999).** "Quantum Algorithm Providing Exponential Speed Increase for Finding Eigenvalues and Eigenvectors." *Phys. Rev. Lett.* 83(24), 5162–5165. DOI: `10.1103/PhysRevLett.83.5162`.
-   — Phase-estimation eigenvalue algorithm for fermionic Hamiltonians; the bridge from "simulate dynamics" to "extract ground-state energy." Estimates 50–100 qubits — directly germane to the C275F 88-qubit target.
+   — Phase-estimation eigenvalue algorithm for fermionic Hamiltonians; the bridge from "simulate dynamics" to "extract ground-state energy." Estimates 50–100 qubits — directly germane to C275F's 56-qubit largest tested space.
 
 4. **Aspuru-Guzik, A., Dutoi, A. D., Love, P. J., & Head-Gordon, M. (2005).** "Simulated Quantum Computation of Molecular Energies." *Science* 309(5741), 1704–1707. DOI: `10.1126/science.1113479`.
    — Foundational chemistry application: maps phase estimation onto real molecules. Establishes the polynomial-scaling quantum route the classical proxy emulates.

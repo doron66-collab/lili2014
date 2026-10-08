@@ -225,7 +225,7 @@ def pauli_decomposition_note():
        vqe = VQE(ansatz, optimizer=COBYLA(), estimator=Estimator())
        result = vqe.compute_minimum_eigenvalue(qubit_op)
 
-  5. Phase 3B: Same pipeline, 88-qubit active space on IBM Heron r3
+  5. Phase 3B: Same pipeline, up to 56-qubit active space (CAS(48,28)) on IBM Heron r3
        (pending access authorization — see SOLANGE Phase 3B submission pkg)
   ──────────────────────────────────────────────────────────────────────────
 """)
@@ -246,11 +246,11 @@ def print_c275f_active_space_summary():
     Key active orbitals: Phe aromatic π / π* (HOMO–LUMO)
     No H-bond donor capacity → R248 displaced → LOF
     Phase 3A CAS(2e,2o): HOMO/LUMO of Phe π system (this script)
-    Phase 3B CAS(44e,44o): full DBD functional interface (88 qubits)
+    Phase 3B: measured AVAS range 18-48e / 24-56 qubits (largest: CAS(48,28))
 
   Jordan-Wigner encoding:
     Phase 3A:  2e × 2 spin-orbitals/orbital = 4 qubits
-    Phase 3B: 44e × 2 spin-orbitals/orbital = 88 qubits
+    Phase 3B: CAS(48,28) -> 28 orbitals × 2 spin-orbitals = 56 qubits
 
   PDB references:
     Native: 2AC0 (2.05 Å), 1TUP (2.35 Å, with DNA)

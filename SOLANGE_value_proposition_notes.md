@@ -18,7 +18,7 @@ SOLANGE's literature lineage traces directly back to this insight:
 
 | End user | Why they'd want it |
 |---|---|
-| **Computational/medicinal chemists (pharma & biotech)** | Need ground-state energies / electronic structure for mutation sites classical methods can't handle past ~18 active electrons (e.g., TP53 C275F needs ~44e/88q). |
+| **Computational/medicinal chemists (pharma & biotech)** | Need ground-state energies / electronic structure for mutation sites classical methods can't handle past ~18 active electrons (e.g., TP53 C275F's 48-electron space needed DMRG; it proved classically tractable, Class B). |
 | **Academic/translational cancer research labs** | Studying "non-druggable" tumor suppressors (TP53, STK11, KEAP1) with no known small-molecule binding pocket — need a computational foothold. |
 | **Regulatory/compliance teams inside pharma** | P1–P9 provenance + FDA 21 CFR Part 11 alignment means SOLANGE output could feed directly into an IND/NDA submission package, not just exploratory research. |
 | **Quantum hardware partners (IBM, etc.)** | A flagship oncology use case demonstrating real-world value of their fault-tolerant roadmap (Heron r3 → Starling → Blue Jay). |

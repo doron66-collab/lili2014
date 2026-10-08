@@ -126,7 +126,7 @@ def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
 # Hardware precedent: Merz et al. (Cleveland Clinic/RIKEN/IBM, May 2026,
 # arXiv:2605.01138) demonstrated 94 qubits on IBM Heron r2 for a 12,635-atom
 # protein-ligand complex — establishing the current NISQ ceiling for chemistry.
-# C275F full active site (~88q) is the ONLY target within this ceiling.
+# C275F's largest tested active space (CAS(48,28), 56q) is well within this ceiling.
 # ── Expansion gene map — mirrors frontend GENE_MAP (non-core genes) ───────────
 # Used to build Phase 3A proxy configs on the fly for NGS-detected expansion targets.
 # All use KEAP1_G333C "mutant" (methanethiol) as the generic CAS(2e,2o) LOF proxy —
@@ -146,7 +146,7 @@ def _build_hamiltonian(terms: list) -> qml.Hamiltonian:
 #   toluene       → Phe aromatic stacking (DIX domain, OB fold, ARID)
 #   methanol      → Ser/Thr hydroxyl contact (VHL, FGFR3, CDKN2A)
 _EXPANSION_GENE_CONFIGS = {
-    "TP53":    {"full_electrons": 44, "full_qubits": 88,  "badge": "Structural LOF",     "jw_source": ("TP53_LOF",    "native"), "pdb": "2OCJ",           "native_residue": "Arg248",  "native_compound": "guanidine"},
+    "TP53":    {"full_electrons": 48, "full_qubits": 56,  "badge": "Structural LOF",     "jw_source": ("TP53_LOF",    "native"), "pdb": "2OCJ",           "native_residue": "Arg248",  "native_compound": "guanidine"},
     "VHL":     {"full_electrons": 25, "full_qubits": 50, "badge": "Structural",         "jw_source": ("VHL_LOF",     "native"), "pdb": "1LM8",           "native_residue": "Ser111",  "native_compound": "formamide"},
     "BAP1":    {"full_electrons": 35, "full_qubits": 70, "badge": "Ubiquitin LOF",      "jw_source": ("BAP1_LOF",    "native"), "pdb": "3KVF",           "native_residue": "Cys91",   "native_compound": "methanethiol"},
     "PBRM1":   {"full_electrons": 28, "full_qubits": 56, "badge": "Chromatin LOF",      "jw_source": ("PBRM1_LOF",   "native"), "pdb": "3G0L",           "native_residue": "Tyr1242", "native_compound": "p_cresol"},
@@ -469,7 +469,7 @@ def run_vqe(config: dict, progress_cb=None) -> dict:
     ║    backend = service.backend("ibm_heron_r3")                    ║
     ║                                                                  ║
     ║  Phase 3B requires:                                             ║
-    ║    • New Hamiltonian: 24e/48q or 44e/88q                        ║
+    ║    • New Hamiltonian: 24e/48q or 48e/56q                        ║
     ║    • Error mitigation: ZNE + Pauli Twirling                     ║
     ║    • Transpile to Heron r3 native gate set (ECR, Rz, SX)       ║
     ║    • CalibrationData from backend.properties()                  ║

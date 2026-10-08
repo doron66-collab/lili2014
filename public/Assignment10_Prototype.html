@@ -593,13 +593,13 @@
         <!-- NGS-driven rows — hidden until NGS loaded -->
         <tbody id="ngs-mutation-rows" style="display:none">
         <!-- CLASS A — QUANTUM-NECESSARY -->
-        <tr id="mut-row-TP53_C275F" data-bqp="A">
-          <td><span class="bqp-badge-a">A</span></td>
+        <tr id="mut-row-TP53_C275F" data-bqp="B">
+          <td><span class="bqp-badge-b">B</span></td>
           <td style="font-weight:700;color:#E8A020">TP53</td>
           <td id="mut-type-TP53_C275F">p.Cys275Phe <span class="badge badge-gold">Structural</span></td>
           <td style="font-size:10px;color:var(--teal)">★ NGS</td>
           <td>~24e <span style="color:var(--gray);font-size:10px">(local site)</span></td>
-          <td>~44e <span style="color:var(--gray);font-size:10px">(full active site)</span></td>
+          <td>48e <span style="color:var(--gray);font-size:10px">(largest AVAS space tested)</span></td>
           <td><div id="mut-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></div><div id="mut-status-3b-TP53_C275F" style="margin-top:4px"></div></td>
         </tr>
         <tr id="mut-row-STK11_LKB1" data-bqp="A">
@@ -812,8 +812,8 @@
       });
       svg.push('<text x="' + (xPix(6)+9).toFixed(1) + '" y="' + (yPix(2.86)-4).toFixed(1) + '" fill="var(--teal)" font-size="8.5" font-weight="600">N₂ stretched 2.86 / equilibrium 0.42 &mdash; same 6 orbitals</text>');
 
-      // Formerly a hardcoded "TP53 C275F · 44e — S_max unmeasured" placeholder marker
-      // sitting at a fixed, single-value x=44. Removed 2026-08-15: 44e was never a real
+      // Formerly a hardcoded "TP53 C275F — S_max unmeasured" placeholder marker
+      // sitting at a fixed, single-value x position. Removed 2026-08-15: that value was never a real
       // measurement (it traced back to an unverified estimate — see dissertation §01),
       // and C275F now has real, LEON-sealed DMRG measurements (below) that render through
       // the normal "measured" mechanism instead of a special-cased unmeasured stand-in.
@@ -1616,7 +1616,7 @@
     // the VQE path (statevector memory walls out around 20 qubits), but the same
     // control also drives DMRG — which is not bound by that at all. The result
     // was that no run launched from this panel could ever cover a real site:
-    // TP53_C275F's is ~44e, KEAP1_LOF's ~155e, and 12 of 44 is 27%, so the
+    // TP53_C275F's largest tested space is 48e, KEAP1_LOF's ~155e, and 12 of 48 is 25%, so the
     // Gateway's own ≥90% scope gate could never be satisfied by anything this
     // UI was able to queue. Rebuilding the list per selection is what makes the
     // larger runs reachable at all.
@@ -1642,7 +1642,7 @@
       // but never declared anywhere in this file — every call threw a silent
       // ReferenceError, so the dropdown never rebuilt and the four options
       // baked into the static HTML (6/8/10/12) were all any target ever
-      // offered, including ones whose full site is 44e or 155e. Declaring it
+      // offered, including ones whose full site is 48e or 155e. Declaring it
       // here is the fix; the extension logic below was already correct.
       var sizes = [6, 8, 10, 12, 16, 20, 24];
       var checked = Array.prototype.filter.call(document.querySelectorAll('.hpc-chk'), function(c){ return c.checked; });
@@ -2678,9 +2678,9 @@
       <tr id="bqp-row-TP53_C275F" style="background:rgba(232,160,32,0.06)">
         <td><strong style="color:var(--gold)">TP53</strong></td>
         <td>C275F <span class="badge badge-gold">Structural</span></td>
-        <td>~44</td>
-        <td><strong>~88</strong></td>
-        <td><span class="badge badge-gold">BQP ★ <span style="opacity:.8">Class A</span></span></td>
+        <td>48</td>
+        <td><strong>56</strong></td>
+        <td><span class="badge badge-teal">BQP <span style="opacity:.8">Class B</span></span></td>
         <td id="bqp-status-TP53_C275F"><span class="badge badge-gray">○ Pending</span></td>
       </tr>
       <tr id="bqp-row-KEAP1_LOF">
@@ -4265,7 +4265,7 @@ function loadDemoNGS() { loadNGSReport(MI25_0349); }
 // ── Known gene → platform mapping ─────────────────────────────────────────
 // ── Mutation-level classification — where the class is NOT a property of the gene ──
 // A gene-level entry cannot express that two mutations of the same gene differ, and for
-// TP53 they demonstrably do: C275F is a DNA-interface structural mutant at a 44e site,
+// TP53 they demonstrably do: C275F is a DNA-interface structural mutant (AVAS-tested up to 48e),
 // Y220C is a cavity-creating mutant at 38e which the dissertation calls an already-solved
 // problem (Rezatapopt, Phase II). Holding one class on GENE_MAP.TP53 forced Y220C to
 // inherit C275F's — the cross-source checker caught exactly that, twice.
@@ -4313,7 +4313,7 @@ const MUTATION_CLASS = {
 
 // ── BQP class scope — which mutations a gene-level class was actually reasoned for ──
 // A curated class is a claim about a specific molecular situation, not about a gene
-// symbol. TP53's Class A was argued at "C275F's 44-electron active-space boundary";
+// symbol. TP53's Class A was argued at "C275F's active-space boundary (18–48 measured electrons, criterion-dependent)";
 // applying it to a TP53 splice variant inherits a conclusion whose premise may not
 // hold, since a splice variant need not produce the protein that boundary describes.
 //
@@ -4338,7 +4338,7 @@ const BQP_CLASS_SCOPE = {
     // single "C275F is Class B" sentence exactly. This scope entry's own `source`
     // text below was left describing the old, now-superseded contradiction; updated
     // to reflect the actual current, consistent state.
-    source: 'dissertation: the BQP argument is made at "C275F\'s 44-electron active-space boundary", and TP53 mutant classes are explicitly distinguished — cavity-creating (Y220C) vs DNA-interface structural (C275F) vs direct contact (R248W). The class is tied to C275F specifically, which carries a single-residue Zn-coordination anchor, so it does not transfer to other TP53 variants. C275F is Class B per MUTATION_CLASS.TP53_C275F, consistent with the dissertation.'
+    source: 'dissertation: the BQP argument is made at "C275F\'s active-space boundary (18–48 measured electrons, criterion-dependent)", and TP53 mutant classes are explicitly distinguished — cavity-creating (Y220C) vs DNA-interface structural (C275F) vs direct contact (R248W). The class is tied to C275F specifically, which carries a single-residue Zn-coordination anchor, so it does not transfer to other TP53 variants. C275F is Class B per MUTATION_CLASS.TP53_C275F, consistent with the dissertation.'
   },
   CDKN2A: {
     variants: [], acceptsLof: true, borderline: true,
@@ -4480,12 +4480,12 @@ const GENE_MAP = {
   // records as having "no single-residue anchor" (KEAP1, CDKN2A, STK11) — for those
   // the class is a property of the domain, so one value per gene is correct.
   // Mutation-specific classes live in MUTATION_CLASS above; TP53 has NO gene-level
-  // class precisely because C275F (B, 44e) and Y220C (C, 38e) differ.
+  // class precisely because C275F (B, cross-validated at CAS(42e,25o)) and Y220C (C, 38e) differ.
   // NOT derived from size. A = quantum-necessary (no classical path); B = quantum-
   // advantaged (classical insufficient). KEAP1 is the tell: biggest at 310q yet B.
   // The previous comment claimed this "matches backend + dissertation". It matched
   // the backend only: both carried TP53 = A while the dissertation says C275F is B.
-  // No gene-level bqp_class: TP53's mutations genuinely differ (C275F = B at 44e,
+  // No gene-level bqp_class: TP53's mutations genuinely differ (C275F = B, cross-validated at CAS(42e,25o);
   // Y220C = C at 38e), so any single value here would be wrong for one of them.
   // See MUTATION_CLASS. active_electrons stays at C275F's 48e as the display default
   // for unlisted TP53 variants, which is why such variants resolve to "not classified"
@@ -5547,7 +5547,7 @@ function loadNGSReport(ngs) {
 // through here rather than any hardcoded table.
 // A DMRG run classifies the active space it was actually given — nothing more.
 // A deliberately small validation run (a few residues, CAS(6,4)) against a target
-// whose real site is ~44e is a pipeline check, not a verdict on the mutation: its
+// whose real site is up to ~48e is a pipeline check, not a verdict on the mutation: its
 // own rationale, "6e <= 18e exact-classical wall", is a statement about six
 // electrons. Letting such a run repaint the target's class would silently promote
 // an infrastructure test into a scientific claim about a site it never touched —
@@ -5558,7 +5558,7 @@ window.solangeDmrgCoversSite = function(dmrgRow, activeElectrons) {
   const runE  = Number(dmrgRow && dmrgRow.nelecas);
   const siteE = Number(activeElectrons);
   if (!isFinite(runE) || !isFinite(siteE) || siteE <= 0) return true;
-  return runE >= 0.9 * siteE;   // GENE_MAP site sizes are approximate ("~44e") — allow a margin
+  return runE >= 0.9 * siteE;   // GENE_MAP site sizes are approximate ("~48e") — allow a margin
 };
 
 // Correlation energy — the measured evidence sitting under the BQP class label.
@@ -7717,7 +7717,7 @@ const MUT_COLORS = {
 
 const MUT_META = {
   TP53_Y220C:  { full_electrons: 38,  full_qubits: 76,  backend: 'IBM Heron r3',                                                         hardware_era: 'placeholder',    source: 'reference',   display_name: 'TP53 Y220C'     },
-  TP53_C275F:  { full_electrons: 44,  full_qubits: 88,  backend: 'IBM Heron r3',                                                         hardware_era: 'current',        source: 'ngs',         display_name: 'TP53 C275F'     },
+  TP53_C275F:  { full_electrons: 48,  full_qubits: 56,  backend: 'IBM Heron r3',                                                         hardware_era: 'current',        source: 'ngs',         display_name: 'TP53 C275F'     },
   KEAP1_LOF:   { full_electrons: 155, full_qubits: 310, backend: 'fault-tolerant QPU (~2030+)',                                          hardware_era: 'fault_tolerant', source: 'ngs',         display_name: 'KEAP1 LOF'      },
   KEAP1_G333C: { full_electrons: 155, full_qubits: 310, backend: 'fault-tolerant QPU (~2030+)',                                          hardware_era: 'fault_tolerant', source: 'ngs_sibling', display_name: 'KEAP1 G333C'    },
   KEAP1_R320Q: { full_electrons: 155, full_qubits: 310, backend: 'fault-tolerant QPU (~2030+)',                                          hardware_era: 'fault_tolerant', source: 'ngs_sibling', display_name: 'KEAP1 R320Q'    },

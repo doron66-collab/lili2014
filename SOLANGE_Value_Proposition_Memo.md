@@ -25,7 +25,7 @@ Richard Feynman (1918–1988), in his 1981/82 paper *"Simulating Physics with Co
 
 | End User | Why They Need SOLANGE |
 |---|---|
-| Computational/medicinal chemists (pharma & biotech) | Require ground-state energies and electronic structure for mutation sites that classical methods cannot handle past ~18 active electrons (e.g., TP53 C275F requires ~44e/88q). |
+| Computational/medicinal chemists (pharma & biotech) | Require ground-state energies and electronic structure for mutation sites that classical methods cannot handle past ~18 active electrons (e.g., TP53 C275F's 48-electron space needed DMRG; it proved classically tractable, Class B). |
 | Academic and translational cancer research labs | Study "non-druggable" tumor suppressors (TP53, STK11, KEAP1) that have no known small-molecule binding pocket, and need a computational foothold. |
 | Regulatory/compliance teams within pharma | The P1–P9 provenance schema, aligned with FDA 21 CFR §11.10(e), means SOLANGE output could feed directly into an IND/NDA submission package rather than remaining exploratory research. |
 | Quantum hardware partners (e.g., IBM) | Gain a flagship oncology use case demonstrating real-world value for their fault-tolerant hardware roadmap (Heron r3 → Starling → Blue Jay). |

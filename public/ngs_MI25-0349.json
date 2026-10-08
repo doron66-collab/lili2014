@@ -22,8 +22,8 @@
       "tier": "I",
       "badge_type": "Structural",
       "simulation_id": "TP53_C275F",
-      "active_electrons": 44,
-      "full_qubits": 88,
+      "active_electrons": 48,
+      "full_qubits": 56,
       "color": "#E8A020"
     },
     {

@@ -593,8 +593,8 @@ print("""
     Hardware run: IBM Sherbrooke (127-qubit Eagle r3) — fits comfortably
 
   PHASE 3B ACTIVE SPACE (IBM Heron r3 target):
-    CAS(44e, 44o) — full TP53 DBD functional site
-    Jordan-Wigner encoding: 44 electrons × 2 = 88 qubits
+    Largest AVAS space measured on 2OCJ: CAS(48,28)
+    Jordan-Wigner encoding: 28 orbitals × 2 = 56 qubits
     Requires IBM Heron r3 (133-qubit, gate fidelity >99.9%)
 """)
 
