@@ -265,10 +265,10 @@
     <text x="12" y="296" fill="rgba(140,165,210,0.7)" font-size="8.5" font-style="italic" font-family="Courier New,monospace">p.Cys275Phe</text>
     <text x="12" y="314" fill="#00bcd4" font-size="11" font-weight="bold" font-family="Courier New,monospace">Eprenetapopt  (APR-246)</text>
     <text x="12" y="330" fill="rgba(140,165,210,0.75)" font-size="8.5" font-family="Courier New,monospace">No C275F-specific trial · Research stage</text>
-    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">beta-sandwich core collapse</text>
-    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">→ global misfolding</text>
-    <text x="373" y="347" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Active space: ~44e · ~88 qubits</text>
-    <text x="373" y="358" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">IBM Heron r3 · sqDRIFT target</text>
+    <text x="12" y="347" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Class B — classically tractable</text>
+    <text x="12" y="358" fill="rgba(110,140,185,0.65)" font-size="7.5" font-family="Courier New,monospace">DMRG ≈ SHCI (0.19 mHa), CAS(42e,25o)</text>
+    <text x="373" y="347" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Largest AVAS space: CAS(48,28) · 56 qubits</text>
+    <text x="373" y="358" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">No quantum necessity measured</text>
     <text x="373" y="369" fill="rgba(90,120,165,0.55)" font-size="7" font-family="Courier New,monospace" text-anchor="end">Emek Medical MI25-0349</text>
   </g>
 
@@ -335,6 +335,6 @@
     <text x="26" y="314" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Backbone Cα traces — RCSB PDB</text>
     <text x="26" y="326" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Projection: PCA (PC1 × PC2)</text>
     <text x="26" y="338" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Secondary structure: HELIX / SHEET records</text>
-    <text x="26" y="350" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">sqDRIFT (VQE) classes: IBM Heron r3 targets</text>
+    <text x="26" y="350" fill="rgba(120,145,185,0.65)" font-size="7.5" font-family="Courier New,monospace">Class A/B/C: DMRG-measured (§06.i)</text>
   </g>
 </svg>

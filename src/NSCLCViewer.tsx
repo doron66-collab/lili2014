@@ -55,12 +55,20 @@ const MUT_INFO = [
     mech: 'D194 is the catalytic Asp of the kinase DFG motif; D194N abolishes catalytic activity entirely — no drug targets this site or this specific mutation. TNG260 exploits a downstream epigenetic/immune vulnerability in STK11-mutant tumors broadly (not D194N specifically), in STK11-mutation-selected patients. (Ceralasertib+Durvalumab/LATIFY, cited here until 2026-10-07, read out negative in a non-STK11-selected population — dropped.)',
   },
   {
-    // TP53 C275F — structural β-sandwich core mutant (p.Cys275Phe)
+    // TP53 C275F — p.Cys275Phe, p53 DNA-binding domain
     // Detected: Emek Medical Center MI25-0349 · June 2025
-    // sqDRIFT active space: 18–48 active electrons (AVAS-tested, criterion-dependent) · 24–56 qubits
-    id: 'TP53', variant: 'C275F', drug: 'Eprenetapopt', sub: 'APR-246 · Pan-mutant p53 reactivator',
-    phase: 'No C275F-specific trial · Research stage', color: 0xffdd22,
-    mech: 'p.Cys275Phe replaces core β-sandwich Cys with bulky Phe → hydrophobic core collapse → global misfolding. No mutation-specific drug exists. Quantum simulation (sqDRIFT) of the π-electron pocket is the frontier approach. Active space: 18–48e · 24–56 qubits',
+    // Corrected 2026-10-08: the previous text claimed "Quantum simulation
+    // (sqDRIFT) of the π-electron pocket is the frontier approach" -- this
+    // project's own cross-validated result says the opposite (Class B,
+    // classically tractable; DMRG and SHCI agree to 0.19 mHa), there is no
+    // pocket at this site (fpocket on 2OCJ: no single-chain cavity clears the
+    // druggability bar), and the "hydrophobic core collapse -> global
+    // misfolding" mechanism had no verified source in this project. Every
+    // number below is quoted from targets.json (TP53_C275F), the single
+    // source of truth for target facts.
+    id: 'TP53', variant: 'C275F', drug: 'Eprenetapopt', sub: 'APR-246 · Pan-mutant p53 reactivator (not C275F-specific)',
+    phase: 'No C275F-specific trial · Ph. III in TP53-mutant MDS missed its primary endpoint', color: 0xffdd22,
+    mech: 'p.Cys275Phe in the p53 DNA-binding domain (PDB 2OCJ). Electronic structure: Class B — classically tractable. DMRG and SHCI agree to 0.19 mHa at CAS(42e,25o); largest AVAS space tested CAS(48,28) = 56 qubits. No quantum computation is needed to classify this site. No druggable pocket found at it, and no mutation-specific drug exists.',
   },
 ] as const;
 
