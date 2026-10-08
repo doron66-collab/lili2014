@@ -242,7 +242,7 @@ def protonate(ph=7.4, out=None):
 
 
 def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=300,
-             chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp"):
+             chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp", newton_max_cycle=60):
     """High-spin (S=15/2, spin=15) ROHF reference -- the single-determinant,
     genuinely well-behaved state. Same reasoning as run_gate2_sdhb.py's
     build_mf(): never build the low-spin (S=1/2) state's own independent
@@ -291,6 +291,26 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=30
         f.max_cycle = max_cycle
         return f
 
+    def _converge(f, dm0, label):
+        """DIIS + level shift first (cheap per iteration); if that runs out of
+        cycles, CONTINUE from exactly where it stopped with second-order SCF
+        (PySCF's co-iterative augmented-Hessian `newton`) -- far more robust
+        for multi-iron open-shell references, at a higher cost per step.
+        Added 2026-10-08 after the def2-svp stage itself failed to converge
+        in 300 level-shifted DIIS cycles on the real cluster: the problem is
+        the SCF landscape, not the basis size, and more DIIS cycles alone
+        would not have fixed it."""
+        f.kernel(dm0)
+        if f.converged:
+            return f
+        print(f"[scf] {label}: DIIS+level-shift did not converge in {f.max_cycle} cycles "
+              f"(E={f.e_tot:.8f}) -- continuing from that point with second-order SCF (newton)")
+        g = f.newton()
+        g.max_cycle = newton_max_cycle
+        g.kernel(f.mo_coeff, f.mo_occ)
+        print(f"[scf] {label}: second-order SCF converged={g.converged} E={g.e_tot:.8f}")
+        return g
+
     mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=3)
     print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
     mf = _rohf(mol)
@@ -307,15 +327,14 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=30
         print(f"[scf] stage 1: converging ROHF in {guess_basis} as a starting guess "
               f"(level_shift={level_shift}, max_cycle={max_cycle})")
         mol_s = gto.M(atom="\n".join(lines), basis=guess_basis, charge=charge, spin=spin, verbose=3)
-        mf_s = _rohf(mol_s)
-        mf_s.kernel()
+        mf_s = _converge(_rohf(mol_s), None, f"stage 1 ({guess_basis})")
         print(f"[scf] stage 1 ({guess_basis}): converged={mf_s.converged} E={mf_s.e_tot:.8f}")
         dm0 = np.array([addons.project_dm_nr2nr(mol_s, d, mol) for d in mf_s.make_rdm1()])
 
     if chkfile:
         mf.chkfile = chkfile
     print(f"[scf] stage 2: ROHF in {basis} (level_shift={level_shift}, max_cycle={max_cycle})")
-    mf.kernel(dm0)
+    mf = _converge(mf, dm0, f"stage 2 ({basis})")
     print(f"[scf] converged={mf.converged} E_SCF={mf.e_tot:.8f}")
     if not mf.converged:
         print("*** SCF did NOT converge -- treat any active space below as provisional")
