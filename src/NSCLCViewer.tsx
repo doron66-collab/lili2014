@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import PDBMolViewer from './PDBMolViewer';
+import targets from '../targets.json';
 
 // ── Mutation info — text only, no fabricated geometry ────────────────────────
 // Previously this file also built a hand-crafted, entirely fictional 3D model
@@ -213,6 +214,52 @@ interface PdbMutInfo {
   url?: string;   // optional explicit structure URL (e.g. AlphaFold model)
 }
 
+// ── Mutation → structure lookup (search box) ─────────────────────────────────
+// Lets the search box take a mutation ("TP53 G245S", "TP53_G245S", or just
+// "G245S" when unambiguous) and load that mutation's own PDB entry with its
+// residue highlighted, instead of only a gene symbol (which resolves to the
+// gene's FIRST RCSB hit, e.g. a wild-type structure) or a bare PDB ID. PDB IDs
+// come from targets.json, the single source of truth for target facts, so
+// this list can never drift from what the classifier and dissertation cite.
+// Left out rather than guessed: entries without a usable experimental
+// structure (AlphaFold-only, none, or several candidates), gene-level entries
+// with no residue (KEAP1_LOF, STK11_LKB1), and entries whose own
+// structure_caveat says the residue is UNRESOLVED or the STRUCTURE INVALID
+// in that PDB entry (KEAP1 R320Q, STK11 F354L, ARID1A R1020S) -- loading
+// those would highlight a residue that is not in the file.
+//
+// Chains: targets.json records no chain, so these are the known non-'A'
+// cases; everything else defaults to 'A'. STK11 in 2WTK is chain C (A is
+// MO25alpha, confirmed live 2026-10-07). KEAP1's 1U6D is set to chain X, the
+// same choice the curated 2FLU entry above makes -- not re-verified live. Check the viewer's "chains in this file" list if a
+// highlight doesn't land where expected.
+const CHAIN_OVERRIDE: Record<string, string> = { '2WTK': 'C', '1U6D': 'X' };
+
+interface MutationStructure {
+  key: string; gene: string; variant: string; pdb: string; chain: string; res: number[];
+}
+
+const MUTATION_STRUCTURES: MutationStructure[] = Object.entries(
+  (targets as { mutations: Record<string, { pdb?: string | null; structure_caveat?: string | null }> }).mutations,
+).flatMap(([key, t]) => {
+  const pdb = (t.pdb || '').trim().toUpperCase();
+  if (!/^[0-9][A-Z0-9]{3}$/.test(pdb)) return [];
+  if (/^(UNRESOLVED|STRUCTURE INVALID)/i.test((t.structure_caveat || '').trim())) return [];
+  const [gene, ...rest] = key.split('_');
+  const variant = rest.join('_');
+  const m = variant.match(/^[A-Z](\d+)[A-Z*]$/);
+  if (!m) return [];
+  return [{ key, gene, variant, pdb, chain: CHAIN_OVERRIDE[pdb] || 'A', res: [parseInt(m[1], 10)] }];
+});
+
+function findMutation(q: string): MutationStructure | null {
+  const norm = q.trim().toUpperCase().replace(/\s*\(.*\)\s*$/, '').replace(/[\s_]+/g, ' ');
+  const exact = MUTATION_STRUCTURES.find(m => `${m.gene} ${m.variant}` === norm);
+  if (exact) return exact;
+  const byVariant = MUTATION_STRUCTURES.filter(m => m.variant === norm);
+  return byVariant.length === 1 ? byVariant[0] : null;
+}
+
 // Loose PDB ID shape: 4 chars, first a digit (e.g. 2WTK, 6NFI) — RCSB's own
 // convention. Anything else is treated as a gene symbol and resolved via the
 // same UniProt→RCSB→AlphaFold backend lookup the NGS-driven path already uses.
@@ -299,6 +346,18 @@ export default function NSCLCViewer() {
     const resNums = manualRes.trim()
       ? manualRes.split(',').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n))
       : [];
+    const mut = findMutation(q);
+    if (mut) {
+      // A chain/residue the user typed explicitly still wins over the table's.
+      setManualStatus(null);
+      setManual({
+        id: mut.gene, variant: mut.variant, pdb: mut.pdb,
+        chain: manualChain.trim() && manualChain.trim() !== 'A' ? manualChain.trim() : mut.chain,
+        highlightRes: resNums.length ? resNums : mut.res, color: 0x06b6d4,
+        drug: 'Verified target structure (targets.json)', phase: '—',
+      });
+      return;
+    }
     if (looksLikePdbId(q)) {
       setManualStatus(null);
       setManual({
@@ -348,13 +407,19 @@ export default function NSCLCViewer() {
       <input
         value={query}
         onChange={e => setQuery(e.target.value)}
-        placeholder="Gene symbol or PDB ID (e.g. ARID1A, 2WTK)"
+        placeholder="Mutation, gene or PDB ID (e.g. TP53 G245S, 2WTK)"
+        list="solange-mutation-structures"
         style={{
           background: 'rgba(6,182,212,.08)', border: '1px solid rgba(6,182,212,.3)',
           color: '#f1f5f9', borderRadius: 6, padding: '4px 8px', fontSize: 11,
-          width: 200, outline: 'none',
+          width: 230, outline: 'none',
         }}
       />
+      <datalist id="solange-mutation-structures">
+        {MUTATION_STRUCTURES.map(m => (
+          <option key={m.key} value={`${m.gene} ${m.variant}`}>{`${m.pdb} · chain ${m.chain}${m.res.length ? ` · res ${m.res.join(',')}` : ''}`}</option>
+        ))}
+      </datalist>
       <input
         value={manualChain}
         onChange={e => setManualChain(e.target.value.toUpperCase())}
