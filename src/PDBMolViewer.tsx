@@ -808,31 +808,40 @@ export default function PDBMolViewer({ mutation, onBack, onPrev, onNext, navPosi
                                 background: selected ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.04)',
                                 border: `1px solid ${selected ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.1)'}`,
                                 borderRadius: 7, padding: '6px 9px', color: 'rgba(220,235,255,0.95)', fontSize: 14.5,
-                                display: 'flex', alignItems: 'center', gap: 8,
+                                display: 'flex', flexDirection: 'column', gap: 4,
                               }}
                             >
-                              <span style={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-                              <span style={{ flex: 1 }}>
-                                pocket {p.pocket_id}
-                                {' · '}druggability {(p.druggability_score ?? 0).toFixed(2)}
-                                {' · '}<span title="fpocket's own combined score — ranks candidates here, NOT druggability alone (a higher druggability can still rank below a lower one; see module docstring on the TP53 2OCJ crystal-contact-artifact case this distinction was built to catch)">
-                                  score {(p.score ?? 0).toFixed(2)}
+                              {/* Two fixed lines instead of one long wrapping sentence: in the
+                                  narrow side panel the old single line broke after
+                                  "druggability", separating every label from its value
+                                  (reported live). Line 1 = identity + tags, line 2 = numbers,
+                                  each label/value pair nowrap so they never split apart. */}
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                                <span style={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                                <b style={{ fontSize: 14.5, whiteSpace: 'nowrap' }}>pocket {p.pocket_id}</b>
+                                <span style={{ marginLeft: 'auto', display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                  {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 11.5, letterSpacing: 1, whiteSpace: 'nowrap' }}>BEST</span>}
+                                  {p.pocket_id === bestAtSiteId && p.pocket_id !== bestId && (
+                                    <span style={{ color: '#39ff14', fontSize: 11.5, letterSpacing: 1, whiteSpace: 'nowrap' }} title="Highest-score pocket among those overlapping the mutation residue — NOT the same ranking as BEST, which considers the whole structure">
+                                      BEST AT SITE
+                                    </span>
+                                  )}
+                                  {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 11.5, letterSpacing: 1, whiteSpace: 'nowrap' }}>● SITE</span>}
+                                  {!onPrimaryChain && (
+                                    <span style={{ color: '#9aa8c4', fontSize: 11, letterSpacing: 0.5, whiteSpace: 'nowrap' }} title="This pocket is on a complex partner chain, dimmed grey in the 3D view — not the mutation's own chain">
+                                      ◌ dimmed chain
+                                    </span>
+                                  )}
                                 </span>
-                                {' · '}{(p.volume ?? 0).toFixed(0)} Å³
-                                {' · '}chain{p.chains.length > 1 ? 's' : ''} {p.chains.join('/')}
                               </span>
-                              {p.pocket_id === bestId && <span style={{ color: '#ffd20a', fontSize: 12, letterSpacing: 1 }}>BEST</span>}
-                              {p.pocket_id === bestAtSiteId && p.pocket_id !== bestId && (
-                                <span style={{ color: '#39ff14', fontSize: 12, letterSpacing: 1 }} title="Highest-score pocket among those overlapping the mutation residue — NOT the same ranking as BEST, which considers the whole structure">
-                                  BEST AT SITE
+                              <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 2, paddingLeft: 16, fontSize: 12.5, color: 'rgba(200,215,240,0.95)' }}>
+                                <span style={{ whiteSpace: 'nowrap' }}>druggability <b>{(p.druggability_score ?? 0).toFixed(2)}</b></span>
+                                <span style={{ whiteSpace: 'nowrap' }} title="fpocket's own combined score — ranks candidates here, NOT druggability alone (a higher druggability can still rank below a lower one; see module docstring on the TP53 2OCJ crystal-contact-artifact case this distinction was built to catch)">
+                                  score <b>{(p.score ?? 0).toFixed(2)}</b>
                                 </span>
-                              )}
-                              {p.includes_target_residue && <span style={{ color: '#fff', fontSize: 12, letterSpacing: 1 }}>● SITE</span>}
-                              {!onPrimaryChain && (
-                                <span style={{ color: '#9aa8c4', fontSize: 11, letterSpacing: 0.5 }} title="This pocket is on a complex partner chain, dimmed grey in the 3D view — not the mutation's own chain">
-                                  ◌ dimmed chain
-                                </span>
-                              )}
+                                <span style={{ whiteSpace: 'nowrap' }}>{(p.volume ?? 0).toFixed(0)} Å³</span>
+                                <span style={{ whiteSpace: 'nowrap' }}>chain{p.chains.length > 1 ? 's' : ''} {p.chains.join('/')}</span>
+                              </span>
                             </button>
                           );
                         })}
