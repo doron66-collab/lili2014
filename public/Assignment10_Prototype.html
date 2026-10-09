@@ -570,7 +570,7 @@
       <div class="card-title">Non-Druggable Target Registry — Active Queue</div>
       <!-- BQP filter legend — hidden until NGS loaded -->
       <div id="bqp-filter-legend" style="display:none;margin-bottom:10px;padding:8px 10px;border-radius:6px;background:rgba(255,255,255,0.04);font-size:11px;line-height:1.9">
-        <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8724a;margin-right:8px;vertical-align:middle"></span><strong style="color:#e8724a">A - Quantum-necessary.</strong> <span style="color:#e2e8f0">No classical path exists</span></div>
+        <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8724a;margin-right:8px;vertical-align:middle"></span><strong style="color:#e8724a">A - Quantum-necessary (provisional).</strong> <span style="color:#e2e8f0">Not resolved classically within the declared budget; a direction, not a proof</span></div>
         <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1d8fb0;margin-right:8px;vertical-align:middle"></span><strong style="color:#1d8fb0">B - Quantum-advantaged.</strong> <span style="color:#e2e8f0">Classical methods insufficient</span></div>
         <div style="opacity:0.5"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5c6168;margin-right:8px;vertical-align:middle"></span><strong style="color:#9ca3af">C - Filtered out.</strong> <span style="color:#e2e8f0">Classical methods sufficient</span></div>
         <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08)">
@@ -801,7 +801,7 @@
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-18).toFixed(1) + '" fill="rgba(34,197,94,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS B &mdash; quantum-advantaged</text>');
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (yPix(S_MIN)-7).toFixed(1) + '" fill="rgba(34,197,94,.6)" font-size="8" text-anchor="end">tensor-network methods still converge here</text>');
 
-      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-26).toFixed(1) + '" fill="rgba(239,68,68,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS A &mdash; quantum-necessary</text>');
+      svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-26).toFixed(1) + '" fill="rgba(239,68,68,.95)" font-size="10" font-weight="700" text-anchor="end">CLASS A &mdash; provisional (unresolved at budget)</text>');
       svg.push('<text x="' + (W-PAD_R-4) + '" y="' + (hardY-15).toFixed(1) + '" fill="rgba(245,158,11,.85)" font-size="8" text-anchor="end">single-method (DMRG) evidence &middot; confidence: medium</text>');
 
       // calibration pair — the platform's own constants
@@ -2223,7 +2223,7 @@
                 (x.id?('<input type="checkbox" class="dmrg-del-chk" data-id="'+x.id+'" onchange="updateDmrgDelBtn()" title="Select this DMRG classification for deletion" style="margin-left:6px;vertical-align:middle;cursor:pointer">'):'')+'</td></tr>';
         });
         dmrgPaint(hh+'</table>'+
-          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = quantum-necessary (even DMRG fails) · B = DMRG suffices · C = exact classical suffices. '+
+          '<div style="color:var(--gray);font-size:10px;margin-top:6px">Class A = provisional: not resolved classically within the declared budget (never a proof) · B = DMRG suffices · C = exact classical suffices. '+
           'S_max is the physical evidence — the entanglement threshold, not a size assumption.</div>');
         if (typeof window.updateDmrgDelBtn === 'function') window.updateDmrgDelBtn();
         // Reflect DMRG's classifications onto the Results-tab status badges —
@@ -2733,7 +2733,7 @@
       </tr>
       </tbody>
     </table>
-    <div class="footnote" style="margin-top:8px">★ marks a Class A (quantum-necessary) target. JW = Jordan-Wigner encoding. Load an NGS report to add patient-specific targets.</div>
+    <div class="footnote" style="margin-top:8px">★ marks a Class A (provisional: unresolved classically at the declared budget) target. JW = Jordan-Wigner encoding. Load an NGS report to add patient-specific targets.</div>
   </div>
 
   <!-- Live Results from Supabase -->
@@ -5466,7 +5466,7 @@ function loadNGSReport(ngs) {
     const nA = allVariants.filter(av => av.bqpCls === 'A').length;
     const nB = allVariants.filter(av => av.bqpCls === 'B').length;
     bqpSummary.innerHTML = n
-      ? `<strong style="color:var(--gold)">${nA} quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong> — no classical path reaches chemical accuracy for either class`
+      ? `<strong style="color:var(--gold)">${nA} provisional quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong> — B is certified classically tractable; A is unresolved within the declared budget, never proven`
       : '';
   }
 
@@ -5695,7 +5695,7 @@ window.solangeReconcileDmrgClasses = function(dmrgRows) {
     const nB = vals.filter(v => v.bqpCls === 'B').length;
     const nC = vals.filter(v => v.bqpCls === 'C').length;
     const cNote = nC ? ` · <span style="color:var(--gray)">${nC} classically tractable (C)</span>` : '';
-    bqpSummary.innerHTML = `<strong style="color:var(--gold)">${nA} quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong>${cNote} — no classical path reaches chemical accuracy for either class`;
+    bqpSummary.innerHTML = `<strong style="color:var(--gold)">${nA} provisional quantum-necessary (A)</strong> · <strong style="color:var(--teal)">${nB} quantum-advantaged (B)</strong>${cNote} — no classical path reaches chemical accuracy for either class`;
   }
 };
 

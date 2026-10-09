@@ -528,8 +528,10 @@ def classify(active_electrons, energies, s_max):
                      f"(ΔE={dE_final:.2f} mHa) and entanglement is low (S_max={smx} < "
                      f"{S_HARD}) — classical (DMRG) delivers; quantum-advantaged, not necessary.")
     if strong:
-        return "A", (f"quantum-necessary — S_max={smx} > {S_HARD} (strong correlation; "
-                     f"DMRG bond dim ~e^S blows up at the full {active_electrons}e site).")
+        return "A", (f"provisional quantum-necessary — S_max={smx} > {S_HARD} (strong correlation; "
+                     f"DMRG bond dim ~e^S blows up at the full {active_electrons}e site). Unresolved "
+                     f"classically within this run's declared budget; not a proof of necessity, "
+                     f"which no finite computation can establish.")
     if not converged:
         return "INCONCLUSIVE", (
             f"DMRG not at chemical accuracy by practical M={m_reached} (ΔE="
@@ -547,7 +549,8 @@ def classify(active_electrons, energies, s_max):
     # Should be unreachable (converged-and-strong falls through to here only if
     # converged but strong, i.e. chemical accuracy reached yet S_max > S_HARD --
     # DMRG agrees with itself at a practical M while reporting high entanglement).
-    return "A", f"quantum-necessary — S_max={smx} > {S_HARD} despite DMRG convergence at M={m_reached}."
+    return "A", (f"provisional quantum-necessary — S_max={smx} > {S_HARD} despite DMRG convergence at "
+                 f"M={m_reached}. A direction within the declared budget, not a proof of necessity.")
 
 
 def integrals_from_geometry(xyz_path, basis, avas_aos, charge=0, spin=0, verbose=0,
@@ -1408,8 +1411,13 @@ def main():
               "above still ran.", flush=True)
     cls, rationale = classify(args.nelecas, energies, s_max)
     print("-" * 68)
+    # Class A is ALWAYS provisional (2026-10-09): classical failure "at any budget"
+    # cannot be shown for a finite instance, and no fault-tolerant QPU exists to
+    # show quantum success, so the strongest honest claim is "unresolved within
+    # the declared budget". Class B, by contrast, can be certified.
     provisional_tag = (' (PROVISIONAL — time budget hit)' if time_budget_hit
                         else ' (PROVISIONAL — orbital optimization did not converge)' if orbital_provisional
+                        else ' (PROVISIONAL — unresolved within declared budget, not a proof)' if cls == 'A'
                         else '')
     print(f"CLASS {cls}{provisional_tag}")
     print(f"  {rationale}")
