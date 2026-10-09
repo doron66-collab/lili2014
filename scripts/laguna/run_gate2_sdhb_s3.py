@@ -348,11 +348,20 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
     return mf
 
 
-def avas_at_threshold(mf, ao_labels, threshold):
+def avas_at_threshold(mf, ao_labels, threshold, openshell_option=3):
+    # openshell_option=3 keeps every singly-occupied ROHF orbital in the
+    # active space. PySCF's default (2) projects SOMOs together with the
+    # doubly-occupied orbitals, so "core" orbitals can carry SOMO character
+    # and the ROHF determinant is no longer inside the CAS. Found 2026-10-09:
+    # job 2350799's S=15/2 DMRG leg converged 3.6 Ha ABOVE E_ROHF on option-2
+    # orbitals (diag_sdhb_s3_embedding.py reproduces the leak on a small
+    # Fe-S model: beta core occupation 0.985 and +31.6 mHa with option 2,
+    # exactly 1.000 and 0.000 mHa with option 3).
     from pyscf.mcscf import avas
     aos = [s.strip() for s in ao_labels.split(",")]
-    ncas, nelecas, mo = avas.avas(mf, aos, threshold=threshold)
-    print(f"[avas] threshold={threshold} AOs={aos} -> CAS({nelecas},{ncas}) "
+    ncas, nelecas, mo = avas.avas(mf, aos, threshold=threshold,
+                                  openshell_option=openshell_option)
+    print(f"[avas] openshell_option={openshell_option} threshold={threshold} AOs={aos} -> CAS({nelecas},{ncas}) "
           f"= {2 * ncas} qubits under Jordan-Wigner")
     spec = dict(threshold=threshold, ncas=int(ncas), nelecas=int(nelecas), qubits=int(2 * ncas))
     return spec, mo
@@ -626,6 +635,18 @@ def main():
                  f"nothing from such a run is reportable. ***")
     spec, mo = avas_at_threshold(mf_hs, "Fe 3d, S 3p", a.threshold)
     ncas, nelecas = spec["ncas"], spec["nelecas"]
+
+    # Embedding gate BEFORE any DMRG: the ROHF determinant, evaluated with the
+    # same h1e/h2e/ecore the DMRG legs will use, must reproduce E_ROHF. If it
+    # doesn't, the core/active split excludes the reference and every DMRG
+    # energy downstream is meaningless -- refuse in minutes, not after 7 hours.
+    from diag_sdhb_s3_embedding import check as _embedding_check
+    e_det = _embedding_check(mf_hs, mo, ncas, nelecas, "pre-DMRG embedding gate")
+    if abs(e_det - mf_hs.e_tot) * 1000.0 > 1.0:
+        sys.exit(f"\n*** REFUSING: ROHF determinant in the CAS integrals gives {e_det:.8f}, "
+                 f"E_ROHF={mf_hs.e_tot:.8f} ({(e_det - mf_hs.e_tot) * 1000:+.3f} mHa). The "
+                 f"active space does not contain the reference; no DMRG run on it is "
+                 f"interpretable. ***")
 
     mo_path = f"{a.out_dir}/sdhb_s3_mo_coeff_highspin.npy"
     import numpy as np
