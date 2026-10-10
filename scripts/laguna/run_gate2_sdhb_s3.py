@@ -63,6 +63,16 @@ REGION_RESIDUES = {
     ("B", "303"): "F3S",
 }
 CYS_LIGANDS = {"196", "243", "249"}   # thiolates, part of the cluster core
+# Optional backbone-only extension (--extend-backbone), per Claude Science's
+# 2026-10-10 reply: the 43-atom model drops 10 of the 12 N-H...S hydrogen bonds
+# the protein donates to the cluster sulfurs (measured in 8GS8, N...S < 3.8 A;
+# see s3_model_extension.csv), which makes the sulfurs far more electron-rich
+# than in the protein and ligand oxidation competitive with three Fe(III).
+# Backbone N/H/CA/HA/C/O plus CB (side chain capped with H at CB) restores
+# all 12 donors without bringing in any titratable side chain (HIS244's ring
+# stays out, so no protonation decision is needed). Neutral: charge unchanged.
+BACKBONE_EXTENSION = {("B", s) for s in ("198", "199", "244", "245", "246", "247", "248", "250")}
+BACKBONE_NAMES = {"N", "H", "CA", "HA", "C", "O", "CB"}
 SIDECHAIN_Q = {"ARG": 1, "LYS": 1, "ASP": -1, "GLU": -1}
 # [3Fe-4S]1+ core: 3 Fe(III) + 4 inorganic S(2-) = 3(+3) + 4(-2) = +1
 # (contrast run_gate2_sdhb.py's FES_CORE_CHARGE=+2 for [2Fe-2S]2+ -- a
@@ -153,16 +163,23 @@ def read_f3s_from_cif(pdb_id, chain, resseq):
     return out
 
 
-def build_cluster(atoms):
+def build_cluster(atoms, extend_backbone=False):
     """Same approach as run_gate2_sdhb.py's build_cluster(): explicit charge
     assignment from the cofactor's own formal core charge + thiolates, not a
-    generic metal-distance heuristic."""
+    generic metal-distance heuristic. extend_backbone adds BACKBONE_EXTENSION
+    (backbone + CB only, neutral) -- see that constant's comment."""
     groups = {}
     for a in atoms:
         key = (a["ch"], a["seq"])
-        if key not in REGION_RESIDUES:
-            continue
-        groups.setdefault(key, []).append(a)
+        if key in REGION_RESIDUES:
+            groups.setdefault(key, []).append(a)
+        elif extend_backbone and key in BACKBONE_EXTENSION and (
+                a["name"] in BACKBONE_NAMES or a["name"].startswith("HB")):
+            groups.setdefault(key, []).append(a)
+    if extend_backbone:
+        missing_bb = [k for k in BACKBONE_EXTENSION if k not in groups]
+        if missing_bb:
+            sys.exit(f"backbone-extension residues not found: {missing_bb}")
 
     missing = [k for k in REGION_RESIDUES if k not in groups]
     if missing:
@@ -192,6 +209,27 @@ def build_cluster(atoms):
             v = [q[i] - p[i] for i in range(3)]
             nrm = math.sqrt(sum(x * x for x in v)) or 1.0
             caps.append(("H", tuple(p[i] + v[i] / nrm * CAP_BOND_LENGTH for i in range(3))))
+
+    # Side-chain caps for backbone-only residues: every heavy atom bonded to CB
+    # (other than CA) that was left out becomes an H on the CB->X vector.
+    n_sc_caps = 0
+    if extend_backbone:
+        for key in sorted(BACKBONE_EXTENSION):
+            res_atoms = [a for a in atoms if (a["ch"], a["seq"]) == key]
+            cb = [a for a in res_atoms if a["name"] == "CB"]
+            if not cb:
+                continue
+            p = cb[0]["xyz"]
+            for x in res_atoms:
+                if x["elem"] == "H" or x["name"] in BACKBONE_NAMES:
+                    continue
+                v = [x["xyz"][i] - p[i] for i in range(3)]
+                d = math.sqrt(sum(t * t for t in v))
+                if d < 1.9:
+                    caps.append(("H", tuple(p[i] + v[i] / d * CAP_BOND_LENGTH for i in range(3))))
+                    n_sc_caps += 1
+        print(f"[cluster] backbone extension: {len(BACKBONE_EXTENSION)} residues, "
+              f"{n_sc_caps} side-chain H caps at CB")
 
     return groups, caps, charge
 
@@ -242,7 +280,8 @@ def protonate(ph=7.4, out=None):
 
 
 def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80,
-             chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp", newton_max_cycle=60):
+             chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp", newton_max_cycle=60,
+             xc=None, solvent_eps=None):
     """High-spin (S=15/2, spin=15) ROHF reference -- the single-determinant,
     genuinely well-behaved state. Same reasoning as run_gate2_sdhb.py's
     build_mf(): never build the low-spin (S=1/2) state's own independent
@@ -285,11 +324,51 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
     print(f"[scratch] PySCF density-fitting scratch redirected to {dftmp_dir}")
 
     def _rohf(m):
-        f = scf.ROHF(m).density_fit()
+        # xc: orbitals from restricted-open-shell DFT (ROKS) instead of ROHF.
+        # solvent_eps: ddCOSMO dielectric screening. Both per Claude Science's
+        # 2026-10-10 reply: the ROHF minimum is a ligand-radical state of a
+        # bare dianion in vacuum; HF's missing dynamic correlation
+        # systematically destabilizes compact high-spin d5 configurations, and
+        # the functional only has to produce ORBITALS -- DMRG recomputes the
+        # energy inside the active space (BP86 recommended: stable on Fe-S).
+        if xc:
+            from pyscf import dft
+            f = dft.ROKS(m).density_fit()
+            f.xc = xc
+        else:
+            f = scf.ROHF(m).density_fit()
         f.with_df.auxbasis = "def2-universal-jkfit"
         f.level_shift = level_shift
         f.max_cycle = max_cycle
+        if solvent_eps:
+            f = f.ddCOSMO()
+            f.with_solvent.eps = solvent_eps
         return f
+
+    def _as_reference(f):
+        """The object every downstream step uses (AVAS, CAS integrals, both gates).
+
+        For a plain ROHF run that is the SCF itself. For ROKS and/or ddCOSMO it is
+        a gas-phase, density-fitted ROHF object carrying the SAME orbitals, whose
+        e_tot is the Hartree-Fock energy of that determinant -- the quantity the
+        CAS Hamiltonian actually reproduces, and therefore the right reference for
+        the embedding gate and the [embedding-hs] check (E_KS is not: it is a
+        different functional of the same orbitals). The active-space Hamiltonian
+        is gas phase; R is a within-system ratio on one shared orbital set, so a
+        constant environment term cancels in it.
+        """
+        if not xc and not solvent_eps:
+            return f
+        ref = scf.ROHF(f.mol).density_fit()
+        ref.with_df.auxbasis = "def2-universal-jkfit"
+        ref.mo_coeff, ref.mo_occ, ref.mo_energy = f.mo_coeff, f.mo_occ, f.mo_energy
+        ref.e_tot = ref.energy_tot(ref.make_rdm1())
+        ref.converged = f.converged
+        ref.e_scf_source = float(f.e_tot)
+        print(f"[scf] orbitals from {'ROKS/' + xc if xc else 'ROHF'}"
+              f"{f' + ddCOSMO(eps={solvent_eps})' if solvent_eps else ''}: E_SCF={f.e_tot:.8f}; "
+              f"gas-phase HF energy of that determinant (gate reference) = {ref.e_tot:.8f}")
+        return ref
 
     def _converge(f, dm0, label):
         """DIIS + level shift first (cheap per iteration); if that runs out of
@@ -349,6 +428,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
             print(f"[scf] restart: second-order SCF converged={g.converged} E={g.e_tot:.8f}")
             print(f"[scf] converged={g.converged} E_SCF={g.e_tot:.8f}")
             if g.converged:
+                g = _as_reference(g)
                 _report_s2(g)
                 return g
             print("[scf] restart did not converge -- falling back to the full two-stage path")
@@ -369,6 +449,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
     print(f"[scf] converged={mf.converged} E_SCF={mf.e_tot:.8f}")
     if not mf.converged:
         print("*** SCF did NOT converge -- treat any active space below as provisional")
+    mf = _as_reference(mf)
     _report_s2(mf)
     return mf
 
@@ -383,6 +464,19 @@ def avas_at_threshold(mf, ao_labels, threshold, openshell_option=3):
     # Fe-S model: beta core occupation 0.985 and +31.6 mHa with option 2,
     # exactly 1.000 and 0.000 mHa with option 3).
     from pyscf.mcscf import avas
+    import copy
+    import numpy as np
+    # Option 3 slices the MO list by POSITION (doubly occupied = the first
+    # nocc-spin columns, singly occupied = the next spin columns), not by
+    # mo_occ. Second-order SCF / ROKS can return a SOMO energy-ordered among
+    # the virtuals, and AVAS then silently mixes it into the virtual space.
+    # Found 2026-10-10 on a small Fe-S model with ROKS orbitals: 0.008 e leaked
+    # to virtuals and the embedding check missed by +19.9 mHa; sorting by
+    # occupation first gave exactly 0.000 mHa.
+    order = np.argsort(-np.asarray(mf.mo_occ), kind="stable")
+    mf = copy.copy(mf)
+    mf.mo_coeff, mf.mo_occ = mf.mo_coeff[:, order], mf.mo_occ[order]
+    mf.mo_energy = mf.mo_energy[order]
     aos = [s.strip() for s in ao_labels.split(",")]
     ncas, nelecas, mo = avas.avas(mf, aos, threshold=threshold,
                                   openshell_option=openshell_option)
@@ -568,10 +662,25 @@ def main():
                           "the real cluster DIIS+level shift failed to converge in 300 cycles even in "
                           "def2-svp, and at ~2.3 min/cycle in def2-tzvp that is ~11.5 h spent before "
                           "the far more robust newton step even starts.")
-    ap.add_argument("--scf-chkfile", default="sdhb_s3_scf.chk",
+    ap.add_argument("--xc", default=None,
+                     help="Take orbitals from restricted-open-shell DFT with this functional "
+                          "(e.g. BP86) instead of ROHF. Claude Science 2026-10-10.")
+    ap.add_argument("--solvent-eps", type=float, default=None,
+                     help="ddCOSMO dielectric screening during the SCF (protein interior ~4).")
+    ap.add_argument("--extend-backbone", action="store_true",
+                     help="Add backbone + CB of the 8 residues donating the missing N-H...S "
+                          "hydrogen bonds (see BACKBONE_EXTENSION).")
+    ap.add_argument("--mixed-basis", action="store_true",
+                     help="def2-tzvp on Fe and S only, def2-svp on every other atom.")
+    ap.add_argument("--scf-only", action="store_true",
+                     help="Stop after the SCF, the state gate, AVAS and the embedding gate -- "
+                          "no DMRG. For checking which electronic state a model setup lands in.")
+    ap.add_argument("--scf-chkfile", default=None,
                      help="Saved SCF orbitals. Reused as the starting point on the next run if "
                           "present -- makes the reference reproducible across runs, and lets a "
-                          "run that ran out of cycles continue instead of restarting.")
+                          "run that ran out of cycles continue instead of restarting. Default "
+                          "is derived from the model/method flags, so a different setup never "
+                          "restarts from another setup's orbitals.")
     ap.add_argument("--allow-unconverged-scf", action="store_true",
                      help="Proceed to AVAS/DMRG even if the high-spin SCF did not converge. Off by "
                           "default: two real runs with an unconverged reference gave different "
@@ -586,6 +695,20 @@ def main():
                           "bond dims once exceeded rather than being killed mid-sweep with "
                           "nothing recorded. Omit for no limit.")
     a = ap.parse_args()
+
+    # One tag per model/method setup, used in every file name this run reads or
+    # writes -- the old single 'sdhb_s3_scf.chk' now holds the ligand-radical
+    # ROHF state, and no other setup may restart from it (or resume another
+    # setup's DMRG MPS).
+    tag = ("_bb" if a.extend_backbone else "") + ("_mix" if a.mixed_basis else "") + \
+          (f"_{a.xc.lower()}" if a.xc else "") + (f"_eps{a.solvent_eps:g}" if a.solvent_eps else "")
+    if a.scf_chkfile is None:
+        a.scf_chkfile = f"sdhb_s3_scf{tag}.chk"
+    if tag and a.dmrg_scratch == "./tmp_dmrg_s3":
+        a.dmrg_scratch = f"./tmp_dmrg_s3{tag}"
+    basis = ({"Fe": a.basis, "S": a.basis, "default": "def2-svp"} if a.mixed_basis else a.basis)
+    print(f"[setup] tag='{tag or '(plain)'}' chkfile={a.scf_chkfile} dmrg_scratch={a.dmrg_scratch} "
+          f"basis={basis} xc={a.xc or 'none (ROHF)'} solvent_eps={a.solvent_eps}")
 
     verify_wt()
     if a.verify_only:
@@ -622,14 +745,14 @@ def main():
               f"hydrogen (see cluster_spin_guard.py).")
         atoms = [a for a in atoms
                  if not (a["comp"] == "CYS" and a["seq"] in CYS_LIGANDS and a["name"] == "HG")]
-    groups, caps, charge = build_cluster(atoms)
+    groups, caps, charge = build_cluster(atoms, extend_backbone=a.extend_backbone)
     n_heavy = sum(1 for k in groups for a in groups[k] if a["elem"] != "H")
     print(f"[cluster] {len(groups)} residues, {n_heavy} heavy atoms, {len(caps)} capping H, "
           f"net charge {charge:+d} (spec expects {EXPECTED_NET_CHARGE:+d})")
     if charge != EXPECTED_NET_CHARGE:
         print(f"[cluster] NOTE: charge differs from spec -- check whether pdbfixer assigned "
               f"a spurious HG to a metal-bound Cys thiolate before trusting this number.")
-    xyz = "sdhb_s3_cluster.xyz"
+    xyz = f"sdhb_s3_cluster{'_bb' if a.extend_backbone else ''}.xyz"
     write_xyz(groups, caps, xyz, comment=f"SDHB [3Fe-4S] S3 site, {PDB_ID}, Fe3d+bridging-S3p AVAS")
     print(f"[cluster] wrote {xyz}")
     print(f"[core] Fe 3s/3p treated as {a.fe_semicore} (--fe-semicore)")
@@ -650,8 +773,9 @@ def main():
     print(f"[guard] preflight passed: N={nelectron}, charge={charge:+d}, spin=15, "
           f"{len(sg_indices)} ligating SG checked for residual H")
 
-    mf_hs = build_mf(xyz, charge, spin=15, basis=a.basis, level_shift=a.scf_level_shift,
-                     max_cycle=a.scf_max_cycle, chkfile=a.scf_chkfile)
+    mf_hs = build_mf(xyz, charge, spin=15, basis=basis, level_shift=a.scf_level_shift,
+                     max_cycle=a.scf_max_cycle, chkfile=a.scf_chkfile,
+                     xc=a.xc, solvent_eps=a.solvent_eps)
     if not mf_hs.converged and not a.allow_unconverged_scf:
         sys.exit(f"\n*** REFUSING to continue: high-spin SCF did not converge "
                  f"(E={mf_hs.e_tot:.8f}). Its orbitals were saved to {a.scf_chkfile} -- "
@@ -687,10 +811,15 @@ def main():
                  f"active space does not contain the reference; no DMRG run on it is "
                  f"interpretable. ***")
 
-    mo_path = f"{a.out_dir}/sdhb_s3_mo_coeff_highspin.npy"
+    mo_path = f"{a.out_dir}/sdhb_s3_mo_coeff_highspin{tag}.npy"
     import numpy as np
     np.save(mo_path, mo)
     print(f"[avas] saved shared orbitals -> {mo_path}")
+    if a.scf_only:
+        print(f"\n[scf-only] state gate and embedding gate PASSED for setup '{tag or '(plain)'}': "
+              f"CAS({nelecas},{ncas}) = {2 * ncas} qubits, ncore={(mf_hs.mol.nelectron - nelecas) // 2}. "
+              f"Stopping before DMRG (--scf-only).")
+        return
 
     bond_dims = [int(x) for x in a.bond_dims.split(",")]
 
@@ -714,9 +843,12 @@ def main():
         mf_hs, mo, charge, ncas, nelecas, bond_dims=bond_dims,
         scratch=a.dmrg_scratch, n_threads=a.dmrg_threads, max_minutes=a.dmrg_max_minutes)
 
-    out = f"{a.out_dir}/sdhb_s3_both_spins.json"
+    out = f"{a.out_dir}/sdhb_s3_both_spins{tag}.json"
     json.dump(dict(
-        pdb=PDB_ID, charge=charge, basis=a.basis, fe_semicore=a.fe_semicore,
+        pdb=PDB_ID, charge=charge, basis=str(basis), fe_semicore=a.fe_semicore,
+        setup=dict(tag=tag, xc=a.xc, solvent_eps=a.solvent_eps,
+                   extend_backbone=a.extend_backbone, mixed_basis=a.mixed_basis,
+                   e_scf_source=getattr(mf_hs, "e_scf_source", None)),
         threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
         high_spin=dict(spin=15, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),
                         spin_square_expected=63.75),

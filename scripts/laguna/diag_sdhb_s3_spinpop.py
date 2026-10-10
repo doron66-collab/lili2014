@@ -41,24 +41,49 @@ def spin_populations(mol, C, occ):
     return per_atom
 
 
-def state_check(mol, per_atom, fe_min=3.5, off_cluster_max=1.0):
-    """Is this the intended three-high-spin-Fe(III) state? Returns (ok, reasons).
+def state_check(mol, per_atom, fe_window=(3.2, 4.4), fe_spread_max=0.5,
+                off_cluster_abs_max=0.3, bridging_s_window=(0.2, 0.8)):
+    """Is this the intended three-high-spin-Fe(III) [3Fe-4S]+ state? (ok, reasons)
 
-    Every Fe must carry at least fe_min unpaired electrons (d5 high spin is
-    nominally 5; covalency with the sulfurs takes it to ~4), and the spin on
-    atoms that are neither Fe nor S (the protein backbone and caps) must stay
-    below off_cluster_max. Found 2026-10-10: job 2350822's SCF descended 173
-    mHa below an earlier solution into a state with one Fe at +0.93 and +4.0
-    unpaired electrons spread over backbone N/C/H -- a ligand-radical
-    configuration, not the [3Fe-4S]+ state the active space is built for.
+    Thresholds from Claude Science's 2026-10-10 reply (replacing our first
+    guess of "Fe >= 3.5, off-cluster <= 1.0"):
+      * each Fe inside 3.2-4.4 -- covalency moves 15-30% of the formal five
+        unpaired electrons onto the sulfides, so a clean high-spin Fe(III) in
+        an Fe-S cluster sits near 3.5-4.2, not 5; a lower bound alone would
+        also pass an unphysical ionic state;
+      * spread between the three Fe <= 0.5 -- the three irons of [3Fe-4S]+
+        are formally equivalent, so this is the sharpest single test
+        (the ligand-radical state found in job 2350822 had a spread of 2.89).
+        NOT valid for S2 [4Fe-4S]2+, which is mixed-valence by nature;
+      * all Fe the same sign (ferromagnetic high-spin reference);
+      * sum of |spin| on atoms that are neither Fe nor S <= 0.3;
+      * each bridging sulfide (S within 2.6 A of two or more Fe) inside
+        0.2-0.8 -- spin there is normal covalency, not an error.
+    Found 2026-10-10: job 2350822's ROHF minimum had one Fe at +0.93 and about
+    4 unpaired electrons on backbone N/C/H -- not the state the active space
+    is built for.
     """
     reasons = []
+    xyz = mol.atom_coords(unit="Angstrom")
+    fe = [ia for ia in range(mol.natm) if mol.atom_symbol(ia) == "Fe"]
+    for ia in fe:
+        if not (fe_window[0] <= per_atom[ia] <= fe_window[1]):
+            reasons.append(f"Fe atom {ia} spin {per_atom[ia]:+.3f} outside {fe_window}")
+    if fe:
+        spread = max(per_atom[fe]) - min(per_atom[fe])
+        if spread > fe_spread_max:
+            reasons.append(f"Fe spin spread {spread:.3f} > {fe_spread_max}")
+        if len({np.sign(per_atom[ia]) for ia in fe}) > 1:
+            reasons.append("Fe spins differ in sign")
+    off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
+    if off > off_cluster_abs_max:
+        reasons.append(f"sum |spin| on non-Fe/S atoms {off:.3f} > {off_cluster_abs_max}")
     for ia in range(mol.natm):
-        if mol.atom_symbol(ia) == "Fe" and per_atom[ia] < fe_min:
-            reasons.append(f"Fe atom {ia} spin {per_atom[ia]:+.3f} < {fe_min}")
-    off = sum(per_atom[ia] for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
-    if abs(off) > off_cluster_max:
-        reasons.append(f"spin on non-Fe/S atoms {off:+.3f} exceeds {off_cluster_max}")
+        if mol.atom_symbol(ia) != "S":
+            continue
+        n_fe = sum(1 for jf in fe if np.linalg.norm(xyz[ia] - xyz[jf]) < 2.6)
+        if n_fe >= 2 and not (bridging_s_window[0] <= per_atom[ia] <= bridging_s_window[1]):
+            reasons.append(f"bridging S atom {ia} spin {per_atom[ia]:+.3f} outside {bridging_s_window}")
     return (not reasons), reasons
 
 
