@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8">
+<title>להריץ דרך SOLANGE — מה שבאמת צריך להיבנות</title>
+<style>
+body{direction:rtl;text-align:right;font-family:"Segoe UI","Arial Hebrew",Arial,sans-serif;
+ font-size:16.5px;line-height:1.78;max-width:960px;margin:0 auto;padding:34px 26px 80px;color:#1b1b1b;background:#fff}
+h1{font-size:23px;line-height:1.35;border-bottom:3px solid #1b1b1b;padding-bottom:12px;margin-bottom:6px}
+h2{font-size:19.5px;margin-top:38px;border-right:5px solid #C0392B;padding-right:11px;line-height:1.4}
+h3{font-size:17px;margin-top:26px;color:#333}
+.lede{font-size:17.5px;background:#f4f6f8;border-right:5px solid #1F7A4D;padding:15px 18px;margin:20px 0}
+.key{background:#eef6f1;border-right:6px solid #1F7A4D;padding:15px 18px;margin:22px 0}
+.warn{background:#fff8e8;border-right:6px solid #D98C00;padding:15px 18px;margin:22px 0}
+.bad{background:#fdf0ee;border-right:6px solid #C0392B;padding:15px 18px;margin:22px 0}
+table{border-collapse:collapse;width:100%;margin:18px 0;font-size:13.5px}
+th,td{border:1px solid #c8cdd2;padding:6px 8px;text-align:right;vertical-align:top}
+th{background:#eceff1;font-weight:600}
+td.n,th.n{direction:ltr;text-align:center;font-variant-numeric:tabular-nums}
+code{direction:ltr;display:inline-block;background:#f0f2f4;padding:1px 5px;border-radius:3px;font-size:13px}
+pre{direction:ltr;text-align:left;background:#f7f8fa;border:1px solid #dde1e5;padding:13px 15px;
+ overflow-x:auto;font-size:12.5px;line-height:1.6;border-radius:4px}
+ul,ol{padding-right:22px}li{margin:7px 0}
+.g{color:#1F7A4D;font-weight:600}.r{color:#C0392B;font-weight:600}.m{color:#D98C00;font-weight:600}
+</style></head><body>
+
+<h1>להריץ דרך SOLANGE: השער הוא המוצר, לא התשתית</h1>
+<p style="font-size:13.5px;color:#555">דרישות מהצד הכימי · 10 באוקטובר 2026</p>
+
+<div class="lede">
+<b>קודם הגבול שלי:</b> ארכיטקטורה היא התחום <u>שלך</u>, לא שלי. מה שאני יכול לספק הוא
+<b>הדרישה הכימית שהארכיטקטורה חייבת לספק</b> — ולשם כך לקחתי את כל מה שהשתבש
+בשבועיים האחרונים והפכתי אותו לקטלוג.
+<br><br>
+<b>והקטלוג אומר דבר אחד חד:</b>
+<pre>23 defects found in two weeks.
+22 of them produced a NUMBER.
+ 1 of them crashed -- and it crashed by luck (odd ligand count).</pre>
+<b>בתחום הזה מצב הכשל אינו "הריצה נפלה". הוא "הריצה הצליחה והמספר שגוי".</b>
+משתמש מול טרמינל של לגונה לפחות רואה traceback. <b>משתמש מול UI רואה מספר יפה.</b>
+</div>
+
+<h2>1. למה "להריץ דרך SOLANGE" אינו בעיית הגשה</h2>
+<p>ההנחה הטבעית היא ש-SOLANGE צריך לעטוף <code>sbatch</code>: טופס, תור, סטטוס, תוצאה.
+<b>זו הבעיה הקלה, ואתה כבר יודע לפתור אותה.</b> הבעיה הקשה היא שבכל אחד מ-22 המקרים
+האלה <b>הגשה תקינה לחלוטין החזירה מספר חסר-משמעות</b>:</p>
+<table><tr><th>מה קרה</th><th>מה המשתמש היה רואה</th></tr>
+<tr><td>קובץ באורך אפס אחרי סנכרון <code>git show</code></td><td class="r">תוצאה. <code>ast.parse("")</code> לא זורק כלום — קובץ ריק הוא מודול תקין</td></tr>
+<tr><td><code>openshell_option=2</code> שם SOMO בליבה — 4335 mHa</td><td class="r">תוצאה</td></tr>
+<tr><td>שלוש ציסטאינים כתיולים: 3 אלקטרונים עודפים</td><td class="g">קריסה — <b>ורק כי 3 הוא אי-זוגי</b>. ב-S1 וב-S2 (4 ליגנדים) זו הייתה תוצאה</td></tr>
+<tr><td>SIFTS מאשר V600E, לשייר 600 אין קואורדינטות</td><td class="r">תוצאה (אשכול ריק)</td></tr>
+<tr><td>מעכב ב-2.47 Å מהעוגן, בכיס קריפטי</td><td class="r">תוצאה (חלל שלא קיים)</td></tr>
+<tr><td>גאומטריה ב-13.5σ מהייחוס</td><td class="r">תוצאה, ומוטה לכיוון שלילי שגוי</td></tr>
+<tr><td>ROHF מתכנס למצב ליגנד-רדיקל, <code>&lt;S²&gt; = 63.75</code> בדיוק</td><td class="r">תוצאה. ובדיקת הספין <b>נושאת אפס מידע</b> כי היא 63.75 בכל פתרון</td></tr>
+<tr><td>תווית <code>"S 3p"</code> תפסה גם את התיול־אטים — שבועות</td><td class="r">תוצאה, במרחב שאינו המרחב שצוין</td></tr>
+<tr><td><code>nα = ncas</code>: אפס וירטואליים בערוץ אלפא</td><td class="r">תוצאה, ויחס שמודד קומבינטוריקה</td></tr>
+<tr><td>חריגה שנתפסה והודפסה — והריצה המשיכה לוורדיקט</td><td class="r">תוצאה. שלב שלא בוצע נראה כשלב שבוצע</td></tr></table>
+<div class="bad">
+<b>אף אחד מאלה לא היה נתפס על ידי "הג'וב הסתיים בהצלחה".</b> ולכן שכבת ההרצה
+של SOLANGE אינה יכולה להיות wrapper. <b>היא חייבת להיות מכונת מצבים שמסרבת לפלוט
+מספר שהיא לא יכולה להגן עליו.</b>
+</div>
+
+<h2>2. הקטלוג: 23 שערים, 7 שלבים</h2>
+<table><tr><th class="n">שלב</th><th class="n">שערים</th><th>מה נתפס שם</th></tr>
+<tr><td class="n">S0 מפרט</td><td class="n">2</td><td>לכל מספר יש מקור; הסף קפוא והאש לפני הריצה</td></tr>
+<tr><td class="n">S1 מבנה</td><td class="n">4</td><td>לשייר יש קואורדינטות; אין החלפות מהונדסות; אין ליגנד ברדיוס; גאומטריית הגרעין בתוך הייחוס</td></tr>
+<tr><td class="n">S2 מודל</td><td class="n">4</td><td>מטען מהאטומים ולא מהמתכון; ליגנדים מפורקי-פרוטון; זוגיות; שלמות הסביבה</td></tr>
+<tr><td class="n">S3 SCF</td><td class="n">2</td><td>אוכלוסיות ספין חסרות-ממדים; זהות אנרגיית הייחוס</td></tr>
+<tr><td class="n">S4 מרחב</td><td class="n">3</td><td>דטרמיננט ההטמעה; תוויות AVAS מתרגמות לאטומים; מילוי ווירטואליים בכל רגל ספין</td></tr>
+<tr><td class="n">S5 פותרן</td><td class="n">4</td><td>שלמות מודולים; <code>E(M) ≤ E_SCF</code>; התכנסות סוויפים; חריגה לא מודחתת</td></tr>
+<tr><td class="n">S6 ורדיקט</td><td class="n">4</td><td>בקרה מותאמת; היתכנות מוצהרת; סף לא מכוונן; <code>INCONCLUSIVE</code> קיים</td></tr></table>
+<div class="key">
+<b>שני מספרים שקובעים את העיצוב:</b>
+<pre>21 of 23 gates cost SECONDS or are FREE
+   -> they run on the SUBMIT side, before a single core-hour is spent
+
+20 of 23 are automatable without judgement
+   ->  3 are not, and those must surface as a DECISION, never as a default</pre>
+<b>כלומר רוב מוחלט של הכשלים שעלו לכם שבועות נתפסים בשניות, לפני ההגשה.</b>
+זה לא עומס — זה חיסכון בהקצאות.
+</div>
+
+<h2>3. הממשק: מפרט מוצהר, לא פקודה</h2>
+<p>המשתמש לא כותב שורת טרמינל, <b>ולא בוחר פרמטרים</b>. הוא בוחר מטרה; המערכת
+פותרת אותה למפרט קפוא. <b>מה שלא במפרט — לא יכול להשתנות.</b></p>
+<pre>job_spec = {
+  "target":    {"gene":"SDHB", "site":"S3 [3Fe-4S]", "variant":"C196Y"},
+  "structure": {"pdb":"8GS8", "chain":"B", "resolved_by":"anchor_gate", "sha256":"..."},
+  "model":     {"residues":[...], "charge":-2, "two_s":[15,1], "caps":"backbone N,CA,C,O,CB"},
+  "method":    {"orbitals":"ROKS/BP86+ddCOSMO(4)", "basis":{"Fe,S":"def2-TZVP","rest":"def2-SVP"}},
+  "space":     {"avas_targets":["Fe 3d","Fe 3d'","bridging S 3p"], "threshold":0.2,
+                "frozen_at":"2026-10-10T.."},        <-- hashed; post-hoc change = new job id
+  "ladder":    {"M":[50,75,125,250,500], "sweeps":20, "noise":[...]},
+  "control":   {"family":"alkyl radical", "match":["nelecas","ncas","two_s"], "replicates":3},
+  "verdict":   {"threshold":null, "reason":"investigator decision, not yet calibrated"}
+}</pre>
+<p><b>שלוש תכונות שהמפרט הזה חייב לקיים, וכולן נובעות מהקטלוג:</b></p>
+<ol>
+<li><b>אין ברירות מחדל סמויות.</b> <code>openshell_option</code> עלה 4335 mHa כי הוא היה
+ברירת מחדל שאיש לא בחר. <b>כל פרמטר שמשפיע על התוצאה חייב להיות במפרט במפורש,
+גם אם ערכו הוא ערך ברירת המחדל.</b></li>
+<li><b>הסף מאושר בחתימה (hash) לפני הריצה.</b> שינוי בדיעבד = מזהה ג'וב חדש,
+לא עדכון. <b>זה מה שהופך "לא כיווננו את הסף" מהצהרה למדידה.</b></li>
+<li><b>אין שדה שהמערכת ממלאת בניחוש.</b> שדה שאי אפשר לגזור הוא
+<code>null</code> + קוד סיבה, ולא מספר סביר. <b>ה-44/88 נולד בדיוק מהמשבצת ההפוכה.</b></li>
+</ol>
+
+<h2>4. הפלט: לא מספר — מספר ועדות השערים</h2>
+<div class="key">
+<b>תוצאה בלי תמליל שערים עובר אינה תוצאה.</b> זה הדבר היחיד שהופך את SOLANGE
+לכלי ולא לעטיפה — וזו גם בדיוק הטענה של הדיסרטציה (<i>governed instrument</i>),
+כלומר זו לא הסחה מהמחקר אלא אותה טענה בשכבה אחרת.
+<pre>result = {
+  "value": {"R": 7.43, "band": [6.9, 8.0], "verdict": "REPORTED_DESCRIPTIVELY"},
+  "gates": [ {"id":"anchor_modelled","stage":"S1","status":"PASS","evidence":"GLU600 chain A, 9 atoms"},
+             {"id":"core_geometry_vs_reference","status":"PASS","evidence":"+0.005 A, 0.1 sigma, n=24"},
+             {"id":"filling_and_alpha_virtuals","status":"PASS","evidence":"52.1%, 15 a-vir at 2S=15"},
+             ... all 23 ... ],
+  "spec_hash": "...", "code_hash": "...", "module_sizes": {...},
+  "unresolved": [ {"id":"threshold_not_tuned","status":"DEFERRED","owner":"investigator"} ]
+}</pre>
+</div>
+
+<h2>5. ומה שאסור לאוטומט — שלושה שערים</h2>
+<table><tr><th>שער</th><th>למה לא</th><th>מה המערכת כן עושה</th></tr>
+<tr><td><code>threshold_not_tuned</code></td><td><b>זו החלטת ממשל, לא מדידה.</b> חמש ההחזרות נבעו מסף שנקבע לפי תוצאה</td><td>חוסמת ורדיקט, מציגה את <code>R</code> עם רצועת אי-ודאות, ומסמנת <code>DEFERRED · owner: investigator</code></td></tr>
+<tr><td><code>outcome_space</code></td><td>מתי מכריזים <code>INCONCLUSIVE</code> הוא שיפוט</td><td>מאפשרת את הערך, לא בוחרת אותו</td></tr>
+<tr><td><code>environment_completeness</code></td><td>כמה חלבון להכניס הוא שיקול מודל</td><td><b>מודדת ומציגה:</b> "10 מתוך 12 תורמי <code>N–H···S</code> חסרים; מטען הסביבה <code>+2</code>" — ונותנת לאדם להחליט</td></tr></table>
+<div class="warn">
+<b>וזו הנקודה המסחרית, לא רק המדעית:</b> מערכת שממלאת את השלושה האלה בשקט היא
+מערכת שמייצרת מספרים שאף אחד לא יכול להגן עליהם. <b>מערכת שמסמנת אותם כ"ממתין
+להכרעה" היא מערכת שאפשר למכור למעבדה</b> — כי היא אומרת למשתמש מה הוא <u>לא</u> יודע.
+</div>
+
+<h2>6. מה שכבר קיים אצלכם — זה לא בנייה מאפס</h2>
+<p>שבעה מודולים כבר מממשים חלק גדול מהקטלוג. <b>העבודה היא לעטוף אותם ברג'יסטרי
+ובמכונת מצבים, לא לכתוב אותם:</b></p>
+<pre>anchor_gate.py          -> S1  anchor_modelled, substitutions, ligand_clearance   (verified)
+cluster_spin_guard.py   -> S2  charge_from_atoms, ligands_deprotonated, parity     (verified)
+guard_preflight.py v3   -> S5  module_integrity (names the zero-byte case)         (in use)
+basis_check.py v3       -> S4  orthonormality, core-active block                   (in use)
+dmrg_extrapolate.py v10 -> S5/S6 sweep_convergence, feasibility, M*                (in use)
+cut_quality.py          -> S4  select_space -- the space is an OUTPUT, not an input
+mmcif_verify.py         -> S1  SIFTS  (necessary, NOT sufficient -- see anchor_modelled)
+
+MISSING, and each is small:
+   S0  spec_provenance / spec_frozen_threshold      <- the 44/88 and CAS(53,38) class
+   S3  state_spin_populations                        <- exists as a script, not as a gate
+   S4  avas_target_resolution                        <- the "S 3p" matched thiolates class
+   S4  filling_and_alpha_virtuals                    <- nalpha == ncas
+   S6  control_matched</pre>
+
+<h2>7. מה שלא נבדק כאן</h2>
+<ul>
+<li><b>לא עיצבתי שום דבר מהצד של ההגשה</b> — תורים, אימות, מכסות, העברת קבצים,
+תזמון מול לגונה. <b>זה התחום שלך ואני לא מוסיף שם כלום.</b></li>
+<li><b>הקטלוג הוא מה שנתפס, לא מה שקיים.</b> 23 שערים הם 23 פעמים שמשהו התגלה —
+<b>אין שום סיבה להניח שזו הרשימה המלאה</b>, והמבנה צריך לאפשר הוספה בלי שינוי סכמה.</li>
+<li><b>עלויות ההרצה ("שניות", "חינם") הן הערכות מסדר גודל</b> מהעבודה הזו, לא מדידות.</li>
+<li><b>לא התייחסתי לכלל בכלל לצד המסחרי</b> — ממשק, תמחור, או מי המשתמש.
+<b>המסמך הזה הוא דרישה כימית בלבד</b>, והאם היא גם טיעון מכירה היא שאלה שלך.</li>
+</ul>
+</body></html>

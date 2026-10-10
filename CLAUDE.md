@@ -129,17 +129,52 @@ ever disagree again, the dissertation wins.)
 - Goal: an ordinary user never touches a Laguna terminal; SOLANGE talks to the
   supercomputer. The queue → agent → LEON path already exists (`hpc_dispatch`,
   `solange_hpc.py --agent`, job types hpc/dmrg/shci/screen_classify).
-- Missing, in order: (1) a `gate2_metal` job type carrying the SDHB S3 flags
-  (--xc, --solvent-eps, --extend-backbone, --mixed-basis, --avas-sulfur,
-  --fe-3dprime, --scf-only); (2) the agent submits via `sbatch` and tracks the
-  Slurm job (an OOD session dies at 8h, these runs need up to 24h), streaming
-  progress from the .out/.err files; (3) an Orchestration-tab card at the DMRG
-  rung showing the gates live (SCF, state gate populations, CAS size, embedding
-  gate, DMRG ladder) including REFUSING with its reason; (4) result ingestion +
-  LEON seal, and sealing refusals/routing decisions too; (5) dissertation sync.
-- Needs from Doron: one Supabase migration (new hpc_dispatch columns), agent restart.
-- Honest limit unchanged: the agent runs under the user's own Laguna auth (Duo);
-  a production deployment needs an institution-installed agent / service account
+- **Science's requirement (2026-10-10), which reframes the plan — read before building:**
+  `docs/architecture/science_run_through_solange_2026-10-10.html` and the machine-readable
+  `docs/architecture/solange_gate_registry.csv` (23 gates, stages S0–S6). Core finding: of 23
+  defects found in two weeks, 22 produced a NUMBER and only one crashed (by luck). In this
+  domain the failure mode is "the run succeeded and the number is wrong", so the execution
+  layer cannot be a submit wrapper. It must be a **state machine that refuses to emit a number
+  it cannot defend.** 21 of 23 gates cost seconds and run on the SUBMIT side, before any
+  core-hour; 20 of 23 are automatable. Architecture is Doron's domain; Science supplied only
+  the chemical requirement.
+- Design requirements carried from that document:
+  1. **Declared job spec, not a command.** The user picks a target; SOLANGE resolves it into a
+     frozen spec (target, structure + sha256, model, method, space, ladder, control, verdict).
+     No hidden defaults: every result-affecting parameter appears explicitly, even at its
+     default value (`openshell_option` cost 4335 mHa as an unchosen default). The spec is
+     hashed before the run; a post-hoc change means a NEW job id, never an edit. A field that
+     cannot be derived is `null` + a reason code, never a plausible number (how 44/88 was born).
+  2. **Output = value + gate transcript.** Every result carries all gates with status and
+     evidence, plus spec_hash, code_hash and module sizes. A result without a passing gate
+     transcript is not a result. This is the dissertation's own "governed instrument" claim.
+  3. **Three gates are never automated; they surface as decisions.** `threshold_not_tuned`
+     (block the verdict, show R with its band, mark DEFERRED · owner: investigator),
+     `outcome_space` (allow INCONCLUSIVE, never choose it), `environment_completeness`
+     (measure and display, e.g. "10 of 12 N–H···S donors missing, environment +2", and let a
+     human decide).
+  4. Registry must accept new gates without a schema change: 23 is what was caught, not
+     what exists.
+- Existing modules to wrap rather than rewrite: anchor_gate.py, cluster_spin_guard.py,
+  guard_preflight.py, basis_check.py, dmrg_extrapolate.py, cut_quality.py, mmcif_verify.py.
+- Status of the gates Science lists as missing, as of 2026-10-10:
+  - `reference_energy_identity` — implemented, SDHB S3 only (`_as_reference` in run_gate2_sdhb_s3.py).
+  - `state_spin_populations` — implemented as a refusing gate, SDHB S3 only (diag_sdhb_s3_spinpop.state_check).
+  - `avas_target_resolution` — partly: S3 now selects bridging sulfides by atom index
+    (`--avas-sulfur`), but there is no generic check that labels resolve to the intended atoms.
+  - `filling_and_alpha_virtuals` — NOT a gate yet. The 3d' shell fixes S3's case, but nothing
+    refuses an nα = ncas space automatically.
+  - `spec_provenance`, `spec_frozen_threshold`, `control_matched` — not built.
+  - All of the implemented ones are script-local, not a reusable registry. The generic
+    registry + state machine is the actual work.
+- Plumbing still needed (Doron's domain, unchanged): a `gate2_metal` job type with the S3 flags;
+  the agent submits via `sbatch` and tracks the Slurm job (an OOD session dies at 8h, runs need
+  up to 24h), streaming gate progress from .out/.err; an Orchestration-tab card at the DMRG rung
+  showing the gate transcript live, REFUSING with its reason, and the three decision gates as
+  pending decisions; result ingestion + LEON seal of the spec hash, gate transcript and
+  refusals; dissertation sync. Needs one Supabase migration and an agent restart from Doron.
+- Honest limit unchanged: the agent runs under the user's own Laguna auth (Duo); a
+  production deployment needs an institution-installed agent / service account
   (PRODUCTION_DEPLOYMENT_MODEL.md).
 
 ## Phase 4 evaluation — Layer 3B instrument (DRAFT exists, not in use)
