@@ -380,14 +380,29 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
         in 300 level-shifted DIIS cycles on the real cluster: the problem is
         the SCF landscape, not the basis size, and more DIIS cycles alone
         would not have fixed it."""
+        # Keep the lowest-gradient iterate DIIS visits. Found twice (jobs 2350814
+        # and 2350823): DIIS reached the converged point (|g| 2.5e-5, dE 4e-10),
+        # failed to declare it, then walked 0.47-0.71 Ha AWAY over the remaining
+        # cycles -- and newton was handed the final, worst point instead of the
+        # best one it had already passed through.
+        best = {}
+
+        def _track(envs):
+            g_ = envs.get("norm_gorb")
+            if g_ is not None and (not best or g_ < best["g"]):
+                best.update(g=float(g_), e=float(envs["e_tot"]),
+                            mo=envs["mo_coeff"].copy(), occ=envs["mo_occ"].copy())
+        f.callback = _track
         f.kernel(dm0)
         if f.converged:
             return f
+        start_mo, start_occ = (best["mo"], best["occ"]) if best else (f.mo_coeff, f.mo_occ)
         print(f"[scf] {label}: DIIS+level-shift did not converge in {f.max_cycle} cycles "
-              f"(E={f.e_tot:.8f}) -- continuing from that point with second-order SCF (newton)")
+              f"(final E={f.e_tot:.8f}); handing second-order SCF (newton) the lowest-gradient "
+              f"iterate instead (|g|={best.get('g', float('nan')):.2e}, E={best.get('e', float('nan')):.8f})")
         g = f.newton()
         g.max_cycle = newton_max_cycle
-        g.kernel(f.mo_coeff, f.mo_occ)
+        g.kernel(start_mo, start_occ)
         print(f"[scf] {label}: second-order SCF converged={g.converged} E={g.e_tot:.8f}")
         return g
 
