@@ -471,6 +471,49 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
     return mf
 
 
+def add_fe_correlating_shell(mf, mo, ncas, nelecas, per_iron=5):
+    """Append a 3d' correlating shell to an AVAS active space (PREREGISTRATION_sdhb_s3.md §3).
+
+    For each Fe in turn, take the `per_iron`-dimensional subspace of the
+    current virtual block with the largest projection onto that iron's
+    FULL-basis d AOs (an SVD of the virtual/d overlap after Lowdin-orthogonal
+    projection), move it into the active space, and continue with the
+    remaining virtuals. Taking the maximum-projection subspace is the exact
+    form of "the virtual orbitals ranked by Fe-d projection, 5 per iron".
+    Only virtual-virtual rotations are involved, so the reference determinant,
+    ncore and nelecas are unchanged; ncas grows by 3*per_iron.
+
+    Why it is needed (pre-registration §3): CAS(49,32) at 2S=15 has as many
+    alpha electrons as orbitals (zero alpha virtuals, 76.6% filling, the
+    starvation defect); the shell takes it to CAS(49,47), 52.1% filling.
+    Returns (mo_new, ncas_new, per-iron captured weights).
+    """
+    import numpy as np
+    mol = mf.mol
+    S = mf.get_ovlp()
+    ncore = (mol.nelectron - nelecas) // 2
+    core_cas = mo[:, :ncore + ncas]
+    vir = mo[:, ncore + ncas:]
+    picked, weights = [], []
+    for ia in range(mol.natm):
+        if mol.atom_symbol(ia) != "Fe":
+            continue
+        d_idx = [i for i, lab in enumerate(mol.ao_labels(fmt=False))
+                 if lab[0] == ia and lab[2][-1:] == "d"]
+        Sdd = S[np.ix_(d_idx, d_idx)]
+        # Lowdin-orthonormalised d AOs of this iron: X = S_dd^{-1/2}
+        e, U = np.linalg.eigh(Sdd)
+        X = U @ np.diag(e ** -0.5) @ U.T
+        ovl = vir.T @ S[:, d_idx] @ X          # (n_vir, n_d): overlaps with orthonormal d
+        u, sv, _ = np.linalg.svd(ovl, full_matrices=True)
+        take = u[:, :per_iron]
+        picked.append(vir @ take)
+        weights.append([float(x) ** 2 for x in sv[:per_iron]])
+        vir = vir @ u[:, per_iron:]             # orthogonal complement within the virtual block
+    mo_new = np.hstack([core_cas] + picked + [vir])
+    return mo_new, ncas + per_iron * len(picked), weights
+
+
 def avas_at_threshold(mf, ao_labels, threshold, openshell_option=3):
     # openshell_option=3 keeps every singly-occupied ROHF orbital in the
     # active space. PySCF's default (2) projects SOMOs together with the
@@ -697,6 +740,10 @@ def main():
                           "inorganic mu2/mu3 sulfides only) is Science's 2026-10-07 spec, "
                           "Fe 3d + bridging S 3p = 27 AOs. 'all' also includes the three Cys "
                           "thiolates -- what the label 'S 3p' silently did before 2026-10-10.")
+    ap.add_argument("--fe-3dprime", action=argparse.BooleanOptionalAction, default=True,
+                     help="Add the pre-registered Fe 3d' correlating shell (5 virtual orbitals per "
+                          "iron, max projection onto full-basis Fe d AOs) after AVAS. On by default: "
+                          "it is part of the frozen active space in PREREGISTRATION_sdhb_s3.md §3.")
     ap.add_argument("--scf-only", action="store_true",
                      help="Stop after the SCF, the state gate, AVAS and the embedding gate -- "
                           "no DMRG. For checking which electronic state a model setup lands in.")
@@ -837,6 +884,17 @@ def main():
     print(f"[avas] AO target set ({a.avas_sulfur} sulfur): {ao_set}")
     spec, mo = avas_at_threshold(mf_hs, ao_set, a.threshold)
     ncas, nelecas = spec["ncas"], spec["nelecas"]
+    if a.fe_3dprime:
+        mo, ncas_aug, _w = add_fe_correlating_shell(mf_hs, mo, ncas, nelecas)
+        for _k, _ws in enumerate(_w):
+            print(f"[avas] 3d' shell, iron {_k + 1}: captured d-projection weights "
+                  + ", ".join(f"{x:.3f}" for x in _ws))
+        print(f"[avas] 3d' correlating shell added (pre-registration §3): CAS({nelecas},{ncas}) -> "
+              f"CAS({nelecas},{ncas_aug}) = {2 * ncas_aug} qubits; filling "
+              f"{nelecas / (2 * ncas_aug):.3f} (was {nelecas / (2 * ncas):.3f}); ncore unchanged at "
+              f"{(mf_hs.mol.nelectron - nelecas) // 2}")
+        ncas = ncas_aug
+        spec.update(ncas=ncas, qubits=2 * ncas)
 
     # Embedding gate BEFORE any DMRG: the ROHF determinant, evaluated with the
     # same h1e/h2e/ecore the DMRG legs will use, must reproduce E_ROHF. If it
@@ -887,7 +945,7 @@ def main():
         pdb=PDB_ID, charge=charge, basis=str(basis), fe_semicore=a.fe_semicore,
         setup=dict(tag=tag, xc=a.xc, solvent_eps=a.solvent_eps,
                    extend_backbone=a.extend_backbone, mixed_basis=a.mixed_basis,
-                   avas_sulfur=a.avas_sulfur,
+                   avas_sulfur=a.avas_sulfur, fe_3dprime=a.fe_3dprime,
                    e_scf_source=getattr(mf_hs, "e_scf_source", None)),
         threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
         high_spin=dict(spin=15, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),

@@ -109,8 +109,13 @@ def state_report(mol, per_atom, two_s=15):
     """Lines to print: every Fe, every Fe-bound S by role, the scale-free numbers."""
     fe = [ia for ia in range(mol.natm) if mol.atom_symbol(ia) == "Fe"]
     lines = [f"Fe atom {ia} spin {per_atom[ia]:+.3f}" for ia in fe]
-    for ia, role in sorted(sulfur_roles(mol).items(), key=lambda kv: (kv[1], kv[0])):
-        lines.append(f"S atom {ia} ({role}) spin {per_atom[ia]:+.3f}")
+    # Reported as sulfide / thiolate: the mu2/mu3 split was withdrawn in the
+    # pre-registration (§6) -- the measured mu3 value sits inside the mu2 range.
+    # The bridging count is kept in brackets because compare_sdhb_s3_states.py's
+    # pre-registered prediction is stated in terms of the mu3 sulfide.
+    for ia, role in sorted(sulfur_roles(mol).items(), key=lambda kv: (kv[1] == "thiolate", kv[0])):
+        kind = "thiolate" if role == "thiolate" else f"sulfide [{role}]"
+        lines.append(f"S atom {ia} ({kind}) spin {per_atom[ia]:+.3f}")
     off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
     lig_max = max((abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) != "Fe"), default=0.0)
     lines += [f"sum |spin| on non-Fe/S atoms {off:.3f}",

@@ -125,6 +125,23 @@ ever disagree again, the dissertation wins.)
   spent hours fixing elsewhere. Needs a real session_id/is_current distinction at the data
   layer, not a UI-only fix — scope properly before implementing, not mid-session.
 
+## TODO — run heavy Gate-2 jobs through SOLANGE, not the Laguna terminal (planned 2026-10-10, deferred by Doron)
+- Goal: an ordinary user never touches a Laguna terminal; SOLANGE talks to the
+  supercomputer. The queue → agent → LEON path already exists (`hpc_dispatch`,
+  `solange_hpc.py --agent`, job types hpc/dmrg/shci/screen_classify).
+- Missing, in order: (1) a `gate2_metal` job type carrying the SDHB S3 flags
+  (--xc, --solvent-eps, --extend-backbone, --mixed-basis, --avas-sulfur,
+  --fe-3dprime, --scf-only); (2) the agent submits via `sbatch` and tracks the
+  Slurm job (an OOD session dies at 8h, these runs need up to 24h), streaming
+  progress from the .out/.err files; (3) an Orchestration-tab card at the DMRG
+  rung showing the gates live (SCF, state gate populations, CAS size, embedding
+  gate, DMRG ladder) including REFUSING with its reason; (4) result ingestion +
+  LEON seal, and sealing refusals/routing decisions too; (5) dissertation sync.
+- Needs from Doron: one Supabase migration (new hpc_dispatch columns), agent restart.
+- Honest limit unchanged: the agent runs under the user's own Laguna auth (Duo);
+  a production deployment needs an institution-installed agent / service account
+  (PRODUCTION_DEPLOYMENT_MODEL.md).
+
 ## Phase 4 evaluation — Layer 3B instrument (DRAFT exists, not in use)
 - `docs/evaluation/LAYER3B_INSTRUMENT_DRAFT.md` (written 2026-08-20). An output-level
   rubric for **DP5** — the one design principle no Phase 4 instrument tests. Layer 1 covers
