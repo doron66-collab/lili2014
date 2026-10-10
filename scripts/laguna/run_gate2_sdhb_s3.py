@@ -311,18 +311,49 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
         print(f"[scf] {label}: second-order SCF converged={g.converged} E={g.e_tot:.8f}")
         return g
 
+    def _report_s2(f):
+        ss, mult = f.spin_square()
+        print(f"[spin] high-spin reference: <S^2>={ss:.4f} (expect 63.75 for S=15/2), "
+              f"2S+1={mult:.4f} (expect 16.0)")
+        if abs(ss - 63.75) > 0.5:
+            print("*** <S^2> does not match the expected S=15/2 value -- reference may have "
+                  "converged to a different spin state than intended; check before trusting "
+                  "any orbitals derived from it")
+
     mol = gto.M(atom="\n".join(lines), basis=basis, charge=charge, spin=spin, verbose=4)
     print(f"[avas] {mol.natm} atoms, {mol.nao} basis functions, charge={charge} spin={spin}")
     mf = _rohf(mol)
 
     dm0 = None
     if chkfile and os.path.exists(chkfile):
+        # Restart goes STRAIGHT to second-order SCF from the saved orbitals --
+        # no DIIS, no level shift. Found 2026-10-10 (job 2350814): the old path
+        # rebuilt only a density matrix from the chkfile and re-ran level-
+        # shifted DIIS; cycle 1 sat at the converged point (|g|=3.6e-6,
+        # dE=-6.6e-11), then DIIS walked AWAY from it over 80 cycles to an
+        # energy 0.71 Ha higher, and newton spent the rest of a 12-hour
+        # allocation climbing back. Newton from converged orbitals finishes in
+        # one or two macro-iterations, so this costs nothing when the saved
+        # state is good and still converges when it isn't.
         try:
-            dm0 = mf.from_chk(chkfile)
-            print(f"[scf] starting from saved orbitals in {chkfile} (reproducible restart)")
+            from pyscf.scf import chkfile as _chk
+            saved = _chk.load(chkfile, "scf")
+            print(f"[scf] restarting from saved orbitals in {chkfile} with second-order SCF "
+                  f"(saved E={float(saved['e_tot']):.8f})")
+            g = _rohf(mol)
+            g.level_shift = 0.0
+            g.chkfile = chkfile
+            g = g.newton()
+            g.max_cycle = newton_max_cycle
+            g.kernel(saved["mo_coeff"], saved["mo_occ"])
+            print(f"[scf] restart: second-order SCF converged={g.converged} E={g.e_tot:.8f}")
+            print(f"[scf] converged={g.converged} E_SCF={g.e_tot:.8f}")
+            if g.converged:
+                _report_s2(g)
+                return g
+            print("[scf] restart did not converge -- falling back to the full two-stage path")
         except Exception as e:
-            print(f"[scf] could not read {chkfile} ({type(e).__name__}) -- ignoring it")
-            dm0 = None
+            print(f"[scf] could not restart from {chkfile} ({type(e).__name__}: {e}) -- ignoring it")
     if dm0 is None and guess_basis:
         print(f"[scf] stage 1: converging ROHF in {guess_basis} as a starting guess "
               f"(level_shift={level_shift}, max_cycle={max_cycle})")
@@ -338,13 +369,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
     print(f"[scf] converged={mf.converged} E_SCF={mf.e_tot:.8f}")
     if not mf.converged:
         print("*** SCF did NOT converge -- treat any active space below as provisional")
-    ss, mult = mf.spin_square()
-    print(f"[spin] high-spin reference: <S^2>={ss:.4f} (expect 63.75 for S=15/2), "
-          f"2S+1={mult:.4f} (expect 16.0)")
-    if abs(ss - 63.75) > 0.5:
-        print("*** <S^2> does not match the expected S=15/2 value -- reference may have "
-              "converged to a different spin state than intended; check before trusting "
-              "any orbitals derived from it")
+    _report_s2(mf)
     return mf
 
 
