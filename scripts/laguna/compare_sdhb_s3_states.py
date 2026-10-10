@@ -74,11 +74,17 @@ def main():
     print(f"\n[prediction] |delta mu3| = {max(mu3) if mu3 else float('nan'):.3f} < min |delta mu2| = "
           f"{min(mu2) if mu2 else float('nan'):.3f}: {'HELD' if order_ok else 'FAILED'}")
     print(f"[prediction] mean Fe spin (extended) = {np.mean(fe_b):.3f} > 3.457: {'HELD' if fe_ok else 'FAILED'}")
-    print("[prediction] overall: " + ("HELD -- consistent with the hydrogen-bond diagnosis"
-                                       if order_ok and fe_ok else
-                                       "FAILED -- the hydrogen-bond diagnosis is not supported; "
-                                       "functional or solvent model is the more likely cause"))
-
+    # The pre-registered prediction is a conjunction of the two parts; report it
+    # as such, and say nothing about the cause. An earlier version of this line
+    # attributed a FAILED verdict to "the functional or the solvent model" -- an
+    # interpretation the prediction itself does not license when one part holds
+    # and the other fails (job 2350835: order held, Fe part failed).
+    print("[prediction] overall (both parts required): " + ("HELD" if order_ok and fe_ok else "FAILED")
+          + f"  [order part: {'held' if order_ok else 'failed'}; Fe part: {'held' if fe_ok else 'failed'}]")
+    off_note = ("spin removed from the sulfides did not return to the irons" if not fe_ok else
+                "spin removed from the sulfides returned to the irons")
+    print(f"[observation] {off_note}; compare the off-cluster sums printed by "
+          f"diag_sdhb_s3_spinpop.py for both chkfiles to see where it went.")
 
 if __name__ == "__main__":
     main()
