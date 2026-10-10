@@ -41,50 +41,83 @@ def spin_populations(mol, C, occ):
     return per_atom
 
 
-def state_check(mol, per_atom, fe_window=(3.2, 4.4), fe_spread_max=0.5,
-                off_cluster_abs_max=0.3, bridging_s_window=(0.2, 0.8)):
-    """Is this the intended three-high-spin-Fe(III) [3Fe-4S]+ state? (ok, reasons)
-
-    Thresholds from Claude Science's 2026-10-10 reply (replacing our first
-    guess of "Fe >= 3.5, off-cluster <= 1.0"):
-      * each Fe inside 3.2-4.4 -- covalency moves 15-30% of the formal five
-        unpaired electrons onto the sulfides, so a clean high-spin Fe(III) in
-        an Fe-S cluster sits near 3.5-4.2, not 5; a lower bound alone would
-        also pass an unphysical ionic state;
-      * spread between the three Fe <= 0.5 -- the three irons of [3Fe-4S]+
-        are formally equivalent, so this is the sharpest single test
-        (the ligand-radical state found in job 2350822 had a spread of 2.89).
-        NOT valid for S2 [4Fe-4S]2+, which is mixed-valence by nature;
-      * all Fe the same sign (ferromagnetic high-spin reference);
-      * sum of |spin| on atoms that are neither Fe nor S <= 0.3;
-      * each bridging sulfide (S within 2.6 A of two or more Fe) inside
-        0.2-0.8 -- spin there is normal covalency, not an error.
-    Found 2026-10-10: job 2350822's ROHF minimum had one Fe at +0.93 and about
-    4 unpaired electrons on backbone N/C/H -- not the state the active space
-    is built for.
-    """
-    reasons = []
+def sulfur_roles(mol, cutoff=2.6):
+    """{atom index: 'mu3' | 'mu2' | 'thiolate'} for every S bonded to an Fe."""
     xyz = mol.atom_coords(unit="Angstrom")
     fe = [ia for ia in range(mol.natm) if mol.atom_symbol(ia) == "Fe"]
-    for ia in fe:
-        if not (fe_window[0] <= per_atom[ia] <= fe_window[1]):
-            reasons.append(f"Fe atom {ia} spin {per_atom[ia]:+.3f} outside {fe_window}")
-    if fe:
-        spread = max(per_atom[fe]) - min(per_atom[fe])
-        if spread > fe_spread_max:
-            reasons.append(f"Fe spin spread {spread:.3f} > {fe_spread_max}")
-        if len({np.sign(per_atom[ia]) for ia in fe}) > 1:
-            reasons.append("Fe spins differ in sign")
-    off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
-    if off > off_cluster_abs_max:
-        reasons.append(f"sum |spin| on non-Fe/S atoms {off:.3f} > {off_cluster_abs_max}")
+    roles = {}
     for ia in range(mol.natm):
         if mol.atom_symbol(ia) != "S":
             continue
-        n_fe = sum(1 for jf in fe if np.linalg.norm(xyz[ia] - xyz[jf]) < 2.6)
-        if n_fe >= 2 and not (bridging_s_window[0] <= per_atom[ia] <= bridging_s_window[1]):
-            reasons.append(f"bridging S atom {ia} spin {per_atom[ia]:+.3f} outside {bridging_s_window}")
+        n = sum(1 for jf in fe if np.linalg.norm(xyz[ia] - xyz[jf]) < cutoff)
+        if n:
+            roles[ia] = {1: "thiolate", 2: "mu2"}.get(n, "mu3")
+    return roles
+
+
+def state_check(mol, per_atom, fe_spread_max=0.5, off_cluster_abs_max=0.3,
+                ligand_to_fe_max=0.35, fe_fraction_window=(0.60, 0.85), two_s=15):
+    """Is this the intended three-high-spin-Fe(III) [3Fe-4S]+ state? (ok, reasons)
+
+    Gate as revised by Claude Science, 2026-10-10 (second reply). Their first
+    version had an absolute 0.2-0.8 bound on each bridging sulfide; Science
+    retracted it as wrong in FORM, not only in value. It was absolute (a bound
+    on the partition scheme, not on the physics), it applied one bound to mu2
+    and mu3 sulfides that receive spin from two vs three irons, and it was
+    blind to the functional. It also double-counted: spin that leaves the
+    irons must land on the ligands. Job 2350823 (BP86 + ddCOSMO) showed the
+    failure mode: three equivalent Fe (+3.470/+3.454/+3.448, spread 0.022),
+    refused on two sulfides at +0.821/+0.845.
+
+    Kept:      Fe spread <= 0.5; off-cluster sum|s| <= 0.3; all Fe same sign.
+    Replaced:  max(ligand spin) / min(Fe spin) <= 0.35 -- scale-free: 0.245
+               for the BP86 state, 1.118 for the ROHF ligand-radical state
+               (a ligand outranked an iron there);
+               sum spin(Fe) / 2S inside 0.60-0.85 -- 0.691 for the BP86 state.
+    Reported, not gated: every Fe-bound sulfur by role (mu3 / mu2 / thiolate).
+    Asserted:  total spin population == 2S.
+    The thresholds are valid for S3 [3Fe-4S]+ (and S1); NOT for S2
+    [4Fe-4S]2+, which is mixed-valence by nature.
+    """
+    reasons = []
+    total = float(np.sum(per_atom))
+    if abs(total - two_s) > 1e-3:
+        reasons.append(f"total spin population {total:.4f} != 2S = {two_s}")
+    fe = [ia for ia in range(mol.natm) if mol.atom_symbol(ia) == "Fe"]
+    if not fe:
+        return False, ["no Fe atoms"]
+    fe_spins = per_atom[fe]
+    spread = float(fe_spins.max() - fe_spins.min())
+    if spread > fe_spread_max:
+        reasons.append(f"Fe spin spread {spread:.3f} > {fe_spread_max}")
+    if len({np.sign(x) for x in fe_spins}) > 1:
+        reasons.append("Fe spins differ in sign")
+    off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
+    if off > off_cluster_abs_max:
+        reasons.append(f"sum |spin| on non-Fe/S atoms {off:.3f} > {off_cluster_abs_max}")
+    lig_max = max((abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) != "Fe"), default=0.0)
+    ratio = lig_max / float(fe_spins.min())
+    if ratio > ligand_to_fe_max:
+        reasons.append(f"max(ligand spin)/min(Fe spin) {ratio:.3f} > {ligand_to_fe_max}")
+    frac = float(fe_spins.sum()) / two_s
+    if not (fe_fraction_window[0] <= frac <= fe_fraction_window[1]):
+        reasons.append(f"sum(Fe spin)/2S {frac:.3f} outside {fe_fraction_window}")
     return (not reasons), reasons
+
+
+def state_report(mol, per_atom, two_s=15):
+    """Lines to print: every Fe, every Fe-bound S by role, the scale-free numbers."""
+    fe = [ia for ia in range(mol.natm) if mol.atom_symbol(ia) == "Fe"]
+    lines = [f"Fe atom {ia} spin {per_atom[ia]:+.3f}" for ia in fe]
+    for ia, role in sorted(sulfur_roles(mol).items(), key=lambda kv: (kv[1], kv[0])):
+        lines.append(f"S atom {ia} ({role}) spin {per_atom[ia]:+.3f}")
+    off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
+    lig_max = max((abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) != "Fe"), default=0.0)
+    lines += [f"sum |spin| on non-Fe/S atoms {off:.3f}",
+              f"max(ligand)/min(Fe) {lig_max / min(per_atom[fe]):.3f}",
+              f"sum(Fe)/2S {sum(per_atom[fe]) / two_s:.3f}",
+              f"total spin population {float(np.sum(per_atom)):.4f} (2S = {two_s})"]
+    return lines
 
 
 def main():
@@ -106,6 +139,8 @@ def main():
         if sym in ("Fe", "S") and abs(per_atom[ia]) > 0.05:
             print(f"[spin] atom {ia:3d} {sym:2s}  {per_atom[ia]:+.4f}")
     print("[spin] by element: " + "  ".join(f"{k}={v:+.3f}" for k, v in sorted(by_elem.items())))
+    for line in state_report(mol, per_atom):
+        print("[state] " + line)
     ok, reasons = state_check(mol, per_atom)
     print("[state] intended 3x high-spin Fe(III) state: " + ("YES" if ok else "NO -- " + "; ".join(reasons)))
 
