@@ -281,7 +281,7 @@ def protonate(ph=7.4, out=None):
 
 def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80,
              chkfile="sdhb_s3_scf.chk", guess_basis="def2-svp", newton_max_cycle=60,
-             xc=None, solvent_eps=None):
+             xc=None, solvent_eps=None, damp=0.0):
     """High-spin (S=15/2, spin=15) ROHF reference -- the single-determinant,
     genuinely well-behaved state. Same reasoning as run_gate2_sdhb.py's
     build_mf(): never build the low-spin (S=1/2) state's own independent
@@ -340,6 +340,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
         f.with_df.auxbasis = "def2-universal-jkfit"
         f.level_shift = level_shift
         f.max_cycle = max_cycle
+        f.damp = damp
         if solvent_eps:
             f = f.ddCOSMO()
             f.with_solvent.eps = solvent_eps
@@ -435,7 +436,7 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
         except Exception as e:
             print(f"[scf] could not restart from {chkfile} ({type(e).__name__}: {e}) -- ignoring it")
     if dm0 is None and guess_basis:
-        print(f"[scf] stage 1: converging ROHF in {guess_basis} as a starting guess "
+        print(f"[scf] stage 1: converging {'ROKS/' + xc if xc else 'ROHF'} in {guess_basis} as a starting guess "
               f"(level_shift={level_shift}, max_cycle={max_cycle})")
         mol_s = gto.M(atom="\n".join(lines), basis=guess_basis, charge=charge, spin=spin, verbose=4)
         mf_s = _converge(_rohf(mol_s), None, f"stage 1 ({guess_basis})")
@@ -444,7 +445,8 @@ def build_mf(xyz, charge, spin, basis="def2-tzvp", level_shift=0.3, max_cycle=80
 
     if chkfile:
         mf.chkfile = chkfile
-    print(f"[scf] stage 2: ROHF in {basis} (level_shift={level_shift}, max_cycle={max_cycle})")
+    print(f"[scf] stage 2: {'ROKS/' + xc if xc else 'ROHF'} in {basis} (level_shift={level_shift}, "
+          f"damp={damp}, max_cycle={max_cycle})")
     mf = _converge(mf, dm0, f"stage 2 ({basis})")
     print(f"[scf] converged={mf.converged} E_SCF={mf.e_tot:.8f}")
     if not mf.converged:
@@ -672,6 +674,9 @@ def main():
                           "hydrogen bonds (see BACKBONE_EXTENSION).")
     ap.add_argument("--mixed-basis", action="store_true",
                      help="def2-tzvp on Fe and S only, def2-svp on every other atom.")
+    ap.add_argument("--scf-damp", type=float, default=0.0,
+                     help="Density damping factor for the DIIS stages (0-1). For a large model "
+                          "whose early DIIS oscillates by hundreds of Ha (job 2350824).")
     ap.add_argument("--scf-only", action="store_true",
                      help="Stop after the SCF, the state gate, AVAS and the embedding gate -- "
                           "no DMRG. For checking which electronic state a model setup lands in.")
@@ -775,7 +780,7 @@ def main():
 
     mf_hs = build_mf(xyz, charge, spin=15, basis=basis, level_shift=a.scf_level_shift,
                      max_cycle=a.scf_max_cycle, chkfile=a.scf_chkfile,
-                     xc=a.xc, solvent_eps=a.solvent_eps)
+                     xc=a.xc, solvent_eps=a.solvent_eps, damp=a.scf_damp)
     if not mf_hs.converged and not a.allow_unconverged_scf:
         sys.exit(f"\n*** REFUSING to continue: high-spin SCF did not converge "
                  f"(E={mf_hs.e_tot:.8f}). Its orbitals were saved to {a.scf_chkfile} -- "
