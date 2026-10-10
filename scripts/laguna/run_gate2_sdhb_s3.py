@@ -692,6 +692,11 @@ def main():
     ap.add_argument("--scf-damp", type=float, default=0.0,
                      help="Density damping factor for the DIIS stages (0-1). For a large model "
                           "whose early DIIS oscillates by hundreds of Ha (job 2350824).")
+    ap.add_argument("--avas-sulfur", choices=["bridging", "all"], default="bridging",
+                     help="Which sulfurs' 3p AOs enter the AVAS target set. 'bridging' (the "
+                          "inorganic mu2/mu3 sulfides only) is Science's 2026-10-07 spec, "
+                          "Fe 3d + bridging S 3p = 27 AOs. 'all' also includes the three Cys "
+                          "thiolates -- what the label 'S 3p' silently did before 2026-10-10.")
     ap.add_argument("--scf-only", action="store_true",
                      help="Stop after the SCF, the state gate, AVAS and the embedding gate -- "
                           "no DMRG. For checking which electronic state a model setup lands in.")
@@ -815,7 +820,22 @@ def main():
         sys.exit("\n*** REFUSING: the converged SCF is not the intended three-high-spin-Fe(III) "
                  "state (" + "; ".join(_why) + "). An active space built on it would describe a "
                  "different electronic state. ***")
-    spec, mo = avas_at_threshold(mf_hs, "Fe 3d, S 3p", a.threshold)
+    # AO target set. Science's 2026-10-07 spec is Fe 3d + the BRIDGING (inorganic)
+    # sulfides' 3p: 15 + 12 = 27 AOs, CAS(39,27). The label "S 3p" used until
+    # 2026-10-10 matched EVERY sulfur, the three Cys thiolate SG included
+    # (15 + 21 = 36 AOs), so the "27 target AOs" stated in --threshold's help
+    # never matched what ran. Job 2350828 (first correct-state run) returned
+    # CAS(57,39) on the all-sulfur set. --avas-sulfur bridging restricts the 3p
+    # set to the sulfides bonded to two or more Fe, by atom index.
+    from diag_sdhb_s3_spinpop import sulfur_roles
+    _roles = sulfur_roles(mf_hs.mol)
+    if a.avas_sulfur == "bridging":
+        _s_idx = sorted(i for i, r in _roles.items() if r in ("mu2", "mu3"))
+        ao_set = ", ".join(["Fe 3d"] + [f"{i} S 3p" for i in _s_idx])
+    else:
+        ao_set = "Fe 3d, S 3p"
+    print(f"[avas] AO target set ({a.avas_sulfur} sulfur): {ao_set}")
+    spec, mo = avas_at_threshold(mf_hs, ao_set, a.threshold)
     ncas, nelecas = spec["ncas"], spec["nelecas"]
 
     # Embedding gate BEFORE any DMRG: the ROHF determinant, evaluated with the
@@ -830,7 +850,7 @@ def main():
                  f"active space does not contain the reference; no DMRG run on it is "
                  f"interpretable. ***")
 
-    mo_path = f"{a.out_dir}/sdhb_s3_mo_coeff_highspin{tag}.npy"
+    mo_path = f"{a.out_dir}/sdhb_s3_mo_coeff_highspin{tag}{'_allS' if a.avas_sulfur == 'all' else ''}.npy"
     import numpy as np
     np.save(mo_path, mo)
     print(f"[avas] saved shared orbitals -> {mo_path}")
@@ -862,11 +882,12 @@ def main():
         mf_hs, mo, charge, ncas, nelecas, bond_dims=bond_dims,
         scratch=a.dmrg_scratch, n_threads=a.dmrg_threads, max_minutes=a.dmrg_max_minutes)
 
-    out = f"{a.out_dir}/sdhb_s3_both_spins{tag}.json"
+    out = f"{a.out_dir}/sdhb_s3_both_spins{tag}{'_allS' if a.avas_sulfur == 'all' else ''}.json"
     json.dump(dict(
         pdb=PDB_ID, charge=charge, basis=str(basis), fe_semicore=a.fe_semicore,
         setup=dict(tag=tag, xc=a.xc, solvent_eps=a.solvent_eps,
                    extend_backbone=a.extend_backbone, mixed_basis=a.mixed_basis,
+                   avas_sulfur=a.avas_sulfur,
                    e_scf_source=getattr(mf_hs, "e_scf_source", None)),
         threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
         high_spin=dict(spin=15, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),
