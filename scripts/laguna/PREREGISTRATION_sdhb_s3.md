@@ -281,9 +281,22 @@ covalent channel (S 3p lone pair into the N–H σ*), and spin leaks into the do
 than returning to Fe. This explanation was given after the measurement; it is not a tested
 prediction.
 
-### A3 — open check (pending)
+### A3 — 2026-10-10: dose-response check (Science, third reply)
 
-Science asked whether the μ₂ spin loss is monotonic in donor distance. The shortest new donor
-for each sulfide is S4 at 2.94 Å, S2 at 3.14 Å and S1 at 3.69 Å, which predicts S4 > S2 > S1.
-`label_f3s_atoms.py` maps the F3S atom names to atom indices by coordinate before this is
-assessed.
+Atom names were mapped by coordinate against the deposited mmCIF (`label_f3s_atoms.py`), not by
+list order.
+
+| Sulfide | New N–H donors (shortest distance) | 43-atom | Extended | Δ |
+|---|---|---|---|---|
+| S2 | 2 (MET247 3.14 Å, ILE246 3.67 Å) | 0.8454 | 0.7109 | **−0.135** |
+| S4 | 2 (ASN248 2.94 Å, MET247 3.74 Å) | 0.7739 | 0.7044 | −0.070 |
+| S1 | 1 (HIS244 3.69 Å) | 0.8209 | 0.7606 | −0.060 |
+| S3 (μ₃) | 0 (buried) | 0.7807 | 0.7970 | +0.016 |
+
+- **Monotonic in shortest-donor distance (S4 > S2 > S1): NOT observed.** S4, which has the
+  shortest donor, lost about half of what S2 lost. Science's reading of −0.134 as "S4" was an
+  assumption made before the atoms were labelled; the largest loss belongs to S2.
+- **Monotonic in donor count (2 > 1 > 0): observed.** Both two-donor sulfides lost more than the
+  one-donor sulfide, and the zero-donor μ₃ did not lose.
+- This was a post-hoc check, not a pre-registered prediction. No margin was declared, so neither
+  ordering is claimed as a confirmation. The two readings are recorded side by side.
