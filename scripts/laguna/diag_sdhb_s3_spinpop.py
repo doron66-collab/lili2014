@@ -55,7 +55,11 @@ def sulfur_roles(mol, cutoff=2.6):
     return roles
 
 
-def state_check(mol, per_atom, fe_spread_max=0.5, off_cluster_abs_max=0.3,
+def _off_cluster(mol):
+    return [ia for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S")]
+
+
+def state_check(mol, per_atom, fe_spread_max=0.5, offcluster_atom_to_fe_max=0.10,
                 ligand_to_fe_max=0.35, fe_fraction_window=(0.60, 0.85), two_s=15):
     """Is this the intended three-high-spin-Fe(III) [3Fe-4S]+ state? (ok, reasons)
 
@@ -69,7 +73,15 @@ def state_check(mol, per_atom, fe_spread_max=0.5, off_cluster_abs_max=0.3,
     failure mode: three equivalent Fe (+3.470/+3.454/+3.448, spread 0.022),
     refused on two sulfides at +0.821/+0.845.
 
-    Kept:      Fe spread <= 0.5; off-cluster sum|s| <= 0.3; all Fe same sign.
+    Kept:      Fe spread <= 0.5; all Fe same sign.
+    Replaced (Science, third reply, 2026-10-10): off-cluster sum|s| <= 0.3 was
+               EXTENSIVE in atom count -- the same defect in form as the
+               withdrawn per-sulfur bound. The extended model (123 atoms)
+               was refused at 0.451 while its per-atom off-cluster spin had
+               HALVED (0.00767 -> 0.00399). Now: max(single non-Fe/non-S
+               atom) / min(Fe) <= 0.10 -- intensive; asks only whether any
+               backbone atom is a radical centre. The sum and the per-atom
+               mean are reported, not gated.
     Replaced:  max(ligand spin) / min(Fe spin) <= 0.35 -- scale-free: 0.245
                for the BP86 state, 1.118 for the ROHF ligand-radical state
                (a ligand outranked an iron there);
@@ -92,9 +104,11 @@ def state_check(mol, per_atom, fe_spread_max=0.5, off_cluster_abs_max=0.3,
         reasons.append(f"Fe spin spread {spread:.3f} > {fe_spread_max}")
     if len({np.sign(x) for x in fe_spins}) > 1:
         reasons.append("Fe spins differ in sign")
-    off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
-    if off > off_cluster_abs_max:
-        reasons.append(f"sum |spin| on non-Fe/S atoms {off:.3f} > {off_cluster_abs_max}")
+    off_idx = _off_cluster(mol)
+    off_max = max((abs(per_atom[ia]) for ia in off_idx), default=0.0)
+    if off_max / float(fe_spins.min()) > offcluster_atom_to_fe_max:
+        reasons.append(f"max(single non-Fe/S atom)/min(Fe) {off_max / float(fe_spins.min()):.3f} "
+                       f"> {offcluster_atom_to_fe_max}")
     lig_max = max((abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) != "Fe"), default=0.0)
     ratio = lig_max / float(fe_spins.min())
     if ratio > ligand_to_fe_max:
@@ -116,9 +130,16 @@ def state_report(mol, per_atom, two_s=15):
     for ia, role in sorted(sulfur_roles(mol).items(), key=lambda kv: (kv[1] == "thiolate", kv[0])):
         kind = "thiolate" if role == "thiolate" else f"sulfide [{role}]"
         lines.append(f"S atom {ia} ({kind}) spin {per_atom[ia]:+.3f}")
-    off = sum(abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) not in ("Fe", "S"))
+    off_idx = _off_cluster(mol)
+    off = sum(abs(per_atom[ia]) for ia in off_idx)
     lig_max = max((abs(per_atom[ia]) for ia in range(mol.natm) if mol.atom_symbol(ia) != "Fe"), default=0.0)
-    lines += [f"sum |spin| on non-Fe/S atoms {off:.3f}",
+    if off_idx:
+        imax = max(off_idx, key=lambda ia: abs(per_atom[ia]))
+        lines += [f"max single non-Fe/S atom: {mol.atom_symbol(imax)} atom {imax} {per_atom[imax]:+.4f} "
+                  f"(/min Fe = {abs(per_atom[imax]) / min(per_atom[fe]):.4f}, gate <= 0.10)",
+                  f"sum |spin| on non-Fe/S atoms {off:.3f} over {len(off_idx)} atoms "
+                  f"(mean {off / len(off_idx):.5f}; reported, not gated)"]
+    lines += [
               f"max(ligand)/min(Fe) {lig_max / min(per_atom[fe]):.3f}",
               f"sum(Fe)/2S {sum(per_atom[fe]) / two_s:.3f}",
               f"total spin population {float(np.sum(per_atom)):.4f} (2S = {two_s})"]

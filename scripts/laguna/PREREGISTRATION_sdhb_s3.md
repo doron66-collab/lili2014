@@ -227,3 +227,63 @@ is the functional or the solvation model.
 - The claim that per-bond covalency falls with bridging count (§6) is an
   explanation offered after the fact for a measurement that contradicted the
   prior reasoning. It is not independently tested here.
+
+---
+
+## Amendments (appended after freezing; the text above is unchanged)
+
+### A1 — 2026-10-10: off-cluster gate replaced (Science, third reply)
+
+`Σ|spin|` on non-Fe, non-S atoms ≤ 0.3 (§2) was **extensive in atom count**.
+That is the same defect in form as the withdrawn per-sulfur bound (§6). Science's own retraction
+of that bound left this sibling gate in the same form.
+
+| Model | Non-Fe/S atoms | Σ\|s\| (the gated quantity) | Per-atom mean |
+|---|---|---|---|
+| 43-atom | 33 | 0.253 | 0.00767 |
+| Extended (job 2350835) | 113 | 0.451, **REFUSED** | 0.00399, **halved** |
+
+The gate is replaced by `max(single non-Fe/non-S atom) / min(Fe spin) ≤ 0.10`. The new form is
+intensive and asks only whether any backbone atom is a radical centre. The sum and the per-atom
+mean are reported, not gated. The value of the new gate on the extended model had not been seen
+when it was adopted.
+
+**State verdict for the extended model (Science):** it is the intended state.
+`max(ligand)/min(Fe)` went from 0.245 to 0.231, `sum(Fe)/2S` stayed at 0.691, and the Fe spread
+went from 0.022 to 0.023. The irons agree atom by atom.
+
+### A2 — 2026-10-10: outcome of the §8 prediction
+
+**Recorded outcome: FAILED** (a conjunction of two parts).
+
+- **Order part: held, with a 3.8× margin.** The μ₃ sulfide moved by +0.016. The μ₂ sulfides moved
+  by −0.060, −0.069 and −0.134.
+- **Fe part: failed.** Mean Fe was 3.45733 before and 3.45667 after, a change of −0.00067.
+
+Science's own assessment is that the Fe clause was badly specified, not physically refuted. Its
+threshold sat exactly on the starting value, with no margin, on a quantity whose noise had never
+been estimated.
+
+**Lesson carried into every future pre-registration:** each prediction clause states its margin,
+and no quantity enters a prediction without a noise estimate.
+
+**Spin budget.** Of the 0.264 the μ₂ sulfides lost:
+
+| Destination | Share |
+|---|---|
+| Off-cluster | 75% |
+| Thiolates | 20% |
+| μ₃ sulfide | 6% |
+| Fe | −1% (essentially none returned) |
+
+Science's offered mechanism is wrong in its target but right in its direction. N–H···S acts as a
+covalent channel (S 3p lone pair into the N–H σ*), and spin leaks into the donor groups rather
+than returning to Fe. This explanation was given after the measurement; it is not a tested
+prediction.
+
+### A3 — open check (pending)
+
+Science asked whether the μ₂ spin loss is monotonic in donor distance. The shortest new donor
+for each sulfide is S4 at 2.94 Å, S2 at 3.14 Å and S1 at 3.69 Å, which predicts S4 > S2 > S1.
+`label_f3s_atoms.py` maps the F3S atom names to atom indices by coordinate before this is
+assessed.
