@@ -658,6 +658,20 @@ def main():
                  f"re-running this same command resumes from them. Pass "
                  f"--allow-unconverged-scf only for a deliberate pipeline smoke test; "
                  f"nothing from such a run is reportable. ***")
+    # State gate: the SCF has several S=15/2 solutions, and the lowest one
+    # found so far is NOT the three-high-spin-Fe(III) state the active space is
+    # designed for (see diag_sdhb_s3_spinpop.state_check). <S^2> can't tell
+    # them apart, so read where the spin sits and refuse before AVAS/DMRG.
+    from diag_sdhb_s3_spinpop import spin_populations, state_check
+    _pop = spin_populations(mf_hs.mol, mf_hs.mo_coeff, mf_hs.mo_occ)
+    for _ia in range(mf_hs.mol.natm):
+        if mf_hs.mol.atom_symbol(_ia) == "Fe":
+            print(f"[state] Fe atom {_ia} spin population {_pop[_ia]:+.3f}")
+    _ok, _why = state_check(mf_hs.mol, _pop)
+    if not _ok:
+        sys.exit("\n*** REFUSING: the converged SCF is not the intended three-high-spin-Fe(III) "
+                 "state (" + "; ".join(_why) + "). An active space built on it would describe a "
+                 "different electronic state. ***")
     spec, mo = avas_at_threshold(mf_hs, "Fe 3d, S 3p", a.threshold)
     ncas, nelecas = spec["ncas"], spec["nelecas"]
 
