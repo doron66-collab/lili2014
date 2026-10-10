@@ -692,6 +692,11 @@ def main():
     ap.add_argument("--scf-damp", type=float, default=0.0,
                      help="Density damping factor for the DIIS stages (0-1). For a large model "
                           "whose early DIIS oscillates by hundreds of Ha (job 2350824).")
+    ap.add_argument("--state-bridging-s-max", type=float, default=0.8,
+                     help="Upper bound of the bridging-sulfide spin window in the state gate "
+                          "(Claude Science's 2026-10-10 value: 0.8). Changing it is a recorded "
+                          "decision, not a tuning knob: it is printed in the log and stored in the "
+                          "output JSON.")
     ap.add_argument("--scf-only", action="store_true",
                      help="Stop after the SCF, the state gate, AVAS and the embedding gate -- "
                           "no DMRG. For checking which electronic state a model setup lands in.")
@@ -809,9 +814,12 @@ def main():
     from diag_sdhb_s3_spinpop import spin_populations, state_check
     _pop = spin_populations(mf_hs.mol, mf_hs.mo_coeff, mf_hs.mo_occ)
     for _ia in range(mf_hs.mol.natm):
-        if mf_hs.mol.atom_symbol(_ia) == "Fe":
-            print(f"[state] Fe atom {_ia} spin population {_pop[_ia]:+.3f}")
-    _ok, _why = state_check(mf_hs.mol, _pop)
+        if mf_hs.mol.atom_symbol(_ia) in ("Fe", "S"):
+            print(f"[state] {mf_hs.mol.atom_symbol(_ia)} atom {_ia} spin population {_pop[_ia]:+.3f}")
+    _off = sum(abs(_pop[i]) for i in range(mf_hs.mol.natm) if mf_hs.mol.atom_symbol(i) not in ("Fe", "S"))
+    print(f"[state] sum |spin| on non-Fe/S atoms {_off:.3f}")
+    print(f"[state] bridging-S window used: (0.2, {a.state_bridging_s_max})")
+    _ok, _why = state_check(mf_hs.mol, _pop, bridging_s_window=(0.2, a.state_bridging_s_max))
     if not _ok:
         sys.exit("\n*** REFUSING: the converged SCF is not the intended three-high-spin-Fe(III) "
                  "state (" + "; ".join(_why) + "). An active space built on it would describe a "
@@ -868,6 +876,7 @@ def main():
         pdb=PDB_ID, charge=charge, basis=str(basis), fe_semicore=a.fe_semicore,
         setup=dict(tag=tag, xc=a.xc, solvent_eps=a.solvent_eps,
                    extend_backbone=a.extend_backbone, mixed_basis=a.mixed_basis,
+                   state_bridging_s_max=a.state_bridging_s_max,
                    e_scf_source=getattr(mf_hs, "e_scf_source", None)),
         threshold=a.threshold, ncas=ncas, nelecas=nelecas, qubits=spec["qubits"],
         high_spin=dict(spin=15, e_scf=float(mf_hs.e_tot), scf_converged=bool(mf_hs.converged),
